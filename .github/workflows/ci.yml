@@ -36,7 +36,7 @@ jobs:
         run: pnpm lint
 
       - name: Unit tests
-        run: pnpm test
+        run: pnpm --filter=!@ada/api --filter=!@ada/firebase-tests test
 
   firestore-rules:
     runs-on: ubuntu-latest
@@ -64,3 +64,6 @@ jobs:
 
       - name: Run Firestore rules tests
         run: pnpm test:rules
+
+      - name: Run API tests with Emulator
+        run: pnpm test:api
