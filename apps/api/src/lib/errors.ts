@@ -1,4 +1,4 @@
-import { ErrorHandler } from 'hono';
+import type { ErrorHandler } from 'hono';
 
 export class AppError extends Error {
   constructor(

@@ -1,5 +1,5 @@
 import { auth } from './firebase';
-import { MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 
 export interface UserContext {
   uid: string;

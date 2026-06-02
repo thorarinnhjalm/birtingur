@@ -59,11 +59,12 @@ export async function getPublisherByOwnerEmail(email: string): Promise<Publisher
     .withConverter(publisherConverter)
     .get();
 
-  if (snapshot.empty) {
+  const firstDoc = snapshot.docs[0];
+  if (!firstDoc) {
     return null;
   }
 
-  return snapshot.docs[0].data();
+  return firstDoc.data();
 }
 
 export async function updatePublisher(

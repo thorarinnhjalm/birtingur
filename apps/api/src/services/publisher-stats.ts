@@ -25,7 +25,7 @@ export async function getPublisherStats(
   for (let i = timeframeDays - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateStr = d.toISOString().split('T')[0]!; // YYYY-MM-DD
 
     let dayImpressions = 0;
     let dayClicks = 0;
