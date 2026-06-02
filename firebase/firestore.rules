@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    function ownsAdvertiser(advertiserId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/advertisers/$(advertiserId)).data.ownerEmail == request.auth.token.email;
+    }
+
+    function ownsPublisher(publisherId) {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/publishers/$(publisherId)).data.ownerEmail == request.auth.token.email;
+    }
+
+    // PUBLISHERS: owners can read/write own doc; admin reads all
+    match /publishers/{publisherId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && resource.data.ownerEmail == request.auth.token.email);
+      // Writes go through API service account, not direct client
+      allow write: if false;
+    }
+
+    // SLOTS: owner reads/writes their own slots; admin reads all
+    match /slots/{slotId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsPublisher(resource.data.publisherId));
+      allow write: if false;
+    }
+
+    // ADVERTISERS
+    match /advertisers/{advertiserId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && resource.data.ownerEmail == request.auth.token.email);
+      allow write: if false;
+    }
+
+    // CREATIVES: advertiser owner reads own; publisher reads creatives in pending approvals for their slots; admin reads all
+    match /creatives/{creativeId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsAdvertiser(resource.data.advertiserId));
+      allow write: if false;
+    }
+
+    // CAMPAIGNS: advertiser owner reads own; admin reads all
+    match /campaigns/{campaignId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsAdvertiser(resource.data.advertiserId));
+      allow write: if false;
+    }
+
+    // LEDGER: immutable; readable only by the party + admin; no client writes ever
+    match /ledger/{entryId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && (
+                    (resource.data.party.type == 'advertiser' && ownsAdvertiser(resource.data.party.id))
+                    || (resource.data.party.type == 'publisher' && ownsPublisher(resource.data.party.id))
+                  ));
+      allow write: if false;
+      // Note: even server SDK writes use atomic transactions through API; no overwrites allowed.
+    }
+
+    // PAYOUTS: publisher reads own, admin reads all
+    match /payouts/{payoutId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsPublisher(resource.data.publisherId));
+      allow write: if false;
+    }
+
+    // STATS: any signed-in user can read their own (path-based scoping in subsequent plans)
+    match /stats/{document=**} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

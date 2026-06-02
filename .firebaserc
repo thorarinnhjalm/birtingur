@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "ada-dev",
+    "production": "ada-prod"
+  }
+}
