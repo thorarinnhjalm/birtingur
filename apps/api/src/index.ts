@@ -9,6 +9,7 @@ import { walletRouter } from './routes/wallet';
 import { teyaWebhookRoute } from './routes/webhooks/teya';
 import { handleError } from './lib/errors';
 import { adminRoutes } from './routes/admin';
+import { publisherApprovalsRoutes } from './routes/publisher-approvals';
 
 export const app = new Hono();
 
@@ -25,5 +26,6 @@ app.route('/v1/slots/search', slotsSearchRouter);
 app.route('/v1/advertisers/me/wallet', walletRouter);
 app.route('/api/teya/webhook', teyaWebhookRoute);
 app.route('/v1/admin', adminRoutes);
+app.route('/v1/publishers/me', publisherApprovalsRoutes);
 
 export default app;
