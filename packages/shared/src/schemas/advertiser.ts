@@ -3,6 +3,7 @@ import { z } from 'zod';
 const KennitalaSchema = z.string().regex(/^\d{10}$/);
 
 export const AdvertiserStatusSchema = z.enum(['active', 'suspended']);
+export type AdvertiserStatus = z.infer<typeof AdvertiserStatusSchema>;
 
 export const AdvertiserSchema = z.object({
   id: z.string().min(1),
