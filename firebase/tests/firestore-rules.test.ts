@@ -98,12 +98,16 @@ describe('Firestore rules — ledger', () => {
         companyName: 'Anna ehf',
         status: 'active',
       });
-      await ctx.firestore().collection('ledger').doc('led_1').set({
-        party: { type: 'advertiser', id: 'adv_a' },
-        type: 'topup',
-        amountIsk: 20000,
-        relatedId: 'teya_x',
-      });
+      await ctx
+        .firestore()
+        .collection('ledger')
+        .doc('led_1')
+        .set({
+          party: { type: 'advertiser', id: 'adv_a' },
+          type: 'topup',
+          amountIsk: 20000,
+          relatedId: 'teya_x',
+        });
     });
 
     const userCtx = testEnv.authenticatedContext('uid-anna', { email: 'anna@example.is' });
@@ -117,12 +121,16 @@ describe('Firestore rules — ledger', () => {
         companyName: 'Anna ehf',
         status: 'active',
       });
-      await ctx.firestore().collection('ledger').doc('led_1').set({
-        party: { type: 'advertiser', id: 'adv_a' },
-        type: 'topup',
-        amountIsk: 20000,
-        relatedId: 'teya_x',
-      });
+      await ctx
+        .firestore()
+        .collection('ledger')
+        .doc('led_1')
+        .set({
+          party: { type: 'advertiser', id: 'adv_a' },
+          type: 'topup',
+          amountIsk: 20000,
+          relatedId: 'teya_x',
+        });
     });
 
     const otherCtx = testEnv.authenticatedContext('uid-other', { email: 'other@example.is' });
@@ -132,12 +140,16 @@ describe('Firestore rules — ledger', () => {
   it('no client write to ledger allowed', async () => {
     const userCtx = testEnv.authenticatedContext('uid-anna', { email: 'anna@example.is' });
     await assertFails(
-      userCtx.firestore().collection('ledger').doc('led_new').set({
-        party: { type: 'advertiser', id: 'adv_a' },
-        type: 'topup',
-        amountIsk: 100,
-        relatedId: 'x',
-      }),
+      userCtx
+        .firestore()
+        .collection('ledger')
+        .doc('led_new')
+        .set({
+          party: { type: 'advertiser', id: 'adv_a' },
+          type: 'topup',
+          amountIsk: 100,
+          relatedId: 'x',
+        }),
     );
   });
 });

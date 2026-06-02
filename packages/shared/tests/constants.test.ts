@@ -25,7 +25,11 @@ describe('constants', () => {
 
   it('includes IAB standard sizes', () => {
     expect(IAB_STANDARD_SIZES).toContainEqual({ width: 728, height: 90, name: 'Leaderboard' });
-    expect(IAB_STANDARD_SIZES).toContainEqual({ width: 300, height: 250, name: 'Medium Rectangle' });
+    expect(IAB_STANDARD_SIZES).toContainEqual({
+      width: 300,
+      height: 250,
+      name: 'Medium Rectangle',
+    });
     expect(IAB_STANDARD_SIZES).toContainEqual({ width: 300, height: 600, name: 'Half Page' });
     expect(IAB_STANDARD_SIZES).toContainEqual({ width: 320, height: 100, name: 'Mobile Banner' });
     expect(IAB_STANDARD_SIZES).toContainEqual({ width: 980, height: 120, name: 'Billboard IS' });

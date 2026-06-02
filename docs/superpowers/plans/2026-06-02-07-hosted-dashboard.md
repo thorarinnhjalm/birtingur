@@ -178,7 +178,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   server: { port: 3000 },
-  test: { environment: 'jsdom', globals: true, include: ['tests/**/*.test.tsx', 'tests/**/*.test.ts'] },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    include: ['tests/**/*.test.tsx', 'tests/**/*.test.ts'],
+  },
 });
 ```
 
@@ -217,29 +221,32 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/inde
 ```html
 <!doctype html>
 <html lang="is">
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ADA — Auglýsingavettvangur</title>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADA — Auglýsingavettvangur</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
 ```
 
 Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/styles.css`:
 
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   font-family: Inter, system-ui, sans-serif;
   color: #0f172a;
 }
-body { margin: 0; background: #ffffff; }
+body {
+  margin: 0;
+  background: #ffffff;
+}
 ```
 
 Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/main.tsx`:
@@ -315,7 +322,12 @@ import { auth } from './firebase';
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.adplatform.is';
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+    public details?: unknown,
+  ) {
     super(message);
   }
 }
@@ -331,8 +343,17 @@ export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise
   const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
   if (!res.ok) {
     let body: { error?: string; message?: string; details?: unknown } = {};
-    try { body = await res.json(); } catch { /* ignore */ }
-    throw new ApiError(res.status, body.error ?? 'unknown', body.message ?? res.statusText, body.details);
+    try {
+      body = await res.json();
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(
+      res.status,
+      body.error ?? 'unknown',
+      body.message ?? res.statusText,
+      body.details,
+    );
   }
   return res.json() as Promise<T>;
 }
@@ -589,7 +610,9 @@ const styles: Record<Variant, string> = {
 
 export function Badge({ variant, children }: { variant: Variant; children: ReactNode }) {
   return (
-    <span className={clsx('inline-block px-2 py-0.5 text-xs font-semibold rounded-md', styles[variant])}>
+    <span
+      className={clsx('inline-block px-2 py-0.5 text-xs font-semibold rounded-md', styles[variant])}
+    >
       {children}
     </span>
   );
@@ -602,23 +625,28 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 import { type InputHTMLAttributes, forwardRef } from 'react';
 import clsx from 'clsx';
 
-interface Props extends InputHTMLAttributes<HTMLInputElement> { label?: string; error?: string }
+interface Props extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
 
-export const Input = forwardRef<HTMLInputElement, Props>(({ label, error, className, ...rest }, ref) => (
-  <label className="block">
-    {label && <span className="block text-sm font-medium text-slate-700 mb-1">{label}</span>}
-    <input
-      ref={ref}
-      className={clsx(
-        'w-full px-4 py-3 border rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary',
-        error ? 'border-red-500' : 'border-slate-300',
-        className,
-      )}
-      {...rest}
-    />
-    {error && <span className="block mt-1 text-sm text-red-600">{error}</span>}
-  </label>
-));
+export const Input = forwardRef<HTMLInputElement, Props>(
+  ({ label, error, className, ...rest }, ref) => (
+    <label className="block">
+      {label && <span className="block text-sm font-medium text-slate-700 mb-1">{label}</span>}
+      <input
+        ref={ref}
+        className={clsx(
+          'w-full px-4 py-3 border rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary',
+          error ? 'border-red-500' : 'border-slate-300',
+          className,
+        )}
+        {...rest}
+      />
+      {error && <span className="block mt-1 text-sm text-red-600">{error}</span>}
+    </label>
+  ),
+);
 Input.displayName = 'Input';
 ```
 
@@ -627,7 +655,17 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 ```tsx
 import type { ReactNode } from 'react';
 
-export function EmptyState({ icon, title, description, action }: { icon?: ReactNode; title: string; description?: string; action?: ReactNode }) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon?: ReactNode;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="text-center py-16">
       {icon && <div className="mx-auto mb-4 text-slate-400">{icon}</div>}
@@ -662,7 +700,11 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   return (
     <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
       <p className="text-red-700 font-medium">{message}</p>
-      {onRetry && <Button variant="secondary" className="mt-4" onClick={onRetry}>Reyna aftur</Button>}
+      {onRetry && (
+        <Button variant="secondary" className="mt-4" onClick={onRetry}>
+          Reyna aftur
+        </Button>
+      )}
     </div>
   );
 }
@@ -690,7 +732,11 @@ import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 import type { ReactNode } from 'react';
 
-export interface SidebarItem { to: string; label: string; icon: ReactNode }
+export interface SidebarItem {
+  to: string;
+  label: string;
+  icon: ReactNode;
+}
 
 export function Sidebar({ items }: { items: SidebarItem[] }) {
   return (
@@ -700,10 +746,12 @@ export function Sidebar({ items }: { items: SidebarItem[] }) {
         <NavLink
           key={it.to}
           to={it.to}
-          className={({ isActive }) => clsx(
-            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
-            isActive ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-100',
-          )}
+          className={({ isActive }) =>
+            clsx(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+              isActive ? 'bg-primary text-white' : 'text-slate-700 hover:bg-slate-100',
+            )
+          }
         >
           {it.icon}
           {it.label}
@@ -725,7 +773,9 @@ export function TopBar() {
   return (
     <div className="h-16 border-b border-slate-200 px-8 flex items-center justify-end gap-4">
       <span className="text-sm text-slate-700">{user?.email}</span>
-      <Button variant="ghost" onClick={signOut}>Skrá út</Button>
+      <Button variant="ghost" onClick={signOut}>
+        Skrá út
+      </Button>
     </div>
   );
 }
@@ -788,7 +838,9 @@ export default function SignIn() {
     try {
       await signInWithPopup(auth, googleProvider);
       navigate('/');
-    } catch (e) { setError(String(e)); }
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   async function handleEmail(e: React.FormEvent) {
@@ -797,7 +849,9 @@ export default function SignIn() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate('/');
-    } catch (err) { setError('Innskráning mistókst'); }
+    } catch (err) {
+      setError('Innskráning mistókst');
+    }
   }
 
   return (
@@ -817,9 +871,23 @@ export default function SignIn() {
         </div>
 
         <form onSubmit={handleEmail} className="space-y-4">
-          <Input label="Netfang" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Input label="Lykilorð" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <Button type="submit" className="w-full">Skrá inn</Button>
+          <Input
+            label="Netfang"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="Lykilorð"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <Button type="submit" className="w-full">
+            Skrá inn
+          </Button>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
       </Card>
@@ -841,13 +909,23 @@ export default function RoleSelect() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="grid sm:grid-cols-2 gap-4 max-w-3xl">
-        <Card className="cursor-pointer hover:shadow-md transition" onClick={() => nav('/advertiser/onboarding')}>
+        <Card
+          className="cursor-pointer hover:shadow-md transition"
+          onClick={() => nav('/advertiser/onboarding')}
+        >
           <h3 className="text-lg font-semibold">Ég vil birta auglýsingar</h3>
-          <p className="text-sm text-slate-600 mt-2">Settu inn inneign, hladdu upp auglýsingu og veldu pláss á íslenskum vefjum.</p>
+          <p className="text-sm text-slate-600 mt-2">
+            Settu inn inneign, hladdu upp auglýsingu og veldu pláss á íslenskum vefjum.
+          </p>
         </Card>
-        <Card className="cursor-pointer hover:shadow-md transition" onClick={() => nav('/publisher/onboarding')}>
+        <Card
+          className="cursor-pointer hover:shadow-md transition"
+          onClick={() => nav('/publisher/onboarding')}
+        >
           <h3 className="text-lg font-semibold">Ég er með vef og vil selja pláss</h3>
-          <p className="text-sm text-slate-600 mt-2">Búðu til auglýsingapláss og fáðu tekjur af þínum vef.</p>
+          <p className="text-sm text-slate-600 mt-2">
+            Búðu til auglýsingapláss og fáðu tekjur af þínum vef.
+          </p>
         </Card>
       </div>
     </div>
@@ -880,10 +958,38 @@ export default function App() {
   return (
     <Routes>
       <Route path="/sign-in" element={<SignIn />} />
-      <Route path="/role" element={<Protected><RoleSelect /></Protected>} />
-      <Route path="/advertiser/*" element={<Protected><AdvertiserDashboard /></Protected>} />
-      <Route path="/publisher/*" element={<Protected><PublisherDashboard /></Protected>} />
-      <Route path="/admin/*" element={<Protected><AdminOverview /></Protected>} />
+      <Route
+        path="/role"
+        element={
+          <Protected>
+            <RoleSelect />
+          </Protected>
+        }
+      />
+      <Route
+        path="/advertiser/*"
+        element={
+          <Protected>
+            <AdvertiserDashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/publisher/*"
+        element={
+          <Protected>
+            <PublisherDashboard />
+          </Protected>
+        }
+      />
+      <Route
+        path="/admin/*"
+        element={
+          <Protected>
+            <AdminOverview />
+          </Protected>
+        }
+      />
       <Route path="/" element={<Navigate to="/role" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -916,7 +1022,8 @@ import type { Advertiser } from '@ada/shared';
 export function useAdvertiser() {
   return useQuery({
     queryKey: ['advertiser', 'me'],
-    queryFn: () => apiFetch<{ advertiser: Advertiser }>('/v1/advertisers/me').then((r) => r.advertiser),
+    queryFn: () =>
+      apiFetch<{ advertiser: Advertiser }>('/v1/advertisers/me').then((r) => r.advertiser),
   });
 }
 ```
@@ -927,7 +1034,10 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 
-interface Wallet { advertiserId: string; balanceIsk: number }
+interface Wallet {
+  advertiserId: string;
+  balanceIsk: number;
+}
 
 export function useWallet() {
   return useQuery({
@@ -970,7 +1080,13 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 
 ```tsx
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Megaphone, Wallet, Image as ImageIcon, Settings as SettingsIcon, LayoutGrid } from 'lucide-react';
+import {
+  Megaphone,
+  Wallet,
+  Image as ImageIcon,
+  Settings as SettingsIcon,
+  LayoutGrid,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { useWallet } from '@/hooks/useWallet';
@@ -1010,8 +1126,12 @@ function Home() {
     <div className="space-y-8 max-w-6xl">
       <Card>
         <div className="text-xs uppercase font-semibold text-slate-500 tracking-wider">Veski</div>
-        <div className="mt-2 text-4xl font-semibold text-slate-900">{formatIsk(wallet.data?.balanceIsk ?? 0)}</div>
-        <Button className="mt-4" onClick={() => navigate('/advertiser/topup')}>+ Setja inn inneign</Button>
+        <div className="mt-2 text-4xl font-semibold text-slate-900">
+          {formatIsk(wallet.data?.balanceIsk ?? 0)}
+        </div>
+        <Button className="mt-4" onClick={() => navigate('/advertiser/topup')}>
+          + Setja inn inneign
+        </Button>
       </Card>
 
       <div className="grid sm:grid-cols-3 gap-4">
@@ -1029,19 +1149,35 @@ function Home() {
           <EmptyState
             title="Engar herferðir enn"
             description="Stofnaðu þína fyrstu herferð til að byrja að birta."
-            action={<Button onClick={() => navigate('/advertiser/campaigns/new')}>Búa til herferð</Button>}
+            action={
+              <Button onClick={() => navigate('/advertiser/campaigns/new')}>Búa til herferð</Button>
+            }
           />
         ) : (
           <div className="space-y-3">
             {campaigns.data!.map((c) => (
-              <Card key={c.id} className="flex justify-between items-center cursor-pointer" onClick={() => navigate(`/advertiser/campaigns/${c.id}`)}>
+              <Card
+                key={c.id}
+                className="flex justify-between items-center cursor-pointer"
+                onClick={() => navigate(`/advertiser/campaigns/${c.id}`)}
+              >
                 <div>
                   <div className="font-medium">{c.id}</div>
                   <div className="text-sm text-slate-600">
-                    {c.targeting.slotIds.length} vefir · {formatIsk(c.budget.totalIsk - c.budget.remainingIsk)} / {formatIsk(c.budget.totalIsk)}
+                    {c.targeting.slotIds.length} vefir ·{' '}
+                    {formatIsk(c.budget.totalIsk - c.budget.remainingIsk)} /{' '}
+                    {formatIsk(c.budget.totalIsk)}
                   </div>
                 </div>
-                <Badge variant={c.status === 'active' ? 'success' : c.status === 'pending_approval' ? 'pending' : 'neutral'}>
+                <Badge
+                  variant={
+                    c.status === 'active'
+                      ? 'success'
+                      : c.status === 'pending_approval'
+                        ? 'pending'
+                        : 'neutral'
+                  }
+                >
                   {c.status}
                 </Badge>
               </Card>
@@ -1109,7 +1245,9 @@ export default function TopUp() {
   return (
     <Card className="max-w-xl">
       <h1 className="text-xl font-semibold">Setja inn inneign</h1>
-      <p className="text-sm text-slate-600 mt-2">Núverandi inneign: {formatIsk(wallet.data?.balanceIsk ?? 0)}</p>
+      <p className="text-sm text-slate-600 mt-2">
+        Núverandi inneign: {formatIsk(wallet.data?.balanceIsk ?? 0)}
+      </p>
 
       <div className="grid grid-cols-4 gap-2 mt-6">
         {PRESETS.map((p) => (
@@ -1124,16 +1262,32 @@ export default function TopUp() {
       </div>
 
       <div className="mt-4">
-        <Input label="Önnur upphæð (kr)" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} />
+        <Input
+          label="Önnur upphæð (kr)"
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value) || 0)}
+        />
       </div>
 
       <div className="mt-6 pt-6 border-t border-slate-200 space-y-2 text-sm">
-        <div className="flex justify-between"><span>Upphæð</span><span>{formatIsk(amount)}</span></div>
-        <div className="flex justify-between text-slate-600"><span>Þar af VSK</span><span>{formatIsk(vat)}</span></div>
-        <div className="flex justify-between font-semibold"><span>Heildargreiðsla</span><span>{formatIsk(amount)}</span></div>
+        <div className="flex justify-between">
+          <span>Upphæð</span>
+          <span>{formatIsk(amount)}</span>
+        </div>
+        <div className="flex justify-between text-slate-600">
+          <span>Þar af VSK</span>
+          <span>{formatIsk(vat)}</span>
+        </div>
+        <div className="flex justify-between font-semibold">
+          <span>Heildargreiðsla</span>
+          <span>{formatIsk(amount)}</span>
+        </div>
       </div>
 
-      <Button className="w-full mt-6" loading={topup.isPending} onClick={submit}>Greiða með korti</Button>
+      <Button className="w-full mt-6" loading={topup.isPending} onClick={submit}>
+        Greiða með korti
+      </Button>
       <p className="text-xs text-slate-500 text-center mt-2">Greitt í gegnum Teya · íslensk kort</p>
     </Card>
   );
@@ -1157,15 +1311,27 @@ export default function CampaignList() {
   const { data, isLoading } = useCampaigns();
   if (isLoading) return <LoadingState />;
   if (!data || data.length === 0) {
-    return <EmptyState title="Engar herferðir" action={<Button onClick={() => nav('/advertiser/campaigns/new')}>Búa til</Button>} />;
+    return (
+      <EmptyState
+        title="Engar herferðir"
+        action={<Button onClick={() => nav('/advertiser/campaigns/new')}>Búa til</Button>}
+      />
+    );
   }
   return (
     <div className="space-y-3 max-w-4xl">
       {data.map((c) => (
-        <Card key={c.id} className="flex justify-between items-center cursor-pointer" onClick={() => nav(`/advertiser/campaigns/${c.id}`)}>
+        <Card
+          key={c.id}
+          className="flex justify-between items-center cursor-pointer"
+          onClick={() => nav(`/advertiser/campaigns/${c.id}`)}
+        >
           <div>
             <div className="font-semibold">{c.id}</div>
-            <div className="text-sm text-slate-600">{formatIsk(c.budget.totalIsk - c.budget.remainingIsk)} / {formatIsk(c.budget.totalIsk)}</div>
+            <div className="text-sm text-slate-600">
+              {formatIsk(c.budget.totalIsk - c.budget.remainingIsk)} /{' '}
+              {formatIsk(c.budget.totalIsk)}
+            </div>
           </div>
           <Badge variant={c.status === 'active' ? 'success' : 'pending'}>{c.status}</Badge>
         </Card>
@@ -1209,7 +1375,9 @@ export default function CampaignCreate() {
 
       {step === 2 && (
         <div className="mt-6">
-          <p className="text-sm text-slate-600">Hlaða upp auglýsingu (mynd, PNG/JPG, hámark 2 MB)</p>
+          <p className="text-sm text-slate-600">
+            Hlaða upp auglýsingu (mynd, PNG/JPG, hámark 2 MB)
+          </p>
           <Input type="file" accept="image/png,image/jpeg" className="mt-2" />
           <Input label="Smellur fer á" placeholder="https://..." className="mt-4" />
         </div>
@@ -1229,7 +1397,13 @@ export default function CampaignCreate() {
       )}
 
       <div className="flex justify-between mt-8">
-        <Button variant="ghost" onClick={() => setStep((s) => Math.max(1, s - 1))} disabled={step === 1}>Til baka</Button>
+        <Button
+          variant="ghost"
+          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          disabled={step === 1}
+        >
+          Til baka
+        </Button>
         {step < 4 ? (
           <Button onClick={() => setStep((s) => s + 1)}>Næsta skref →</Button>
         ) : (
@@ -1302,12 +1476,19 @@ function Home() {
   const nav = useNavigate();
   if (pub.isLoading || slots.isLoading) return <LoadingState />;
   if (!pub.data) {
-    return <EmptyState title="Útgefendaaðgangur ekki stofnaður" action={<Button onClick={() => nav('/publisher/onboarding')}>Klára skráningu</Button>} />;
+    return (
+      <EmptyState
+        title="Útgefendaaðgangur ekki stofnaður"
+        action={<Button onClick={() => nav('/publisher/onboarding')}>Klára skráningu</Button>}
+      />
+    );
   }
   return (
     <div className="space-y-8 max-w-6xl">
       <Card>
-        <div className="text-xs uppercase font-semibold text-slate-500 tracking-wider">Tekjur í mánuðinum</div>
+        <div className="text-xs uppercase font-semibold text-slate-500 tracking-wider">
+          Tekjur í mánuðinum
+        </div>
         <div className="mt-2 text-4xl font-semibold text-slate-900">{formatIsk(0)}</div>
       </Card>
       <div className="grid sm:grid-cols-3 gap-4">
@@ -1321,13 +1502,22 @@ function Home() {
           <Button onClick={() => nav('/publisher/slots/new')}>+ Nýtt pláss</Button>
         </div>
         {(slots.data ?? []).length === 0 ? (
-          <EmptyState title="Engin pláss enn" action={<Button onClick={() => nav('/publisher/slots/new')}>Búa til pláss</Button>} />
+          <EmptyState
+            title="Engin pláss enn"
+            action={<Button onClick={() => nav('/publisher/slots/new')}>Búa til pláss</Button>}
+          />
         ) : (
           <div className="space-y-3">
             {slots.data!.map((s) => (
-              <Card key={s.id} className="cursor-pointer" onClick={() => nav(`/publisher/slots/${s.id}`)}>
+              <Card
+                key={s.id}
+                className="cursor-pointer"
+                onClick={() => nav(`/publisher/slots/${s.id}`)}
+              >
                 <div className="font-medium">{s.name}</div>
-                <div className="text-sm text-slate-600">{s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ')}</div>
+                <div className="text-sm text-slate-600">
+                  {s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ')}
+                </div>
               </Card>
             ))}
           </div>
@@ -1365,7 +1555,15 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 
 ```tsx
 import { Routes, Route } from 'react-router-dom';
-import { LayoutGrid, ShieldCheck, Building2, Users, BarChart3, Settings as SettingsIcon, Banknote } from 'lucide-react';
+import {
+  LayoutGrid,
+  ShieldCheck,
+  Building2,
+  Users,
+  BarChart3,
+  Settings as SettingsIcon,
+  Banknote,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
@@ -1437,7 +1635,8 @@ import type { Creative } from '@ada/shared';
 export function useReviewQueue() {
   return useQuery({
     queryKey: ['admin', 'review-queue'],
-    queryFn: () => apiFetch<{ queue: Creative[] }>('/v1/admin/review-queue/queue').then((r) => r.queue),
+    queryFn: () =>
+      apiFetch<{ queue: Creative[] }>('/v1/admin/review-queue/queue').then((r) => r.queue),
   });
 }
 ```

@@ -8,14 +8,11 @@ import { PublisherSchema, SlotSchema } from '../schemas/publisher';
 import { AdvertiserSchema, CreativeSchema } from '../schemas/advertiser';
 import { CampaignSchema } from '../schemas/campaign';
 import { LedgerEntrySchema, PayoutSchema } from '../schemas/ledger';
-import type {
-  Publisher,
-  Slot,
-} from '../schemas/publisher';
+import type { Publisher, Slot } from '../schemas/publisher';
 import type { Advertiser, Creative } from '../schemas/advertiser';
 import type { Campaign } from '../schemas/campaign';
 import type { LedgerEntry, Payout } from '../schemas/ledger';
-import type { ZodSchema } from 'zod';
+import type { ZodType, ZodTypeDef } from 'zod';
 
 /**
  * Recursively walk an object converting Date instances to Firestore Timestamps.
@@ -54,7 +51,7 @@ function timestampsToDates(value: unknown): unknown {
  * The converter validates the entity through its Zod schema on read.
  */
 function makeConverter<T extends { id: string }>(
-  schema: ZodSchema<T, any, any>,
+  schema: ZodType<T, ZodTypeDef, unknown>,
 ): FirestoreDataConverter<T> {
   return {
     toFirestore(value: T): DocumentData {

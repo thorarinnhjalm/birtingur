@@ -114,12 +114,15 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/servic
 import type { AutoScanner, ScanInput, ScanReturn } from './index';
 
 const BLOCKED_TERMS = [
-  'casino', 'gambling', 'fjárhættuspil', 'bet365', 'porn',
-  'free money', 'click here to win',
+  'casino',
+  'gambling',
+  'fjárhættuspil',
+  'bet365',
+  'porn',
+  'free money',
+  'click here to win',
 ];
-const SUSPICIOUS_URL_PATTERNS = [
-  /bit\.ly/i, /tinyurl/i, /\.tk(\/|$)/i, /click\.tracker/i,
-];
+const SUSPICIOUS_URL_PATTERNS = [/bit\.ly/i, /tinyurl/i, /\.tk(\/|$)/i, /click\.tracker/i];
 
 export class StubAutoScanner implements AutoScanner {
   async scan(input: ScanInput): Promise<ScanReturn> {
@@ -184,10 +187,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/tests/adve
 ```ts
 import { describe, it, expect } from 'vitest';
 import { useEmulator } from './helpers/emulator';
-import {
-  createAdvertiser,
-  getAdvertiserByOwnerEmail,
-} from '../src/services/advertisers';
+import { createAdvertiser, getAdvertiserByOwnerEmail } from '../src/services/advertisers';
 
 useEmulator();
 
@@ -230,11 +230,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/servic
 
 ```ts
 import { z } from 'zod';
-import {
-  COLLECTIONS,
-  advertiserConverter,
-  AdvertiserSchema,
-} from '@ada/shared';
+import { COLLECTIONS, advertiserConverter, AdvertiserSchema } from '@ada/shared';
 import type { Advertiser } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { generateId } from '../lib/id';
@@ -263,12 +259,20 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
     status: 'active',
     createdAt: new Date(),
   });
-  await db.collection(COLLECTIONS.advertisers).doc(adv.id).withConverter(advertiserConverter).set(adv);
+  await db
+    .collection(COLLECTIONS.advertisers)
+    .doc(adv.id)
+    .withConverter(advertiserConverter)
+    .set(adv);
   return adv;
 }
 
 export async function getAdvertiserById(id: string): Promise<Advertiser | null> {
-  const snap = await db.collection(COLLECTIONS.advertisers).doc(id).withConverter(advertiserConverter).get();
+  const snap = await db
+    .collection(COLLECTIONS.advertisers)
+    .doc(id)
+    .withConverter(advertiserConverter)
+    .get();
   return snap.exists ? (snap.data() as Advertiser) : null;
 }
 
@@ -385,11 +389,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/servic
 
 ```ts
 import { z } from 'zod';
-import {
-  COLLECTIONS,
-  creativeConverter,
-  CreativeSchema,
-} from '@ada/shared';
+import { COLLECTIONS, creativeConverter, CreativeSchema } from '@ada/shared';
 import type { Creative, ReviewStatus } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { generateId } from '../lib/id';
@@ -400,7 +400,10 @@ const CreateCreativeInputSchema = z.object({
   imageUrl: z.string().url(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
-  clickUrl: z.string().url().refine((u) => u.startsWith('https://')),
+  clickUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith('https://')),
   ocrTextHint: z.string().optional(),
 });
 export type CreateCreativeInput = z.infer<typeof CreateCreativeInputSchema>;
@@ -424,9 +427,11 @@ export async function createCreative(
 
   const now = new Date();
   const action =
-    reviewStatus === 'auto_approved' ? 'approved' :
-    reviewStatus === 'rejected' ? 'rejected' :
-    'flagged';
+    reviewStatus === 'auto_approved'
+      ? 'approved'
+      : reviewStatus === 'rejected'
+        ? 'rejected'
+        : 'flagged';
 
   const creative: Creative = CreativeSchema.parse({
     id: generateId('cre'),
@@ -441,20 +446,29 @@ export async function createCreative(
         at: now,
         by: 'auto',
         action,
-        reason: scan.scanResult.blockedTerms.length > 0
-          ? `Blocked terms: ${scan.scanResult.blockedTerms.join(', ')}`
-          : undefined,
+        reason:
+          scan.scanResult.blockedTerms.length > 0
+            ? `Blocked terms: ${scan.scanResult.blockedTerms.join(', ')}`
+            : undefined,
       },
     ],
     autoScanResult: scan.scanResult,
   });
 
-  await db.collection(COLLECTIONS.creatives).doc(creative.id).withConverter(creativeConverter).set(creative);
+  await db
+    .collection(COLLECTIONS.creatives)
+    .doc(creative.id)
+    .withConverter(creativeConverter)
+    .set(creative);
   return creative;
 }
 
 export async function getCreative(id: string): Promise<Creative | null> {
-  const snap = await db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter).get();
+  const snap = await db
+    .collection(COLLECTIONS.creatives)
+    .doc(id)
+    .withConverter(creativeConverter)
+    .get();
   return snap.exists ? (snap.data() as Creative) : null;
 }
 
@@ -524,21 +538,34 @@ async function setup() {
     domain: 'p.is',
     displayName: 'P',
     payoutMethod: {
-      type: 'bank', iban: 'IS140159260076545510730339',
-      kennitala: '1111111111', accountName: 'P',
+      type: 'bank',
+      iban: 'IS140159260076545510730339',
+      kennitala: '1111111111',
+      accountName: 'P',
     },
   });
   const slot = await createSlot(pub.id, {
-    name: 'A', sizes: [{ width: 728, height: 90 }],
+    name: 'A',
+    sizes: [{ width: 728, height: 90 }],
     pricing: { mode: 'cpm', cpmIsk: 1500 },
     placement: { pageMatcher: '/', position: 'above_fold' },
   });
   const adv = await createAdvertiser({
-    ownerEmail: 'a@a.is', companyName: 'A', kennitala: '2222222222', vatNumber: '1',
+    ownerEmail: 'a@a.is',
+    companyName: 'A',
+    kennitala: '2222222222',
+    vatNumber: '1',
   });
-  const cre = await createCreative(adv.id, {
-    imageUrl: 'https://x/y.png', width: 728, height: 90, clickUrl: 'https://x.is',
-  }, new StubAutoScanner());
+  const cre = await createCreative(
+    adv.id,
+    {
+      imageUrl: 'https://x/y.png',
+      width: 728,
+      height: 90,
+      clickUrl: 'https://x.is',
+    },
+    new StubAutoScanner(),
+  );
   return { pub, slot, adv, cre };
 }
 
@@ -599,11 +626,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/servic
 
 ```ts
 import { z } from 'zod';
-import {
-  COLLECTIONS,
-  campaignConverter,
-  CampaignSchema,
-} from '@ada/shared';
+import { COLLECTIONS, campaignConverter, CampaignSchema } from '@ada/shared';
 import type { Campaign, CampaignStatus } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { generateId } from '../lib/id';
@@ -674,7 +697,11 @@ export async function createCampaign(
     perPublisherApproval,
   });
 
-  await db.collection(COLLECTIONS.campaigns).doc(campaign.id).withConverter(campaignConverter).set(campaign);
+  await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaign.id)
+    .withConverter(campaignConverter)
+    .set(campaign);
   return campaign;
 }
 
@@ -688,7 +715,11 @@ async function allCreativesAutoApproved(ids: string[]): Promise<boolean> {
 }
 
 export async function getCampaign(id: string): Promise<Campaign | null> {
-  const snap = await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).get();
+  const snap = await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(id)
+    .withConverter(campaignConverter)
+    .get();
   return snap.exists ? (snap.data() as Campaign) : null;
 }
 
@@ -738,7 +769,11 @@ Replace `pushSlotCache` in `/Users/thorarinnhjalmarsson/Documents/Antigravity/ad
 
 ```ts
 export async function pushSlotCache(slotId: string): Promise<void> {
-  const slotSnap = await db.collection(COLLECTIONS.slots).doc(slotId).withConverter(slotConverter).get();
+  const slotSnap = await db
+    .collection(COLLECTIONS.slots)
+    .doc(slotId)
+    .withConverter(slotConverter)
+    .get();
   if (!slotSnap.exists) {
     await redis().del(`slot:${slotId}`);
     return;
@@ -774,7 +809,8 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       if (!cSnap.exists) continue;
       const cData = cSnap.data();
       if (!cData) continue;
-      if (cData.reviewStatus !== 'auto_approved' && cData.reviewStatus !== 'manual_approved') continue;
+      if (cData.reviewStatus !== 'auto_approved' && cData.reviewStatus !== 'manual_approved')
+        continue;
 
       activeCreatives.push({
         creativeId,
@@ -809,7 +845,11 @@ export async function pushSlotCache(slotId: string): Promise<void> {
 
 /** Push cache for every slot referenced by a campaign. */
 export async function pushCacheForCampaign(campaignId: string): Promise<void> {
-  const snap = await db.collection(COLLECTIONS.campaigns).doc(campaignId).withConverter(campaignConverter).get();
+  const snap = await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter)
+    .get();
   if (!snap.exists) return;
   const cmp = snap.data()!;
   for (const slotId of cmp.targeting.slotIds) {
@@ -863,16 +903,25 @@ useEmulator();
 describe('searchSlots', () => {
   it('filters by size', async () => {
     const p = await createPublisher({
-      ownerEmail: 'a@a.is', domain: 'a.is', displayName: 'A',
-      payoutMethod: { type: 'bank', iban: 'IS140159260076545510730339', kennitala: '1234567890', accountName: 'A' },
+      ownerEmail: 'a@a.is',
+      domain: 'a.is',
+      displayName: 'A',
+      payoutMethod: {
+        type: 'bank',
+        iban: 'IS140159260076545510730339',
+        kennitala: '1234567890',
+        accountName: 'A',
+      },
     });
     await createSlot(p.id, {
-      name: '728', sizes: [{ width: 728, height: 90 }],
+      name: '728',
+      sizes: [{ width: 728, height: 90 }],
       pricing: { mode: 'cpm', cpmIsk: 1500 },
       placement: { pageMatcher: '/', position: 'above_fold' },
     });
     await createSlot(p.id, {
-      name: '300', sizes: [{ width: 300, height: 250 }],
+      name: '300',
+      sizes: [{ width: 300, height: 250 }],
       pricing: { mode: 'cpm', cpmIsk: 1200 },
       placement: { pageMatcher: '/', position: 'sidebar' },
     });
@@ -882,16 +931,25 @@ describe('searchSlots', () => {
 
   it('filters by maxCpm', async () => {
     const p = await createPublisher({
-      ownerEmail: 'b@b.is', domain: 'b.is', displayName: 'B',
-      payoutMethod: { type: 'bank', iban: 'IS140159260076545510730339', kennitala: '1234567890', accountName: 'B' },
+      ownerEmail: 'b@b.is',
+      domain: 'b.is',
+      displayName: 'B',
+      payoutMethod: {
+        type: 'bank',
+        iban: 'IS140159260076545510730339',
+        kennitala: '1234567890',
+        accountName: 'B',
+      },
     });
     await createSlot(p.id, {
-      name: 'expensive', sizes: [{ width: 728, height: 90 }],
+      name: 'expensive',
+      sizes: [{ width: 728, height: 90 }],
       pricing: { mode: 'cpm', cpmIsk: 3000 },
       placement: { pageMatcher: '/', position: 'above_fold' },
     });
     await createSlot(p.id, {
-      name: 'cheap', sizes: [{ width: 728, height: 90 }],
+      name: 'cheap',
+      sizes: [{ width: 728, height: 90 }],
       pricing: { mode: 'cpm', cpmIsk: 1000 },
       placement: { pageMatcher: '/', position: 'above_fold' },
     });
@@ -922,15 +980,17 @@ export async function searchSlots(f: SearchFilters): Promise<Slot[]> {
   // (Acceptable up to ~10k slots; replace with proper index when scaling.)
   let q = db.collection(COLLECTIONS.slots).where('status', '==', 'active');
   const snap = await q.withConverter(slotConverter).get();
-  return snap.docs.map((d) => d.data() as Slot).filter((s) => {
-    if (f.width !== undefined && !s.sizes.some((sz) => sz.width === f.width)) return false;
-    if (f.height !== undefined && !s.sizes.some((sz) => sz.height === f.height)) return false;
-    if (f.maxCpm !== undefined) {
-      if (s.pricing.mode !== 'cpm') return false;
-      if (s.pricing.cpmIsk > f.maxCpm) return false;
-    }
-    return true;
-  });
+  return snap.docs
+    .map((d) => d.data() as Slot)
+    .filter((s) => {
+      if (f.width !== undefined && !s.sizes.some((sz) => sz.width === f.width)) return false;
+      if (f.height !== undefined && !s.sizes.some((sz) => sz.height === f.height)) return false;
+      if (f.maxCpm !== undefined) {
+        if (s.pricing.mode !== 'cpm') return false;
+        if (s.pricing.cpmIsk > f.maxCpm) return false;
+      }
+      return true;
+    });
 }
 ```
 
@@ -1006,7 +1066,9 @@ advertisersRoutes.post('/', async (c) => {
     const body = await c.req.json();
     const adv = await createAdvertiser({ ownerEmail: user.email, ...body });
     return c.json({ advertiser: adv }, 201);
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 advertisersRoutes.get('/me', async (c) => {
@@ -1015,7 +1077,9 @@ advertisersRoutes.get('/me', async (c) => {
     const adv = await getAdvertiserByOwnerEmail(user.email);
     if (!adv) throw notFound('advertiser_not_found', 'No advertiser');
     return c.json({ advertiser: adv });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -1044,7 +1108,9 @@ creativesRoutes.post('/', async (c) => {
     const body = await c.req.json();
     const cre = await createCreative(adv.id, body, scanner);
     return c.json({ creative: cre }, 201);
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 creativesRoutes.get('/', async (c) => {
@@ -1054,7 +1120,9 @@ creativesRoutes.get('/', async (c) => {
     if (!adv) throw notFound('advertiser_not_found', 'No advertiser');
     const list = await listCreativesForAdvertiser(adv.id);
     return c.json({ creatives: list });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 creativesRoutes.get('/:id', async (c) => {
@@ -1066,7 +1134,9 @@ creativesRoutes.get('/:id', async (c) => {
     if (!cre) throw notFound('creative_not_found', 'Not found');
     if (cre.advertiserId !== adv.id) throw forbidden();
     return c.json({ creative: cre });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -1097,7 +1167,9 @@ campaignsRoutes.post('/', async (c) => {
     const body = await c.req.json();
     const cmp = await createCampaign(adv.id, body);
     return c.json({ campaign: cmp }, 201);
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 campaignsRoutes.get('/', async (c) => {
@@ -1106,7 +1178,9 @@ campaignsRoutes.get('/', async (c) => {
     const adv = await getAdvertiserByOwnerEmail(user.email);
     if (!adv) throw notFound('advertiser_not_found', 'No advertiser');
     return c.json({ campaigns: await listCampaignsForAdvertiser(adv.id) });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 campaignsRoutes.get('/:id', async (c) => {
@@ -1118,7 +1192,9 @@ campaignsRoutes.get('/:id', async (c) => {
     if (!cmp) throw notFound('campaign_not_found', 'Not found');
     if (cmp.advertiserId !== adv.id) throw forbidden();
     return c.json({ campaign: cmp });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 campaignsRoutes.patch('/:id', async (c) => {
@@ -1132,7 +1208,9 @@ campaignsRoutes.patch('/:id', async (c) => {
     if (existing.advertiserId !== adv.id) throw forbidden();
     const body = await c.req.json();
     return c.json({ campaign: await updateCampaign(id, body) });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 

@@ -54,6 +54,7 @@
 ### 1.5 Universal states (apply to every page)
 
 Every data-driven view must explicitly handle:
+
 - **Loading** — skeleton or spinner
 - **Empty** — first-use prompt with CTA
 - **Error** — retryable banner
@@ -67,10 +68,12 @@ Every data-driven view must explicitly handle:
 ### 2.1 Authentication
 
 Hosted dashboard uses Firebase Auth. V1 supports:
+
 - Google OAuth
 - Email + password
 
 **Sign-in screen:**
+
 ```
 ┌──────────────────────────────────────────────┐
 │                                              │
@@ -107,7 +110,9 @@ Hosted dashboard uses Firebase Auth. V1 supports:
 ### 2.2 Role selection (first login)
 
 After sign-up, ask:
+
 > "Ertu auglýsandi eða ert þú með vef?"
+
 - **Card 1:** "Ég vil birta auglýsingar" → Advertiser onboarding
 - **Card 2:** "Ég er með vef og vil selja pláss" → Publisher onboarding
 - **Both:** small link "Ég er bæði" → set up both, defaults to most-recently-used surface
@@ -115,6 +120,7 @@ After sign-up, ask:
 ### 2.3 Navigation
 
 **Advertiser sidebar:**
+
 - Yfirlit (Dashboard) [home icon]
 - Herferðir (Campaigns) [megaphone icon]
 - Veski (Wallet) [wallet icon]
@@ -122,6 +128,7 @@ After sign-up, ask:
 - Stillingar (Settings) [gear icon]
 
 **Publisher sidebar:**
+
 - Yfirlit (Dashboard) [home icon]
 - Auglýsingapláss (Slots) [grid icon]
 - Tekjur (Earnings) [currency icon]
@@ -129,6 +136,7 @@ After sign-up, ask:
 - Stillingar (Settings) [gear icon]
 
 **Admin sidebar:**
+
 - Yfirlit (Overview) [home]
 - Yfirferð (Review queue) [shield-check]
 - Útborganir (Payouts) [bank]
@@ -146,6 +154,7 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ### 3.1 Advertiser onboarding (3 steps)
 
 **Step 1 — Company info:**
+
 ```
 ┌─────────────────────────────────────────────┐
 │  Stofna auglýsendaaðgang        [1 / 3]     │
@@ -168,11 +177,13 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ```
 
 **Step 2 — Accept terms:**
+
 - Skilmálar checkbox
 - DPA/persónuvernd link
 - "Ég samþykki" button
 
 **Step 3 — First top-up nudge:**
+
 - "Þú ert kominn af stað! Settu inn inneign til að byrja að birta auglýsingar."
 - [Setja inn inneign] primary button → top-up flow
 - [Sleppa, byrja á herferð fyrst] ghost link
@@ -213,6 +224,7 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ```
 
 **Empty state (no campaigns):**
+
 - Icon: megaphone
 - Heading: "Engin herferð enn"
 - Description: "Byrjaðu með því að setja inn inneign og búa til þína fyrstu auglýsingaherferð."
@@ -221,6 +233,7 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ### 3.3 Top-up wallet flow
 
 **Modal:**
+
 ```
 ┌─────────────────────────────────────────────┐
 │  Setja inn inneign                    [×]   │
@@ -248,22 +261,26 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ```
 
 **On submit:** Redirect to Teya hosted checkout. On return (success):
+
 - Toast: "Inneign uppfærð: +20.000 kr"
 - Dashboard wallet card updates with new balance
 
 **On return (failure):**
+
 - Toast: "Greiðsla mistókst. Reyndu aftur eða notaðu annað kort."
 - Wallet balance unchanged
 
 ### 3.4 Create campaign — 4-step wizard
 
 **Step 1 — Basics:**
+
 - Herferðarnafn (input)
 - Tímabil (start date picker, end date picker)
 - "Heildarfjárhagsáætlun" (number input, ISK) — only for CPM mode
 - Helper text: "Þú getur stöðvað eða breytt herferðinni hvenær sem er"
 
 **Step 2 — Auglýsingaefni:**
+
 - Drag-drop zone: "Dragðu mynd hingað eða [veldu skrá]"
 - Supported: PNG, JPG, ≤2 MB
 - Preview after upload, with detected size shown
@@ -271,6 +288,7 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 - Show real-time auto-scan progress: "Athugum auglýsinguna..." → "Samþykkt" badge or "Bíður yfirferðar" badge
 
 **Step 3 — Auglýsingapláss:**
+
 ```
 ┌────────────────────────────────────────────────┐
 │  Veldu pláss              [3 valin]            │
@@ -292,6 +310,7 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ```
 
 **Step 4 — Yfirlit og staðfesting:**
+
 - Summary of all selections
 - Total cost (slot purchases summed + estimated CPM cost from budget)
 - Warning if wallet balance < total cost: "Veski inniheldur 15.000 kr — þú þarft að setja inn 10.000 kr í viðbót áður en herferðin getur byrjað."
@@ -357,17 +376,20 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ### 4.1 Publisher onboarding (3 steps)
 
 **Step 1 — Site info:**
+
 - Lén (domain input with validation)
 - Sýnilegt nafn (display name)
 - "Aðalflokkur efnis" select (news, blog, niche, etc.)
 
 **Step 2 — Útborganir:**
+
 - Kennitala
 - IBAN
 - Reikningseigandi (account name)
 - Lágmarksútborgun (default 5.000 kr, editable up to 50.000 kr)
 
 **Step 3 — Fyrsta slot:**
+
 - "Næst búum við til þitt fyrsta auglýsingapláss" → Continue to slot wizard
 
 ### 4.2 Publisher dashboard (home)
@@ -404,22 +426,26 @@ Top bar: workspace switcher (if user has both roles), notifications bell, accoun
 ### 4.3 Slot creation wizard (5 steps)
 
 **Step 1 — Nafn og staðsetning:**
+
 - Nafn (input, e.g., "Forsíða leaderboard")
 - "Hvar á þessu plássi á síðunni þinni?" select: Above the fold / Innan í greinum / Sidebar
 - Page matcher (advanced): "Hvar á síðunni á að birta?" — radio group: Allar síður / Aðalsíða / Greinar / Sérstakar slóðir (input pattern)
 
 **Step 2 — Stærðir:**
+
 - Visual grid of IAB sizes (728×90, 300×250, 300×600, 320×100, 980×120) — multi-select with checkboxes
 - Each size shown with proportional rectangle preview
 - "+ Sérsniðin stærð" button → modal with width/height inputs
 - Help text: "Þú getur valið margar stærðir. Vettvangurinn velur þá sem passar best þeirri auglýsingu sem á að birta."
 
 **Step 3 — Verðlagning:**
+
 - Radio: CPM / Tímabil
 - **If CPM:** number input "Verð á 1.000 birtingar (kr)". Helper: "Markaðsverð á íslenskum miðlum er 1.000–3.000 kr CPM."
 - **If Tímabil:** number input "Verð á viku (kr)" + select "Lágmarks-bókunartímabil" (1 vika / 2 vikur / 1 mánuður).
 
 **Step 4 — Efnisstefna:**
+
 ```
 Hvers konar auglýsingar viltu ekki sjá?
 ☑ Áfengi og tóbak
@@ -434,8 +460,9 @@ Hvers konar auglýsingar viltu ekki sjá?
 ```
 
 **Step 5 — Setja upp á vefnum:**
+
 ```
-Þitt pláss er tilbúið! Límdu þennan kóða inn á síðuna þína 
+Þitt pláss er tilbúið! Límdu þennan kóða inn á síðuna þína
 þar sem þú vilt að auglýsingin birtist:
 
 ┌─────────────────────────────────────────────────────────┐
@@ -583,6 +610,7 @@ Operational summary, denser than user-facing pages.
 ```
 
 **Review modal:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  Yfirferð auglýsingar                              [×]   │
@@ -677,11 +705,7 @@ Web components delivered as a single `<script>` include:
 ### 6.1 `<adplatform-stats>`
 
 ```html
-<adplatform-stats
-  publisher-key="pk_live_xxx"
-  period="30d"
-  theme="auto">
-</adplatform-stats>
+<adplatform-stats publisher-key="pk_live_xxx" period="30d" theme="auto"> </adplatform-stats>
 ```
 
 Renders: 3 stat cards (impressions, earnings, eCPM) + small sparkline. Matches host page's color scheme automatically (light/dark detection via `prefers-color-scheme`).
@@ -692,7 +716,8 @@ Renders: 3 stat cards (impressions, earnings, eCPM) + small sparkline. Matches h
 <adplatform-approval-queue
   publisher-key="pk_live_xxx"
   on-approve="myApproveHandler"
-  on-reject="myRejectHandler">
+  on-reject="myRejectHandler"
+>
 </adplatform-approval-queue>
 ```
 
@@ -701,10 +726,7 @@ Renders: pending creatives list with approve/reject buttons. Emits custom events
 ### 6.3 `<adplatform-campaign-stats>`
 
 ```html
-<adplatform-campaign-stats
-  campaign-id="camp_xxx"
-  viewer-key="vk_xxx">
-</adplatform-campaign-stats>
+<adplatform-campaign-stats campaign-id="camp_xxx" viewer-key="vk_xxx"> </adplatform-campaign-stats>
 ```
 
 For embedding inside advertiser's own dashboards (e.g., markadssetning.is rendering campaign performance inside their UI).

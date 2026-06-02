@@ -547,7 +547,7 @@ export interface CachedCreative {
   frequencyCapPerDay: number;
   budgetExhausted: boolean;
   validFrom: number; // ms epoch
-  validTo: number;   // ms epoch
+  validTo: number; // ms epoch
   priority: 'slot_purchased' | 'cpm';
 }
 
@@ -633,38 +633,64 @@ function makeSlot(creatives: CachedCreative[]): SlotCacheEntry {
 
 describe('selectCreative', () => {
   it('returns null when no creatives', () => {
-    expect(selectCreative(makeSlot([]), { country: 'IS', consent: 'full', visitorImpressionsToday: {} })).toBe(null);
+    expect(
+      selectCreative(makeSlot([]), { country: 'IS', consent: 'full', visitorImpressionsToday: {} }),
+    ).toBe(null);
   });
 
   it('skips expired creatives', () => {
     const expired = makeCreative({ validTo: Date.now() - 1000 });
-    expect(selectCreative(makeSlot([expired]), { country: 'IS', consent: 'full', visitorImpressionsToday: {} })).toBe(null);
+    expect(
+      selectCreative(makeSlot([expired]), {
+        country: 'IS',
+        consent: 'full',
+        visitorImpressionsToday: {},
+      }),
+    ).toBe(null);
   });
 
   it('skips budget-exhausted creatives', () => {
     const dry = makeCreative({ budgetExhausted: true });
-    expect(selectCreative(makeSlot([dry]), { country: 'IS', consent: 'full', visitorImpressionsToday: {} })).toBe(null);
+    expect(
+      selectCreative(makeSlot([dry]), {
+        country: 'IS',
+        consent: 'full',
+        visitorImpressionsToday: {},
+      }),
+    ).toBe(null);
   });
 
   it('respects geo with consent=full', () => {
     const isOnly = makeCreative({ geoCountries: ['IS'] });
     const fr = makeCreative({ creativeId: 'c2', geoCountries: ['FR'] });
     const slot = makeSlot([isOnly, fr]);
-    const got = selectCreative(slot, { country: 'IS', consent: 'full', visitorImpressionsToday: {} });
+    const got = selectCreative(slot, {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+    });
     expect(got?.creativeId).toBe('c1');
   });
 
   it('ignores geo when consent=none', () => {
     const isOnly = makeCreative({ geoCountries: ['IS'] });
     const slot = makeSlot([isOnly]);
-    const got = selectCreative(slot, { country: 'FR', consent: 'none', visitorImpressionsToday: {} });
+    const got = selectCreative(slot, {
+      country: 'FR',
+      consent: 'none',
+      visitorImpressionsToday: {},
+    });
     expect(got?.creativeId).toBe('c1');
   });
 
   it('prioritises slot_purchased over cpm', () => {
     const cpm = makeCreative({ creativeId: 'cpm', priority: 'cpm' });
     const slot = makeCreative({ creativeId: 'slot', priority: 'slot_purchased' });
-    const got = selectCreative(makeSlot([cpm, slot]), { country: 'IS', consent: 'full', visitorImpressionsToday: {} });
+    const got = selectCreative(makeSlot([cpm, slot]), {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+    });
     expect(got?.creativeId).toBe('slot');
   });
 
@@ -1119,10 +1145,7 @@ import { getSlotCache } from '../lib/cache';
 import { recordVisitorImpression } from '../lib/visitor';
 import { decrementBudget } from '../lib/analytics';
 
-const PIXEL = Buffer.from(
-  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64',
-);
+const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
 export const impressionRoute = new Hono();
 
@@ -1247,6 +1270,7 @@ import { pushSlotCache, invalidateSlotCache } from '../lib/push-cache';
 ```
 
 After `await db.collection(...).set(slot)` in `createSlot`:
+
 ```ts
 if (process.env.UPSTASH_REDIS_REST_URL) await pushSlotCache(slot.id);
 ```
@@ -1300,6 +1324,7 @@ CI step (added in Plan #9) automates upload after build.
 ## Embed code shown to publishers
 
 \`\`\`html
+
 <div data-adplatform-slot="slot_xxxxx" style="min-height:90px"></div>
 <script async src="https://cdn.adplatform.is/v1/snippet.js"></script>
 \`\`\`

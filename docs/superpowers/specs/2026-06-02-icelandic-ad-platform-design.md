@@ -13,6 +13,7 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 **Positioning:** Traditional self-service ad platform for the Icelandic market (revenue-focused). MCP support is a first-mover differentiator and competitive moat, not the headline marketing message.
 
 **Differentiators vs. existing Icelandic ad sales:**
+
 - True self-service (no sales calls, no IO)
 - Cookie-less by default; rides on publisher's existing CMP for any consent-gated features
 - Transparent pricing (CPM or fixed time-slot, publisher's choice)
@@ -22,22 +23,22 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 
 ## 2. Decisions Reference
 
-| # | Decision | Choice |
-|---|---|---|
-| Q2 | Marketplace structure | Two-sided self-service, Canva integration considered future |
-| Q3 | Pricing model | Publisher chooses CPM or fixed time-slot per slot |
-| Q4 | Ad formats | Banner only in V1, IAB-aligned sizes; flexible sizes supported |
-| Q5 | Targeting | Site+slot selection + optional geo (capital / countryside / all Iceland) |
-| Q6 | Approval | Auto-scan + admin manual review; publisher per-slot opt-in for own approval queue |
-| Q7 | markadssetning.is integration | API-only, human-in-the-loop, no autonomous agent buying |
-| Q8 | Integration depth | Standalone product, markadssetning.is consumes API |
-| Q9 | Payments | Teya (Icelandic acquiring) + prepaid wallet model |
-| Q10 | Tech stack | React 19/Vite/Tailwind v4/Firebase for warm path; serving on Vercel function + Redis in V1, migrate to Cloudflare Worker + KV when traffic justifies |
-| Q11 | MVP scope | Friend's own properties as initial publishers; markadssetning.is as initial advertiser source |
-| — | MCP positioning | First-class from day 1 as competitive moat, not lead marketing story |
-| — | Headless / "AI builds your dashboard" | Documented optional feature; embed widgets are the real developer-friendly answer |
-| — | GDPR | Publisher acts as controller (their CMP governs consent); we are processor. No IP storage; geo from `CF-IPCountry` only |
-| — | Goal orientation | Revenue product; PR is bonus |
+| #   | Decision                              | Choice                                                                                                                                               |
+| --- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q2  | Marketplace structure                 | Two-sided self-service, Canva integration considered future                                                                                          |
+| Q3  | Pricing model                         | Publisher chooses CPM or fixed time-slot per slot                                                                                                    |
+| Q4  | Ad formats                            | Banner only in V1, IAB-aligned sizes; flexible sizes supported                                                                                       |
+| Q5  | Targeting                             | Site+slot selection + optional geo (capital / countryside / all Iceland)                                                                             |
+| Q6  | Approval                              | Auto-scan + admin manual review; publisher per-slot opt-in for own approval queue                                                                    |
+| Q7  | markadssetning.is integration         | API-only, human-in-the-loop, no autonomous agent buying                                                                                              |
+| Q8  | Integration depth                     | Standalone product, markadssetning.is consumes API                                                                                                   |
+| Q9  | Payments                              | Teya (Icelandic acquiring) + prepaid wallet model                                                                                                    |
+| Q10 | Tech stack                            | React 19/Vite/Tailwind v4/Firebase for warm path; serving on Vercel function + Redis in V1, migrate to Cloudflare Worker + KV when traffic justifies |
+| Q11 | MVP scope                             | Friend's own properties as initial publishers; markadssetning.is as initial advertiser source                                                        |
+| —   | MCP positioning                       | First-class from day 1 as competitive moat, not lead marketing story                                                                                 |
+| —   | Headless / "AI builds your dashboard" | Documented optional feature; embed widgets are the real developer-friendly answer                                                                    |
+| —   | GDPR                                  | Publisher acts as controller (their CMP governs consent); we are processor. No IP storage; geo from `CF-IPCountry` only                              |
+| —   | Goal orientation                      | Revenue product; PR is bonus                                                                                                                         |
 
 ## 3. Architecture
 
@@ -224,6 +225,7 @@ value: {
 ```
 
 Push triggers (warm path → cache):
+
 - Creative approved → add to activeCreatives
 - Campaign starts / ends / pauses
 - Budget exhausted (decrement crosses zero)
@@ -389,6 +391,7 @@ contentPolicy: {
 Only `flagged_for_manual` from auto-scan. SLA target: 4 business hours.
 
 Admin dashboard surface:
+
 - Queue with creative preview, scan results, and metadata.
 - Approve / Reject (with reason) buttons.
 - Bulk actions for repeat offenders by advertiser.
@@ -461,6 +464,7 @@ POST   /api/internal/push-cache                  # called on any cache-affecting
 One MCP tool per logical operation. Bilingual (IS/EN) tool descriptions.
 
 **Publisher tools:**
+
 - `register_publisher(domain, payout_method)`
 - `list_my_slots()`
 - `create_slot(name, sizes, pricing, placement)`
@@ -474,6 +478,7 @@ One MCP tool per logical operation. Bilingual (IS/EN) tool descriptions.
 - `list_payouts()`
 
 **Advertiser tools:**
+
 - `register_advertiser(company, kennitala, vat)`
 - `get_wallet_balance()`
 - `create_topup_link(amount_isk)`
@@ -485,6 +490,7 @@ One MCP tool per logical operation. Bilingual (IS/EN) tool descriptions.
 - `list_my_campaigns()`
 
 **MCP resources** (read-only data subscriptions):
+
 - `publishers://me/stats/last-30d`
 - `campaigns://me/active`
 
@@ -503,6 +509,7 @@ Authenticated with publisher/viewer keys (not Firebase tokens — those must not
 ### 9.1 Phase 1 (~4 weeks): Friend's properties as live testbed
 
 **In scope:**
+
 - REST API: publisher, slot, creative, campaign CRUD; Teya wallet top-up.
 - Hosted dashboard: advertiser flow (top-up, create campaign, stats) + publisher flow (slots, stats, payout) + admin flow (review queue, payout processing).
 - Snippet + serving endpoint as Vercel function with Upstash Redis cache.
@@ -513,6 +520,7 @@ Authenticated with publisher/viewer keys (not Firebase tokens — those must not
 - markadssetning.is consuming API via service account for human-approved campaign distribution.
 
 **Out of scope for Phase 1:**
+
 - Cloudflare Worker hot path (Vercel function suffices for projected traffic).
 - Embed widgets.
 - Automated payout via bank API.
@@ -582,17 +590,17 @@ These are out of scope for engineering but must complete before launch:
 
 Phase 1 is broken into nine sub-plans in `docs/superpowers/plans/`. **Execute in the order below, not in numeric filename order.** Each plan produces working, testable software on its own.
 
-| Order | Plan file | Produces | Depends on |
-|---|---|---|---|
-| 1 | `2026-06-02-01-foundation.md` | Monorepo, shared Zod schemas, Firebase project, Firestore security rules, CI | — |
-| 2 | `2026-06-02-02-publisher-core.md` | REST API for publisher + slot CRUD, snippet code generator | 1 |
-| 3 | `2026-06-02-03-snippet-serving.md` | snippet.js, hot-path serving endpoint, Redis cache, push-on-change | 1, 2 |
-| 4 | `2026-06-02-04-advertiser-core.md` | REST API for advertiser + creative + campaign, auto-scan stub, slot search; upgrades cache push to read active creatives | 1, 2, 3 |
-| 5 | `2026-06-02-05-billing-wallet.md` | Ledger, wallet service, Teya checkout + webhook, CPM accrual cron | 1, 2, 4 |
-| 6 | `2026-06-02-06-approval-workflow.md` | Admin review queue, publisher manual approval, appeal flow | 1, 2, 4, 5 |
-| 7 | `2026-06-02-09-payouts-stats.md` | Stats aggregation cron, campaign stats endpoint, monthly payouts cron, snippet CDN deploy, E2E smoke test | 1, 2, 4, 5 |
-| 8 | `2026-06-02-07-hosted-dashboard.md` | React 19 dashboard for advertiser, publisher, admin surfaces | 1, 2, 4, 5, 6, 7 |
-| 9 | `2026-06-02-08-mcp-server.md` | MCP server with 19 tools (publisher + advertiser), service-account API keys | 1, 2, 4, 5, 6 |
+| Order | Plan file                            | Produces                                                                                                                 | Depends on       |
+| ----- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| 1     | `2026-06-02-01-foundation.md`        | Monorepo, shared Zod schemas, Firebase project, Firestore security rules, CI                                             | —                |
+| 2     | `2026-06-02-02-publisher-core.md`    | REST API for publisher + slot CRUD, snippet code generator                                                               | 1                |
+| 3     | `2026-06-02-03-snippet-serving.md`   | snippet.js, hot-path serving endpoint, Redis cache, push-on-change                                                       | 1, 2             |
+| 4     | `2026-06-02-04-advertiser-core.md`   | REST API for advertiser + creative + campaign, auto-scan stub, slot search; upgrades cache push to read active creatives | 1, 2, 3          |
+| 5     | `2026-06-02-05-billing-wallet.md`    | Ledger, wallet service, Teya checkout + webhook, CPM accrual cron                                                        | 1, 2, 4          |
+| 6     | `2026-06-02-06-approval-workflow.md` | Admin review queue, publisher manual approval, appeal flow                                                               | 1, 2, 4, 5       |
+| 7     | `2026-06-02-09-payouts-stats.md`     | Stats aggregation cron, campaign stats endpoint, monthly payouts cron, snippet CDN deploy, E2E smoke test                | 1, 2, 4, 5       |
+| 8     | `2026-06-02-07-hosted-dashboard.md`  | React 19 dashboard for advertiser, publisher, admin surfaces                                                             | 1, 2, 4, 5, 6, 7 |
+| 9     | `2026-06-02-08-mcp-server.md`        | MCP server with 19 tools (publisher + advertiser), service-account API keys                                              | 1, 2, 4, 5, 6    |
 
 **Why this order (not numeric filename order):**
 
@@ -610,7 +618,7 @@ Phase 1 is broken into nine sub-plans in `docs/superpowers/plans/`. **Execute in
 
 1. Open the `ada/` folder in Antigravity.
 2. Point the agent at `docs/superpowers/specs/` and `docs/superpowers/plans/` for context.
-3. Start with: *"Read `docs/superpowers/plans/2026-06-02-01-foundation.md` and execute task-by-task using the superpowers:subagent-driven-development workflow. Pause after each task for human verification."*
+3. Start with: _"Read `docs/superpowers/plans/2026-06-02-01-foundation.md` and execute task-by-task using the superpowers:subagent-driven-development workflow. Pause after each task for human verification."_
 4. After each plan completes, run the verification commands at the end of that plan, then start the next plan in the order above.
 
 **Launch-blocking parallel prerequisites** (not engineering tasks — start in parallel with plan 1):

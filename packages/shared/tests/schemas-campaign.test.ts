@@ -27,9 +27,7 @@ describe('ScheduleSchema', () => {
 
 describe('TargetingSchema', () => {
   it('accepts targeting with only slots', () => {
-    expect(() =>
-      TargetingSchema.parse({ slotIds: ['slot_a', 'slot_b'] }),
-    ).not.toThrow();
+    expect(() => TargetingSchema.parse({ slotIds: ['slot_a', 'slot_b'] })).not.toThrow();
   });
 
   it('accepts targeting with geo', () => {

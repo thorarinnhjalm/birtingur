@@ -48,15 +48,17 @@ export const CreativeSchema = z
     imageUrl: z.string().url(),
     width: z.number().int().positive(),
     height: z.number().int().positive(),
-    clickUrl: z.string().url().refine((u) => u.startsWith('https://'), {
-      message: 'Click URL must use https://',
-    }),
+    clickUrl: z
+      .string()
+      .url()
+      .refine((u) => u.startsWith('https://'), {
+        message: 'Click URL must use https://',
+      }),
     reviewStatus: ReviewStatusSchema,
     reviewLog: z.array(ReviewLogEntrySchema),
     autoScanResult: AutoScanResultSchema.optional(),
   })
-  .refine(
-    (c) => c.reviewStatus !== 'rejected' || c.reviewLog.length > 0,
-    { message: 'Rejected creative must have at least one review log entry' },
-  );
+  .refine((c) => c.reviewStatus !== 'rejected' || c.reviewLog.length > 0, {
+    message: 'Rejected creative must have at least one review log entry',
+  });
 export type Creative = z.infer<typeof CreativeSchema>;

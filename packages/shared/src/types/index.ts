@@ -20,22 +20,8 @@ export type {
   AutoScanResult,
 } from '../schemas/advertiser';
 
-export type {
-  Campaign,
-  CampaignStatus,
-  Schedule,
-  Targeting,
-  Budget,
-} from '../schemas/campaign';
+export type { Campaign, CampaignStatus, Schedule, Targeting, Budget } from '../schemas/campaign';
 
-export type {
-  LedgerEntry,
-  LedgerEntryType,
-  LedgerParty,
-  Payout,
-} from '../schemas/ledger';
+export type { LedgerEntry, LedgerEntryType, LedgerParty, Payout } from '../schemas/ledger';
 
-export type {
-  HourlyStats,
-  PublisherStatsBreakdown,
-} from '../schemas/stats';
+export type { HourlyStats, PublisherStatsBreakdown } from '../schemas/stats';

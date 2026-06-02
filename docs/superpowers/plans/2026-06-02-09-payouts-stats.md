@@ -57,9 +57,39 @@ describe('aggregateEvents', () => {
   it('groups impressions into hourly buckets per campaign', async () => {
     const ts = Date.UTC(2026, 5, 2, 14, 30, 0); // 2026-06-02 14:30:00 UTC
     const events = [
-      { type: 'impression' as const, campaignId: 'cmp_a', publisherId: 'pub_a', creativeId: 'cre_a', slotId: 's1', advertiserId: 'adv_a', country: 'IS', visitorToken: 'v1', ts },
-      { type: 'impression' as const, campaignId: 'cmp_a', publisherId: 'pub_a', creativeId: 'cre_a', slotId: 's1', advertiserId: 'adv_a', country: 'IS', visitorToken: 'v2', ts: ts + 1 },
-      { type: 'click' as const, campaignId: 'cmp_a', publisherId: 'pub_a', creativeId: 'cre_a', slotId: 's1', advertiserId: 'adv_a', country: 'IS', visitorToken: 'v1', ts: ts + 2 },
+      {
+        type: 'impression' as const,
+        campaignId: 'cmp_a',
+        publisherId: 'pub_a',
+        creativeId: 'cre_a',
+        slotId: 's1',
+        advertiserId: 'adv_a',
+        country: 'IS',
+        visitorToken: 'v1',
+        ts,
+      },
+      {
+        type: 'impression' as const,
+        campaignId: 'cmp_a',
+        publisherId: 'pub_a',
+        creativeId: 'cre_a',
+        slotId: 's1',
+        advertiserId: 'adv_a',
+        country: 'IS',
+        visitorToken: 'v2',
+        ts: ts + 1,
+      },
+      {
+        type: 'click' as const,
+        campaignId: 'cmp_a',
+        publisherId: 'pub_a',
+        creativeId: 'cre_a',
+        slotId: 's1',
+        advertiserId: 'adv_a',
+        country: 'IS',
+        visitorToken: 'v1',
+        ts: ts + 2,
+      },
     ];
     await aggregateEvents(events);
     // Check Firestore aggregate
@@ -118,7 +148,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
 
   // Buckets: campaign-hour, publisher-day, publisher-slot-day
-  interface Bucket { impressions: number; clicks: number }
+  interface Bucket {
+    impressions: number;
+    clicks: number;
+  }
   const campaignHour = new Map<string, Bucket>();
   const publisherDay = new Map<string, Bucket>();
   const publisherSlotDay = new Map<string, Bucket>();
@@ -193,7 +226,11 @@ export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   for (let i = 0; i < batchSize; i++) {
     const raw = await redis().rpop<string>('events:queue');
     if (!raw) break;
-    try { events.push(JSON.parse(raw) as QueuedEvent); } catch { /* skip */ }
+    try {
+      events.push(JSON.parse(raw) as QueuedEvent);
+    } catch {
+      /* skip */
+    }
   }
   await aggregateEvents(events);
   return events.length;
@@ -328,7 +365,9 @@ campaignsRoutes.get('/:id/stats', async (c) => {
     if (cmp.advertiserId !== adv.id) throw forbidden();
     const stats = await getCampaignStats(id);
     return c.json({ stats });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -364,8 +403,15 @@ useEmulator();
 
 async function pub() {
   return createPublisher({
-    ownerEmail: 'p@p.is', domain: 'p.is', displayName: 'P',
-    payoutMethod: { type: 'bank', iban: 'IS140159260076545510730339', kennitala: '1234567890', accountName: 'P' },
+    ownerEmail: 'p@p.is',
+    domain: 'p.is',
+    displayName: 'P',
+    payoutMethod: {
+      type: 'bank',
+      iban: 'IS140159260076545510730339',
+      kennitala: '1234567890',
+      accountName: 'P',
+    },
   });
 }
 
@@ -426,7 +472,10 @@ import { generateId } from '../lib/id';
 import { appendLedger } from './ledger';
 import { notFound } from '../lib/errors';
 
-export async function generateMonthlyPayouts(periodStart: Date, periodEnd: Date): Promise<Payout[]> {
+export async function generateMonthlyPayouts(
+  periodStart: Date,
+  periodEnd: Date,
+): Promise<Payout[]> {
   // Sum publisher_credit entries per publisher in period
   const snap = await db
     .collection(COLLECTIONS.ledger)
@@ -460,7 +509,11 @@ export async function generateMonthlyPayouts(periodStart: Date, periodEnd: Date)
       status: 'pending',
       bankReference: '',
     });
-    await db.collection(COLLECTIONS.payouts).doc(payout.id).withConverter(payoutConverter).set(payout);
+    await db
+      .collection(COLLECTIONS.payouts)
+      .doc(payout.id)
+      .withConverter(payoutConverter)
+      .set(payout);
     created.push(payout);
   }
   return created;
@@ -475,7 +528,10 @@ export async function listPendingPayouts(): Promise<Payout[]> {
   return snap.docs.map((d) => d.data());
 }
 
-export async function markPayoutCompleted(payoutId: string, bankReference: string): Promise<Payout> {
+export async function markPayoutCompleted(
+  payoutId: string,
+  bankReference: string,
+): Promise<Payout> {
   const ref = db.collection(COLLECTIONS.payouts).doc(payoutId);
   const snap = await ref.withConverter(payoutConverter).get();
   if (!snap.exists) throw notFound('payout_not_found', `Payout ${payoutId} not found`);
@@ -558,16 +614,20 @@ adminPayoutsRoutes.get('/pending', async (c) => {
   try {
     const items = await listPendingPayouts();
     return c.json({ payouts: items });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 adminPayoutsRoutes.post('/:id/mark-completed', async (c) => {
   try {
     const id = c.req.param('id');
-    const body = await c.req.json() as { bankReference: string };
+    const body = (await c.req.json()) as { bankReference: string };
     const updated = await markPayoutCompleted(id, body.bankReference);
     return c.json({ payout: updated });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -694,8 +754,14 @@ describe('end-to-end smoke', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer pub-tok', 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        domain: 'kjarninn.is', displayName: 'Kjarninn',
-        payoutMethod: { type: 'bank', iban: 'IS140159260076545510730339', kennitala: '1111111111', accountName: 'K' },
+        domain: 'kjarninn.is',
+        displayName: 'Kjarninn',
+        payoutMethod: {
+          type: 'bank',
+          iban: 'IS140159260076545510730339',
+          kennitala: '1111111111',
+          accountName: 'K',
+        },
       }),
     });
     expect(pubRes.status).toBe(201);
@@ -705,7 +771,8 @@ describe('end-to-end smoke', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer pub-tok', 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: 'Forsíða', sizes: [{ width: 728, height: 90 }],
+        name: 'Forsíða',
+        sizes: [{ width: 728, height: 90 }],
         pricing: { mode: 'cpm', cpmIsk: 1500 },
         placement: { pageMatcher: '/', position: 'above_fold' },
       }),
@@ -720,12 +787,18 @@ describe('end-to-end smoke', () => {
     });
 
     // Top up via direct webhook
-    const advMe = await (await app.request('/v1/advertisers/me', {
-      headers: { Authorization: 'Bearer adv-tok' },
-    })).json();
+    const advMe = await (
+      await app.request('/v1/advertisers/me', {
+        headers: { Authorization: 'Bearer adv-tok' },
+      })
+    ).json();
     const webhookBody = JSON.stringify({
       type: 'checkout.completed',
-      data: { sessionId: 'e2e_sess', amountIsk: 50000, metadata: { advertiserId: advMe.advertiser.id } },
+      data: {
+        sessionId: 'e2e_sess',
+        amountIsk: 50000,
+        metadata: { advertiserId: advMe.advertiser.id },
+      },
     });
     const sig = createHmac('sha256', 'whsec_e2e').update(webhookBody).digest('hex');
     const whRes = await app.request('/api/teya/webhook', {
@@ -740,7 +813,9 @@ describe('end-to-end smoke', () => {
       method: 'POST',
       headers: { Authorization: 'Bearer adv-tok', 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        imageUrl: 'https://example/x.png', width: 728, height: 90,
+        imageUrl: 'https://example/x.png',
+        width: 728,
+        height: 90,
         clickUrl: 'https://blomabud.is',
       }),
     });
@@ -798,25 +873,26 @@ Expected: All green.
 Append to `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/README.md`:
 
 ```markdown
-
 ## Deployment
 
-| App | Host | URL |
-|-----|------|-----|
-| API | Vercel | api.adplatform.is |
-| Dashboard | Vercel | app.adplatform.is |
-| MCP | Vercel | mcp.adplatform.is |
-| Serving | Vercel (V1) / Cloudflare Worker (V2) | serve.adplatform.is |
-| Snippet | Cloudflare R2 + CDN | cdn.adplatform.is/v1/snippet.js |
-| Firestore | Firebase | ada-prod project |
-| Redis | Upstash | ada-prod database |
+| App       | Host                                 | URL                             |
+| --------- | ------------------------------------ | ------------------------------- |
+| API       | Vercel                               | api.adplatform.is               |
+| Dashboard | Vercel                               | app.adplatform.is               |
+| MCP       | Vercel                               | mcp.adplatform.is               |
+| Serving   | Vercel (V1) / Cloudflare Worker (V2) | serve.adplatform.is             |
+| Snippet   | Cloudflare R2 + CDN                  | cdn.adplatform.is/v1/snippet.js |
+| Firestore | Firebase                             | ada-prod project                |
+| Redis     | Upstash                              | ada-prod database               |
 
 Crons (Vercel):
+
 - `*/15 * * * *` — CPM accrual
 - `0 * * * *` — Stats aggregation
 - `0 6 1 * *` — Monthly payouts
 
 Manual operations:
+
 - Admin marks each payout `completed` after executing manual bank transfer to publisher IBAN.
 - VAT invoicing handled by bookkeeper from monthly top-up summary export.
 ```

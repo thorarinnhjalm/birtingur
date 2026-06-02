@@ -14,6 +14,7 @@ pnpm dev
 ## Architecture
 
 Turborepo monorepo:
+
 - `apps/api` — REST API (Vercel functions)
 - `apps/dashboard` — React 19 dashboard (Vite)
 - `apps/mcp` — MCP server

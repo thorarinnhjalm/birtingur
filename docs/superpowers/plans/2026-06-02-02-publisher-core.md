@@ -124,9 +124,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/vercel.jso
   "functions": {
     "api/index.ts": { "maxDuration": 30 }
   },
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index" }
-  ]
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
 }
 ```
 
@@ -432,7 +430,10 @@ export function conflict(code: string, message: string): AppError {
 
 export function handleError(err: unknown, c: Context) {
   if (err instanceof AppError) {
-    return c.json({ error: err.code, message: err.message, details: err.details }, err.status as 400);
+    return c.json(
+      { error: err.code, message: err.message, details: err.details },
+      err.status as 400,
+    );
   }
   console.error('Unhandled error:', err);
   return c.json({ error: 'internal_error' }, 500);
@@ -562,9 +563,7 @@ describe('createPublisher', () => {
   });
 
   it('rejects invalid domain', async () => {
-    await expect(
-      createPublisher({ ...validInput, domain: 'not a domain' }),
-    ).rejects.toThrow();
+    await expect(createPublisher({ ...validInput, domain: 'not a domain' })).rejects.toThrow();
   });
 });
 
@@ -688,10 +687,7 @@ const UpdatePublisherSchema = z.object({
 });
 export type UpdatePublisherInput = z.infer<typeof UpdatePublisherSchema>;
 
-export async function updatePublisher(
-  id: string,
-  patch: UpdatePublisherInput,
-): Promise<Publisher> {
+export async function updatePublisher(id: string, patch: UpdatePublisherInput): Promise<Publisher> {
   const parsed = UpdatePublisherSchema.parse(patch);
 
   const existing = await getPublisherById(id);
@@ -702,11 +698,7 @@ export async function updatePublisher(
     ...parsed,
   });
 
-  await db
-    .collection(COLLECTIONS.publishers)
-    .doc(id)
-    .withConverter(publisherConverter)
-    .set(next);
+  await db.collection(COLLECTIONS.publishers).doc(id).withConverter(publisherConverter).set(next);
 
   return next;
 }
@@ -766,7 +758,10 @@ describe('buildSnippetHtml', () => {
   it('uses largest min-height across sizes for graceful fallback', () => {
     const html = buildSnippetHtml({
       slotId: 'slot_x',
-      sizes: [{ width: 728, height: 90 }, { width: 300, height: 600 }],
+      sizes: [
+        { width: 728, height: 90 },
+        { width: 300, height: 600 },
+      ],
       cdnBase: 'https://cdn.adplatform.is',
     });
     expect(html).toContain('min-height:600px');
@@ -796,12 +791,18 @@ interface BuildOpts {
 function escapeHtmlAttr(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => {
     switch (ch) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case "'": return '&#39;';
-      default: return ch;
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return ch;
     }
   });
 }
@@ -972,20 +973,12 @@ export async function createSlot(publisherId: string, input: CreateSlotInput): P
     status: 'active',
   });
 
-  await db
-    .collection(COLLECTIONS.slots)
-    .doc(slot.id)
-    .withConverter(slotConverter)
-    .set(slot);
+  await db.collection(COLLECTIONS.slots).doc(slot.id).withConverter(slotConverter).set(slot);
   return slot;
 }
 
 export async function getSlot(id: string): Promise<Slot | null> {
-  const snap = await db
-    .collection(COLLECTIONS.slots)
-    .doc(id)
-    .withConverter(slotConverter)
-    .get();
+  const snap = await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).get();
   return snap.exists ? (snap.data() as Slot) : null;
 }
 
@@ -1013,11 +1006,7 @@ export async function updateSlot(id: string, patch: UpdateSlotInput): Promise<Sl
   if (!existing) throw notFound('slot_not_found', `Slot ${id} not found`);
 
   const next: Slot = SlotSchema.parse({ ...existing, ...parsed });
-  await db
-    .collection(COLLECTIONS.slots)
-    .doc(id)
-    .withConverter(slotConverter)
-    .set(next);
+  await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).set(next);
   return next;
 }
 
@@ -1174,11 +1163,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/routes
 import { Hono } from 'hono';
 import { requireAuth } from '../lib/auth';
 import { handleError, notFound } from '../lib/errors';
-import {
-  createPublisher,
-  getPublisherByOwnerEmail,
-  updatePublisher,
-} from '../services/publishers';
+import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers';
 
 export const publishersRoutes = new Hono();
 
@@ -1566,7 +1551,11 @@ export async function getPublisherStats(
     impressions += (data.impressions as number) ?? 0;
     clicks += (data.clicks as number) ?? 0;
     earningsIsk += (data.earningsIsk as number) ?? 0;
-    const slots = (data.bySlot as Record<string, { impressions: number; clicks: number; earningsIsk: number }>) ?? {};
+    const slots =
+      (data.bySlot as Record<
+        string,
+        { impressions: number; clicks: number; earningsIsk: number }
+      >) ?? {};
     for (const [slotId, s] of Object.entries(slots)) {
       const existing = bySlot[slotId] ?? { impressions: 0, clicks: 0, earningsIsk: 0 };
       bySlot[slotId] = {

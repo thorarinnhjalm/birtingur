@@ -49,14 +49,22 @@ useEmulator();
 
 async function flagged() {
   const adv = await createAdvertiser({
-    ownerEmail: 'a@a.is', companyName: 'A', kennitala: '1234567890', vatNumber: '1',
+    ownerEmail: 'a@a.is',
+    companyName: 'A',
+    kennitala: '1234567890',
+    vatNumber: '1',
   });
   // Stub flags suspicious URL patterns
-  const cre = await createCreative(adv.id, {
-    imageUrl: 'https://example/x.png',
-    width: 728, height: 90,
-    clickUrl: 'https://bit.ly/x123',
-  }, new StubAutoScanner());
+  const cre = await createCreative(
+    adv.id,
+    {
+      imageUrl: 'https://example/x.png',
+      width: 728,
+      height: 90,
+      clickUrl: 'https://bit.ly/x123',
+    },
+    new StubAutoScanner(),
+  );
   return cre;
 }
 
@@ -100,11 +108,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/servic
 
 ```ts
 import { z } from 'zod';
-import {
-  COLLECTIONS,
-  creativeConverter,
-  campaignConverter,
-} from '@ada/shared';
+import { COLLECTIONS, creativeConverter, campaignConverter } from '@ada/shared';
 import type { Creative, Campaign } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { badRequest, notFound } from '../lib/errors';
@@ -169,7 +173,9 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
   }
 }
 
-export async function listPublisherQueue(publisherId: string): Promise<Array<{ creative: Creative; campaign: Campaign }>> {
+export async function listPublisherQueue(
+  publisherId: string,
+): Promise<Array<{ creative: Creative; campaign: Campaign }>> {
   const snap = await db
     .collection(COLLECTIONS.campaigns)
     .where(`perPublisherApproval.${publisherId}`, '==', 'pending')
@@ -253,17 +259,21 @@ adminReviewRoutes.get('/queue', async (c) => {
   try {
     const list = await listAdminQueue(50);
     return c.json({ queue: list });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 adminReviewRoutes.post('/:id', async (c) => {
   try {
     const user = c.get('user');
     const id = c.req.param('id');
-    const body = await c.req.json() as { action: 'approve' | 'reject'; reason?: string };
+    const body = (await c.req.json()) as { action: 'approve' | 'reject'; reason?: string };
     const updated = await adminReview(id, { ...body, adminEmail: user.email });
     return c.json({ creative: updated });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -320,7 +330,9 @@ publisherApprovalsRoutes.get('/pending-approvals', async (c) => {
     if (!pub) throw notFound('publisher_not_found', 'No publisher');
     const items = await listPublisherQueue(pub.id);
     return c.json({ items });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 publisherApprovalsRoutes.post('/approvals/:campaignId', async (c) => {
@@ -329,10 +341,12 @@ publisherApprovalsRoutes.post('/approvals/:campaignId', async (c) => {
     const pub = await getPublisherByOwnerEmail(user.email);
     if (!pub) throw notFound('publisher_not_found', 'No publisher');
     const campaignId = c.req.param('campaignId');
-    const body = await c.req.json() as { action: 'approve' | 'reject'; reason?: string };
+    const body = (await c.req.json()) as { action: 'approve' | 'reject'; reason?: string };
     const cmp = await publisherReview(pub.id, { campaignId, ...body });
     return c.json({ campaign: cmp });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -403,7 +417,8 @@ describe('approval flow E2E', () => {
       headers: { Authorization: 'Bearer adv-token', 'Content-Type': 'application/json' },
       body: JSON.stringify({
         imageUrl: 'https://example/x.png',
-        width: 728, height: 90,
+        width: 728,
+        height: 90,
         clickUrl: 'https://bit.ly/x',
       }),
     });

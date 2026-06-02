@@ -23,9 +23,12 @@ export const LedgerEntrySchema = z
     id: z.string().min(1),
     party: LedgerPartySchema,
     type: LedgerTypeSchema,
-    amountIsk: z.number().int().refine((n) => n !== 0, {
-      message: 'amountIsk must not be zero',
-    }),
+    amountIsk: z
+      .number()
+      .int()
+      .refine((n) => n !== 0, {
+        message: 'amountIsk must not be zero',
+      }),
     relatedId: z.string().min(1),
     createdAt: z.date(),
   })

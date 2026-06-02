@@ -74,9 +74,24 @@ describe('appendLedger', () => {
 
 describe('sumByParty', () => {
   it('sums entries for a party', async () => {
-    await appendLedger({ party: { type: 'advertiser', id: 'adv_a' }, type: 'topup', amountIsk: 20000, relatedId: 't1' });
-    await appendLedger({ party: { type: 'advertiser', id: 'adv_a' }, type: 'campaign_charge', amountIsk: -3000, relatedId: 'c1' });
-    await appendLedger({ party: { type: 'advertiser', id: 'adv_b' }, type: 'topup', amountIsk: 9999, relatedId: 't2' });
+    await appendLedger({
+      party: { type: 'advertiser', id: 'adv_a' },
+      type: 'topup',
+      amountIsk: 20000,
+      relatedId: 't1',
+    });
+    await appendLedger({
+      party: { type: 'advertiser', id: 'adv_a' },
+      type: 'campaign_charge',
+      amountIsk: -3000,
+      relatedId: 'c1',
+    });
+    await appendLedger({
+      party: { type: 'advertiser', id: 'adv_b' },
+      type: 'topup',
+      amountIsk: 9999,
+      relatedId: 't2',
+    });
     expect(await sumByParty({ type: 'advertiser', id: 'adv_a' })).toBe(17000);
     expect(await sumByParty({ type: 'advertiser', id: 'adv_b' })).toBe(9999);
   });
@@ -88,11 +103,7 @@ describe('sumByParty', () => {
 Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/src/services/ledger.ts`:
 
 ```ts
-import {
-  COLLECTIONS,
-  ledgerEntryConverter,
-  LedgerEntrySchema,
-} from '@ada/shared';
+import { COLLECTIONS, ledgerEntryConverter, LedgerEntrySchema } from '@ada/shared';
 import type { LedgerEntry, LedgerParty, LedgerEntryType } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { generateId } from '../lib/id';
@@ -113,7 +124,11 @@ export async function appendLedger(input: AppendInput): Promise<LedgerEntry> {
     relatedId: input.relatedId,
     createdAt: new Date(),
   });
-  await db.collection(COLLECTIONS.ledger).doc(entry.id).withConverter(ledgerEntryConverter).set(entry);
+  await db
+    .collection(COLLECTIONS.ledger)
+    .doc(entry.id)
+    .withConverter(ledgerEntryConverter)
+    .set(entry);
   return entry;
 }
 
@@ -162,14 +177,23 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/tests/wall
 import { describe, it, expect } from 'vitest';
 import { useEmulator } from './helpers/emulator';
 import { createAdvertiser, getAdvertiserById } from '../src/services/advertisers';
-import { topUp, getWallet, chargeCampaign, refundCampaign, creditPublisher } from '../src/services/wallet';
+import {
+  topUp,
+  getWallet,
+  chargeCampaign,
+  refundCampaign,
+  creditPublisher,
+} from '../src/services/wallet';
 import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 
 useEmulator();
 
 async function adv() {
   return createAdvertiser({
-    ownerEmail: 'a@a.is', companyName: 'A', kennitala: '1234567890', vatNumber: '1',
+    ownerEmail: 'a@a.is',
+    companyName: 'A',
+    kennitala: '1234567890',
+    vatNumber: '1',
   });
 }
 
@@ -261,7 +285,11 @@ async function syncMirror(advertiserId: string): Promise<void> {
     .update({ walletBalanceIsk: balance });
 }
 
-export async function topUp(advertiserId: string, amountIsk: number, teyaTxnId: string): Promise<void> {
+export async function topUp(
+  advertiserId: string,
+  amountIsk: number,
+  teyaTxnId: string,
+): Promise<void> {
   if (amountIsk <= 0) throw badRequest('invalid_amount', 'amountIsk must be positive');
   // Idempotency: if a ledger entry with this relatedId exists, skip
   const existing = await db
@@ -280,11 +308,18 @@ export async function topUp(advertiserId: string, amountIsk: number, teyaTxnId: 
   await syncMirror(advertiserId);
 }
 
-export async function chargeCampaign(advertiserId: string, campaignId: string, amountIsk: number): Promise<void> {
+export async function chargeCampaign(
+  advertiserId: string,
+  campaignId: string,
+  amountIsk: number,
+): Promise<void> {
   if (amountIsk <= 0) throw badRequest('invalid_amount', 'must be positive');
   const wallet = await getWallet(advertiserId);
   if (wallet.balanceIsk < amountIsk) {
-    throw badRequest('insufficient_balance', `Wallet has ${wallet.balanceIsk}, needed ${amountIsk}`);
+    throw badRequest(
+      'insufficient_balance',
+      `Wallet has ${wallet.balanceIsk}, needed ${amountIsk}`,
+    );
   }
   await appendLedger({
     party: { type: 'advertiser', id: advertiserId },
@@ -295,7 +330,11 @@ export async function chargeCampaign(advertiserId: string, campaignId: string, a
   await syncMirror(advertiserId);
 }
 
-export async function refundCampaign(advertiserId: string, campaignId: string, amountIsk: number): Promise<void> {
+export async function refundCampaign(
+  advertiserId: string,
+  campaignId: string,
+  amountIsk: number,
+): Promise<void> {
   if (amountIsk <= 0) throw badRequest('invalid_amount', 'must be positive');
   await appendLedger({
     party: { type: 'advertiser', id: advertiserId },
@@ -306,7 +345,11 @@ export async function refundCampaign(advertiserId: string, campaignId: string, a
   await syncMirror(advertiserId);
 }
 
-export async function creditPublisher(publisherId: string, campaignId: string, grossIsk: number): Promise<void> {
+export async function creditPublisher(
+  publisherId: string,
+  campaignId: string,
+  grossIsk: number,
+): Promise<void> {
   if (grossIsk <= 0) throw badRequest('invalid_amount', 'must be positive');
   const feeIsk = Math.round((grossIsk * DEFAULT_PLATFORM_FEE_PERCENT) / 100);
   const netIsk = grossIsk - feeIsk;
@@ -472,7 +515,10 @@ import { createHmac } from 'crypto';
 
 describe('verifyTeyaSignature', () => {
   const secret = 'whsec_test';
-  const body = JSON.stringify({ type: 'checkout.completed', data: { sessionId: 's', amountIsk: 1, metadata: { advertiserId: 'a' } } });
+  const body = JSON.stringify({
+    type: 'checkout.completed',
+    data: { sessionId: 's', amountIsk: 1, metadata: { advertiserId: 'a' } },
+  });
   const sig = createHmac('sha256', secret).update(body).digest('hex');
 
   it('passes for valid signature', () => {
@@ -488,10 +534,12 @@ describe('verifyTeyaSignature', () => {
 
 describe('parseTeyaEvent', () => {
   it('parses checkout.completed', () => {
-    const ev = parseTeyaEvent(JSON.stringify({
-      type: 'checkout.completed',
-      data: { sessionId: 's', amountIsk: 5000, metadata: { advertiserId: 'adv_a' } },
-    }));
+    const ev = parseTeyaEvent(
+      JSON.stringify({
+        type: 'checkout.completed',
+        data: { sessionId: 's', amountIsk: 5000, metadata: { advertiserId: 'adv_a' } },
+      }),
+    );
     expect(ev.type).toBe('checkout.completed');
     expect(ev.data.amountIsk).toBe(5000);
   });
@@ -543,7 +591,9 @@ walletRoutes.get('/', async (c) => {
     if (!adv) throw notFound('advertiser_not_found', 'No advertiser');
     const w = await getWallet(adv.id);
     return c.json({ wallet: w });
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 
 walletRoutes.post('/topup', async (c) => {
@@ -551,7 +601,7 @@ walletRoutes.post('/topup', async (c) => {
     const user = c.get('user');
     const adv = await getAdvertiserByOwnerEmail(user.email);
     if (!adv) throw notFound('advertiser_not_found', 'No advertiser');
-    const body = await c.req.json() as { amountIsk: number };
+    const body = (await c.req.json()) as { amountIsk: number };
     const teya = getTeya();
     const session = await teya.createCheckoutSession({
       advertiserId: adv.id,
@@ -561,7 +611,9 @@ walletRoutes.post('/topup', async (c) => {
       idempotencyKey: generateId('idem'),
     });
     return c.json({ checkoutUrl: session.url, sessionId: session.sessionId }, 201);
-  } catch (e) { return handleError(e, c); }
+  } catch (e) {
+    return handleError(e, c);
+  }
 });
 ```
 
@@ -610,7 +662,10 @@ function sign(body: string) {
 describe('POST /api/teya/webhook', () => {
   it('credits wallet on checkout.completed', async () => {
     const adv = await createAdvertiser({
-      ownerEmail: 'a@a.is', companyName: 'A', kennitala: '1234567890', vatNumber: '1',
+      ownerEmail: 'a@a.is',
+      companyName: 'A',
+      kennitala: '1234567890',
+      vatNumber: '1',
     });
     const body = JSON.stringify({
       type: 'checkout.completed',
@@ -626,7 +681,10 @@ describe('POST /api/teya/webhook', () => {
   });
 
   it('rejects on bad signature', async () => {
-    const body = JSON.stringify({ type: 'checkout.completed', data: { sessionId: 's', amountIsk: 1, metadata: { advertiserId: 'x' } } });
+    const body = JSON.stringify({
+      type: 'checkout.completed',
+      data: { sessionId: 's', amountIsk: 1, metadata: { advertiserId: 'x' } },
+    });
     const res = await app.request('/api/teya/webhook', {
       method: 'POST',
       headers: { 'Teya-Signature': 'bad', 'Content-Type': 'application/json' },
@@ -637,7 +695,10 @@ describe('POST /api/teya/webhook', () => {
 
   it('is idempotent — same sessionId does not double-credit', async () => {
     const adv = await createAdvertiser({
-      ownerEmail: 'b@b.is', companyName: 'B', kennitala: '1234567890', vatNumber: '1',
+      ownerEmail: 'b@b.is',
+      companyName: 'B',
+      kennitala: '1234567890',
+      vatNumber: '1',
     });
     const body = JSON.stringify({
       type: 'checkout.completed',
@@ -762,7 +823,11 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
   }
 
   for (const [campaignId, evs] of byCampaign) {
-    const cmpSnap = await db.collection(COLLECTIONS.campaigns).doc(campaignId).withConverter(campaignConverter).get();
+    const cmpSnap = await db
+      .collection(COLLECTIONS.campaigns)
+      .doc(campaignId)
+      .withConverter(campaignConverter)
+      .get();
     if (!cmpSnap.exists) continue;
     const cmp = cmpSnap.data()!;
     if (cmp.budget.mode !== 'cpm_capped') continue;
@@ -778,7 +843,10 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
       const cpm = (slot?.pricing as { cpmIsk?: number } | undefined)?.cpmIsk ?? 0;
       const perImpression = Math.round(cpm / 1000);
       totalCharge += perImpression;
-      publisherCharges.set(ev.publisherId, (publisherCharges.get(ev.publisherId) ?? 0) + perImpression);
+      publisherCharges.set(
+        ev.publisherId,
+        (publisherCharges.get(ev.publisherId) ?? 0) + perImpression,
+      );
     }
 
     if (totalCharge > 0) {
@@ -829,9 +897,7 @@ Modify `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api/vercel.js
     "api/index.ts": { "maxDuration": 30 },
     "api/cron-accrue.ts": { "maxDuration": 60 }
   },
-  "crons": [
-    { "path": "/api/cron-accrue", "schedule": "*/15 * * * *" }
-  ],
+  "crons": [{ "path": "/api/cron-accrue", "schedule": "*/15 * * * *" }],
   "rewrites": [
     { "source": "/api/cron-accrue", "destination": "/api/cron-accrue" },
     { "source": "/(.*)", "destination": "/api/index" }

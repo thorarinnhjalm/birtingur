@@ -40,11 +40,7 @@ export const CampaignStatusSchema = z.enum([
 ]);
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 
-export const PerPublisherApprovalSchema = z.enum([
-  'pending',
-  'approved',
-  'rejected',
-]);
+export const PerPublisherApprovalSchema = z.enum(['pending', 'approved', 'rejected']);
 
 export const CampaignSchema = z.object({
   id: z.string().min(1),

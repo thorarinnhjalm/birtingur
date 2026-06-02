@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AdvertiserSchema,
-  CreativeSchema,
-  AutoScanResultSchema,
-} from '../src/schemas/advertiser';
+import { AdvertiserSchema, CreativeSchema, AutoScanResultSchema } from '../src/schemas/advertiser';
 
 describe('AdvertiserSchema', () => {
   it('accepts valid advertiser', () => {
