@@ -1,0 +1,46 @@
+name: Deploy Snippet to Cloudflare CDN
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/snippet/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ada/snippet build
+
+      - name: Upload to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp packages/snippet/dist/snippet.js \
+            s3://ada-cdn/v1/snippet.js \
+            --endpoint-url ${{ secrets.R2_ENDPOINT_URL }} \
+            --content-type application/javascript \
+            --cache-control "public, max-age=300"
+
+      - name: Purge Cloudflare cache
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://cdn.adplatform.is/v1/snippet.js"]}' \
+            https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache
