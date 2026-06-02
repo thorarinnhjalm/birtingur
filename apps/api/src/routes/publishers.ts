@@ -5,6 +5,7 @@ import {
   getPublisherByOwnerEmail,
   updatePublisher,
 } from '../services/publishers';
+import { getPublisherStats } from '../services/publisher-stats';
 import { AppError } from '../lib/errors';
 
 export const publishersRouter = new Hono<Env>();
@@ -56,4 +57,19 @@ publishersRouter.patch('/me', async (c) => {
   const updated = await updatePublisher(publisher.id, body);
 
   return c.json(updated);
+});
+
+publishersRouter.get('/me/stats', async (c) => {
+  const user = c.get('user');
+  const publisher = await getPublisherByOwnerEmail(user.email);
+
+  if (!publisher) {
+    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  }
+
+  const queryTimeframe = c.req.query('timeframe');
+  const timeframe = queryTimeframe === '30' ? 30 : 7;
+
+  const stats = await getPublisherStats(publisher.id, timeframe);
+  return c.json(stats);
 });
