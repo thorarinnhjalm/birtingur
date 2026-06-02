@@ -3,15 +3,18 @@
   "functions": {
     "api/index.ts": { "maxDuration": 30 },
     "api/cron-accrue.ts": { "maxDuration": 60 },
-    "api/cron-aggregate.ts": { "maxDuration": 60 }
+    "api/cron-aggregate.ts": { "maxDuration": 60 },
+    "api/cron-payouts.ts": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/cron-accrue", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron-aggregate", "schedule": "0 * * * *" }
+    { "path": "/api/cron-aggregate", "schedule": "0 * * * *" },
+    { "path": "/api/cron-payouts", "schedule": "0 6 1 * *" }
   ],
   "rewrites": [
     { "source": "/api/cron-accrue", "destination": "/api/cron-accrue" },
     { "source": "/api/cron-aggregate", "destination": "/api/cron-aggregate" },
+    { "source": "/api/cron-payouts", "destination": "/api/cron-payouts" },
     { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
