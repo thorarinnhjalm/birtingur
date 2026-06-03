@@ -1,6 +1,6 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { db } from '../lib/firebase';
-import { Redis } from '@upstash/redis';
+import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface QueuedEvent {
@@ -101,20 +101,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   await batch.commit();
 }
 
-let _redis: Redis | null = null;
-function redis() {
-  if (_redis) return _redis;
-  _redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-  });
-  return _redis;
-}
-
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   const events: QueuedEvent[] = [];
   for (let i = 0; i < batchSize; i++) {
-    const raw = await redis().rpop<string>('events:queue');
+    const raw = await getRedis().rpop<string>('events:queue');
     if (!raw) break;
     try {
       events.push(JSON.parse(raw) as QueuedEvent);
