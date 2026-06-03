@@ -1,7 +1,7 @@
 import { getRedis } from './redis';
 
 export interface AdEvent {
-  type: 'impression' | 'click';
+  type: 'impression' | 'click' | 'pageview';
   slotId: string;
   publisherId: string;
   creativeId: string;

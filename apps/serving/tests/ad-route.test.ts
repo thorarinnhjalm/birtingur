@@ -27,7 +27,11 @@ const mockSlot: SlotCacheEntry = {
 };
 
 vi.mock('../src/lib/cache', () => ({
-  getSlotCache: vi.fn(async (id: string) => (id === 'slot_a' ? mockSlot : null)),
+  getSlotCache: vi.fn(async (id: string) => {
+    if (id === 'slot_a') return mockSlot;
+    if (id === 'slot_empty') return { ...mockSlot, slotId: 'slot_empty', activeCreatives: [] };
+    return null;
+  }),
   pushSlotCache: vi.fn(),
   invalidateSlot: vi.fn(),
 }));
@@ -57,6 +61,17 @@ describe('GET /v1/ad', () => {
     const body = await res.json();
     expect(body.creativeId).toBe('cre_a');
     expect(body.impressionPixel).toContain('/v1/impression?');
+  });
+
+  it('returns transparent fallback ad for slot with no matching creatives', async () => {
+    const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_transparent');
+    expect(body.imageUrl).toContain('data:image/gif;base64');
+    expect(body.width).toBe(1);
+    expect(body.height).toBe(1);
+    expect(body.impressionPixel).toContain('type=pageview');
   });
 
   it('returns empty for unknown slot', async () => {

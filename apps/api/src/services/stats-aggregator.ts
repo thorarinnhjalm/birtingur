@@ -4,7 +4,7 @@ import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface QueuedEvent {
-  type: 'impression' | 'click';
+  type: 'impression' | 'click' | 'pageview';
   slotId: string;
   publisherId: string;
   creativeId: string;
@@ -41,21 +41,39 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   interface Bucket {
     impressions: number;
     clicks: number;
+    pageviews: number;
   }
   const campaignHour = new Map<string, Bucket>();
   const publisherDay = new Map<string, Bucket>();
   const publisherSlotDay = new Map<string, Bucket>();
 
   for (const ev of events) {
-    const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
-    const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
-    const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
-    for (const map of [campaignHour, publisherDay, publisherSlotDay]) {
-      const key = map === campaignHour ? ch : map === publisherDay ? pd : psd;
-      const b = map.get(key) ?? { impressions: 0, clicks: 0 };
-      if (ev.type === 'impression') b.impressions++;
-      else b.clicks++;
-      map.set(key, b);
+    if (ev.type === 'pageview') {
+      const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
+      const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+      for (const map of [publisherDay, publisherSlotDay]) {
+        const key = map === publisherDay ? pd : psd;
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        b.pageviews++;
+        map.set(key, b);
+      }
+    } else {
+      const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
+      const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
+      const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+
+      const cb = campaignHour.get(ch) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+      if (ev.type === 'impression') cb.impressions++;
+      else cb.clicks++;
+      campaignHour.set(ch, cb);
+
+      for (const map of [publisherDay, publisherSlotDay]) {
+        const key = map === publisherDay ? pd : psd;
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        if (ev.type === 'impression') b.impressions++;
+        else b.clicks++;
+        map.set(key, b);
+      }
     }
   }
 
@@ -81,6 +99,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
+        pageviews: FieldValue.increment(b.pageviews),
       },
       { merge: true },
     );
@@ -93,6 +112,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
+        pageviews: FieldValue.increment(b.pageviews),
       },
       { merge: true },
     );

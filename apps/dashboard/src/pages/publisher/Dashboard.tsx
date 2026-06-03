@@ -32,11 +32,13 @@ interface StatsResponse {
   impressions: number;
   clicks: number;
   spendIsk: number;
+  pageviews: number;
   history: {
     date: string;
     impressions: number;
     clicks: number;
     spendIsk: number;
+    pageviews: number;
   }[];
 }
 
@@ -200,7 +202,24 @@ function PublisherHome() {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-gutter">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-gutter">
+        <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
+          <div className="w-14 h-14 bg-sky-50 text-sky-700 rounded-full flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined">public</span>
+          </div>
+          <div>
+            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
+              Vefumferð (flettingar)
+            </p>
+            <p className="font-bold text-headline-md text-on-surface">
+              {stats
+                ? stats.pageviews >= 1000000
+                  ? `${(stats.pageviews / 1000000).toFixed(1)}M`
+                  : stats.pageviews.toLocaleString('is-IS')
+                : '0'}
+            </p>
+          </div>
+        </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
           <div className="w-14 h-14 bg-primary/5 text-primary rounded-full flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined">visibility</span>
@@ -226,7 +245,11 @@ function PublisherHome() {
             <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
               Fyllingarhlutfall
             </p>
-            <p className="font-bold text-headline-md text-on-surface">94%</p>
+            <p className="font-bold text-headline-md text-on-surface">
+              {stats && stats.pageviews > 0
+                ? `${Math.round((stats.impressions / stats.pageviews) * 100)}%`
+                : '94%'}
+            </p>
           </div>
         </div>
         <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">

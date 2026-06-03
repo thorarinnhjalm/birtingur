@@ -8,6 +8,7 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
     impressions: number;
     clicks: number;
     spendIsk: number;
+    pageviews: number;
   }[];
 }
 
@@ -15,10 +16,17 @@ export async function getPublisherStats(
   publisherId: string,
   timeframeDays: 7 | 30 = 7,
 ): Promise<PublisherStatsResponse> {
-  const history: { date: string; impressions: number; clicks: number; spendIsk: number }[] = [];
+  const history: {
+    date: string;
+    impressions: number;
+    clicks: number;
+    spendIsk: number;
+    pageviews: number;
+  }[] = [];
   let totalImpressions = 0;
   let totalClicks = 0;
   let totalSpendIsk = 0;
+  let totalPageviews = 0;
 
   const now = new Date();
   let hasRealData = false;
@@ -32,6 +40,7 @@ export async function getPublisherStats(
     let dayImpressions = 0;
     let dayClicks = 0;
     let daySpendIsk = 0;
+    let dayPageviews = 0;
 
     // 1. Try subcollection path
     const subRef = db.doc(`${COLLECTIONS.stats}/publishers/${publisherId}/${dk}`);
@@ -44,6 +53,7 @@ export async function getPublisherStats(
         dayImpressions = data.impressions || 0;
         dayClicks = data.clicks || 0;
         daySpendIsk = data.spendIsk || 0;
+        dayPageviews = data.pageviews || 0;
       }
     } else {
       // 2. Fallback to top-level stats collection
@@ -61,6 +71,7 @@ export async function getPublisherStats(
           dayImpressions += pubData.impressions || 0;
           dayClicks += pubData.clicks || 0;
           daySpendIsk += pubData.spendIsk || 0;
+          dayPageviews += pubData.pageviews || 0;
         }
       }
     }
@@ -70,11 +81,13 @@ export async function getPublisherStats(
       impressions: dayImpressions,
       clicks: dayClicks,
       spendIsk: daySpendIsk,
+      pageviews: dayPageviews,
     });
 
     totalImpressions += dayImpressions;
     totalClicks += dayClicks;
     totalSpendIsk += daySpendIsk;
+    totalPageviews += dayPageviews;
   }
 
   // 3. Fallback to mock data if empty and running in dev/emulator
@@ -85,6 +98,7 @@ export async function getPublisherStats(
     let mockTotalImpressions = 0;
     let mockTotalClicks = 0;
     let mockTotalSpendIsk = 0;
+    let mockTotalPageviews = 0;
 
     for (let i = timeframeDays - 1; i >= 0; i--) {
       const d = new Date(now);
@@ -100,23 +114,28 @@ export async function getPublisherStats(
       const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
       const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
+      // Mock pageviews should be around 1.8x to 3x of impressions, plus some extra fallback hits
+      const dayPageviews = Math.floor(dayImpressions * (1.8 + Math.random() * 1.2)) + 150;
 
       mockHistory.push({
         date: dateStr,
         impressions: dayImpressions,
         clicks: dayClicks,
         spendIsk: daySpendIsk,
+        pageviews: dayPageviews,
       });
 
       mockTotalImpressions += dayImpressions;
       mockTotalClicks += dayClicks;
       mockTotalSpendIsk += daySpendIsk;
+      mockTotalPageviews += dayPageviews;
     }
 
     return {
       impressions: mockTotalImpressions,
       clicks: mockTotalClicks,
       spendIsk: mockTotalSpendIsk,
+      pageviews: mockTotalPageviews,
       history: mockHistory,
     };
   }
@@ -125,6 +144,7 @@ export async function getPublisherStats(
     impressions: totalImpressions,
     clicks: totalClicks,
     spendIsk: totalSpendIsk,
+    pageviews: totalPageviews,
     history,
   };
 }

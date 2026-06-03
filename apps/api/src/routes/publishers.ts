@@ -3,6 +3,7 @@ import { requireAuth, type Env } from '../lib/auth';
 import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers';
 import { getPublisherStats } from '../services/publisher-stats';
 import { AppError } from '../lib/errors';
+import { scrapeAndClassifyDomain } from '../services/domain-classifier';
 import {
   getOrCreateWidgetKey,
   getWidgetKeyByTargetId,
@@ -57,6 +58,18 @@ publishersRouter.post('/', async (c) => {
   await getOrCreateWidgetKey(user.email, 'publisher', publisher.id);
 
   return c.json(publisher, 201);
+});
+
+publishersRouter.post('/analyze-domain', async (c) => {
+  const body = await c.req.json();
+  const domain = body.domain;
+
+  if (!domain) {
+    throw new AppError(400, 'Domain is required', 'BAD_REQUEST');
+  }
+
+  const result = await scrapeAndClassifyDomain(domain);
+  return c.json(result);
 });
 
 publishersRouter.get('/me', async (c) => {

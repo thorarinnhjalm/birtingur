@@ -63,7 +63,17 @@ adRoute.get('/', async (c) => {
   });
 
   if (!creative) {
-    return c.json({ empty: true });
+    c.header('Set-Cookie', setCookieHeader(token));
+    c.header('Cache-Control', 'private, no-store');
+    return c.json({
+      creativeId: 'cre_fallback_transparent',
+      imageUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      clickUrl: '#',
+      width: 1,
+      height: 1,
+      impressionPixel: `/v1/impression?c=cre_fallback_transparent&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
+      ttl: 60,
+    });
   }
 
   // Build impression pixel URL (points to relative /v1/impression route)
