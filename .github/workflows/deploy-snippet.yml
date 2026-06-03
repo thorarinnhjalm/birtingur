@@ -38,6 +38,7 @@ jobs:
             --cache-control "public, max-age=300"
 
       - name: Purge Cloudflare cache
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ZONE_ID != '' }}
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
