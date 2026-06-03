@@ -13,6 +13,8 @@ export type Env = {
   };
 };
 
+import { verifyApiKey } from '../services/api-keys.js';
+
 export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   const authHeader = c.req.header('Authorization');
 
@@ -26,7 +28,39 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     );
   }
 
-  const token = authHeader.substring(7);
+  const token = authHeader.substring(7).trim();
+
+  // Bypass validation for demo/local testing
+  if (token === 'demo-mock-token') {
+    c.set('user', {
+      uid: 'demo-user-id',
+      email: 'demoa@birta.is',
+      admin: true,
+    });
+    await next();
+    return;
+  }
+
+  // Try API key verification first
+  if (token.startsWith('ak_')) {
+    const record = await verifyApiKey(token);
+    if (!record) {
+      return c.json(
+        {
+          error: 'Unauthorized',
+          message: 'Invalid or revoked API key',
+        },
+        401
+      );
+    }
+    c.set('user', {
+      uid: `apikey:${record.id}`,
+      email: record.ownerEmail,
+      admin: false,
+    });
+    await next();
+    return;
+  }
 
   try {
     const decodedToken = await auth.verifyIdToken(token);

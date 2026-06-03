@@ -1,0 +1,33 @@
+export const ROUTES = {
+  SIGN_IN: '/sign-in',
+  ROLE_SELECT: '/role',
+  ADVERTISER: {
+    HOME: '/advertiser',
+    CAMPAIGNS: '/advertiser/campaigns',
+    CAMPAIGNS_NEW: '/advertiser/campaigns/new',
+    CAMPAIGNS_DETAIL: (id: string) => `/advertiser/campaigns/${id}`,
+    TOP_UP: '/advertiser/topup',
+    CREATIVES: '/advertiser/creatives',
+    SETTINGS: '/advertiser/settings',
+    ONBOARDING: '/advertiser/onboarding',
+  },
+  PUBLISHER: {
+    HOME: '/publisher',
+    SLOTS: '/publisher/slots',
+    SLOTS_NEW: '/publisher/slots/new',
+    SLOTS_DETAIL: (id: string) => `/publisher/slots/${id}`,
+    EARNINGS: '/publisher/earnings',
+    APPROVALS: '/publisher/approvals',
+    SETTINGS: '/publisher/settings',
+    ONBOARDING: '/publisher/onboarding',
+  },
+  ADMIN: {
+    HOME: '/admin',
+    REVIEW: '/admin/review',
+    PAYOUTS: '/admin/payouts',
+    PUBLISHERS: '/admin/publishers',
+    ADVERTISERS: '/admin/advertisers',
+    STATS: '/admin/stats',
+    SYSTEM: '/admin/system',
+  },
+};

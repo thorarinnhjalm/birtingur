@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { publishersRouter } from './routes/publishers';
 import { slotsRouter } from './routes/slots';
 import { advertisersRouter } from './routes/advertisers';
@@ -10,9 +11,12 @@ import { teyaWebhookRoute } from './routes/webhooks/teya';
 import { handleError } from './lib/errors';
 import { adminRoutes } from './routes/admin';
 import { publisherApprovalsRoutes } from './routes/publisher-approvals';
+import { apiKeysRouter } from './routes/api-keys.js';
+import { widgetsRouter } from './routes/widgets.js';
 
 export const app = new Hono();
 
+app.use('/*', cors());
 app.onError(handleError);
 
 app.get('/healthz', (c) => c.json({ ok: true }));
@@ -27,5 +31,7 @@ app.route('/v1/advertisers/me/wallet', walletRouter);
 app.route('/api/teya/webhook', teyaWebhookRoute);
 app.route('/v1/admin', adminRoutes);
 app.route('/v1/publishers/me', publisherApprovalsRoutes);
+app.route('/v1/api-keys', apiKeysRouter);
+app.route('/v1/widgets', widgetsRouter);
 
 export default app;

@@ -3,3 +3,4 @@ export * from './advertiser';
 export * from './campaign';
 export * from './ledger';
 export * from './stats';
+export * from './widget-key';

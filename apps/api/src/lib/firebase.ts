@@ -1,4 +1,4 @@
-import { initializeApp, getApps, cert, applicationDefault } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
@@ -6,7 +6,7 @@ import { getStorage } from 'firebase-admin/storage';
 function init() {
   if (getApps().length > 0) return;
 
-  const useEmulator = process.env.FIRESTORE_EMULATOR_HOST != null;
+  const useEmulator = !!process.env.FIRESTORE_EMULATOR_HOST;
 
   if (useEmulator) {
     initializeApp({ projectId: process.env.GCLOUD_PROJECT ?? 'ada-test' });
@@ -24,12 +24,20 @@ function init() {
       storageBucket: `${projectId}.appspot.com`,
     });
   } else {
-    initializeApp({ credential: applicationDefault() });
+    const fallbackProjectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ada-dev';
+    initializeApp({
+      credential: applicationDefault(),
+      projectId: fallbackProjectId,
+      storageBucket: `${fallbackProjectId}.appspot.com`,
+    });
   }
 }
 
 init();
 
-export const db = getFirestore();
+const databaseId = process.env.FIREBASE_DATABASE_ID;
+export const db = databaseId
+  ? getFirestore(getApp(), databaseId)
+  : getFirestore();
 export const auth = getAuth();
 export const storage = getStorage();

@@ -1,4 +1,4 @@
-import type { CachedCreative, SlotCacheEntry } from './cache';
+import type { CachedCreative, SlotCacheEntry } from '@ada/shared';
 
 export interface SelectionContext {
   country: string;

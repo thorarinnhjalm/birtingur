@@ -19,7 +19,7 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 - Transparent pricing (CPM or fixed time-slot, publisher's choice)
 - Flexible ad sizes — publishers can define sizes matching their layout, not locked to IAB
 - API-first: hosted dashboard, embeddable widgets, and MCP server are all clients of the same REST API
-- Wallet/prepaid billing model — one Teya charge per top-up, simpler VAT handling
+- Wallet/prepaid billing model — one Blikk (or Teya) charge per top-up, with automated Payday VAT invoicing
 
 ## 2. Decisions Reference
 
@@ -32,7 +32,7 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 | Q6  | Approval                              | Auto-scan + admin manual review; publisher per-slot opt-in for own approval queue                                                                    |
 | Q7  | markadssetning.is integration         | API-only, human-in-the-loop, no autonomous agent buying                                                                                              |
 | Q8  | Integration depth                     | Standalone product, markadssetning.is consumes API                                                                                                   |
-| Q9  | Payments                              | Teya (Icelandic acquiring) + prepaid wallet model                                                                                                    |
+| Q9  | Payments                              | Blikk (A2A open banking) + prepaid wallet model (Teya as card backup)                                                                               |
 | Q10 | Tech stack                            | React 19/Vite/Tailwind v4/Firebase for warm path; serving on Vercel function + Redis in V1, migrate to Cloudflare Worker + KV when traffic justifies |
 | Q11 | MVP scope                             | Friend's own properties as initial publishers; markadssetning.is as initial advertiser source                                                        |
 | —   | MCP positioning                       | First-class from day 1 as competitive moat, not lead marketing story                                                                                 |
@@ -61,9 +61,9 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 └──────────────────┼──────────┼─────────────────────────────────────┘
                    ▼          ▼
         ┌──────────────┐  ┌──────────┐       push on change
-        │  Firebase    │  │   Teya   │      ┌─────────────────┐
-        │ (Auth +      │  │ checkout │      │  Redis (V1)     │
-        │  Firestore)  │  │ + webhook│      │  Cloudflare KV  │
+        │  Firebase    │  │  Blikk/  │      ┌─────────────────┐
+        │ (Auth +      │  │  Payday  │      │  Redis (V1)     │
+        │  Firestore)  │  │ API/hook │      │  Cloudflare KV  │
         └──────────────┘  └──────────┘      │  (V2)           │
                                             └────────┬────────┘
 ┌────────────────────────────────────────────────────┼────────┐
@@ -313,11 +313,11 @@ If consent=full, snippet sets first-party cookie `_adp_v={shortHash}` (90 day TT
 ### 6.1 Top-up flow
 
 1. Advertiser → "Add credit" in dashboard → select amount (5k / 20k / 50k / 100k / custom).
-2. Vercel function calls Teya Checkout API, returns hosted checkout URL.
-3. Advertiser pays by card on Teya hosted page.
-4. Teya webhook → `/api/teya/webhook` → verify signature → append ledger entry `{ type: "topup", amountIsk: +X, relatedId: teyaTxnId }`.
+2. Vercel function initiates a payment link via Blikk API (A2A open banking transfer) or Teya Checkout API (for credit cards).
+3. Advertiser completes authentication in their bank app (via Rafræn skilríki) or card details.
+4. Blikk (or Teya) webhook → verify signature → append ledger entry `{ type: "topup", amountIsk: +X, relatedId: txnId }`.
 5. Mirror `walletBalanceIsk` on advertiser doc.
-6. V1: VAT invoice issued manually by bookkeeper. V2: API integration with DK Hugbúnaður or Regla.
+6. API automatically calls Payday API (POST /invoices) to issue a 24% VAT paid invoice to the advertiser's kennitala. In V1/Phase 1 this can be manual; in Phase 2/3 it is fully automated through Payday.
 
 ### 6.2 Campaign charging
 
@@ -338,7 +338,7 @@ For each campaign charge, a paired ledger entry credits the publisher (minus pla
 - Monthly Vercel cron: sum `publisher_credit` for previous month per publisher.
 - Create `payouts/{payoutId}` with status `pending`.
 - V1: Admin views payout queue, executes manual bank transfer to publisher's IBAN, marks completed.
-- V2: Teya payout API or Icelandic bank business API for automated transfer.
+- V2: Payday API / Blikk API payouts, or Icelandic bank business API for automated transfer.
 - Minimum payout threshold: 5,000 ISK. Below threshold rolls to next month.
 
 ### 6.5 Platform fee
@@ -438,7 +438,7 @@ GET    /v1/publishers/me/payouts
 POST   /v1/advertisers
 GET    /v1/advertisers/me
 GET    /v1/advertisers/me/wallet
-POST   /v1/advertisers/me/wallet/topup           # returns Teya checkout URL
+POST   /v1/advertisers/me/wallet/topup           # returns Blikk/Teya checkout URL
 POST   /v1/creatives                             # multipart: image + metadata
 GET    /v1/creatives/{id}
 GET    /v1/slots/search                          # ?size=&geo=&category=&maxCpm=
@@ -453,7 +453,8 @@ GET    /v1/admin/payouts/pending
 POST   /v1/admin/payouts/{id}/mark-completed
 
 # Webhooks / internal
-POST   /api/teya/webhook
+POST   /api/blikk/webhook                        # Blikk webhook handler
+POST   /api/teya/webhook                         # Teya webhook backup handler
 POST   /api/internal/aggregate-stats             # Vercel cron, hourly
 POST   /api/internal/process-payouts             # Vercel cron, monthly
 POST   /api/internal/push-cache                  # called on any cache-affecting mutation
@@ -510,7 +511,7 @@ Authenticated with publisher/viewer keys (not Firebase tokens — those must not
 
 **In scope:**
 
-- REST API: publisher, slot, creative, campaign CRUD; Teya wallet top-up.
+- REST API: publisher, slot, creative, campaign CRUD; Blikk/Teya wallet top-up.
 - Hosted dashboard: advertiser flow (top-up, create campaign, stats) + publisher flow (slots, stats, payout) + admin flow (review queue, payout processing).
 - Snippet + serving endpoint as Vercel function with Upstash Redis cache.
 - Auto-scan + admin manual review queue.
@@ -526,20 +527,20 @@ Authenticated with publisher/viewer keys (not Firebase tokens — those must not
 - Automated payout via bank API.
 - Canva integration (manual PNG upload only).
 - Publisher manual approval workflow (Phase 1 publishers opt-out).
-- VAT API integration (manual invoicing via bookkeeper).
+- VAT API integration (manual invoicing via bookkeeper or Payday draft).
 
 ### 9.2 Phase 2 (~6 weeks): Open beta
 
 - Publisher manual approval workflow.
 - Embed widgets.
 - Cloudflare Worker serving migration if traffic >50k impressions/day.
-- Automated payouts.
+- Automated payouts (using Blikk API payouts / bank claims).
 - Onboard 5-10 external Icelandic publishers.
 
 ### 9.3 Phase 3: Market push
 
 - Sales outreach to established Icelandic media.
-- VAT API integration (DK Hugbúnaður / Regla).
+- VAT API integration (Payday API automation for VSK and contractor payout reporting, with DK/Regla as backup).
 - Canva partner-tier integration if acquired.
 
 ### 9.4 Repository structure
@@ -564,7 +565,8 @@ packages/
 - Cloudflare: CDN for snippet.js (V1); KV + Worker for serving (V2).
 - Firebase: dedicated project (separate from markadssetning.is), same Firebase organization.
 - Upstash Redis: hot-path cache, frequency-cap counters, budget counters.
-- Teya: card acquiring and (V2) payout API.
+- Blikk / Teya: account-to-account payments (Blikk API) and credit card backup (Teya Checkout API).
+- Payday: automated bookkeeping and contractor tax reporting.
 
 ## 10. Parallel Prerequisites
 
@@ -573,8 +575,8 @@ These are out of scope for engineering but must complete before launch:
 - **Legal / tax consultation** on VAT treatment of wallet + marketplace flows under Icelandic law.
 - **DPA template** with publishers (we as processor, publisher as controller).
 - **Privacy policy** covering snippet behavior, geo-only data, no PII storage.
-- **Teya commercial agreement** and acquiring setup.
-- **Bookkeeper engagement** for manual VAT invoicing in V1.
+- **Blikk & Teya commercial agreements** and acquiring/API credentials setup.
+- **Payday API credentials setup** and bookkeeper/accountant engagement for manual oversight.
 
 ## 11. Open Questions / V2+
 
@@ -596,7 +598,7 @@ Phase 1 is broken into nine sub-plans in `docs/superpowers/plans/`. **Execute in
 | 2     | `2026-06-02-02-publisher-core.md`    | REST API for publisher + slot CRUD, snippet code generator                                                               | 1                |
 | 3     | `2026-06-02-03-snippet-serving.md`   | snippet.js, hot-path serving endpoint, Redis cache, push-on-change                                                       | 1, 2             |
 | 4     | `2026-06-02-04-advertiser-core.md`   | REST API for advertiser + creative + campaign, auto-scan stub, slot search; upgrades cache push to read active creatives | 1, 2, 3          |
-| 5     | `2026-06-02-05-billing-wallet.md`    | Ledger, wallet service, Teya checkout + webhook, CPM accrual cron                                                        | 1, 2, 4          |
+| 5     | `2026-06-02-05-billing-wallet.md`    | Ledger, wallet service, Blikk/Teya checkout + webhook, CPM accrual cron                                                  | 1, 2, 4          |
 | 6     | `2026-06-02-06-approval-workflow.md` | Admin review queue, publisher manual approval, appeal flow                                                               | 1, 2, 4, 5       |
 | 7     | `2026-06-02-09-payouts-stats.md`     | Stats aggregation cron, campaign stats endpoint, monthly payouts cron, snippet CDN deploy, E2E smoke test                | 1, 2, 4, 5       |
 | 8     | `2026-06-02-07-hosted-dashboard.md`  | React 19 dashboard for advertiser, publisher, admin surfaces                                                             | 1, 2, 4, 5, 6, 7 |
@@ -626,8 +628,8 @@ Phase 1 is broken into nine sub-plans in `docs/superpowers/plans/`. **Execute in
 - Legal/VAT consultation under Icelandic law
 - DPA template for publishers (we = processor, publisher = controller)
 - Privacy policy covering snippet behavior
-- Teya commercial agreement and acquiring setup
-- Bookkeeper engagement for manual VAT invoicing in V1
+- Blikk and Teya commercial agreements and API setup
+- Payday account/API setup and bookkeeper engagement for VSK oversight
 - Confirmed first publishers (friend's own sites for Phase 1)
 
 ## 13. Non-Goals

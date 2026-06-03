@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADA - Birtingarprófun (Ad Serving Verification)</title>
+  <style>
+    :root {
+      --color-bg: #f8fafc;
+      --color-card: #ffffff;
+      --color-primary: #1e3a8a;
+      --color-text: #0f172a;
+      --color-text-muted: #475569;
+      --color-border: #e2e8f0;
+      --color-success: #10b981;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 650px;
+      width: 100%;
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+
+    h1 {
+      color: var(--color-primary);
+      font-size: 28px;
+      font-weight: 800;
+      margin-top: 0;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      color: var(--color-text-muted);
+      margin-top: 0;
+      margin-bottom: 24px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .instructions {
+      background-color: #f1f5f9;
+      border-left: 4px solid var(--color-primary);
+      padding: 16px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 32px;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+
+    .instructions ol {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+
+    .instructions code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #0f172a;
+    }
+
+    .preview-box {
+      border: 2px dashed var(--color-border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 290px;
+      background-color: #fafafa;
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .preview-label {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: bold;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      justify-content: center;
+      border-top: 1px solid var(--color-border);
+      padding-top: 16px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background-color: #cbd5e1;
+      border-radius: 50%;
+    }
+
+    .dot.active {
+      background-color: var(--color-success);
+      box-shadow: 0 0 8px var(--color-success);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Birtingarprófun ADA (Ad serving verification)</h1>
+    <p class="subtitle">Staðbundin E2E endapunkta- og borðaprófun á auglýsingakerfinu.</p>
+
+    <div class="instructions">
+      <strong>Leiðbeiningar fyrir staðbundna keyrslu:</strong>
+      <ol>
+        <li>Smíðaðu skriftuna með því að skilgreina staðbundna portið í umhverfisbreytu:
+          <br><code>SERVE_BASE=http://localhost:3002 npx pnpm --filter @ada/snippet build</code>
+        </li>
+        <li>Gakktu úr skugga um að staðbundið serving-port sé í gangi á porti <code>3002</code> (keyrir sjálfkrafa með <code>pnpm dev</code> í rót).</li>
+        <li>Hentu þessari HTML skrá beint í vafrann þinn til að sjá prufuborðann hlaðast!</li>
+      </ol>
+    </div>
+
+    <!-- The actual slot container where our built snippet will render the mock ad creative -->
+    <div class="preview-box">
+      <div class="preview-label">Auglýsingapláss (slot_demo_abc)</div>
+      
+      <div data-adplatform-slot="slot_demo_abc">
+        <div style="font-size: 13px; color: #94a3b8; font-weight: 600;">Býður eftir auglýsingu frá serving-mótor...</div>
+      </div>
+    </div>
+
+    <div class="status-indicator">
+      <span class="dot active"></span>
+      <span id="status-text">ADA Embed Snippet er tengt (sniffar pláss á síðunni)</span>
+    </div>
+  </div>
+
+  <!-- Load the built snippet script. It will run DOMContentLoaded hooks -->
+  <script async src="../../packages/snippet/dist/snippet.js"></script>
+
+  <script>
+    // Listen for custom rendering hooks if needed
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const adImg = document.querySelector('[data-adplatform-slot] img');
+        const statusText = document.getElementById('status-text');
+        if (adImg) {
+          statusText.innerText = "Tenging tókst! Auglýsing var sótt og birt frá localhost:3002.";
+          statusText.style.color = "var(--color-success)";
+        } else {
+          statusText.innerText = "Enginn borði birtist. Athugaðu hvort þú hafir keyrt build skrefið og serving-portið sé virkt.";
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

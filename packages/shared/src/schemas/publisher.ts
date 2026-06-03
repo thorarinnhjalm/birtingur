@@ -37,7 +37,7 @@ export const PublisherSchema = z.object({
   ownerEmail: z.string().email(),
   domain: DomainSchema,
   displayName: z.string().min(1).max(100),
-  payoutMethod: PayoutMethodSchema,
+  payoutMethod: PayoutMethodSchema.optional(),
   contentPolicy: ContentPolicySchema,
   status: PublisherStatusSchema,
   createdAt: z.date(),

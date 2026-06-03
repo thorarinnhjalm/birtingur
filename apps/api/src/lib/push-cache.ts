@@ -1,0 +1,182 @@
+import { db } from './firebase';
+import { getRedis } from './redis';
+import {
+  COLLECTIONS,
+  slotConverter,
+  publisherConverter,
+  campaignConverter,
+  creativeConverter,
+} from '@ada/shared/firestore';
+import { FREQUENCY_CAP_DEFAULT_PER_DAY, CACHE_TTL_SECONDS } from '@ada/shared';
+import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
+
+const key = (slotId: string) => `slot:${slotId}`;
+
+export async function pushSlotCache(slotId: string): Promise<void> {
+  const redis = getRedis();
+
+  // 1. Fetch slot
+  const slotDoc = await db
+    .collection(COLLECTIONS.slots)
+    .doc(slotId)
+    .withConverter(slotConverter)
+    .get();
+
+  if (!slotDoc.exists) {
+    // Delete from Redis if deleted from Firestore
+    await redis.del(key(slotId));
+    return;
+  }
+
+  const slot = slotDoc.data()!;
+
+  // 2. Fetch publisher
+  const publisherDoc = await db
+    .collection(COLLECTIONS.publishers)
+    .doc(slot.publisherId)
+    .withConverter(publisherConverter)
+    .get();
+
+  if (!publisherDoc.exists) {
+    // Delete from Redis if publisher is missing
+    await redis.del(key(slotId));
+    return;
+  }
+
+  const publisher = publisherDoc.data()!;
+
+  // 3. If slot is paused or publisher is suspended, cache with empty activeCreatives
+  if (slot.status !== 'active' || publisher.status !== 'active') {
+    const entry: SlotCacheEntry = {
+      slotId: slot.id,
+      publisherId: slot.publisherId,
+      sizes: slot.sizes,
+      pricing: slot.pricing,
+      activeCreatives: [],
+      blockedCategories: publisher.contentPolicy.blockedCategories ?? [],
+      refreshedAt: Date.now(),
+    };
+    await redis.set(key(slotId), entry, { ex: CACHE_TTL_SECONDS });
+    return;
+  }
+
+  // 4. Fetch campaigns targeting this slot with status 'active'
+  const campaignsSnapshot = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('status', '==', 'active')
+    .where('targeting.slotIds', 'array-contains', slotId)
+    .withConverter(campaignConverter)
+    .get();
+
+  const campaigns = campaignsSnapshot.docs.map((doc) => doc.data());
+
+  // Filter campaigns in memory for perPublisherApproval and budget
+  const eligibleCampaigns = campaigns.filter((campaign) => {
+    // Check if approved by this publisher
+    const approval = campaign.perPublisherApproval[slot.publisherId];
+    if (approval !== 'approved') return false;
+
+    // Check remaining budget
+    if (campaign.budget.remainingIsk <= 0) return false;
+
+    // Dates schedule check (validTo must be in the future, serving path checks validFrom/validTo)
+    if (campaign.schedule.endsAt.getTime() <= Date.now()) return false;
+
+    return true;
+  });
+
+  // 5. Gather unique creative IDs from the campaigns
+  const creativeIds = Array.from(
+    new Set(eligibleCampaigns.flatMap((c) => c.creativeIds))
+  );
+
+  const creativeMap = new Map<string, Creative>();
+
+  if (creativeIds.length > 0) {
+    // Batch fetch creative documents
+    const refs = creativeIds.map((id) =>
+      db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter)
+    );
+    const docs = await db.getAll(...refs);
+    for (const doc of docs) {
+      const data = doc.data() as Creative | undefined;
+      if (doc.exists && data) {
+        creativeMap.set(doc.id, data);
+      }
+    }
+  }
+
+  const activeCreatives: CachedCreative[] = [];
+  const blockedCategories = publisher.contentPolicy.blockedCategories ?? [];
+
+  // 6. Map to CachedCreative
+  for (const campaign of eligibleCampaigns) {
+    for (const cId of campaign.creativeIds) {
+      const creative = creativeMap.get(cId);
+      if (!creative) continue;
+
+      // Must be approved
+      if (
+        creative.reviewStatus !== 'auto_approved' &&
+        creative.reviewStatus !== 'manual_approved'
+      ) {
+        continue;
+      }
+
+      // Check size compatibility with the slot
+      const matchesSize = slot.sizes.some(
+        (size) => size.width === creative.width && size.height === creative.height
+      );
+      if (!matchesSize) continue;
+
+      // Check if blocked by category
+      if (creative.autoScanResult?.category) {
+        if (blockedCategories.includes(creative.autoScanResult.category)) {
+          continue;
+        }
+      }
+
+      activeCreatives.push({
+        creativeId: creative.id,
+        campaignId: campaign.id,
+        imageUrl: creative.imageUrl,
+        clickUrl: creative.clickUrl,
+        width: creative.width,
+        height: creative.height,
+        weight: 1, // Default weight is 1
+        geoCountries: campaign.targeting.geoCountries ?? [],
+        geoRegions: campaign.targeting.geoRegions ?? [],
+        frequencyCapPerDay: FREQUENCY_CAP_DEFAULT_PER_DAY,
+        budgetExhausted: campaign.budget.remainingIsk <= 0,
+        validFrom: campaign.schedule.startsAt.getTime(),
+        validTo: campaign.schedule.endsAt.getTime(),
+        priority: campaign.budget.mode === 'slot_purchased' ? 'slot_purchased' : 'cpm',
+      });
+    }
+  }
+
+  const entry: SlotCacheEntry = {
+    slotId: slot.id,
+    publisherId: slot.publisherId,
+    sizes: slot.sizes,
+    pricing: slot.pricing,
+    activeCreatives,
+    blockedCategories,
+    refreshedAt: Date.now(),
+  };
+
+  await redis.set(key(slotId), entry, { ex: CACHE_TTL_SECONDS });
+}
+
+export async function pushCacheForCampaign(campaignId: string): Promise<void> {
+  const snap = await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter)
+    .get();
+  if (!snap.exists) return;
+  const cmp = snap.data()!;
+  for (const slotId of cmp.targeting.slotIds) {
+    await pushSlotCache(slotId);
+  }
+}

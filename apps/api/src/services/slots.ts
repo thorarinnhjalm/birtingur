@@ -5,6 +5,7 @@ import type { Slot } from '@ada/shared/types';
 import { generateId } from '../lib/id';
 import { AppError } from '../lib/errors';
 import { generateSnippet } from '../lib/snippet';
+import { pushSlotCache } from '../lib/push-cache';
 
 export async function createSlot(input: {
   publisherId: string;
@@ -31,6 +32,10 @@ export async function createSlot(input: {
     .doc(id)
     .withConverter(slotConverter)
     .set(validated);
+
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    await pushSlotCache(id);
+  }
 
   return validated;
 }
@@ -85,6 +90,10 @@ export async function updateSlot(
   const validated = SlotSchema.parse(merged);
 
   await slotRef.set(validated);
+
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    await pushSlotCache(id);
+  }
 
   return validated;
 }

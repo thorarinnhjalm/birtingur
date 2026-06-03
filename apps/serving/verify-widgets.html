@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birta — Vefkassa E2E Prófun (Widgets Testbed)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      space-y: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 20px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin: 0 0 8px 0;
+    }
+    p.subtitle {
+      font-size: 15px;
+      color: #475569;
+      margin: 0;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    .widget-box {
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    }
+    .console-box {
+      background-color: #0f172a;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 16px;
+      border-radius: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #1e293b;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 4px;
+    }
+    .log-entry:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .success-indicator {
+      color: #10b981;
+      font-weight: bold;
+    }
+    .theme-toggle-container {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .btn-toggle {
+      background-color: white;
+      border: 1px solid #cbd5e1;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-toggle:hover {
+      background-color: #f1f5f9;
+    }
+  </style>
+  <!-- Load the locally compiled widgets bundle -->
+  <script src="../../packages/widgets/dist/widgets.js" defer></script>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Birta Vefkassar (Widgets E2E Testbed)</h1>
+      <p class="subtitle">Prófunarumhverfi fyrir innfellda vefkassa sem nota mock lykla í staðbundnu þróunarferli.</p>
+    </header>
+
+    <div>
+      <div class="section-title">Stýringar (Theme Controls)</div>
+      <div class="theme-toggle-container">
+        <button class="btn-toggle" onclick="setTheme('light')">Ljóst þema (Light Mode)</button>
+        <button class="btn-toggle" onclick="setTheme('dark')">Dökkt þema (Dark Mode)</button>
+        <button class="btn-toggle" onclick="setTheme('auto')">Sjálfvirkt þema (System Theme)</button>
+      </div>
+    </div>
+
+    <!-- 1. Stats Widget -->
+    <div>
+      <div class="section-title">1. Árangursskýrsla (&lt;adplatform-stats&gt;)</div>
+      <div class="widget-box">
+        <adplatform-stats 
+          id="stats-widget"
+          publisher-key="wk_publisher_demo_mock_key" 
+          period="30d" 
+          theme="auto">
+        </adplatform-stats>
+      </div>
+    </div>
+
+    <!-- 2. Approval Queue Widget -->
+    <div>
+      <div class="section-title">2. Samþykktarbiðröð (&lt;adplatform-approval-queue&gt;)</div>
+      <div class="widget-box">
+        <adplatform-approval-queue 
+          id="queue-widget"
+          publisher-key="wk_publisher_demo_mock_key"
+          theme="auto">
+        </adplatform-approval-queue>
+      </div>
+    </div>
+
+    <!-- 3. Callback logs console -->
+    <div>
+      <div class="section-title">Atburðaskrá (Widget DOM Events console)</div>
+      <div class="console-box" id="console">
+        <div class="log-entry">[Kerfi]: Bíð eftir vefkassa-atburðum...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function log(message) {
+      const consoleBox = document.getElementById('console');
+      const time = new Date().toLocaleTimeString('is-IS');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `[${time}] ${message}`;
+      consoleBox.appendChild(entry);
+      consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
+    function setTheme(theme) {
+      document.getElementById('stats-widget').setAttribute('theme', theme);
+      document.getElementById('queue-widget').setAttribute('theme', theme);
+      log(`Breytti þema yfir í: <strong>${theme}</strong>`);
+    }
+
+    // Connect event listeners on DOMContentLoaded
+    window.addEventListener('DOMContentLoaded', () => {
+      const queueWidget = document.getElementById('queue-widget');
+      
+      queueWidget.addEventListener('approve', (e) => {
+        log(`🟢 Atburður <strong>'approve'</strong> móttekinn! Herferð: <span class="success-indicator">${e.detail.campaignId}</span>`);
+      });
+
+      queueWidget.addEventListener('reject', (e) => {
+        log(`🔴 Atburður <strong>'reject'</strong> móttekinn! Herferð: <strong>${e.detail.campaignId}</strong>. Ástæða: <em>"${e.detail.reason || 'Engin tilgreind'}"</em>`);
+      });
+    });
+  </script>
+</body>
+</html>
