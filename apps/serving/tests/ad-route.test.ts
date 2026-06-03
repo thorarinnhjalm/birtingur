@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SlotCacheEntry } from '../src/lib/cache';
+import type { SlotCacheEntry } from '@ada/shared';
 
 const mockSlot: SlotCacheEntry = {
   slotId: 'slot_a',
@@ -51,7 +51,9 @@ vi.mock('../src/lib/analytics', () => ({
 import app from '../src/index';
 
 describe('GET /v1/ad', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns ad JSON for known slot', async () => {
     const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
