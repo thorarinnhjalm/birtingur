@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "pnpm --filter @ada/shared build && tsc",
     "dev": "tsx watch src/dev.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
