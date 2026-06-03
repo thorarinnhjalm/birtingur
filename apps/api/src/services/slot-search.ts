@@ -12,7 +12,7 @@ export interface SearchFilters {
 export async function searchSlots(f: SearchFilters): Promise<Slot[]> {
   const q = db.collection(COLLECTIONS.slots).where('status', '==', 'active');
   const snap = await q.withConverter(slotConverter).get();
-  
+
   return snap.docs
     .map((d) => d.data())
     .filter((s) => {

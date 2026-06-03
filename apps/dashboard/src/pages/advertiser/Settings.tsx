@@ -55,7 +55,9 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Stillingar aðgangs</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">Umsjón með upplýsingum fyrirtækisins þíns og reikningsgerð.</p>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Umsjón með upplýsingum fyrirtækisins þíns og reikningsgerð.
+        </p>
       </div>
 
       <Card className="p-6">
@@ -100,7 +102,10 @@ export default function Settings() {
 
           <div className="flex items-center justify-between border-t border-slate-100 pt-5 mt-6">
             <div className="text-slate-500 text-xs font-medium">
-              Stofnað þann: {advertiser?.createdAt ? new Date(advertiser.createdAt).toLocaleDateString('is-IS') : ''}
+              Stofnað þann:{' '}
+              {advertiser?.createdAt
+                ? new Date(advertiser.createdAt).toLocaleDateString('is-IS')
+                : ''}
             </div>
             <div className="flex items-center gap-3">
               {saved && (
@@ -124,7 +129,8 @@ export default function Settings() {
           <div>
             <h4 className="font-bold text-sm">Hættusvæði (Danger Zone)</h4>
             <p className="text-xs text-red-700/80 mt-1 leading-relaxed">
-              Eyðing á aðgangi er óafturkræf. Inneign sem eftir er mun verða endurgreidd að frádregnum afgreiðslugjöldum og allar auglýsingar og herferðir verða eyddar.
+              Eyðing á aðgangi er óafturkræf. Inneign sem eftir er mun verða endurgreidd að
+              frádregnum afgreiðslugjöldum og allar auglýsingar og herferðir verða eyddar.
             </p>
           </div>
         </div>

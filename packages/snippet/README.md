@@ -3,6 +3,7 @@
 A minified, ultra-lightweight, self-contained JavaScript script (IIFE) designed to be embedded directly into publisher websites. It detects publisher CMP consent, fetches eligible display ads from the Birta Serving API, and injects them securely via iframe elements.
 
 ## Key Features
+
 - **Ultra-Lightweight**: Compiles to under 1.5 KB minified and gzipped (well below the 4 KB budget limit).
 - **Fail-Silent**: Wrapped in strict global `try-catch` structures. Under any network issues, api errors, or missing elements, the script fails silently to ensure the publisher site's layout and functionality are completely unaffected.
 - **Secure Sandbox**: Ad creatives are rendered inside isolated `<iframe>` elements to prevent script injection (XSS) and layout shifts.
@@ -15,12 +16,15 @@ A minified, ultra-lightweight, self-contained JavaScript script (IIFE) designed 
 The snippet is compiled using **esbuild** for maximum minification and dead-code elimination.
 
 ### Build Scripts
+
 Run the following build command from the workspace root:
+
 ```bash
 npx pnpm --filter @ada/snippet build
 ```
 
 This executes the script defined in `esbuild.config.mjs`:
+
 - Outputs to `dist/index.js`
 - Formatted as a minified self-invoking function (IIFE)
 - Target: `es6` (compatible with all modern browsers)
@@ -32,16 +36,19 @@ This executes the script defined in `esbuild.config.mjs`:
 Once compiled, `dist/index.js` should be uploaded to a Cloudflare R2 bucket mapped to a custom domain (e.g., `cdn.birta.is/v1/snippet.js`).
 
 ### Upload Configuration
+
 When uploading to Cloudflare R2, configure the following metadata headers to ensure optimal caching and browser delivery:
 
-| Header | Value | Purpose |
-|---|---|---|
-| `Content-Type` | `application/javascript; charset=utf-8` | Prevents browser script MIME-type issues |
-| `Cache-Control` | `public, max-age=3600, s-maxage=86400` | Caches snippet in browser for 1 hour, CDN for 24 hours |
-| `Access-Control-Allow-Origin` | `*` | Permits cross-origin inclusion |
+| Header                        | Value                                   | Purpose                                                |
+| ----------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| `Content-Type`                | `application/javascript; charset=utf-8` | Prevents browser script MIME-type issues               |
+| `Cache-Control`               | `public, max-age=3600, s-maxage=86400`  | Caches snippet in browser for 1 hour, CDN for 24 hours |
+| `Access-Control-Allow-Origin` | `*`                                     | Permits cross-origin inclusion                         |
 
 ### Publishing via wrangler CLI
+
 To deploy automatically using the wrangler CLI:
+
 ```bash
 wrangler r2 object put "birta-cdn/v1/snippet.js" --file="./dist/index.js" --content-type="application/javascript; charset=utf-8"
 ```

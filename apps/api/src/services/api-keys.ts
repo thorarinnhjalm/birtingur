@@ -44,14 +44,17 @@ export async function verifyApiKey(key: string): Promise<ApiKeyRecord | null> {
   if (!snap.exists) return null;
   const record = snap.data() as ApiKeyRecord;
   if (record.revoked) return null;
-  
+
   // Handle Firestore Date conversion
   const recordHash = record.hash;
   if (recordHash !== hash(key)) return null;
-  
+
   // Update lastUsedAt asynchronously
-  db.collection(KEY_COLLECTION).doc(id).update({ lastUsedAt: new Date() }).catch(() => {});
-  
+  db.collection(KEY_COLLECTION)
+    .doc(id)
+    .update({ lastUsedAt: new Date() })
+    .catch(() => {});
+
   return record;
 }
 

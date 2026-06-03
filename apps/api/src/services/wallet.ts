@@ -25,7 +25,7 @@ async function syncMirror(advertiserId: string): Promise<void> {
 export async function topUp(
   advertiserId: string,
   amountIsk: number,
-  teyaTxnId: string
+  teyaTxnId: string,
 ): Promise<void> {
   if (amountIsk <= 0) {
     throw new AppError(400, 'amountIsk must be positive', 'BAD_REQUEST');
@@ -54,7 +54,7 @@ export async function topUp(
 export async function chargeCampaign(
   advertiserId: string,
   campaignId: string,
-  amountIsk: number
+  amountIsk: number,
 ): Promise<void> {
   if (amountIsk <= 0) {
     throw new AppError(400, 'must be positive', 'BAD_REQUEST');
@@ -65,7 +65,7 @@ export async function chargeCampaign(
     throw new AppError(
       400,
       `insufficient balance: Wallet has ${wallet.balanceIsk}, needed ${amountIsk}`,
-      'INSUFFICIENT_BALANCE'
+      'INSUFFICIENT_BALANCE',
     );
   }
 
@@ -82,7 +82,7 @@ export async function chargeCampaign(
 export async function refundCampaign(
   advertiserId: string,
   campaignId: string,
-  amountIsk: number
+  amountIsk: number,
 ): Promise<void> {
   if (amountIsk <= 0) {
     throw new AppError(400, 'must be positive', 'BAD_REQUEST');
@@ -101,7 +101,7 @@ export async function refundCampaign(
 export async function creditPublisher(
   publisherId: string,
   campaignId: string,
-  grossIsk: number
+  grossIsk: number,
 ): Promise<void> {
   if (grossIsk <= 0) {
     throw new AppError(400, 'must be positive', 'BAD_REQUEST');

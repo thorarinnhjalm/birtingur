@@ -120,7 +120,9 @@ vi.mock('../src/lib/firebase', () => ({
           withConverter: vi.fn(() => ({
             get: vi.fn(async () => {
               if (colName === 'campaigns') {
-                const filtered = mockCampaigns.filter((c) => (c as Record<string, unknown>)[prop] === val);
+                const filtered = mockCampaigns.filter(
+                  (c) => (c as Record<string, unknown>)[prop] === val,
+                );
                 return {
                   docs: filtered.map((c) => ({
                     data: () => c,
@@ -237,7 +239,7 @@ describe('Campaign Service', () => {
             endsAt: new Date(Date.now() + 86400_000),
           },
           budget: { mode: 'cpm_capped', totalIsk: 1000 },
-        })
+        }),
       ).rejects.toThrow();
     });
   });

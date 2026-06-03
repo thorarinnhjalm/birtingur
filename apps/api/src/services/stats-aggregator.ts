@@ -70,7 +70,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
       },
-      { merge: true }
+      { merge: true },
     );
   }
   for (const [key, b] of publisherDay) {
@@ -82,7 +82,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
       },
-      { merge: true }
+      { merge: true },
     );
   }
   for (const [key, b] of publisherSlotDay) {
@@ -94,7 +94,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
       },
-      { merge: true }
+      { merge: true },
     );
   }
 

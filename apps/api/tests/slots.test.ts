@@ -62,7 +62,7 @@ describe('Slot Service', () => {
           sizes: [],
           pricing: samplePricing,
           placement: samplePlacement,
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -117,8 +117,8 @@ describe('Slot Service', () => {
 
       const slots = await listSlotsForPublisher('pub_123');
       expect(slots).toHaveLength(2);
-      expect(slots.map(s => s.name)).toContain('Slot A');
-      expect(slots.map(s => s.name)).toContain('Slot B');
+      expect(slots.map((s) => s.name)).toContain('Slot A');
+      expect(slots.map((s) => s.name)).toContain('Slot B');
     });
   });
 
@@ -149,7 +149,7 @@ describe('Slot Service', () => {
       await expect(
         updateSlot('slot_nonexistent', {
           name: 'Nýtt nafn',
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -159,7 +159,10 @@ describe('Slot Service', () => {
       const created = await createSlot({
         publisherId: 'pub_123',
         name: 'Forsíða stór',
-        sizes: [{ width: 300, height: 250 }, { width: 728, height: 90 }],
+        sizes: [
+          { width: 300, height: 250 },
+          { width: 728, height: 90 },
+        ],
         pricing: samplePricing,
         placement: samplePlacement,
       });
@@ -174,7 +177,10 @@ describe('Slot Service', () => {
       const created = await createSlot({
         publisherId: 'pub_123',
         name: 'Forsíða stór',
-        sizes: [{ width: 300, height: 250 }, { width: 728, height: 90 }],
+        sizes: [
+          { width: 300, height: 250 },
+          { width: 728, height: 90 },
+        ],
         pricing: samplePricing,
         placement: samplePlacement,
       });
@@ -194,9 +200,7 @@ describe('Slot Service', () => {
         placement: samplePlacement,
       });
 
-      await expect(
-        getSnippetForSlot(created.id, { width: 728, height: 90 })
-      ).rejects.toThrow();
+      await expect(getSnippetForSlot(created.id, { width: 728, height: 90 })).rejects.toThrow();
     });
   });
 });

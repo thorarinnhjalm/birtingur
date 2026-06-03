@@ -32,7 +32,7 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 | Q6  | Approval                              | Auto-scan + admin manual review; publisher per-slot opt-in for own approval queue                                                                    |
 | Q7  | markadssetning.is integration         | API-only, human-in-the-loop, no autonomous agent buying                                                                                              |
 | Q8  | Integration depth                     | Standalone product, markadssetning.is consumes API                                                                                                   |
-| Q9  | Payments                              | Blikk (A2A open banking) + prepaid wallet model (Teya as card backup)                                                                               |
+| Q9  | Payments                              | Blikk (A2A open banking) + prepaid wallet model (Teya as card backup)                                                                                |
 | Q10 | Tech stack                            | React 19/Vite/Tailwind v4/Firebase for warm path; serving on Vercel function + Redis in V1, migrate to Cloudflare Worker + KV when traffic justifies |
 | Q11 | MVP scope                             | Friend's own properties as initial publishers; markadssetning.is as initial advertiser source                                                        |
 | —   | MCP positioning                       | First-class from day 1 as competitive moat, not lead marketing story                                                                                 |

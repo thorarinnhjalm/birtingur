@@ -13,7 +13,7 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
 
 export async function getPublisherStats(
   publisherId: string,
-  timeframeDays: 7 | 30 = 7
+  timeframeDays: 7 | 30 = 7,
 ): Promise<PublisherStatsResponse> {
   const history: { date: string; impressions: number; clicks: number; spendIsk: number }[] = [];
   let totalImpressions = 0;
@@ -78,7 +78,8 @@ export async function getPublisherStats(
   }
 
   // 3. Fallback to mock data if empty and running in dev/emulator
-  const isDevOrEmulator = process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
+  const isDevOrEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
     const mockHistory: typeof history = [];
     let mockTotalImpressions = 0;
@@ -91,11 +92,12 @@ export async function getPublisherStats(
       const dateStr = d.toISOString().split('T')[0]!;
 
       const dayOfWeek = d.getDay();
-      const baseImpressions = 15000 + Math.floor(Math.sin(i * 0.8) * 5000) + Math.floor(Math.random() * 3000);
-      const multiplier = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.7 : 1.0;
+      const baseImpressions =
+        15000 + Math.floor(Math.sin(i * 0.8) * 5000) + Math.floor(Math.random() * 3000);
+      const multiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 0.7 : 1.0;
       const dayImpressions = Math.floor(baseImpressions * multiplier);
 
-      const ctr = 0.02 + (Math.sin(i * 0.5) * 0.005) + (Math.random() * 0.008);
+      const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
       const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
 
@@ -126,4 +128,3 @@ export async function getPublisherStats(
     history,
   };
 }
-

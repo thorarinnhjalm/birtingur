@@ -174,7 +174,7 @@ describe('Admin Approvals Service', () => {
         height: 90,
         clickUrl: 'https://bit.ly/x123',
       },
-      new StubAutoScanner()
+      new StubAutoScanner(),
     );
     return cre;
   }

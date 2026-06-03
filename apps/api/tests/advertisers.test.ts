@@ -37,7 +37,9 @@ vi.mock('../src/lib/firebase', () => ({
           withConverter: vi.fn(() => ({
             get: vi.fn(async () => {
               if (colName === 'advertisers') {
-                const filtered = mockAdvertisers.filter((a) => (a as Record<string, unknown>)[prop] === val);
+                const filtered = mockAdvertisers.filter(
+                  (a) => (a as Record<string, unknown>)[prop] === val,
+                );
                 return {
                   empty: filtered.length === 0,
                   docs: filtered.map((a) => ({

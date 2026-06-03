@@ -33,7 +33,10 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
 
-    if ((email.trim() === 'DemoA' || email.trim() === 'demoa@birta.is') && password === 'password') {
+    if (
+      (email.trim() === 'DemoA' || email.trim() === 'demoa@birta.is') &&
+      password === 'password'
+    ) {
       try {
         signInDemo('DemoA');
         navigate('/role');
@@ -64,7 +67,9 @@ export default function SignIn() {
             A
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-primary">ADA</h1>
-          <p className="text-sm text-slate-500 mt-1 font-medium">Sjálfsafgreiðslu auglýsingavettvangur</p>
+          <p className="text-sm text-slate-500 mt-1 font-medium">
+            Sjálfsafgreiðslu auglýsingavettvangur
+          </p>
         </div>
 
         <Button
@@ -96,7 +101,9 @@ export default function SignIn() {
 
         <div className="flex items-center my-6">
           <div className="flex-1 border-t border-slate-200" />
-          <span className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">eða</span>
+          <span className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            eða
+          </span>
           <div className="flex-1 border-t border-slate-200" />
         </div>
 
@@ -119,14 +126,18 @@ export default function SignIn() {
             required
             disabled={loading}
           />
-          
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
               {error}
             </div>
           )}
 
-          <Button type="submit" className="w-full justify-center text-sm font-semibold" loading={loading}>
+          <Button
+            type="submit"
+            className="w-full justify-center text-sm font-semibold"
+            loading={loading}
+          >
             Skrá inn
           </Button>
         </form>

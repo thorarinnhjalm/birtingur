@@ -11,7 +11,7 @@ export class StubTeyaClient implements TeyaClient {
     idempotencyKey: string;
   }): Promise<CheckoutSession> {
     const sessionId = 'sess_' + randomBytes(12).toString('hex');
-    
+
     // Automatically credit the mock wallet for developer testing
     await topUp(opts.advertiserId, opts.amountIsk, sessionId);
 
@@ -21,4 +21,3 @@ export class StubTeyaClient implements TeyaClient {
     };
   }
 }
-

@@ -60,7 +60,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
     try {
       const response = await fetch(`${API_BASE}/v1/widgets/publisher/pending-approvals`, {
         headers: {
-          'Authorization': `Bearer ${this.publisherKey}`,
+          Authorization: `Bearer ${this.publisherKey}`,
           'Content-Type': 'application/json',
         },
       });
@@ -81,7 +81,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
 
   private async handleApprove(campaignId: string) {
     if (!this.publisherKey) return;
-    
+
     // Set item loading state in UI
     const cardEl = this.shadowRoot!.getElementById(`card-${campaignId}`);
     if (cardEl) cardEl.style.opacity = '0.5';
@@ -90,7 +90,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
       const response = await fetch(`${API_BASE}/v1/widgets/publisher/approvals/${campaignId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.publisherKey}`,
+          Authorization: `Bearer ${this.publisherKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ action: 'approve' }),
@@ -99,11 +99,13 @@ export class AdplatformApprovalQueue extends HTMLElement {
       if (!response.ok) throw new Error('Approve action failed');
 
       // Dispatch custom DOM event
-      this.dispatchEvent(new CustomEvent('approve', {
-        detail: { campaignId },
-        bubbles: true,
-        composed: true
-      }));
+      this.dispatchEvent(
+        new CustomEvent('approve', {
+          detail: { campaignId },
+          bubbles: true,
+          composed: true,
+        }),
+      );
 
       // Slide item out of list
       this.animateRemove(campaignId);
@@ -115,7 +117,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
 
   private async handleRejectSubmit(campaignId: string, reason: string) {
     if (!this.publisherKey) return;
-    
+
     const cardEl = this.shadowRoot!.getElementById(`card-${campaignId}`);
     if (cardEl) cardEl.style.opacity = '0.5';
 
@@ -123,7 +125,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
       const response = await fetch(`${API_BASE}/v1/widgets/publisher/approvals/${campaignId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.publisherKey}`,
+          Authorization: `Bearer ${this.publisherKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ action: 'reject', reason }),
@@ -132,11 +134,13 @@ export class AdplatformApprovalQueue extends HTMLElement {
       if (!response.ok) throw new Error('Reject action failed');
 
       // Dispatch custom DOM event
-      this.dispatchEvent(new CustomEvent('reject', {
-        detail: { campaignId, reason },
-        bubbles: true,
-        composed: true
-      }));
+      this.dispatchEvent(
+        new CustomEvent('reject', {
+          detail: { campaignId, reason },
+          bubbles: true,
+          composed: true,
+        }),
+      );
 
       this.rejectingCampaignId = null;
       this.animateRemove(campaignId);
@@ -152,20 +156,20 @@ export class AdplatformApprovalQueue extends HTMLElement {
       cardEl.style.transition = 'all 0.4s ease-out';
       cardEl.style.opacity = '0';
       cardEl.style.transform = 'translateX(50px)';
-      
+
       setTimeout(() => {
         cardEl.style.maxHeight = '0px';
         cardEl.style.padding = '0px';
         cardEl.style.margin = '0px';
         cardEl.style.borderWidth = '0px';
-        
+
         setTimeout(() => {
-          this.items = this.items.filter(item => item.campaignId !== campaignId);
+          this.items = this.items.filter((item) => item.campaignId !== campaignId);
           this.render();
         }, 300);
       }, 400);
     } else {
-      this.items = this.items.filter(item => item.campaignId !== campaignId);
+      this.items = this.items.filter((item) => item.campaignId !== campaignId);
       this.render();
     }
   }
@@ -176,9 +180,13 @@ export class AdplatformApprovalQueue extends HTMLElement {
   }
 
   private getStyles(): string {
-    const isDark = this.getAttribute('theme') === 'dark' || 
-      (this.getAttribute('theme') !== 'light' && typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    
+    const isDark =
+      this.getAttribute('theme') === 'dark' ||
+      (this.getAttribute('theme') !== 'light' &&
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
+
     return `
       :host {
         display: block;
@@ -398,8 +406,12 @@ export class AdplatformApprovalQueue extends HTMLElement {
   }
 
   private render() {
-    const isDark = this.getAttribute('theme') === 'dark' || 
-      (this.getAttribute('theme') !== 'light' && typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark =
+      this.getAttribute('theme') === 'dark' ||
+      (this.getAttribute('theme') !== 'light' &&
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
 
     if (this.loading) {
       this.shadowRoot!.innerHTML = `
@@ -422,18 +434,19 @@ export class AdplatformApprovalQueue extends HTMLElement {
       return;
     }
 
-    const listHtml = this.items.map(item => {
-      const isRejecting = this.rejectingCampaignId === item.campaignId;
-      const sizeStr = `${item.creative.width}x${item.creative.height}px`;
-      
-      let priceStr = '';
-      if (item.budget.mode === 'cpm_capped') {
-        priceStr = 'Birtingarherferð (CPM)';
-      } else {
-        priceStr = `Fastakaup pláss (${new Intl.NumberFormat('is-IS').format(item.budget.totalIsk)} kr.)`;
-      }
+    const listHtml = this.items
+      .map((item) => {
+        const isRejecting = this.rejectingCampaignId === item.campaignId;
+        const sizeStr = `${item.creative.width}x${item.creative.height}px`;
 
-      return `
+        let priceStr = '';
+        if (item.budget.mode === 'cpm_capped') {
+          priceStr = 'Birtingarherferð (CPM)';
+        } else {
+          priceStr = `Fastakaup pláss (${new Intl.NumberFormat('is-IS').format(item.budget.totalIsk)} kr.)`;
+        }
+
+        return `
         <div class="item-card" id="card-${item.campaignId}">
           <div class="preview-container">
             <img class="preview-img" src="${item.creative.imageUrl}" alt="Auglýsinga creative" />
@@ -453,7 +466,9 @@ export class AdplatformApprovalQueue extends HTMLElement {
               </div>
             </div>
             
-            ${isRejecting ? `
+            ${
+              isRejecting
+                ? `
               <div class="reject-form">
                 <textarea class="reject-input" id="reason-${item.campaignId}" placeholder="Hvers vegna er auglýsingunni hafnað? (valkvætt)" rows="2"></textarea>
                 <div class="reject-actions">
@@ -461,7 +476,8 @@ export class AdplatformApprovalQueue extends HTMLElement {
                   <button class="btn btn-submit-reject" id="submit-rej-${item.campaignId}">Staðfesta höfnun</button>
                 </div>
               </div>
-            ` : `
+            `
+                : `
               <div class="actions">
                 <button class="btn btn-approve" id="approve-${item.campaignId}">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -472,11 +488,13 @@ export class AdplatformApprovalQueue extends HTMLElement {
                   Hafna
                 </button>
               </div>
-            `}
+            `
+            }
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     this.shadowRoot!.innerHTML = `
       <style>${this.getStyles()}</style>
@@ -492,7 +510,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
     `;
 
     // Attach Event Listeners
-    this.items.forEach(item => {
+    this.items.forEach((item) => {
       const approveBtn = this.shadowRoot!.getElementById(`approve-${item.campaignId}`);
       if (approveBtn) {
         approveBtn.addEventListener('click', () => this.handleApprove(item.campaignId));
@@ -511,7 +529,9 @@ export class AdplatformApprovalQueue extends HTMLElement {
       const submitRej = this.shadowRoot!.getElementById(`submit-rej-${item.campaignId}`);
       if (submitRej) {
         submitRej.addEventListener('click', () => {
-          const textarea = this.shadowRoot!.getElementById(`reason-${item.campaignId}`) as HTMLTextAreaElement;
+          const textarea = this.shadowRoot!.getElementById(
+            `reason-${item.campaignId}`,
+          ) as HTMLTextAreaElement;
           const reason = textarea ? textarea.value.trim() : '';
           this.handleRejectSubmit(item.campaignId, reason);
         });

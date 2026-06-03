@@ -57,15 +57,17 @@ describe('GET /v1/click', () => {
     });
     expect(res.status).toBe(302);
     expect(res.headers.get('Location')).toBe('https://example/x');
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(expect.objectContaining({
-      type: 'click',
-      slotId: 'slot_a',
-      publisherId: 'pub_a',
-      creativeId: 'cre_a',
-      campaignId: 'cmp_a',
-      country: 'IS',
-      visitorToken: 'tok123',
-    }));
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'click',
+        slotId: 'slot_a',
+        publisherId: 'pub_a',
+        creativeId: 'cre_a',
+        campaignId: 'cmp_a',
+        country: 'IS',
+        visitorToken: 'tok123',
+      }),
+    );
   });
 
   it('returns 400 when missing query parameters', async () => {
@@ -86,7 +88,7 @@ describe('GET /v1/impression', () => {
     const res = await app.request('/v1/impression?s=slot_a&c=cre_a&t=tok123');
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
-    
+
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // 1000 cpm / 1000 = 1 isk
   });

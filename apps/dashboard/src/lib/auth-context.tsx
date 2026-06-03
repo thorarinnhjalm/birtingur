@@ -36,7 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (u) {
         try {
           const tokenResult = await u.getIdTokenResult(true); // force refresh to get latest claims
-          setAdmin(!!tokenResult.claims.admin || u.email?.endsWith('@adplatform.is') || u.email === 'admin@a.is');
+          setAdmin(
+            !!tokenResult.claims.admin ||
+              u.email?.endsWith('@adplatform.is') ||
+              u.email === 'admin@a.is',
+          );
         } catch {
           setAdmin(false);
         }
@@ -58,8 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       admin: true,
       getIdToken: async () => 'demo-mock-token',
       getIdTokenResult: async () => ({
-        claims: { admin: true }
-      })
+        claims: { admin: true },
+      }),
     };
     localStorage.setItem('ada_mock_user', JSON.stringify(mockUser));
     setUser(mockUser as unknown as User);

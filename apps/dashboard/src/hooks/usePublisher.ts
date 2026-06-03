@@ -5,8 +5,7 @@ import type { Publisher, Slot } from '@ada/shared';
 export function usePublisher() {
   return useQuery({
     queryKey: ['publisher', 'me'],
-    queryFn: () =>
-      apiFetch<{ publisher: Publisher }>('/v1/publishers/me').then((r) => r.publisher),
+    queryFn: () => apiFetch<{ publisher: Publisher }>('/v1/publishers/me').then((r) => r.publisher),
     retry: false, // Don't retry since 404 means onboarding is needed
   });
 }
@@ -38,16 +37,14 @@ export function useCreatePublisher() {
 export function usePublisherSlots() {
   return useQuery({
     queryKey: ['publisher', 'slots'],
-    queryFn: () =>
-      apiFetch<{ slots: Slot[] }>('/v1/publishers/me/slots').then((r) => r.slots),
+    queryFn: () => apiFetch<{ slots: Slot[] }>('/v1/publishers/me/slots').then((r) => r.slots),
   });
 }
 
 export function usePublisherSlot(id: string | undefined) {
   return useQuery({
     queryKey: ['publisher', 'slots', id],
-    queryFn: () =>
-      apiFetch<{ slot: Slot }>(`/v1/publishers/me/slots/${id}`).then((r) => r.slot),
+    queryFn: () => apiFetch<{ slot: Slot }>(`/v1/publishers/me/slots/${id}`).then((r) => r.slot),
     enabled: !!id,
   });
 }
@@ -82,7 +79,6 @@ export function useCreateSlot() {
 export function useSearchSlots() {
   return useQuery({
     queryKey: ['slots', 'search'],
-    queryFn: () =>
-      apiFetch<{ slots: Slot[] }>('/v1/slots/search').then((r) => r.slots),
+    queryFn: () => apiFetch<{ slots: Slot[] }>('/v1/slots/search').then((r) => r.slots),
   });
 }

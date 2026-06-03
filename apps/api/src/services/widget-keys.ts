@@ -17,12 +17,12 @@ export interface WidgetKeyRecord {
 export async function issueWidgetKey(
   ownerEmail: string,
   type: 'publisher' | 'campaign',
-  targetId: string
+  targetId: string,
 ): Promise<WidgetKeyRecord> {
   const id = `wk_${type}_${randomBytes(8).toString('hex')}`;
   const secret = randomBytes(24).toString('hex');
   const key = `${id}_${secret}`;
-  
+
   const record: WidgetKeyRecord = {
     id,
     key,
@@ -32,15 +32,19 @@ export async function issueWidgetKey(
     createdAt: new Date(),
     revoked: false,
   };
-  
+
   await db.collection(WIDGET_KEY_COLLECTION).doc(id).set(record);
   return record;
 }
 
 export async function verifyWidgetKey(key: string): Promise<WidgetKeyRecord | null> {
   // Bypass validation for demo/local testing in development/emulator mode
-  const isDevOrEmulator = process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
-  if (isDevOrEmulator && (key === 'wk_publisher_demo_mock_key' || key === 'wk_campaign_demo_mock_key')) {
+  const isDevOrEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
+  if (
+    isDevOrEmulator &&
+    (key === 'wk_publisher_demo_mock_key' || key === 'wk_campaign_demo_mock_key')
+  ) {
     return {
       id: key,
       key: key,
@@ -56,23 +60,23 @@ export async function verifyWidgetKey(key: string): Promise<WidgetKeyRecord | nu
   const match = key.match(/^(wk_(?:publisher|campaign)_[a-f0-9]{16})_[a-f0-9]{48}$/);
   if (!match) return null;
   const id = match[1]!;
-  
+
   const snap = await db.collection(WIDGET_KEY_COLLECTION).doc(id).get();
   if (!snap.exists) return null;
-  
+
   const record = snap.data() as WidgetKeyRecord;
   if (!record || record.revoked || record.key !== key) return null;
-  
+
   // Convert Firestore dates to JS Dates
   if (record.createdAt) record.createdAt = new Date((record.createdAt as any).seconds * 1000);
   if (record.lastUsedAt) record.lastUsedAt = new Date((record.lastUsedAt as any).seconds * 1000);
-  
+
   // Update lastUsedAt asynchronously
   db.collection(WIDGET_KEY_COLLECTION)
     .doc(id)
     .update({ lastUsedAt: new Date() })
     .catch(() => {});
-  
+
   return record;
 }
 
@@ -82,7 +86,7 @@ export async function revokeWidgetKey(id: string): Promise<void> {
 
 export async function getWidgetKeyByTargetId(
   targetId: string,
-  type: 'publisher' | 'campaign'
+  type: 'publisher' | 'campaign',
 ): Promise<WidgetKeyRecord | null> {
   const snap = await db
     .collection(WIDGET_KEY_COLLECTION)
@@ -91,20 +95,20 @@ export async function getWidgetKeyByTargetId(
     .where('revoked', '==', false)
     .limit(1)
     .get();
-    
+
   if (snap.empty) return null;
   const record = snap.docs[0]!.data() as WidgetKeyRecord;
-  
+
   if (record.createdAt) record.createdAt = new Date((record.createdAt as any).seconds * 1000);
   if (record.lastUsedAt) record.lastUsedAt = new Date((record.lastUsedAt as any).seconds * 1000);
-  
+
   return record;
 }
 
 export async function getOrCreateWidgetKey(
   ownerEmail: string,
   type: 'publisher' | 'campaign',
-  targetId: string
+  targetId: string,
 ): Promise<WidgetKeyRecord> {
   const existing = await getWidgetKeyByTargetId(targetId, type);
   if (existing) return existing;

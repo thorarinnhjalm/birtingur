@@ -50,7 +50,8 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
   }
 
   // 3. Fallback to mock data if empty and running in dev/emulator
-  const isDevOrEmulator = process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
+  const isDevOrEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
     return {
       totalImpressions: 4820900,

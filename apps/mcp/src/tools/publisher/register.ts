@@ -20,9 +20,9 @@ export function registerRegister(server: McpServer, apiKey: string) {
       title: 'Skrá útgefanda',
       description:
         'Skráir nýjan útgefanda á vettvanginn. Notandi þarf að vera þegar innskráður (kallandi á API hefur bearer token sem auðkennir þá). Skilar útgefendaupplýsingum með id sem hægt er að nota í síðari aðgerðum.',
-      inputSchema: Input.shape as any,
+      inputSchema: Input.shape,
     },
-    async (input: any) => {
+    async (input) => {
       const r = await apiCall<{ publisher: unknown }>('/v1/publishers', {
         method: 'POST',
         body: input,

@@ -49,7 +49,7 @@ describe('Publisher Service', () => {
         .doc(pub.id)
         .withConverter(publisherConverter)
         .get();
-      
+
       expect(doc.exists).toBe(true);
       const data = doc.data();
       expect(data?.displayName).toBe('Test Publisher');
@@ -63,7 +63,7 @@ describe('Publisher Service', () => {
           displayName: 'Test Publisher',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -75,7 +75,7 @@ describe('Publisher Service', () => {
           displayName: 'Test Publisher',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
-        })
+        }),
       ).rejects.toThrow();
     });
   });
@@ -159,7 +159,7 @@ describe('Publisher Service', () => {
       await expect(
         updatePublisher(created.id, {
           domain: 'invalid-domain-format',
-        })
+        }),
       ).rejects.toThrow();
     });
 
@@ -167,7 +167,7 @@ describe('Publisher Service', () => {
       await expect(
         updatePublisher('pub_nonexistent', {
           displayName: 'New Name',
-        })
+        }),
       ).rejects.toThrow();
     });
   });

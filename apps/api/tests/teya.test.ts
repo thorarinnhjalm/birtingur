@@ -29,7 +29,7 @@ describe('parseTeyaEvent', () => {
       JSON.stringify({
         type: 'checkout.completed',
         data: { sessionId: 's', amountIsk: 5000, metadata: { advertiserId: 'adv_a' } },
-      })
+      }),
     );
     expect(ev.type).toBe('checkout.completed');
     expect(ev.data.amountIsk).toBe(5000);

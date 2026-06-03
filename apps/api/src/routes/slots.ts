@@ -77,7 +77,7 @@ slotsRouter.get('/:id/snippet', async (c) => {
 
   const queryWidth = c.req.query('width');
   const queryHeight = c.req.query('height');
-  
+
   const width = queryWidth ? parseInt(queryWidth, 10) : undefined;
   const height = queryHeight ? parseInt(queryHeight, 10) : undefined;
 

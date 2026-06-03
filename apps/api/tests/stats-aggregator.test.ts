@@ -27,24 +27,24 @@ vi.mock('../src/lib/firebase', () => {
             for (const op of batchOps) {
               const path = op.ref.path;
               const existing = mockStatsDocs[path] ?? { impressions: 0, clicks: 0 };
-              
+
               let impressionsInc = 0;
               let clicksInc = 0;
-              
+
               const impVal = op.data.impressions;
               if (impVal && typeof impVal === 'object' && 'operand' in impVal) {
                 impressionsInc = (impVal as any).operand;
               } else if (typeof impVal === 'number') {
                 impressionsInc = impVal;
               }
-              
+
               const clickVal = op.data.clicks;
               if (clickVal && typeof clickVal === 'object' && 'operand' in clickVal) {
                 clicksInc = (clickVal as any).operand;
               } else if (typeof clickVal === 'number') {
                 clicksInc = clickVal;
               }
-              
+
               mockStatsDocs[path] = {
                 impressions: existing.impressions + impressionsInc,
                 clicks: existing.clicks + clicksInc,
@@ -102,7 +102,7 @@ describe('aggregateEvents', () => {
       },
     ];
     await aggregateEvents(events);
-    
+
     // Check campaign hourly stats
     const cmpPath = `stats/campaigns/cmp_a/2026060214`;
     expect(mockStatsDocs[cmpPath]).toBeDefined();

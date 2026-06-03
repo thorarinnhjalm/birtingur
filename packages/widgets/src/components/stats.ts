@@ -27,7 +27,7 @@ export class AdplatformStats extends HTMLElement {
     if (name === 'publisher-key') this.publisherKey = newValue;
     if (name === 'period') this.period = newValue;
     if (name === 'theme') this.theme = newValue;
-    
+
     if (this.isConnected) {
       this.render();
       this.fetchData();
@@ -37,7 +37,7 @@ export class AdplatformStats extends HTMLElement {
   private getActiveTheme(): 'light' | 'dark' {
     if (this.theme === 'dark') return 'dark';
     if (this.theme === 'light') return 'light';
-    
+
     // Auto-detect using media query
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -53,12 +53,15 @@ export class AdplatformStats extends HTMLElement {
 
     try {
       const timeframe = this.period === '30d' ? '30' : '7';
-      const response = await fetch(`${API_BASE}/v1/widgets/publisher/stats?timeframe=${timeframe}`, {
-        headers: {
-          'Authorization': `Bearer ${this.publisherKey}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${API_BASE}/v1/widgets/publisher/stats?timeframe=${timeframe}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.publisherKey}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error(`API skilaði villu: ${response.status}`);
@@ -74,7 +77,7 @@ export class AdplatformStats extends HTMLElement {
 
   private getStyles(): string {
     const isDark = this.getActiveTheme() === 'dark';
-    
+
     return `
       :host {
         display: block;
@@ -218,23 +221,23 @@ export class AdplatformStats extends HTMLElement {
   }) {
     const isDark = this.getActiveTheme() === 'dark';
     const eCPM = data.impressions > 0 ? (data.spendIsk / data.impressions) * 1000 : 0;
-    
+
     // Sparkline path generation
     const history = data.history || [];
     let sparklineHtml = '';
-    
+
     if (history.length > 1) {
-      const maxVal = Math.max(...history.map(h => h.impressions), 1);
+      const maxVal = Math.max(...history.map((h) => h.impressions), 1);
       const points = history.map((h, idx) => {
         const x = (idx / (history.length - 1)) * 100; // svg viewBox width is 100
         const y = 45 - (h.impressions / maxVal) * 35; // svg viewBox height is 50, leave top/bottom padding
         return `${x},${y}`;
       });
       const pathD = `M ${points.join(' L ')}`;
-      
+
       // Area path for gradient fill
       const areaPathD = `${pathD} L 100,50 L 0,50 Z`;
-      
+
       sparklineHtml = `
         <div class="sparkline-container">
           <div class="sparkline-label">Birtingarflæði yfir tímabilið</div>

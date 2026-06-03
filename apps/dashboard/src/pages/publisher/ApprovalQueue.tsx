@@ -111,7 +111,11 @@ export default function ApprovalQueue() {
             <Card key={campaign.id} className="p-6 flex flex-col md:flex-row gap-6 justify-between">
               {/* Creative Image column */}
               <div className="w-full md:w-48 shrink-0 bg-slate-50 border border-slate-200 rounded overflow-hidden h-32 flex items-center justify-center">
-                <img src={creative.imageUrl} alt="Ad Preview" className="object-contain w-full h-full" />
+                <img
+                  src={creative.imageUrl}
+                  alt="Ad Preview"
+                  className="object-contain w-full h-full"
+                />
               </div>
 
               {/* Campaign details column */}
@@ -121,9 +125,24 @@ export default function ApprovalQueue() {
                 </div>
 
                 <div className="text-xs font-semibold text-slate-500 space-y-1">
-                  <p>Smellt fer á: <a href={creative.clickUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold inline-flex items-center gap-0.5">{creative.clickUrl}</a></p>
-                  <p>Stærð auglýsingar: {creative.width} × {creative.height} px</p>
-                  <p>Áætlaður upphafstími: {new Date(campaign.schedule.startsAt).toLocaleDateString('is-IS')}</p>
+                  <p>
+                    Smellt fer á:{' '}
+                    <a
+                      href={creative.clickUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-bold inline-flex items-center gap-0.5"
+                    >
+                      {creative.clickUrl}
+                    </a>
+                  </p>
+                  <p>
+                    Stærð auglýsingar: {creative.width} × {creative.height} px
+                  </p>
+                  <p>
+                    Áætlaður upphafstími:{' '}
+                    {new Date(campaign.schedule.startsAt).toLocaleDateString('is-IS')}
+                  </p>
                 </div>
               </div>
 
@@ -156,7 +175,9 @@ export default function ApprovalQueue() {
       {rejectId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full bg-white p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Hafna herferð</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Hafna herferð
+            </h3>
 
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <Input

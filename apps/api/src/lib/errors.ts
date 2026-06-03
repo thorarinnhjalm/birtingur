@@ -5,7 +5,7 @@ export class AppError extends Error {
     public readonly statusCode: number,
     message: string,
     public readonly code?: string,
-    public readonly details?: unknown
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'AppError';
@@ -21,7 +21,7 @@ export const handleError: ErrorHandler = (err, c) => {
         message: err.message,
         details: err.details,
       },
-      err.statusCode as any
+      err.statusCode as any,
     );
   }
 
@@ -32,6 +32,6 @@ export const handleError: ErrorHandler = (err, c) => {
       error: 'InternalServerError',
       message: err.message || 'An unexpected error occurred',
     },
-    500
+    500,
   );
 };

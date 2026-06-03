@@ -15,20 +15,18 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  let token: string | null = null;
   const mockUserStr = localStorage.getItem('ada_mock_user');
-  if (mockUserStr) {
-    token = 'demo-mock-token';
-  } else {
-    const user = auth.currentUser;
-    token = user ? await user.getIdToken() : null;
-  }
-  
+  const token = mockUserStr
+    ? 'demo-mock-token'
+    : auth.currentUser
+      ? await auth.currentUser.getIdToken()
+      : null;
+
   const headers = new Headers(opts.headers ?? {});
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  
+
   if (opts.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
@@ -45,7 +43,7 @@ export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise
     } catch {
       // ignore JSON parse failures for non-JSON error responses
     }
-    
+
     throw new ApiError(
       response.status,
       body.error ?? 'unknown',

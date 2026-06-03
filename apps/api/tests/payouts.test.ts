@@ -174,7 +174,7 @@ describe('Monthly Payouts Service', () => {
       const p = await seedPublisher();
       // 10.000 gross → 8.000 net (after 20% platform fee)
       await creditPublisher(p.id, 'cmp_1', 10000);
-      
+
       // Set the createdAt of the ledger entry to be within the window
       mockLedger[0].createdAt = new Date(Date.now() - 86400_000 * 5); // 5 days ago
 
@@ -209,7 +209,7 @@ describe('Monthly Payouts Service', () => {
       const periodStart = new Date(Date.now() - 86400_000 * 30);
       const periodEnd = new Date(Date.now() + 86400_000);
       const [payout] = await generateMonthlyPayouts(periodStart, periodEnd);
-      
+
       const updated = await markPayoutCompleted(payout!.id, 'BANK_REF_123');
       expect(updated.status).toBe('completed');
       expect(updated.bankReference).toBe('BANK_REF_123');

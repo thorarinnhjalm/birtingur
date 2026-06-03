@@ -60,12 +60,17 @@ export default function SlotDetail() {
       <div className="grid md:grid-cols-3 gap-6">
         {/* Slot details */}
         <Card className="p-5 space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">Stillingar</h3>
+          <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
+            Stillingar
+          </h3>
           <div className="space-y-3 text-xs font-semibold text-slate-600">
             <div>
               <span className="block text-slate-400">Verðlagning:</span>
               <span className="text-sm font-extrabold text-slate-900">
-                {formatIsk(slot.pricing.mode === 'cpm' ? slot.pricing.cpmIsk : slot.pricing.slotPriceIsk)} {slot.pricing.mode === 'cpm' ? 'CPM' : 'á viku'}
+                {formatIsk(
+                  slot.pricing.mode === 'cpm' ? slot.pricing.cpmIsk : slot.pricing.slotPriceIsk,
+                )}{' '}
+                {slot.pricing.mode === 'cpm' ? 'CPM' : 'á viku'}
               </span>
             </div>
             <div>
@@ -118,7 +123,9 @@ export default function SlotDetail() {
         <div className="space-y-1">
           <h4 className="font-bold text-slate-900">Hvernig virkar samþættingin?</h4>
           <p className="leading-relaxed text-slate-500">
-            HTML kóðinn vísar í áreiðanlegan CDN netþjón okkar. Þegar notandi heimsækir vefsíðu þína hleður skriftan sjálfkrafa viðeigandi auglýsingu úr okkar kerfi. Allar flettingar (birtingar) teljast sjálfkrafa til tekna í veskið þitt.
+            HTML kóðinn vísar í áreiðanlegan CDN netþjón okkar. Þegar notandi heimsækir vefsíðu þína
+            hleður skriftan sjálfkrafa viðeigandi auglýsingu úr okkar kerfi. Allar flettingar
+            (birtingar) teljast sjálfkrafa til tekna í veskið þitt.
           </p>
         </div>
       </Card>

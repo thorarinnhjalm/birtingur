@@ -13,8 +13,16 @@ export function TopBar() {
   const isAdmin = location.pathname.startsWith('/admin');
 
   // Role labels in Icelandic
-  const userRoleLabel = isAdvertiser ? 'Auglýsingastjóri' : isPublisher ? 'Útgefandi' : 'Kerfisstjóri';
-  const searchPlaceholder = isAdvertiser ? 'Leita að herferðum...' : isPublisher ? 'Leita að plássum...' : 'Leita í kerfinu...';
+  const userRoleLabel = isAdvertiser
+    ? 'Auglýsingastjóri'
+    : isPublisher
+      ? 'Útgefandi'
+      : 'Kerfisstjóri';
+  const searchPlaceholder = isAdvertiser
+    ? 'Leita að herferðum...'
+    : isPublisher
+      ? 'Leita að plássum...'
+      : 'Leita í kerfinu...';
 
   // Dynamic greeting/name based on user email
   const displayName = user?.email?.split('@')[0] || 'Notandi';
@@ -36,7 +44,9 @@ export function TopBar() {
 
         {/* Workspace Switcher */}
         <div className="hidden md:flex items-center gap-2">
-          <span className="text-xs font-semibold text-outline uppercase tracking-wider">Vinnusvæði:</span>
+          <span className="text-xs font-semibold text-outline uppercase tracking-wider">
+            Vinnusvæði:
+          </span>
           <div className="inline-flex gap-1 bg-surface-container p-0.5 rounded-lg border border-outline-variant">
             <button
               onClick={() => navigate('/advertiser')}
@@ -88,7 +98,9 @@ export function TopBar() {
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
             <p className="text-label-md text-on-surface font-bold">{formattedName}</p>
-            <p className="text-[10px] text-outline uppercase tracking-wider font-bold">{userRoleLabel}</p>
+            <p className="text-[10px] text-outline uppercase tracking-wider font-bold">
+              {userRoleLabel}
+            </p>
           </div>
           <img
             alt="Notandaprúfíll"

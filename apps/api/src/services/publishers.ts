@@ -69,12 +69,9 @@ export async function getPublisherByOwnerEmail(email: string): Promise<Publisher
 
 export async function updatePublisher(
   id: string,
-  updates: Partial<Omit<Publisher, 'id' | 'createdAt' | 'ownerEmail'>>
+  updates: Partial<Omit<Publisher, 'id' | 'createdAt' | 'ownerEmail'>>,
 ): Promise<Publisher> {
-  const pubRef = db
-    .collection(COLLECTIONS.publishers)
-    .doc(id)
-    .withConverter(publisherConverter);
+  const pubRef = db.collection(COLLECTIONS.publishers).doc(id).withConverter(publisherConverter);
 
   const doc = await pubRef.get();
   if (!doc.exists) {
@@ -82,7 +79,7 @@ export async function updatePublisher(
   }
 
   const current = doc.data()!;
-  
+
   // Merge current and updates
   const merged = {
     ...current,

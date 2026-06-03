@@ -24,8 +24,19 @@ vi.mock('../src/services/publisher-stats.js', () => ({
 vi.mock('../src/services/approvals.js', () => ({
   listPublisherQueue: async (id: string) => [
     {
-      creative: { id: 'creative_1', imageUrl: 'img.jpg', width: 300, height: 250, clickUrl: 'click.html' },
-      campaign: { id: 'camp_1', name: 'Test Campaign', advertiserId: 'adv_1', budget: { mode: 'cpm_capped', totalIsk: 1000, remainingIsk: 1000 } },
+      creative: {
+        id: 'creative_1',
+        imageUrl: 'img.jpg',
+        width: 300,
+        height: 250,
+        clickUrl: 'click.html',
+      },
+      campaign: {
+        id: 'camp_1',
+        name: 'Test Campaign',
+        advertiserId: 'adv_1',
+        budget: { mode: 'cpm_capped', totalIsk: 1000, remainingIsk: 1000 },
+      },
     },
   ],
   publisherReview: async (id: string, opts: any) => ({
@@ -66,7 +77,7 @@ vi.mock('../src/lib/firebase.js', () => {
         where: (field: string, op: string, val: any) => {
           // simple mocked filter
           const matches = Object.values(store).filter(
-            (item: any) => item[field] === val && item.revoked === false
+            (item: any) => item[field] === val && item.revoked === false,
           );
           return {
             limit: (n: number) => ({

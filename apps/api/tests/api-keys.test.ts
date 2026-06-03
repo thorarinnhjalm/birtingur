@@ -39,10 +39,10 @@ describe('API Key Authentication & Management', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    
+
     app = new Hono();
     app.route('/v1/api-keys', apiKeysRouter);
-    
+
     // Protected test route using requireAuth
     app.get('/test-protected', requireAuth, (c) => {
       const user = c.get('user');
@@ -53,7 +53,7 @@ describe('API Key Authentication & Management', () => {
   it('can issue a valid API key and verify it', async () => {
     const email = 'user@example.is';
     const { key, id } = await issueApiKey(email, 'both');
-    
+
     expect(key).toContain(id);
     expect(key.startsWith('ak_')).toBe(true);
 
@@ -66,9 +66,9 @@ describe('API Key Authentication & Management', () => {
   it('fails verification for revoked API keys', async () => {
     const email = 'user@example.is';
     const { key, id } = await issueApiKey(email, 'both');
-    
+
     await revokeApiKey(id);
-    
+
     const record = await verifyApiKey(key);
     expect(record).toBeNull();
   });
@@ -76,14 +76,14 @@ describe('API Key Authentication & Management', () => {
   it('allows access to protected routes with valid API key bearer token', async () => {
     const email = 'user@example.is';
     const { key, id } = await issueApiKey(email, 'both');
-    
+
     const res = await app.request('/test-protected', {
       headers: {
         Authorization: `Bearer ${key}`,
       },
     });
     expect(res.status).toBe(200);
-    
+
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body.user.uid).toBe(`apikey:${id}`);
@@ -97,7 +97,7 @@ describe('API Key Authentication & Management', () => {
       },
     });
     expect(res.status).toBe(401);
-    
+
     const body = await res.json();
     expect(body.error).toBe('Unauthorized');
   });

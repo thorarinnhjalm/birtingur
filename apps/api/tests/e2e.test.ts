@@ -101,6 +101,7 @@ let mockCampaigns: MockCampaign[] = [];
 let mockPublishers: MockPublisher[] = [];
 let mockSlots: MockSlot[] = [];
 let mockLedger: MockLedgerEntry[] = [];
+let mockWidgetKeys: any[] = [];
 
 vi.mock('../src/lib/firebase', () => {
   return {
@@ -139,6 +140,8 @@ vi.mock('../src/lib/firebase', () => {
                 filtered = [...mockSlots];
               } else if (colName === 'ledger') {
                 filtered = [...mockLedger];
+              } else if (colName === 'widget_keys') {
+                filtered = [...mockWidgetKeys];
               }
 
               for (const filter of filters) {
@@ -167,16 +170,43 @@ vi.mock('../src/lib/firebase', () => {
               };
             }),
           };
-          queryObj.withConverter = vi.fn(() => ({
-            get: queryObj.get,
-          }));
+          queryObj.withConverter = vi.fn(() => queryObj);
           return queryObj;
         };
 
         return {
-          doc: vi.fn((id: string) => ({
-            id,
-            update: vi.fn(async (fields: any) => {
+          doc: vi.fn((id: string) => {
+            const setFn = async (val: unknown) => {
+              if (colName === 'creatives') {
+                const idx = mockCreatives.findIndex((c) => c.id === id);
+                if (idx !== -1) mockCreatives[idx] = val as MockCreative;
+                else mockCreatives.push(val as MockCreative);
+              } else if (colName === 'campaigns') {
+                const idx = mockCampaigns.findIndex((c) => c.id === id);
+                if (idx !== -1) mockCampaigns[idx] = val as MockCampaign;
+                else mockCampaigns.push(val as MockCampaign);
+              } else if (colName === 'advertisers') {
+                const idx = mockAdvertisers.findIndex((a) => a.id === id);
+                if (idx !== -1) mockAdvertisers[idx] = val as MockAdvertiser;
+                else mockAdvertisers.push(val as MockAdvertiser);
+              } else if (colName === 'publishers') {
+                const idx = mockPublishers.findIndex((p) => p.id === id);
+                if (idx !== -1) mockPublishers[idx] = val as MockPublisher;
+                else mockPublishers.push(val as MockPublisher);
+              } else if (colName === 'slots') {
+                const idx = mockSlots.findIndex((s) => s.id === id);
+                if (idx !== -1) mockSlots[idx] = val as MockSlot;
+                else mockSlots.push(val as MockSlot);
+              } else if (colName === 'ledger') {
+                mockLedger.push(val as MockLedgerEntry);
+              } else if (colName === 'widget_keys') {
+                const idx = mockWidgetKeys.findIndex((wk) => wk.id === id);
+                if (idx !== -1) mockWidgetKeys[idx] = val;
+                else mockWidgetKeys.push(val);
+              }
+            };
+
+            const getFn = async () => {
               let found: any = null;
               if (colName === 'creatives') {
                 found = mockCreatives.find((c) => c.id === id);
@@ -188,57 +218,44 @@ vi.mock('../src/lib/firebase', () => {
                 found = mockPublishers.find((p) => p.id === id);
               } else if (colName === 'slots') {
                 found = mockSlots.find((s) => s.id === id);
+              } else if (colName === 'widget_keys') {
+                found = mockWidgetKeys.find((wk) => wk.id === id);
+              }
+              return {
+                exists: found !== undefined && found !== null,
+                data: () => found,
+              };
+            };
+
+            const updateFn = async (fields: any) => {
+              let found: any = null;
+              if (colName === 'creatives') {
+                found = mockCreatives.find((c) => c.id === id);
+              } else if (colName === 'campaigns') {
+                found = mockCampaigns.find((c) => c.id === id);
+              } else if (colName === 'advertisers') {
+                found = mockAdvertisers.find((a) => a.id === id);
+              } else if (colName === 'publishers') {
+                found = mockPublishers.find((p) => p.id === id);
+              } else if (colName === 'slots') {
+                found = mockSlots.find((s) => s.id === id);
+              } else if (colName === 'widget_keys') {
+                found = mockWidgetKeys.find((wk) => wk.id === id);
               }
               if (found) {
                 Object.assign(found, fields);
               }
-            }),
-            withConverter: vi.fn(() => ({
-              set: vi.fn(async (val: unknown) => {
-                if (colName === 'creatives') {
-                  const idx = mockCreatives.findIndex((c) => c.id === id);
-                  if (idx !== -1) mockCreatives[idx] = val as MockCreative;
-                  else mockCreatives.push(val as MockCreative);
-                } else if (colName === 'campaigns') {
-                  const idx = mockCampaigns.findIndex((c) => c.id === id);
-                  if (idx !== -1) mockCampaigns[idx] = val as MockCampaign;
-                  else mockCampaigns.push(val as MockCampaign);
-                } else if (colName === 'advertisers') {
-                  const idx = mockAdvertisers.findIndex((a) => a.id === id);
-                  if (idx !== -1) mockAdvertisers[idx] = val as MockAdvertiser;
-                  else mockAdvertisers.push(val as MockAdvertiser);
-                } else if (colName === 'publishers') {
-                  const idx = mockPublishers.findIndex((p) => p.id === id);
-                  if (idx !== -1) mockPublishers[idx] = val as MockPublisher;
-                  else mockPublishers.push(val as MockPublisher);
-                } else if (colName === 'slots') {
-                  const idx = mockSlots.findIndex((s) => s.id === id);
-                  if (idx !== -1) mockSlots[idx] = val as MockSlot;
-                  else mockSlots.push(val as MockSlot);
-                } else if (colName === 'ledger') {
-                  mockLedger.push(val as MockLedgerEntry);
-                }
-              }),
-              get: vi.fn(async () => {
-                let found: any = null;
-                if (colName === 'creatives') {
-                  found = mockCreatives.find((c) => c.id === id);
-                } else if (colName === 'campaigns') {
-                  found = mockCampaigns.find((c) => c.id === id);
-                } else if (colName === 'advertisers') {
-                  found = mockAdvertisers.find((a) => a.id === id);
-                } else if (colName === 'publishers') {
-                  found = mockPublishers.find((p) => p.id === id);
-                } else if (colName === 'slots') {
-                  found = mockSlots.find((s) => s.id === id);
-                }
-                return {
-                  exists: found !== undefined && found !== null,
-                  data: () => found,
-                };
-              }),
-            })),
-          })),
+            };
+
+            const docObj = {
+              id,
+              set: vi.fn(setFn),
+              get: vi.fn(getFn),
+              update: vi.fn(updateFn),
+              withConverter: vi.fn(() => docObj),
+            };
+            return docObj;
+          }),
           ...createQuery(),
         };
       }),
@@ -257,6 +274,7 @@ describe('End-to-End Smoke Test', () => {
     mockPublishers = [];
     mockSlots = [];
     mockLedger = [];
+    mockWidgetKeys = [];
     vi.clearAllMocks();
   });
 

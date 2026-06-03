@@ -149,7 +149,8 @@ async function seed() {
     const dk = dateStr.replace(/-/g, ''); // YYYYMMDD
 
     // 15k-25k impressions, 200-500 clicks
-    const impressions = 18000 + Math.floor(Math.sin(i * 0.8) * 4000) + Math.floor(Math.random() * 2000);
+    const impressions =
+      18000 + Math.floor(Math.sin(i * 0.8) * 4000) + Math.floor(Math.random() * 2000);
     const clicks = Math.floor(impressions * (0.015 + Math.random() * 0.01));
     const spendIsk = Math.floor((impressions / 1000) * 450);
 

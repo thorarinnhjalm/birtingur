@@ -11,7 +11,9 @@ describe('Snippet Builder', () => {
       height: 250,
     });
 
-    expect(html).toContain('<div data-adplatform-slot="slot_123" data-adplatform-width="300" data-adplatform-height="250"></div>');
+    expect(html).toContain(
+      '<div data-adplatform-slot="slot_123" data-adplatform-width="300" data-adplatform-height="250"></div>',
+    );
     expect(html).toContain(`<script async src="${cdnUrl}"></script>`);
   });
 

@@ -17,7 +17,11 @@ export const widgetsRouter = new Hono<WidgetEnv>();
 widgetsRouter.use('*', async (c, next) => {
   const authHeader = c.req.header('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AppError(401, 'Unauthorized: Missing or invalid Authorization header', 'UNAUTHORIZED');
+    throw new AppError(
+      401,
+      'Unauthorized: Missing or invalid Authorization header',
+      'UNAUTHORIZED',
+    );
   }
   const token = authHeader.substring(7).trim();
   const record = await verifyWidgetKey(token);
@@ -72,7 +76,10 @@ widgetsRouter.post('/publisher/approvals/:campaignId', async (c) => {
     throw new AppError(403, 'Forbidden: Key does not have publisher scope', 'FORBIDDEN');
   }
   const campaignId = c.req.param('campaignId');
-  const body = (await c.req.json().catch(() => ({}))) as { action: 'approve' | 'reject'; reason?: string };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    action: 'approve' | 'reject';
+    reason?: string;
+  };
   if (!body.action || !['approve', 'reject'].includes(body.action)) {
     throw new AppError(400, 'Invalid action', 'BAD_REQUEST');
   }

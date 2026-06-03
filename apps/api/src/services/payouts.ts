@@ -1,13 +1,5 @@
-import {
-  COLLECTIONS,
-  payoutConverter,
-  ledgerEntryConverter,
-} from '@ada/shared/firestore';
-import {
-  PayoutSchema,
-  MIN_PAYOUT_ISK,
-  DEFAULT_PLATFORM_FEE_PERCENT,
-} from '@ada/shared';
+import { COLLECTIONS, payoutConverter, ledgerEntryConverter } from '@ada/shared/firestore';
+import { PayoutSchema, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import type { Payout } from '@ada/shared';
 import { db } from '../lib/firebase';
 import { generateId } from '../lib/id';
@@ -16,7 +8,7 @@ import { AppError } from '../lib/errors';
 
 export async function generateMonthlyPayouts(
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
 ): Promise<Payout[]> {
   // Sum publisher_credit entries per publisher in period
   const snap = await db
@@ -72,7 +64,7 @@ export async function listPendingPayouts(): Promise<Payout[]> {
 
 export async function markPayoutCompleted(
   payoutId: string,
-  bankReference: string
+  bankReference: string,
 ): Promise<Payout> {
   const ref = db.collection(COLLECTIONS.payouts).doc(payoutId);
   const snap = await ref.withConverter(payoutConverter).get();
@@ -82,7 +74,7 @@ export async function markPayoutCompleted(
   const payout = snap.data() as Payout;
   const updated: Payout = PayoutSchema.parse({ ...payout, status: 'completed', bankReference });
   await ref.withConverter(payoutConverter).set(updated);
-  
+
   // Drain ledger by adding a payout entry (negative for publisher)
   await appendLedger({
     party: { type: 'publisher', id: payout.publisherId },

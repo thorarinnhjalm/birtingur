@@ -55,12 +55,16 @@ export default function RoleSelect() {
                 Ég vil birta auglýsingar
               </h3>
               <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Kynntu vörur þínar eða þjónustu. Settu inn inneign, hladdu upp auglýsingum og veldu markviss pláss á íslenskum vefjum.
+                Kynntu vörur þínar eða þjónustu. Settu inn inneign, hladdu upp auglýsingum og veldu
+                markviss pláss á íslenskum vefjum.
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-sm font-bold text-primary mt-4">
               <span>Fara í auglýsingaborð</span>
-              <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
+              <ArrowRight
+                size={16}
+                className="transform group-hover:translate-x-1 transition-transform"
+              />
             </div>
           </Card>
 
@@ -77,12 +81,16 @@ export default function RoleSelect() {
                 Ég vil selja auglýsingapláss
               </h3>
               <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Fáðu tekjur af vefnum þínum. Stofnaðu og stjórnaðu auglýsingaplássum og fáðu greitt sjálfvirkt fyrir birtingar.
+                Fáðu tekjur af vefnum þínum. Stofnaðu og stjórnaðu auglýsingaplássum og fáðu greitt
+                sjálfvirkt fyrir birtingar.
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-sm font-bold text-sky-600 mt-4">
               <span>Fara í útgefandaborð</span>
-              <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />
+              <ArrowRight
+                size={16}
+                className="transform group-hover:translate-x-1 transition-transform"
+              />
             </div>
           </Card>
         </div>

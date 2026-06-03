@@ -31,9 +31,7 @@ export default function SlotCreate() {
   };
 
   const handleCategoryToggle = (cat: string) => {
-    setCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+    setCategories((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +74,9 @@ export default function SlotCreate() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Búa til auglýsingapláss</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">Stofnaðu nýtt hólf og stilltu hvaða stærðir og áætlun gildir.</p>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Stofnaðu nýtt hólf og stilltu hvaða stærðir og áætlun gildir.
+        </p>
       </div>
 
       <Card className="p-6">
@@ -92,12 +92,16 @@ export default function SlotCreate() {
 
           {/* Sizes */}
           <div className="space-y-2">
-            <span className="block text-sm font-medium text-slate-700">Leyfðar stærðir (IAB staðall) *</span>
-            <p className="text-xs text-slate-400 font-semibold mb-3">Veldu allar stærðir sem hannaðar eru inn í þetta vefsvæði.</p>
+            <span className="block text-sm font-medium text-slate-700">
+              Leyfðar stærðir (IAB staðall) *
+            </span>
+            <p className="text-xs text-slate-400 font-semibold mb-3">
+              Veldu allar stærðir sem hannaðar eru inn í þetta vefsvæði.
+            </p>
             <div className="grid sm:grid-cols-2 gap-2">
               {IAB_STANDARD_SIZES.map((sz) => {
                 const isSelected = selectedSizes.some(
-                  (s) => s.width === sz.width && s.height === sz.height
+                  (s) => s.width === sz.width && s.height === sz.height,
                 );
                 return (
                   <button
@@ -153,7 +157,9 @@ export default function SlotCreate() {
           {/* Auto Approve campaigns toggle */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
             <div className="space-y-0.5">
-              <span className="block font-bold text-sm text-slate-900">Sjálfvirk samþykkt (Auto Approve)</span>
+              <span className="block font-bold text-sm text-slate-900">
+                Sjálfvirk samþykkt (Auto Approve)
+              </span>
               <span className="block text-xs text-slate-400 font-semibold leading-relaxed">
                 Ræstu herferðir sjálfkrafa ef auglýsingin er auto-approved af ADA scanner.
               </span>

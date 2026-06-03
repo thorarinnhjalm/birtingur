@@ -40,9 +40,14 @@ export default function SlotList() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mín auglýsingapláss</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Stjórnaðu og skoðaðu samþættingarkóða fyrir plássin þín.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Stjórnaðu og skoðaðu samþættingarkóða fyrir plássin þín.
+          </p>
         </div>
-        <Button onClick={() => navigate('/publisher/slots/new')} className="font-bold text-sm py-2.5 gap-1">
+        <Button
+          onClick={() => navigate('/publisher/slots/new')}
+          className="font-bold text-sm py-2.5 gap-1"
+        >
           <Plus size={16} />
           <span>Búa til pláss</span>
         </Button>
@@ -70,7 +75,9 @@ export default function SlotList() {
 
             <div className="flex items-center gap-6 text-right">
               <div>
-                <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Verðlagning</span>
+                <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Verðlagning
+                </span>
                 <span className="text-lg font-extrabold text-slate-900">
                   {formatIsk(s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk)}
                 </span>

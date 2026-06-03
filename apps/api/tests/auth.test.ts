@@ -20,7 +20,7 @@ describe('Authentication Middleware', () => {
     vi.resetAllMocks();
 
     app = new Hono();
-    
+
     // Protected route
     app.get('/protected', requireAuth, (c) => {
       const user = c.get('user');
@@ -37,7 +37,7 @@ describe('Authentication Middleware', () => {
     it('returns 401 if Authorization header is missing', async () => {
       const res = await app.request('/protected');
       expect(res.status).toBe(401);
-      
+
       const body = await res.json();
       expect(body).toEqual({
         error: 'Unauthorized',
@@ -52,7 +52,7 @@ describe('Authentication Middleware', () => {
         },
       });
       expect(res.status).toBe(401);
-      
+
       const body = await res.json();
       expect(body.error).toBe('Unauthorized');
     });
@@ -66,7 +66,7 @@ describe('Authentication Middleware', () => {
         },
       });
       expect(res.status).toBe(401);
-      
+
       const body = await res.json();
       expect(body.error).toBe('Unauthorized');
       expect(body.message).toBe('Invalid or expired token');
@@ -78,7 +78,7 @@ describe('Authentication Middleware', () => {
         email: 'user@example.is',
         admin: false,
       };
-      
+
       vi.mocked(auth.verifyIdToken).mockResolvedValue(mockDecodedToken as any);
 
       const res = await app.request('/protected', {
@@ -87,7 +87,7 @@ describe('Authentication Middleware', () => {
         },
       });
       expect(res.status).toBe(200);
-      
+
       const body = await res.json();
       expect(body.ok).toBe(true);
       expect(body.user).toEqual({
@@ -114,7 +114,7 @@ describe('Authentication Middleware', () => {
         },
       });
       expect(res.status).toBe(403);
-      
+
       const body = await res.json();
       expect(body).toEqual({
         error: 'Forbidden',
@@ -136,7 +136,7 @@ describe('Authentication Middleware', () => {
         },
       });
       expect(res.status).toBe(200);
-      
+
       const body = await res.json();
       expect(body.ok).toBe(true);
     });

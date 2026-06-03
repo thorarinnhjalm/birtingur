@@ -86,16 +86,14 @@ export async function pushSlotCache(slotId: string): Promise<void> {
   });
 
   // 5. Gather unique creative IDs from the campaigns
-  const creativeIds = Array.from(
-    new Set(eligibleCampaigns.flatMap((c) => c.creativeIds))
-  );
+  const creativeIds = Array.from(new Set(eligibleCampaigns.flatMap((c) => c.creativeIds)));
 
   const creativeMap = new Map<string, Creative>();
 
   if (creativeIds.length > 0) {
     // Batch fetch creative documents
     const refs = creativeIds.map((id) =>
-      db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter)
+      db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter),
     );
     const docs = await db.getAll(...refs);
     for (const doc of docs) {
@@ -125,7 +123,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
 
       // Check size compatibility with the slot
       const matchesSize = slot.sizes.some(
-        (size) => size.width === creative.width && size.height === creative.height
+        (size) => size.width === creative.width && size.height === creative.height,
       );
       if (!matchesSize) continue;
 

@@ -19,8 +19,15 @@ import { Badge } from '@/components/ui/Badge';
 import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid } from 'recharts';
-
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  CartesianGrid,
+} from 'recharts';
 
 import TopUp from './TopUp';
 import CampaignCreate from './CampaignCreate';
@@ -63,13 +70,14 @@ function AdvertiserHome() {
 
   // Calculate sum metrics from campaigns for display
   const activeCampaigns = campaigns?.filter((c) => c.status === 'active') || [];
-  
+
   // Dynamic stats mapping
   const impressions = stats ? stats.impressions.toLocaleString('is-IS') : '0';
   const clicks = stats ? stats.clicks.toLocaleString('is-IS') : '0';
-  const ctr = stats && stats.impressions > 0 
-    ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%` 
-    : '0,00%';
+  const ctr =
+    stats && stats.impressions > 0
+      ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+      : '0,00%';
 
   return (
     <div className="space-y-gutter">
@@ -79,11 +87,15 @@ function AdvertiserHome() {
         <div className="lg:col-span-2 relative overflow-hidden bg-primary text-on-primary rounded-xl p-8 shadow-xl flex flex-col justify-between min-h-[240px]">
           <div className="absolute -right-12 -top-12 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           <div className="relative z-10">
-            <p className="text-label-md opacity-85 uppercase tracking-widest mb-2 font-semibold">Heildarinnistæða</p>
+            <p className="text-label-md opacity-85 uppercase tracking-widest mb-2 font-semibold">
+              Heildarinnistæða
+            </p>
             <h2 className="text-display-lg font-bold">{formatIsk(wallet?.balanceIsk ?? 0)}</h2>
           </div>
           <div className="relative z-10 flex items-center justify-between gap-4 mt-6">
-            <p className="text-body-md max-w-sm opacity-90">Innistæða þín dugar í um það bil 14 daga miðað við núverandi eyðslu.</p>
+            <p className="text-body-md max-w-sm opacity-90">
+              Innistæða þín dugar í um það bil 14 daga miðað við núverandi eyðslu.
+            </p>
             <button
               onClick={() => navigate('/advertiser/topup')}
               className="bg-surface-container-lowest text-primary px-8 py-3 rounded-lg font-bold text-label-md hover:opacity-90 transition-all active:scale-95 whitespace-nowrap cursor-pointer"
@@ -96,11 +108,18 @@ function AdvertiserHome() {
         {/* Mini Promo/Status Card */}
         <div className="bg-tertiary-container text-on-tertiary-container rounded-xl p-8 flex flex-col justify-between relative overflow-hidden border border-outline-variant shadow-sm">
           <div className="relative z-10">
-            <span className="material-symbols-outlined text-tertiary-fixed-dim text-4xl mb-4">auto_awesome</span>
+            <span className="material-symbols-outlined text-tertiary-fixed-dim text-4xl mb-4">
+              auto_awesome
+            </span>
             <h3 className="text-headline-md mb-2 font-bold">Herferðar-aðstoð</h3>
-            <p className="text-body-md opacity-80">Nýttu gervigreind til að fínstilla birtingar og lækka smellakostnað.</p>
+            <p className="text-body-md opacity-80">
+              Nýttu gervigreind til að fínstilla birtingar og lækka smellakostnað.
+            </p>
           </div>
-          <a className="relative z-10 text-label-md flex items-center gap-2 hover:underline font-semibold mt-4" href="#">
+          <a
+            className="relative z-10 text-label-md flex items-center gap-2 hover:underline font-semibold mt-4"
+            href="#"
+          >
             Skoða möguleika <span className="material-symbols-outlined text-sm">arrow_forward</span>
           </a>
         </div>
@@ -118,12 +137,17 @@ function AdvertiserHome() {
               +12.4% <span className="material-symbols-outlined text-[12px]">trending_up</span>
             </span>
           </div>
-          <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">Birtingar</p>
+          <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">
+            Birtingar
+          </p>
           <p className="text-on-surface text-headline-md font-bold">{impressions}</p>
         </div>
 
         {/* Stat 2 */}
-        <div className="glass-card rounded-xl p-6 hover:border-primary transition-all group animate-fade-in" style={{ animationDelay: '0.1s' }}>
+        <div
+          className="glass-card rounded-xl p-6 hover:border-primary transition-all group animate-fade-in"
+          style={{ animationDelay: '0.1s' }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-secondary-fixed rounded-lg text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <span className="material-symbols-outlined">ads_click</span>
@@ -137,7 +161,10 @@ function AdvertiserHome() {
         </div>
 
         {/* Stat 3 */}
-        <div className="glass-card rounded-xl p-6 hover:border-primary transition-all group animate-fade-in" style={{ animationDelay: '0.2s' }}>
+        <div
+          className="glass-card rounded-xl p-6 hover:border-primary transition-all group animate-fade-in"
+          style={{ animationDelay: '0.2s' }}
+        >
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-secondary-fixed rounded-lg text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <span className="material-symbols-outlined">leaderboard</span>
@@ -146,7 +173,9 @@ function AdvertiserHome() {
               -1.2% <span className="material-symbols-outlined text-[12px]">trending_down</span>
             </span>
           </div>
-          <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">Smellihlutfall (CTR)</p>
+          <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">
+            Smellihlutfall (CTR)
+          </p>
           <p className="text-on-surface text-headline-md font-bold">{ctr}</p>
         </div>
       </div>
@@ -157,7 +186,9 @@ function AdvertiserHome() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
               <h3 className="text-headline-md text-on-surface font-bold">Árangur herferða</h3>
-              <p className="text-label-md text-secondary">Birtingar og smellir yfir síðustu 30 daga</p>
+              <p className="text-label-md text-secondary">
+                Birtingar og smellir yfir síðustu 30 daga
+              </p>
             </div>
             <div className="flex gap-4 text-xs font-semibold text-secondary">
               <div className="flex items-center gap-1.5">
@@ -170,7 +201,7 @@ function AdvertiserHome() {
               </div>
             </div>
           </div>
-          
+
           <div className="h-72 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -206,7 +237,7 @@ function AdvertiserHome() {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                  tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
                 <YAxis
                   yAxisId="right"
@@ -221,27 +252,37 @@ function AdvertiserHome() {
                   cursor={{ stroke: 'rgba(148, 163, 184, 0.1)', strokeWidth: 1 }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
-                      const imp = payload.find(p => p.dataKey === 'impressions')?.value as number;
-                      const clk = payload.find(p => p.dataKey === 'clicks')?.value as number;
+                      const imp = payload.find((p) => p.dataKey === 'impressions')?.value as number;
+                      const clk = payload.find((p) => p.dataKey === 'clicks')?.value as number;
                       const label = payload[0]!.payload.date;
                       let formattedDate = label;
                       try {
                         const parsed = new Date(label);
                         if (!isNaN(parsed.getTime())) {
-                          formattedDate = parsed.toLocaleDateString('is-IS', { day: 'numeric', month: 'long', year: 'numeric' });
+                          formattedDate = parsed.toLocaleDateString('is-IS', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          });
                         }
                       } catch {}
                       return (
                         <div className="bg-slate-950/95 backdrop-blur text-white p-4 rounded-xl text-xs font-semibold shadow-xl border border-slate-800 space-y-2">
-                          <p className="text-slate-400 font-bold border-b border-slate-800 pb-1.5">{formattedDate}</p>
+                          <p className="text-slate-400 font-bold border-b border-slate-800 pb-1.5">
+                            {formattedDate}
+                          </p>
                           <div className="space-y-1">
                             <div className="flex justify-between items-center gap-6">
                               <span className="text-slate-400">Birtingar:</span>
-                              <span className="font-bold text-blue-400 text-right">{imp?.toLocaleString('is-IS')}</span>
+                              <span className="font-bold text-blue-400 text-right">
+                                {imp?.toLocaleString('is-IS')}
+                              </span>
                             </div>
                             <div className="flex justify-between items-center gap-6">
                               <span className="text-slate-400">Smellir:</span>
-                              <span className="font-bold text-emerald-400 text-right">{clk?.toLocaleString('is-IS')}</span>
+                              <span className="font-bold text-emerald-400 text-right">
+                                {clk?.toLocaleString('is-IS')}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -279,13 +320,16 @@ function AdvertiserHome() {
         <div className="px-8 py-6 flex items-center justify-between border-b border-outline-variant">
           <div>
             <h3 className="text-headline-md text-on-surface font-bold">Virkar herferðir</h3>
-            <p className="text-label-md text-on-secondary-container">Yfirlit yfir herferðir í keyrslu</p>
+            <p className="text-label-md text-on-secondary-container">
+              Yfirlit yfir herferðir í keyrslu
+            </p>
           </div>
           <button
             onClick={() => navigate('/advertiser/campaigns')}
             className="text-primary font-bold text-label-md hover:underline flex items-center gap-1 cursor-pointer border-none bg-transparent"
           >
-            Sjá allar herferðir <span className="material-symbols-outlined text-sm">open_in_new</span>
+            Sjá allar herferðir{' '}
+            <span className="material-symbols-outlined text-sm">open_in_new</span>
           </button>
         </div>
 
@@ -296,7 +340,9 @@ function AdvertiserHome() {
               title="Engar herferðir fundust"
               description="Búðu til þína fyrstu herferð, settu inn fjárhagsáætlun og veldu auglýsingapláss."
               action={
-                <Button onClick={() => navigate('/advertiser/campaigns/new')}>Stofna herferð</Button>
+                <Button onClick={() => navigate('/advertiser/campaigns/new')}>
+                  Stofna herferð
+                </Button>
               }
             />
           </div>
@@ -305,10 +351,18 @@ function AdvertiserHome() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider font-semibold">Herferð</th>
-                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-center font-semibold">Staða</th>
-                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider font-semibold">Notkun</th>
-                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-right font-semibold">Fjárhagsáætlun</th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider font-semibold">
+                    Herferð
+                  </th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-center font-semibold">
+                    Staða
+                  </th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider font-semibold">
+                    Notkun
+                  </th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-right font-semibold">
+                    Fjárhagsáætlun
+                  </th>
                   <th className="px-8 py-4"></th>
                 </tr>
               </thead>
@@ -335,7 +389,8 @@ function AdvertiserHome() {
                     statusDot = 'bg-slate-600';
                   }
 
-                  const thumbnail = 'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ';
+                  const thumbnail =
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ';
 
                   return (
                     <tr
@@ -345,15 +400,25 @@ function AdvertiserHome() {
                     >
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <img alt="Herferð" className="w-12 h-12 rounded-lg object-cover" src={thumbnail} />
+                          <img
+                            alt="Herferð"
+                            className="w-12 h-12 rounded-lg object-cover"
+                            src={thumbnail}
+                          />
                           <div>
-                            <p className="text-label-md text-on-surface font-bold">Norðurljós - Hausttilboð</p>
-                            <p className="text-[11px] text-outline font-medium">Birtipláss · Vefurinn þinn</p>
+                            <p className="text-label-md text-on-surface font-bold">
+                              Norðurljós - Hausttilboð
+                            </p>
+                            <p className="text-[11px] text-outline font-medium">
+                              Birtipláss · Vefurinn þinn
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-8 py-5 text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusClass}`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusClass}`}
+                        >
                           <span className={`w-1.5 h-1.5 rounded-full ${statusDot}`}></span>
                           {statusLabel}
                         </span>
@@ -365,11 +430,16 @@ function AdvertiserHome() {
                             <span>{formatIsk(spent)}</span>
                           </div>
                           <div className="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
-                            <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${pct}%` }}></div>
+                            <div
+                              className="bg-primary h-full rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            ></div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">{formatIsk(c.budget.totalIsk)}</td>
+                      <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
+                        {formatIsk(c.budget.totalIsk)}
+                      </td>
                       <td className="px-8 py-5 text-right">
                         <button className="p-2 text-outline hover:text-primary hover:bg-secondary-container rounded-full transition-all cursor-pointer">
                           <span className="material-symbols-outlined">more_vert</span>
@@ -391,8 +461,12 @@ function AdvertiserHome() {
             <span className="material-symbols-outlined text-primary text-3xl">support_agent</span>
           </div>
           <div>
-            <h4 className="text-headline-md text-primary font-bold">Þarftu aðstoð við uppsetningu?</h4>
-            <p className="text-body-md text-on-secondary-container">Sérfræðingar okkar geta hjálpað þér að ná betri árangri.</p>
+            <h4 className="text-headline-md text-primary font-bold">
+              Þarftu aðstoð við uppsetningu?
+            </h4>
+            <p className="text-body-md text-on-secondary-container">
+              Sérfræðingar okkar geta hjálpað þér að ná betri árangri.
+            </p>
           </div>
         </div>
         <button className="bg-primary text-on-primary px-8 py-3 rounded-lg font-bold text-label-md hover:opacity-90 transition-all shadow-md active:scale-95 shrink-0 cursor-pointer">

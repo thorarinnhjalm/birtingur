@@ -40,9 +40,14 @@ export default function CampaignList() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mínar herferðir</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Sjáðu yfirlit og árangur allra herferða þinna.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Sjáðu yfirlit og árangur allra herferða þinna.
+          </p>
         </div>
-        <Button onClick={() => navigate('/advertiser/campaigns/new')} className="font-bold gap-1 text-sm py-2.5">
+        <Button
+          onClick={() => navigate('/advertiser/campaigns/new')}
+          className="font-bold gap-1 text-sm py-2.5"
+        >
           <Plus size={16} />
           <span>Stofna herferð</span>
         </Button>
@@ -52,7 +57,7 @@ export default function CampaignList() {
         {campaigns.map((c) => {
           const spent = c.budget.totalIsk - c.budget.remainingIsk;
           const pct = Math.min(100, Math.round((spent / c.budget.totalIsk) * 100)) || 0;
-          
+
           return (
             <Card
               key={c.id}
@@ -71,15 +76,22 @@ export default function CampaignList() {
                           : 'neutral'
                     }
                   >
-                    {c.status === 'active' ? 'Virk' : c.status === 'pending_approval' ? 'Í yfirferð' : c.status}
+                    {c.status === 'active'
+                      ? 'Virk'
+                      : c.status === 'pending_approval'
+                        ? 'Í yfirferð'
+                        : c.status}
                   </Badge>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 font-semibold">
                   <div className="flex items-center gap-1">
                     <Calendar size={14} />
                     <span>
-                      {new Date(c.schedule.startsAt).toLocaleDateString('is-IS')} - {c.schedule.endsAt ? new Date(c.schedule.endsAt).toLocaleDateString('is-IS') : 'ótakmarkað'}
+                      {new Date(c.schedule.startsAt).toLocaleDateString('is-IS')} -{' '}
+                      {c.schedule.endsAt
+                        ? new Date(c.schedule.endsAt).toLocaleDateString('is-IS')
+                        : 'ótakmarkað'}
                     </span>
                   </div>
                   <div>·</div>
@@ -94,7 +106,10 @@ export default function CampaignList() {
                   <span>{pct}%</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
+                  />
                 </div>
                 <div className="flex justify-between text-xs font-semibold text-slate-700">
                   <span>Eytt: {formatIsk(spent)}</span>

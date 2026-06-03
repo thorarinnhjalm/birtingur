@@ -27,11 +27,7 @@ export async function createSlot(input: {
 
   const validated = SlotSchema.parse(slotData);
 
-  await db
-    .collection(COLLECTIONS.slots)
-    .doc(id)
-    .withConverter(slotConverter)
-    .set(validated);
+  await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).set(validated);
 
   if (process.env.UPSTASH_REDIS_REST_URL) {
     await pushSlotCache(id);
@@ -41,11 +37,7 @@ export async function createSlot(input: {
 }
 
 export async function getSlot(id: string): Promise<Slot | null> {
-  const doc = await db
-    .collection(COLLECTIONS.slots)
-    .doc(id)
-    .withConverter(slotConverter)
-    .get();
+  const doc = await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).get();
 
   if (!doc.exists) {
     return null;
@@ -61,17 +53,14 @@ export async function listSlotsForPublisher(publisherId: string): Promise<Slot[]
     .withConverter(slotConverter)
     .get();
 
-  return snapshot.docs.map(doc => doc.data());
+  return snapshot.docs.map((doc) => doc.data());
 }
 
 export async function updateSlot(
   id: string,
-  updates: Partial<Omit<Slot, 'id' | 'publisherId'>>
+  updates: Partial<Omit<Slot, 'id' | 'publisherId'>>,
 ): Promise<Slot> {
-  const slotRef = db
-    .collection(COLLECTIONS.slots)
-    .doc(id)
-    .withConverter(slotConverter);
+  const slotRef = db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter);
 
   const doc = await slotRef.get();
   if (!doc.exists) {
@@ -79,12 +68,14 @@ export async function updateSlot(
   }
 
   const current = doc.data()!;
-  
+
   const merged = {
     ...current,
     ...updates,
     pricing: updates.pricing ? { ...current.pricing, ...updates.pricing } : current.pricing,
-    placement: updates.placement ? { ...current.placement, ...updates.placement } : current.placement,
+    placement: updates.placement
+      ? { ...current.placement, ...updates.placement }
+      : current.placement,
   };
 
   const validated = SlotSchema.parse(merged);
@@ -100,7 +91,7 @@ export async function updateSlot(
 
 export async function getSnippetForSlot(
   id: string,
-  options?: { width?: number; height?: number }
+  options?: { width?: number; height?: number },
 ): Promise<string> {
   const slot = await getSlot(id);
   if (!slot) {
@@ -111,12 +102,12 @@ export async function getSnippetForSlot(
   let height = options?.height;
 
   if (width != null && height != null) {
-    const isSupported = slot.sizes.some(s => s.width === width && s.height === height);
+    const isSupported = slot.sizes.some((s) => s.width === width && s.height === height);
     if (!isSupported) {
       throw new AppError(
         400,
         `Dimensions ${width}x${height} are not supported by slot ${id}`,
-        'BAD_REQUEST'
+        'BAD_REQUEST',
       );
     }
   } else {

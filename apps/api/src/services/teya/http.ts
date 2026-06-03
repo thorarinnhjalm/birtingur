@@ -3,7 +3,7 @@ import type { CheckoutSession, TeyaClient } from './index';
 export class HttpTeyaClient implements TeyaClient {
   constructor(
     private apiKey: string,
-    private baseUrl = process.env.TEYA_BASE_URL ?? 'https://api.teya.com'
+    private baseUrl = process.env.TEYA_BASE_URL ?? 'https://api.teya.com',
   ) {}
 
   async createCheckoutSession(opts: {

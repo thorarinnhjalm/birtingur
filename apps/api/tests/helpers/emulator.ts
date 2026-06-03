@@ -14,7 +14,9 @@ export async function clearFirestoreEmulator() {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to clear Firestore emulator: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to clear Firestore emulator: ${response.status} ${response.statusText}`,
+      );
     }
   } catch (error: any) {
     console.error('Error clearing Firestore emulator:', error.message);

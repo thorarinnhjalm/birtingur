@@ -25,7 +25,7 @@ Hvor um sig nefnd „Aðili“ og sameiginlega „Aðilar“.
 
 ## 2. SKILGREININGAR
 
-2.1. Hugtök í samningi þessum, s.s. *„persónuupplýsingar“*, *„vinnsla“*, *„ábyrgðaraðili“*, *„vinnsluaðili“*, *„skráður einstaklingur“* og *„öryggisbrestur“*, hafa sömu merkingu og í GDPR og lögum nr. 90/2018.
+2.1. Hugtök í samningi þessum, s.s. _„persónuupplýsingar“_, _„vinnsla“_, _„ábyrgðaraðili“_, _„vinnsluaðili“_, _„skráður einstaklingur“_ og _„öryggisbrestur“_, hafa sömu merkingu og í GDPR og lögum nr. 90/2018.
 
 ---
 
@@ -85,40 +85,45 @@ Hvor um sig nefnd „Aðili“ og sameiginlega „Aðilar“.
 
 Fyrir hönd Ábyrgðaraðila (Útgefanda):
 
-Nafn: ______________________________________
-Staða: _____________________________________
-Dagsetning: ________________________________
-Undirskrift: _______________________________
-
+Nafn: **\*\*\*\***\*\***\*\*\*\***\_\_**\*\*\*\***\*\***\*\*\*\***
+Staða: **\*\*\*\***\*\***\*\*\*\***\_**\*\*\*\***\*\***\*\*\*\***
+Dagsetning: **\*\***\*\***\*\***\_\_\_\_**\*\***\*\***\*\***
+Undirskrift: **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
 
 Fyrir hönd Vinnsluaðila (Neðri Hóll Hugmyndahús ehf. / Birta.is):
 
 Nafn: Þórarinn Hjálmarsson
 Staða: Stjórnarmaður
-Dagsetning: ________________________________
-Undirskrift: _______________________________
+Dagsetning: **\*\***\*\***\*\***\_\_\_\_**\*\***\*\***\*\***
+Undirskrift: **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
 
 ---
 
 ## VIÐAUKI A: LÝSING Á VINNSLU PERSÓNUUPPLÝSINGA
 
 ### 1. Tilgangur vinnslunnar
+
 Tilgangur vinnslunnar er að keyra stafrænt auglýsingakerfi á vefsvæði Útgefanda. Þetta felur í sér að:
-* Birta viðeigandi auglýsingar til vefnotenda (geotargeting á landshlutastigi).
-* Safna og skrá árangursmælingar (impressions, clicks, CTR) til að reikna út greiðslur auglýsenda og þóknun útgefanda.
-* Framfylgja birtingartakmörkunum (frequency capping) til að forðast að notandi sjái sömu auglýsingu of oft.
-* Koma í veg fyrir sviksamlegar birtingar (ad fraud) og smellasvik.
+
+- Birta viðeigandi auglýsingar til vefnotenda (geotargeting á landshlutastigi).
+- Safna og skrá árangursmælingar (impressions, clicks, CTR) til að reikna út greiðslur auglýsenda og þóknun útgefanda.
+- Framfylgja birtingartakmörkunum (frequency capping) til að forðast að notandi sjái sömu auglýsingu of oft.
+- Koma í veg fyrir sviksamlegar birtingar (ad fraud) og smellasvik.
 
 ### 2. Flokkar skráðra einstaklinga
-* Gestir og notendur á vefsvæðum Útgefanda (hýsivefjum).
+
+- Gestir og notendur á vefsvæðum Útgefanda (hýsivefjum).
 
 ### 3. Flokkar persónuupplýsinga sem eru unnar
+
 Kerfið er hannað til að lágmarka söfnun persónuupplýsinga og notar engar viðvarandi kökur sem rekja notendur á milli ólíkra vefsvæða. Eftirfarandi gögn eru unnin í skammtímaminni eða geymd í dulkóðuðu/gervigervðu formi:
-* **Tímabundinn heimsóknarlykill (Session Token / Cookie)**: Dulritaður fyrsta aðila lykill (first-party cookie) sem geymdur er í 90 daga til að stýra birtingartakmörkunum (frequency capping). Lykillinn er bundinn við viðkomandi vefsvæði og leyfir ekki þvertengingar á milli vefja.
-* **Landfræðilegar upplýsingar (Geo location)**: Land eða landshluti (t.d. höfuðborgarsvæði vs. landsbyggð) sem ákvarðaður er út frá IP-tölu notanda við beiðni (gegnum Cloudflare headers). IP-talan sjálf er **aldrei vistuð** í gagnagrunni Birta.is.
-* **Atburðaskráning (Event logs)**: Upplýsingar um gerð atburðar (birting eða smellur), auðkenni auglýsingar (creative ID), auðkenni auglýsingapláss (slot ID) og tímastimpill.
+
+- **Tímabundinn heimsóknarlykill (Session Token / Cookie)**: Dulritaður fyrsta aðila lykill (first-party cookie) sem geymdur er í 90 daga til að stýra birtingartakmörkunum (frequency capping). Lykillinn er bundinn við viðkomandi vefsvæði og leyfir ekki þvertengingar á milli vefja.
+- **Landfræðilegar upplýsingar (Geo location)**: Land eða landshluti (t.d. höfuðborgarsvæði vs. landsbyggð) sem ákvarðaður er út frá IP-tölu notanda við beiðni (gegnum Cloudflare headers). IP-talan sjálf er **aldrei vistuð** í gagnagrunni Birta.is.
+- **Atburðaskráning (Event logs)**: Upplýsingar um gerð atburðar (birting eða smellur), auðkenni auglýsingar (creative ID), auðkenni auglýsingapláss (slot ID) og tímastimpill.
 
 ### 4. Viðkvæmar persónuupplýsingar
+
 Engar viðkvæmar persónuupplýsingar (s.s. heilsufarsupplýsingar, stjórnmálaskoðanir eða kynhneigð) eru unnar eða vistaðar.
 
 ---
@@ -128,14 +133,14 @@ Engar viðkvæmar persónuupplýsingar (s.s. heilsufarsupplýsingar, stjórnmál
 Vinnsluaðili nýtir eftirfarandi þjónustuaðila til að hýsa og reka innviði Birta.is:
 
 1. **Google Ireland Limited (Firebase / Google Cloud Platform)**
-   * **Hlutverk**: Gagnageymsla (Firestore), notendaauðkenning og skráahýsing (Storage).
-   * **Staðsetning gagnaverks**: Innan Evrópu (t.d. Frankfurt/Belgía).
+   - **Hlutverk**: Gagnageymsla (Firestore), notendaauðkenning og skráahýsing (Storage).
+   - **Staðsetning gagnaverks**: Innan Evrópu (t.d. Frankfurt/Belgía).
 2. **Vercel Inc.**
-   * **Hlutverk**: Hýsing á vefviðmóti (dashboard) og miðlunarþjónustu (serving logic / REST API).
-   * **Staðsetning gagnaverks**: Innan Evrópu (t.d. Frankfurt).
+   - **Hlutverk**: Hýsing á vefviðmóti (dashboard) og miðlunarþjónustu (serving logic / REST API).
+   - **Staðsetning gagnaverks**: Innan Evrópu (t.d. Frankfurt).
 3. **Cloudflare Inc.**
-   * **Hlutverk**: CDN (Content Delivery Network) fyrir auglýsingaskriftuna og landfræðilega síun á umferð.
-   * **Staðsetning**: Alþjóðlegt net með gagnaver á Íslandi og innan ESB.
+   - **Hlutverk**: CDN (Content Delivery Network) fyrir auglýsingaskriftuna og landfræðilega síun á umferð.
+   - **Staðsetning**: Alþjóðlegt net með gagnaver á Íslandi og innan ESB.
 4. **Upstash Inc.**
-   * **Hlutverk**: Hýsing á Redis skyndiminni (caching) fyrir afköst í rauntíma birtingum.
-   * **Staðsetning gagnaverks**: Innan Evrópu (AWS regions).
+   - **Hlutverk**: Hýsing á Redis skyndiminni (caching) fyrir afköst í rauntíma birtingum.
+   - **Staðsetning gagnaverks**: Innan Evrópu (AWS regions).

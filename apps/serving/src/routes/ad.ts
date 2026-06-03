@@ -28,7 +28,8 @@ adRoute.get('/', async (c) => {
       activeCreatives: [
         {
           creativeId: 'cre_demo_123',
-          imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ',
+          imageUrl:
+            'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ',
           clickUrl: 'https://birta.is',
           width: 300,
           height: 250,
@@ -39,7 +40,7 @@ adRoute.get('/', async (c) => {
           validTo: Date.now() + 86400000,
           frequencyCapPerDay: 5,
           priority: 'cpm',
-        }
+        },
       ],
       blockedCategories: [],
       refreshedAt: Date.now(),
@@ -85,7 +86,7 @@ adRoute.get('/', async (c) => {
 
   c.header('Set-Cookie', setCookieHeader(token));
   c.header('Cache-Control', 'private, no-store');
-  
+
   return c.json({
     creativeId: creative.creativeId,
     imageUrl: creative.imageUrl,

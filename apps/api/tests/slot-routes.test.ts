@@ -3,13 +3,14 @@ import { app } from '../src/index';
 import { auth } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
 
-vi.mock('../src/lib/firebase', () => {
+vi.mock('../src/lib/firebase', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/lib/firebase')>();
   return {
+    ...original,
     auth: {
+      ...original.auth,
       verifyIdToken: vi.fn(),
     },
-    db: {},
-    storage: {},
   };
 });
 
@@ -240,18 +241,24 @@ describe('Slot HTTP Routes', () => {
         },
         body: JSON.stringify({
           name: 'Old Name',
-          sizes: [{ width: 300, height: 250 }, { width: 728, height: 90 }],
+          sizes: [
+            { width: 300, height: 250 },
+            { width: 728, height: 90 },
+          ],
           pricing: samplePricing,
           placement: samplePlacement,
         }),
       });
       const createdSlot = await createRes.json();
 
-      const res = await app.request(`/v1/publishers/me/slots/${createdSlot.id}/snippet?width=728&height=90`, {
-        headers: {
-          Authorization: 'Bearer valid-token',
+      const res = await app.request(
+        `/v1/publishers/me/slots/${createdSlot.id}/snippet?width=728&height=90`,
+        {
+          headers: {
+            Authorization: 'Bearer valid-token',
+          },
         },
-      });
+      );
 
       expect(res.status).toBe(200);
       const body = await res.json();

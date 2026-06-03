@@ -3,13 +3,14 @@ import { app } from '../src/index';
 import { auth } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
 
-vi.mock('../src/lib/firebase', () => {
+vi.mock('../src/lib/firebase', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/lib/firebase')>();
   return {
+    ...original,
     auth: {
+      ...original.auth,
       verifyIdToken: vi.fn(),
     },
-    db: {}, // Let it be resolved or mocked by services if needed, but since we run with emulator, it will use real firebase-admin
-    storage: {},
   };
 });
 

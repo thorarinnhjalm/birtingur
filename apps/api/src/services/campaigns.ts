@@ -27,7 +27,7 @@ export type CreateCampaignInput = z.infer<typeof CreateCampaignInputSchema>;
 
 export async function createCampaign(
   advertiserId: string,
-  input: CreateCampaignInput
+  input: CreateCampaignInput,
 ): Promise<Campaign> {
   const parsed = CreateCampaignInputSchema.parse(input);
 
@@ -110,7 +110,7 @@ export async function getCampaign(id: string): Promise<Campaign | null> {
     .doc(id)
     .withConverter(campaignConverter)
     .get();
-  return snap.exists ? (snap.data() || null) : null;
+  return snap.exists ? snap.data() || null : null;
 }
 
 export async function listCampaignsForAdvertiser(advertiserId: string): Promise<Campaign[]> {
@@ -128,7 +128,7 @@ const UpdateCampaignSchema = z.object({
 
 export async function updateCampaign(
   id: string,
-  patch: z.infer<typeof UpdateCampaignSchema>
+  patch: z.infer<typeof UpdateCampaignSchema>,
 ): Promise<Campaign> {
   const existing = await getCampaign(id);
   if (!existing) {
@@ -136,11 +136,7 @@ export async function updateCampaign(
   }
   const parsed = UpdateCampaignSchema.parse(patch);
   const next: Campaign = CampaignSchema.parse({ ...existing, ...parsed });
-  await db
-    .collection(COLLECTIONS.campaigns)
-    .doc(id)
-    .withConverter(campaignConverter)
-    .set(next);
+  await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).set(next);
 
   if (process.env.UPSTASH_REDIS_REST_URL) {
     await pushCacheForCampaign(id);

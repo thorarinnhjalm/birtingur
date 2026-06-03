@@ -4,13 +4,14 @@ import { auth, db } from '../src/lib/firebase';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { clearFirestoreEmulator } from './helpers/emulator';
 
-vi.mock('../src/lib/firebase', () => {
+vi.mock('../src/lib/firebase', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/lib/firebase')>();
   return {
+    ...original,
     auth: {
+      ...original.auth,
       verifyIdToken: vi.fn(),
     },
-    db: {},
-    storage: {},
   };
 });
 
@@ -67,37 +68,43 @@ describe('Publisher Stats HTTP Route', () => {
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
     // Seed yesterday's stats (hour 10)
-    await db.collection(COLLECTIONS.stats).doc(`${yesterdayStr}_10`).set({
-      impressions: 1000,
-      clicks: 50,
-      spendIsk: 500,
-      byPublisher: {
-        [pubId]: {
-          impressions: 800,
-          clicks: 40,
-          spendIsk: 400,
+    await db
+      .collection(COLLECTIONS.stats)
+      .doc(`${yesterdayStr}_10`)
+      .set({
+        impressions: 1000,
+        clicks: 50,
+        spendIsk: 500,
+        byPublisher: {
+          [pubId]: {
+            impressions: 800,
+            clicks: 40,
+            spendIsk: 400,
+          },
+          other_pub: {
+            impressions: 200,
+            clicks: 10,
+            spendIsk: 100,
+          },
         },
-        other_pub: {
-          impressions: 200,
-          clicks: 10,
-          spendIsk: 100,
-        },
-      },
-    });
+      });
 
     // Seed today's stats (hour 14)
-    await db.collection(COLLECTIONS.stats).doc(`${todayStr}_14`).set({
-      impressions: 2000,
-      clicks: 100,
-      spendIsk: 1000,
-      byPublisher: {
-        [pubId]: {
-          impressions: 1500,
-          clicks: 75,
-          spendIsk: 750,
+    await db
+      .collection(COLLECTIONS.stats)
+      .doc(`${todayStr}_14`)
+      .set({
+        impressions: 2000,
+        clicks: 100,
+        spendIsk: 1000,
+        byPublisher: {
+          [pubId]: {
+            impressions: 1500,
+            clicks: 75,
+            spendIsk: 750,
+          },
         },
-      },
-    });
+      });
 
     // Request stats
     const res = await app.request('/v1/publishers/me/stats?timeframe=7', {
@@ -108,7 +115,7 @@ describe('Publisher Stats HTTP Route', () => {
 
     expect(res.status).toBe(200);
     const body = await res.json();
-    
+
     // Total checks
     expect(body.impressions).toBe(2300); // 800 (yesterday) + 1500 (today)
     expect(body.clicks).toBe(115); // 40 + 75
@@ -116,7 +123,7 @@ describe('Publisher Stats HTTP Route', () => {
 
     // History checks
     expect(body.history).toHaveLength(7);
-    
+
     const todayEntry = body.history.find((h: any) => h.date === todayStr);
     expect(todayEntry).toBeDefined();
     expect(todayEntry.impressions).toBe(1500);

@@ -100,7 +100,7 @@ describe('Ledger Service', () => {
           type: 'topup',
           amountIsk: 0,
           relatedId: 'x',
-        })
+        }),
       ).rejects.toThrow();
     });
   });

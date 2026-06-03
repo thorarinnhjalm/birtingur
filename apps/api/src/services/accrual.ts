@@ -75,7 +75,7 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
       totalCharge += perImpression;
       publisherCharges.set(
         ev.publisherId,
-        (publisherCharges.get(ev.publisherId) ?? 0) + perImpression
+        (publisherCharges.get(ev.publisherId) ?? 0) + perImpression,
       );
     }
 

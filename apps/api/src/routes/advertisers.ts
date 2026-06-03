@@ -34,4 +34,3 @@ advertisersRouter.get('/me/stats', async (c) => {
   const stats = await getAdvertiserStats(adv.id, timeframe);
   return c.json(stats);
 });
-

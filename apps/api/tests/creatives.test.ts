@@ -49,7 +49,9 @@ vi.mock('../src/lib/firebase', () => ({
           withConverter: vi.fn(() => ({
             get: vi.fn(async () => {
               if (colName === 'creatives') {
-                const filtered = mockCreatives.filter((c) => (c as Record<string, unknown>)[prop] === val);
+                const filtered = mockCreatives.filter(
+                  (c) => (c as Record<string, unknown>)[prop] === val,
+                );
                 return {
                   docs: filtered.map((c) => ({
                     data: () => c,
@@ -83,7 +85,7 @@ describe('Creative Service', () => {
         clickUrl: 'https://blomabud.is',
         ocrTextHint: 'Sumartilboð',
       },
-      new StubAutoScanner()
+      new StubAutoScanner(),
     );
     expect(c.reviewStatus).toBe('auto_approved');
     expect(c.reviewLog.length).toBeGreaterThan(0);
@@ -101,7 +103,7 @@ describe('Creative Service', () => {
         clickUrl: 'https://example.is',
         ocrTextHint: 'casino bonus',
       },
-      new StubAutoScanner()
+      new StubAutoScanner(),
     );
     expect(c.reviewStatus).toBe('rejected');
     expect(c.reviewLog[0].action).toBe('rejected');
@@ -116,7 +118,7 @@ describe('Creative Service', () => {
         height: 90,
         clickUrl: 'https://blomabud.is',
       },
-      new StubAutoScanner()
+      new StubAutoScanner(),
     );
     const list = await listCreativesForAdvertiser('adv_123');
     expect(list).toHaveLength(1);

@@ -8,7 +8,13 @@ export interface SidebarItem {
   icon: string | ReactNode;
 }
 
-export function Sidebar({ items, title = 'Auglýsingakerfi' }: { items: SidebarItem[]; title?: string }) {
+export function Sidebar({
+  items,
+  title = 'Auglýsingakerfi',
+}: {
+  items: SidebarItem[];
+  title?: string;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -29,7 +35,9 @@ export function Sidebar({ items, title = 'Auglýsingakerfi' }: { items: SidebarI
     <aside className="bg-surface-container-low flex flex-col h-screen py-gutter px-4 w-[280px] fixed left-0 top-0 z-50 border-r border-outline-variant">
       <div className="mb-10 px-4">
         <h1 className="text-headline-md font-bold text-primary">{title}</h1>
-        <p className="text-label-md text-on-secondary-fixed-variant opacity-70 mt-1">Íslensk markaðssetning</p>
+        <p className="text-label-md text-on-secondary-fixed-variant opacity-70 mt-1">
+          Íslensk markaðssetning
+        </p>
       </div>
 
       {actionButtonText && (
@@ -53,7 +61,7 @@ export function Sidebar({ items, title = 'Auglýsingakerfi' }: { items: SidebarI
                 'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:scale-[0.98]',
                 isActive
                   ? 'bg-secondary-container text-primary font-bold border-l-2 border-primary'
-                  : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50'
+                  : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50',
               )
             }
           >
@@ -69,13 +77,19 @@ export function Sidebar({ items, title = 'Auglýsingakerfi' }: { items: SidebarI
 
       <div className="mt-auto border-t border-outline-variant pt-4 space-y-1">
         <NavLink
-          to={isAdvertiser ? '/advertiser/settings' : isPublisher ? '/publisher/settings' : '/admin/settings'}
+          to={
+            isAdvertiser
+              ? '/advertiser/settings'
+              : isPublisher
+                ? '/publisher/settings'
+                : '/admin/settings'
+          }
           className={({ isActive }) =>
             clsx(
               'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
               isActive
                 ? 'bg-secondary-container text-primary font-bold border-l-2 border-primary'
-                : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50'
+                : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50',
             )
           }
         >

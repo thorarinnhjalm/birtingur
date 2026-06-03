@@ -16,4 +16,3 @@ adminRoutes.get('/stats', async (c) => {
   const stats = await getAdminStats();
   return c.json({ stats });
 });
-

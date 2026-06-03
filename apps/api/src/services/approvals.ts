@@ -76,7 +76,9 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
     if (approved) {
       if (cmp.status === 'pending_approval') {
         const allCreativesApproved = await allCreativesAutoApproved(cmp.creativeIds);
-        const allPublishersApproved = Object.values(cmp.perPublisherApproval).every((v) => v === 'approved');
+        const allPublishersApproved = Object.values(cmp.perPublisherApproval).every(
+          (v) => v === 'approved',
+        );
         if (allCreativesApproved && allPublishersApproved) {
           cmp.status = 'active';
           modified = true;
@@ -107,7 +109,7 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
 }
 
 export async function listPublisherQueue(
-  publisherId: string
+  publisherId: string,
 ): Promise<Array<{ creative: Creative; campaign: Campaign }>> {
   const snap = await db
     .collection(COLLECTIONS.campaigns)
@@ -139,7 +141,7 @@ export type PublisherReviewInput = z.infer<typeof PublisherReviewSchema>;
 
 export async function publisherReview(
   publisherId: string,
-  input: PublisherReviewInput
+  input: PublisherReviewInput,
 ): Promise<Campaign> {
   const parsed = PublisherReviewSchema.parse(input);
   const docRef = db.collection(COLLECTIONS.campaigns).doc(parsed.campaignId);

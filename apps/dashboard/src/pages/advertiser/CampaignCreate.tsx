@@ -55,7 +55,7 @@ export default function CampaignCreate() {
     }
 
     setError(null);
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -78,7 +78,7 @@ export default function CampaignCreate() {
       setError('Slóð verður að hefjast á https://');
       return;
     }
-    
+
     setScanning(true);
     try {
       const res = await apiFetch<{ creative: Creative }>('/v1/creatives', {
@@ -103,21 +103,22 @@ export default function CampaignCreate() {
   // Toggle Slot Selection
   const toggleSlot = (slotId: string) => {
     setSelectedSlotIds((prev) =>
-      prev.includes(slotId) ? prev.filter((id) => id !== slotId) : [...prev, slotId]
+      prev.includes(slotId) ? prev.filter((id) => id !== slotId) : [...prev, slotId],
     );
   };
 
   // Filtered Slots
-  const filteredSlots = slotsQuery.data?.filter((s) => {
-    const matchesSize = sizeFilter ? s.sizes.some(sz => `${sz.width}x${sz.height}` === sizeFilter) : true;
-    return matchesSize;
-  }) || [];
+  const filteredSlots =
+    slotsQuery.data?.filter((s) => {
+      const matchesSize = sizeFilter
+        ? s.sizes.some((sz) => `${sz.width}x${sz.height}` === sizeFilter)
+        : true;
+      return matchesSize;
+    }) || [];
 
   // Get distinct sizes from all available slots
   const allSizes = Array.from(
-    new Set(
-      slotsQuery.data?.flatMap((s) => s.sizes.map((sz) => `${sz.width}x${sz.height}`)) || []
-    )
+    new Set(slotsQuery.data?.flatMap((s) => s.sizes.map((sz) => `${sz.width}x${sz.height}`)) || []),
   );
 
   // Submit entire Campaign
@@ -129,7 +130,9 @@ export default function CampaignCreate() {
       await createCampaignMutation.mutateAsync({
         name,
         startDate: new Date(startDate).toISOString(),
-        endDate: endDate ? new Date(endDate).toISOString() : new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+        endDate: endDate
+          ? new Date(endDate).toISOString()
+          : new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
         totalBudgetIsk: totalBudget,
         clickUrl,
         creativeUrl: creative.imageUrl,
@@ -152,7 +155,10 @@ export default function CampaignCreate() {
         <h1 className="text-2xl font-bold text-slate-900 font-sans">Ný auglýsingaherferð</h1>
         <div className="flex items-center gap-2 mt-2">
           <div className="flex-1 bg-slate-200 h-1 rounded-full overflow-hidden">
-            <div className="bg-primary h-1 rounded-full transition-all" style={{ width: `${(step / 4) * 100}%` }} />
+            <div
+              className="bg-primary h-1 rounded-full transition-all"
+              style={{ width: `${(step / 4) * 100}%` }}
+            />
           </div>
           <span className="text-xs font-bold text-slate-500 shrink-0">Skref {step} af 4</span>
         </div>
@@ -162,7 +168,9 @@ export default function CampaignCreate() {
         {/* Step 1: Basics */}
         {step === 1 && (
           <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Herferðarupplýsingar</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Herferðarupplýsingar
+            </h3>
             <Input
               label="Heiti herferðar *"
               placeholder="Dæmi: Sumarútsala 2026"
@@ -185,7 +193,7 @@ export default function CampaignCreate() {
                 onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
-            
+
             <div className="space-y-2">
               <span className="block text-sm font-medium text-slate-700">Tegund birtingar</span>
               <div className="grid grid-cols-2 gap-3">
@@ -198,7 +206,9 @@ export default function CampaignCreate() {
                       : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="block font-bold text-sm text-slate-900">CPM Birtingar (Greiða fyrir áhorf)</span>
+                  <span className="block font-bold text-sm text-slate-900">
+                    CPM Birtingar (Greiða fyrir áhorf)
+                  </span>
                   <span className="block text-xs text-slate-500 mt-1 font-medium leading-relaxed">
                     Þú greiðir tiltekna upphæð á hverjar 1.000 birtingar uns hámarki er náð.
                   </span>
@@ -212,7 +222,9 @@ export default function CampaignCreate() {
                       : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="block font-bold text-sm text-slate-900">Fast plásskaup (Flat rate)</span>
+                  <span className="block font-bold text-sm text-slate-900">
+                    Fast plásskaup (Flat rate)
+                  </span>
                   <span className="block text-xs text-slate-500 mt-1 font-medium leading-relaxed">
                     Keyptu tiltekið pláss alveg á föstu verði í ákveðinn tíma.
                   </span>
@@ -231,8 +243,12 @@ export default function CampaignCreate() {
             />
 
             <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => navigate('/advertiser')}>Hætta við</Button>
-              <Button disabled={!name || !startDate} onClick={() => setStep(2)}>Næsta skref →</Button>
+              <Button variant="ghost" onClick={() => navigate('/advertiser')}>
+                Hætta við
+              </Button>
+              <Button disabled={!name || !startDate} onClick={() => setStep(2)}>
+                Næsta skref →
+              </Button>
             </div>
           </div>
         )}
@@ -240,8 +256,10 @@ export default function CampaignCreate() {
         {/* Step 2: Creative */}
         {step === 2 && (
           <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Auglýsingaefni</h3>
-            
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Auglýsingaefni
+            </h3>
+
             <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition">
               <Upload size={32} className="mx-auto text-slate-400 mb-2" />
               <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
@@ -270,7 +288,9 @@ export default function CampaignCreate() {
                 </div>
                 <div className="text-xs text-slate-600 font-semibold space-y-0.5">
                   <p className="font-bold text-slate-900">Uppgötvaðar víddir:</p>
-                  <p>{imageWidth} × {imageHeight} dílar</p>
+                  <p>
+                    {imageWidth} × {imageHeight} dílar
+                  </p>
                 </div>
               </div>
             )}
@@ -299,7 +319,9 @@ export default function CampaignCreate() {
             )}
 
             <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => setStep(1)}>Til baka</Button>
+              <Button variant="ghost" onClick={() => setStep(1)}>
+                Til baka
+              </Button>
               <Button
                 loading={scanning}
                 disabled={!clickUrl.startsWith('https://') || !imageUrl}
@@ -314,8 +336,10 @@ export default function CampaignCreate() {
         {/* Step 3: Slot Selection */}
         {step === 3 && (
           <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Veldu auglýsingapláss</h3>
-            
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Veldu auglýsingapláss
+            </h3>
+
             <div className="flex gap-3">
               <div className="flex-1">
                 <select
@@ -325,7 +349,9 @@ export default function CampaignCreate() {
                 >
                   <option value="">Allar stærðir</option>
                   {allSizes.map((sz) => (
-                    <option key={sz} value={sz}>{sz}</option>
+                    <option key={sz} value={sz}>
+                      {sz}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -342,7 +368,7 @@ export default function CampaignCreate() {
                 {filteredSlots.map((s) => {
                   const isChecked = selectedSlotIds.includes(s.id);
                   const isSizeMatch = s.sizes.some(
-                    (sz) => sz.width === imageWidth && sz.height === imageHeight
+                    (sz) => sz.width === imageWidth && sz.height === imageHeight,
                   );
 
                   return (
@@ -356,25 +382,33 @@ export default function CampaignCreate() {
                       } ${!isSizeMatch ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                          isChecked ? 'bg-primary border-primary text-white' : 'border-slate-300 bg-white'
-                        }`}>
+                        <div
+                          className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                            isChecked
+                              ? 'bg-primary border-primary text-white'
+                              : 'border-slate-300 bg-white'
+                          }`}
+                        >
                           {isChecked && <Check size={14} />}
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
                             <span>{s.name}</span>
-                            {!isSizeMatch && (
-                              <Badge variant="neutral">Stærð passar ekki</Badge>
-                            )}
+                            {!isSizeMatch && <Badge variant="neutral">Stærð passar ekki</Badge>}
                           </div>
                           <div className="text-xs text-slate-500 font-semibold mt-1">
-                            Snið: {s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ')} · Verð: {s.pricing.mode === 'cpm' ? `${formatIsk(s.pricing.cpmIsk)} CPM` : `${formatIsk(s.pricing.slotPriceIsk)} pr. tímabil`}
+                            Snið: {s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ')} ·
+                            Verð:{' '}
+                            {s.pricing.mode === 'cpm'
+                              ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                              : `${formatIsk(s.pricing.slotPriceIsk)} pr. tímabil`}
                           </div>
                         </div>
                       </div>
                       <div className="text-sm font-bold text-slate-950">
-                        {s.pricing.mode === 'cpm' ? formatIsk(s.pricing.cpmIsk) : formatIsk(s.pricing.slotPriceIsk)}
+                        {s.pricing.mode === 'cpm'
+                          ? formatIsk(s.pricing.cpmIsk)
+                          : formatIsk(s.pricing.slotPriceIsk)}
                       </div>
                     </div>
                   );
@@ -389,8 +423,12 @@ export default function CampaignCreate() {
             )}
 
             <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => setStep(2)}>Til baka</Button>
-              <Button disabled={selectedSlotIds.length === 0} onClick={() => setStep(4)}>Næsta skref (Yfirlit) →</Button>
+              <Button variant="ghost" onClick={() => setStep(2)}>
+                Til baka
+              </Button>
+              <Button disabled={selectedSlotIds.length === 0} onClick={() => setStep(4)}>
+                Næsta skref (Yfirlit) →
+              </Button>
             </div>
           </div>
         )}
@@ -398,7 +436,9 @@ export default function CampaignCreate() {
         {/* Step 4: Review & Confirm */}
         {step === 4 && (
           <div className="space-y-6">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Staðfesta og senda</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Staðfesta og senda
+            </h3>
 
             {/* Campaign Summary grid */}
             <div className="bg-slate-50 rounded-lg p-5 border border-slate-200/60 text-sm space-y-4">
@@ -408,23 +448,35 @@ export default function CampaignCreate() {
                   <span className="font-bold text-slate-950 text-sm">{name}</span>
                 </div>
                 <div>
-                  <span className="block text-slate-500 font-medium text-xs">Tegund og áætlun:</span>
-                  <span className="font-bold text-slate-950 text-sm">{formatIsk(totalBudget)} ({budgetMode === 'cpm_capped' ? 'CPM' : 'Fast verð'})</span>
+                  <span className="block text-slate-500 font-medium text-xs">
+                    Tegund og áætlun:
+                  </span>
+                  <span className="font-bold text-slate-950 text-sm">
+                    {formatIsk(totalBudget)} ({budgetMode === 'cpm_capped' ? 'CPM' : 'Fast verð'})
+                  </span>
                 </div>
                 <div>
                   <span className="block text-slate-500 font-medium text-xs">Upphaf:</span>
-                  <span className="font-bold text-slate-950 text-sm">{new Date(startDate).toLocaleDateString('is-IS')}</span>
+                  <span className="font-bold text-slate-950 text-sm">
+                    {new Date(startDate).toLocaleDateString('is-IS')}
+                  </span>
                 </div>
                 <div>
                   <span className="block text-slate-500 font-medium text-xs">Lokadagur:</span>
-                  <span className="font-bold text-slate-950 text-sm">{endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}</span>
+                  <span className="font-bold text-slate-950 text-sm">
+                    {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
+                  </span>
                 </div>
               </div>
 
               <div className="border-t border-slate-200/80 pt-3">
-                <span className="block text-slate-500 font-medium text-xs mb-1">Vefir og pláss valin ({selectedSlotIds.length}):</span>
+                <span className="block text-slate-500 font-medium text-xs mb-1">
+                  Vefir og pláss valin ({selectedSlotIds.length}):
+                </span>
                 <span className="font-semibold text-slate-800 text-xs">
-                  {selectedSlotIds.map(id => slotsQuery.data?.find(s => s.id === id)?.name || id).join(', ')}
+                  {selectedSlotIds
+                    .map((id) => slotsQuery.data?.find((s) => s.id === id)?.name || id)
+                    .join(', ')}
                 </span>
               </div>
             </div>
@@ -435,10 +487,12 @@ export default function CampaignCreate() {
                 <AlertTriangle size={20} className="shrink-0 text-amber-600" />
                 <div className="space-y-2">
                   <p>
-                    <strong>Ónóg inneign í veski!</strong> Inneign þín ({formatIsk(walletBalance)}) dugar ekki fyrir áætluðum herferðarkostnaði ({formatIsk(totalBudget)}).
+                    <strong>Ónóg inneign í veski!</strong> Inneign þín ({formatIsk(walletBalance)})
+                    dugar ekki fyrir áætluðum herferðarkostnaði ({formatIsk(totalBudget)}).
                   </p>
                   <p className="text-xs text-amber-700">
-                    Þú getur samt sem áður stofnað herferðina, en hún mun verða í biðstöðu uns þú bætir við inneign.
+                    Þú getur samt sem áður stofnað herferðina, en hún mun verða í biðstöðu uns þú
+                    bætir við inneign.
                   </p>
                 </div>
               </div>
@@ -446,7 +500,8 @@ export default function CampaignCreate() {
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3 text-sm text-green-800 font-medium">
                 <ShieldCheck size={20} className="shrink-0 text-green-600" />
                 <p>
-                  <strong>Inneign staðfest!</strong> Veskið þitt inniheldur nægilegt fjármagn ({formatIsk(walletBalance)}) til að keyra þessa herferð.
+                  <strong>Inneign staðfest!</strong> Veskið þitt inniheldur nægilegt fjármagn (
+                  {formatIsk(walletBalance)}) til að keyra þessa herferð.
                 </p>
               </div>
             )}
@@ -458,12 +513,10 @@ export default function CampaignCreate() {
             )}
 
             <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => setStep(3)}>Til baka</Button>
-              <Button
-                loading={submitting}
-                className="font-bold"
-                onClick={handleFinalSubmit}
-              >
+              <Button variant="ghost" onClick={() => setStep(3)}>
+                Til baka
+              </Button>
+              <Button loading={submitting} className="font-bold" onClick={handleFinalSubmit}>
                 Stofna og senda í yfirferð
               </Button>
             </div>

@@ -11,7 +11,7 @@ apiKeysRouter.post('/', async (c) => {
     scope?: 'advertiser' | 'publisher' | 'both';
   };
   const scope = body.scope ?? 'both';
-  
+
   const result = await issueApiKey(user.email, scope);
   return c.json(
     {

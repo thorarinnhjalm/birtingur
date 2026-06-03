@@ -31,7 +31,7 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
     status: 'active',
     createdAt: new Date(),
   });
-  
+
   await db
     .collection(COLLECTIONS.advertisers)
     .doc(adv.id)
@@ -47,7 +47,7 @@ export async function getAdvertiserById(id: string): Promise<Advertiser | null> 
     .doc(id)
     .withConverter(advertiserConverter)
     .get();
-  return snap.exists ? (snap.data() || null) : null;
+  return snap.exists ? snap.data() || null : null;
 }
 
 export async function getAdvertiserByOwnerEmail(email: string): Promise<Advertiser | null> {
@@ -57,7 +57,7 @@ export async function getAdvertiserByOwnerEmail(email: string): Promise<Advertis
     .limit(1)
     .withConverter(advertiserConverter)
     .get();
-  return snap.empty ? null : (snap.docs[0]!.data() || null);
+  return snap.empty ? null : snap.docs[0]!.data() || null;
 }
 
 export async function requireAdvertiser(email: string): Promise<Advertiser> {

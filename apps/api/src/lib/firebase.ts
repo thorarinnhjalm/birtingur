@@ -24,7 +24,8 @@ function init() {
       storageBucket: `${projectId}.appspot.com`,
     });
   } else {
-    const fallbackProjectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ada-dev';
+    const fallbackProjectId =
+      process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'ada-dev';
     initializeApp({
       credential: applicationDefault(),
       projectId: fallbackProjectId,
@@ -36,8 +37,6 @@ function init() {
 init();
 
 const databaseId = process.env.FIREBASE_DATABASE_ID;
-export const db = databaseId
-  ? getFirestore(getApp(), databaseId)
-  : getFirestore();
+export const db = databaseId ? getFirestore(getApp(), databaseId) : getFirestore();
 export const auth = getAuth();
 export const storage = getStorage();

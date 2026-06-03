@@ -24,7 +24,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
         error: 'Unauthorized',
         message: 'Missing or invalid Authorization header',
       },
-      401
+      401,
     );
   }
 
@@ -50,7 +50,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
           error: 'Unauthorized',
           message: 'Invalid or revoked API key',
         },
-        401
+        401,
       );
     }
     c.set('user', {
@@ -64,13 +64,13 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
 
   try {
     const decodedToken = await auth.verifyIdToken(token);
-    
+
     c.set('user', {
       uid: decodedToken.uid,
       email: decodedToken.email || '',
       admin: !!decodedToken.admin,
     });
-    
+
     await next();
   } catch (error) {
     return c.json(
@@ -78,7 +78,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
         error: 'Unauthorized',
         message: 'Invalid or expired token',
       },
-      401
+      401,
     );
   }
 };
@@ -92,7 +92,7 @@ export const requireAdmin: MiddlewareHandler<Env> = async (c, next) => {
         error: 'Forbidden',
         message: 'Admin access required',
       },
-      403
+      403,
     );
   }
 

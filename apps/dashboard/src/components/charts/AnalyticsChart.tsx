@@ -64,7 +64,14 @@ export function AnalyticsChart({ data }: AnalyticsChartProps) {
             fontSize={11}
             tickLine={false}
             axisLine={{ stroke: '#e2e8f0' }}
-            label={{ value: 'Birtingar', angle: -90, position: 'insideLeft', offset: -5, fill: '#64748b', fontSize: 11 }}
+            label={{
+              value: 'Birtingar',
+              angle: -90,
+              position: 'insideLeft',
+              offset: -5,
+              fill: '#64748b',
+              fontSize: 11,
+            }}
           />
           <YAxis
             yAxisId="right"
@@ -73,7 +80,14 @@ export function AnalyticsChart({ data }: AnalyticsChartProps) {
             fontSize={11}
             tickLine={false}
             axisLine={{ stroke: '#e2e8f0' }}
-            label={{ value: 'Smellir', angle: 90, position: 'insideRight', offset: -5, fill: '#64748b', fontSize: 11 }}
+            label={{
+              value: 'Smellir',
+              angle: 90,
+              position: 'insideRight',
+              offset: -5,
+              fill: '#64748b',
+              fontSize: 11,
+            }}
           />
           <Tooltip
             contentStyle={{

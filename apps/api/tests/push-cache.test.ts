@@ -137,7 +137,7 @@ describe('pushSlotCache helper', () => {
         slotId: 'slot_123',
         activeCreatives: [],
       }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 

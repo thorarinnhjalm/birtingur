@@ -27,10 +27,10 @@ campaignsRouter.post('/', async (c) => {
   }
   const body = await c.req.json();
   const cmp = await createCampaign(adv.id, body);
-  
+
   // Provision default campaign widget viewer key
   await getOrCreateWidgetKey(user.email, 'campaign', cmp.id);
-  
+
   return c.json({ campaign: cmp }, 201);
 });
 

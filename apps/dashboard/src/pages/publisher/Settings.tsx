@@ -52,12 +52,18 @@ export default function Settings() {
   }, [publisher]);
 
   const handleRotateKey = async () => {
-    if (!window.confirm('Ertu viss um að þú viljir endurnýja vefkassalykilinn? Eldri innfelldir kassar munu hætta að virka þar til nýi lykillinn er uppfærður á vefsíðunni þinni.')) {
+    if (
+      !window.confirm(
+        'Ertu viss um að þú viljir endurnýja vefkassalykilinn? Eldri innfelldir kassar munu hætta að virka þar til nýi lykillinn er uppfærður á vefsíðunni þinni.',
+      )
+    ) {
       return;
     }
     setRotatingKey(true);
     try {
-      const res = await apiFetch<{ key: string }>(`/v1/publishers/me/widget-key/rotate`, { method: 'POST' });
+      const res = await apiFetch<{ key: string }>(`/v1/publishers/me/widget-key/rotate`, {
+        method: 'POST',
+      });
       setWidgetKey(res.key);
     } catch (err) {
       console.error('Error rotating key:', err);
@@ -77,7 +83,9 @@ export default function Settings() {
     const hasAllBankDetails = kennitala.trim() && iban.trim() && accountHolder.trim();
 
     if (hasAnyBankDetail && !hasAllBankDetails) {
-      setError('Ef bankaupplýsingar eru skráðar þarf að fylla út alla þrjá bankareitina (eða skilja alla eftir auða)');
+      setError(
+        'Ef bankaupplýsingar eru skráðar þarf að fylla út alla þrjá bankareitina (eða skilja alla eftir auða)',
+      );
       setSaving(false);
       return;
     }
@@ -117,7 +125,9 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Stillingar vefs og greiðslna</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">Stjórnaðu upplýsingum og bankareikningum fyrir útborganir.</p>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Stjórnaðu upplýsingum og bankareikningum fyrir útborganir.
+        </p>
       </div>
 
       <Card className="p-6">
@@ -138,7 +148,9 @@ export default function Settings() {
             disabled={saving}
           />
 
-          <h4 className="font-bold text-sm text-slate-800 pt-3 border-t border-slate-100">Bankaupplýsingar fyrir útborganir</h4>
+          <h4 className="font-bold text-sm text-slate-800 pt-3 border-t border-slate-100">
+            Bankaupplýsingar fyrir útborganir
+          </h4>
 
           <Input
             label="Kennitala (valkvætt)"
@@ -191,7 +203,8 @@ export default function Settings() {
           <div>
             <h3 className="text-lg font-bold text-slate-900">Innfelldir vefkassar (Widgets)</h3>
             <p className="text-slate-500 text-sm font-medium mt-1">
-              Sýndu tölfræði eða birtu umsóknir til samþykktar beint í þínu eigin kerfi (t.d. í CMS kerfinu þínu).
+              Sýndu tölfræði eða birtu umsóknir til samþykktar beint í þínu eigin kerfi (t.d. í CMS
+              kerfinu þínu).
             </p>
           </div>
 
@@ -199,7 +212,9 @@ export default function Settings() {
             {/* Widget Key Display */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Vefkassalykill (Widget Key)</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                  Vefkassalykill (Widget Key)
+                </span>
                 <div className="font-mono text-sm font-semibold text-slate-800 break-all select-all">
                   {loadingKey ? 'Hleð lykli...' : widgetKey || 'Enginn virkur lykill'}
                 </div>
@@ -218,7 +233,9 @@ export default function Settings() {
 
             {/* Script include */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 block">1. Setja skriftu í head eða body</label>
+              <label className="text-sm font-bold text-slate-700 block">
+                1. Setja skriftu í head eða body
+              </label>
               <div className="flex gap-2">
                 <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
                   {`<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>`}
@@ -227,20 +244,28 @@ export default function Settings() {
                   type="button"
                   variant="secondary"
                   onClick={() => {
-                    navigator.clipboard.writeText('<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>');
+                    navigator.clipboard.writeText(
+                      '<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>',
+                    );
                     setCopiedScript(true);
                     setTimeout(() => setCopiedScript(false), 2000);
                   }}
                   className="px-3 py-2"
                 >
-                  {copiedScript ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                  {copiedScript ? (
+                    <Check size={16} className="text-green-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </Button>
               </div>
             </div>
 
             {/* Stats widget code */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 block">2. Tölfræðikassi (Stats Widget)</label>
+              <label className="text-sm font-bold text-slate-700 block">
+                2. Tölfræðikassi (Stats Widget)
+              </label>
               <div className="flex gap-2">
                 <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
                   {`<adplatform-stats publisher-key="${widgetKey || 'HLEÐ...'}" period="30d"></adplatform-stats>`}
@@ -249,20 +274,28 @@ export default function Settings() {
                   type="button"
                   variant="secondary"
                   onClick={() => {
-                    navigator.clipboard.writeText(`<adplatform-stats publisher-key="${widgetKey || ''}" period="30d"></adplatform-stats>`);
+                    navigator.clipboard.writeText(
+                      `<adplatform-stats publisher-key="${widgetKey || ''}" period="30d"></adplatform-stats>`,
+                    );
                     setCopiedStats(true);
                     setTimeout(() => setCopiedStats(false), 2000);
                   }}
                   className="px-3 py-2"
                 >
-                  {copiedStats ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                  {copiedStats ? (
+                    <Check size={16} className="text-green-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </Button>
               </div>
             </div>
 
             {/* Approval queue widget code */}
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 block">3. Samþykktarbiðröð (Approval Queue Widget)</label>
+              <label className="text-sm font-bold text-slate-700 block">
+                3. Samþykktarbiðröð (Approval Queue Widget)
+              </label>
               <div className="flex gap-2">
                 <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
                   {`<adplatform-approval-queue publisher-key="${widgetKey || 'HLEÐ...'}"></adplatform-approval-queue>`}
@@ -271,17 +304,22 @@ export default function Settings() {
                   type="button"
                   variant="secondary"
                   onClick={() => {
-                    navigator.clipboard.writeText(`<adplatform-approval-queue publisher-key="${widgetKey || ''}"></adplatform-approval-queue>`);
+                    navigator.clipboard.writeText(
+                      `<adplatform-approval-queue publisher-key="${widgetKey || ''}"></adplatform-approval-queue>`,
+                    );
                     setCopiedQueue(true);
                     setTimeout(() => setCopiedQueue(false), 2000);
                   }}
                   className="px-3 py-2"
                 >
-                  {copiedQueue ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                  {copiedQueue ? (
+                    <Check size={16} className="text-green-600" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </Button>
               </div>
             </div>
-
           </div>
         </Card>
       )}

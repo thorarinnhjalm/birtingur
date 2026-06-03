@@ -1,5 +1,12 @@
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { LayoutGrid, Grid3x3, Banknote, CheckCircle, Settings as SettingsIcon, AlertTriangle } from 'lucide-react';
+import {
+  LayoutGrid,
+  Grid3x3,
+  Banknote,
+  CheckCircle,
+  Settings as SettingsIcon,
+  AlertTriangle,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
@@ -12,7 +19,6 @@ import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from 'recharts';
-
 
 import SlotCreate from './SlotCreate';
 import SlotList from './SlotList';
@@ -50,7 +56,8 @@ function PublisherHome() {
     return <Navigate to="/publisher/onboarding" replace />;
   }
 
-  const hasMissingPayoutDetails = !publisher.payoutMethod ||
+  const hasMissingPayoutDetails =
+    !publisher.payoutMethod ||
     !publisher.payoutMethod.iban ||
     !publisher.payoutMethod.kennitala ||
     !publisher.payoutMethod.accountName;
@@ -64,7 +71,9 @@ function PublisherHome() {
       <div className="flex justify-between items-end mb-6">
         <div>
           <h2 className="text-display-lg text-primary font-bold mb-2">Góðan dag, Kristinn</h2>
-          <p className="text-secondary font-body-lg">Hér er yfirlit yfir árangur og tekjur í dag.</p>
+          <p className="text-secondary font-body-lg">
+            Hér er yfirlit yfir árangur og tekjur í dag.
+          </p>
         </div>
         <button
           onClick={() => navigate('/publisher/slots/new')}
@@ -84,7 +93,10 @@ function PublisherHome() {
             <div>
               <h4 className="font-bold text-slate-900 text-base">Bankaupplýsingar vantar</h4>
               <p className="text-slate-600 text-sm mt-1 font-medium">
-                Þú átt áætlaðar uppsafnaðar tekjur upp á <strong className="text-slate-900 font-bold">{formatIsk(stats.spendIsk)}</strong> en vantar enn reikningsupplýsingar til að geta fengið greitt. Vinsamlegast skráðu bankareikninginn þinn í stillingum.
+                Þú átt áætlaðar uppsafnaðar tekjur upp á{' '}
+                <strong className="text-slate-900 font-bold">{formatIsk(stats.spendIsk)}</strong> en
+                vantar enn reikningsupplýsingar til að geta fengið greitt. Vinsamlegast skráðu
+                bankareikninginn þinn í stillingum.
               </p>
             </div>
           </div>
@@ -145,7 +157,10 @@ function PublisherHome() {
                       try {
                         const parsed = new Date(label);
                         if (!isNaN(parsed.getTime())) {
-                          formattedDate = parsed.toLocaleDateString('is-IS', { day: '2-digit', month: 'short' });
+                          formattedDate = parsed.toLocaleDateString('is-IS', {
+                            day: '2-digit',
+                            month: 'short',
+                          });
                         }
                       } catch {}
                       return (
@@ -191,9 +206,15 @@ function PublisherHome() {
             <span className="material-symbols-outlined">visibility</span>
           </div>
           <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">Birtingar</p>
+            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
+              Birtingar
+            </p>
             <p className="font-bold text-headline-md text-on-surface">
-              {stats ? (stats.impressions >= 1000000 ? `${(stats.impressions / 1000000).toFixed(1)}M` : stats.impressions.toLocaleString('is-IS')) : '0'}
+              {stats
+                ? stats.impressions >= 1000000
+                  ? `${(stats.impressions / 1000000).toFixed(1)}M`
+                  : stats.impressions.toLocaleString('is-IS')
+                : '0'}
             </p>
           </div>
         </div>
@@ -202,7 +223,9 @@ function PublisherHome() {
             <span className="material-symbols-outlined">check_circle</span>
           </div>
           <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">Fyllingarhlutfall</p>
+            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
+              Fyllingarhlutfall
+            </p>
             <p className="font-bold text-headline-md text-on-surface">94%</p>
           </div>
         </div>
@@ -211,9 +234,13 @@ function PublisherHome() {
             <span className="material-symbols-outlined">monetization_on</span>
           </div>
           <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">eCPM</p>
+            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
+              eCPM
+            </p>
             <p className="font-bold text-headline-md text-on-surface">
-              {stats && stats.impressions > 0 ? formatIsk(Math.round((stats.spendIsk / stats.impressions) * 1000)) : '280 kr.'}
+              {stats && stats.impressions > 0
+                ? formatIsk(Math.round((stats.spendIsk / stats.impressions) * 1000))
+                : '280 kr.'}
             </p>
           </div>
         </div>
@@ -236,11 +263,15 @@ function PublisherHome() {
         {!slots || slots.length === 0 ? (
           <div className="p-8">
             <EmptyState
-              icon={<span className="material-symbols-outlined text-4xl text-outline">grid_view</span>}
+              icon={
+                <span className="material-symbols-outlined text-4xl text-outline">grid_view</span>
+              }
               title="Engin auglýsingapláss"
               description="Búðu til þitt fyrsta pláss, fáðu HTML kóðann og settu hann á vefinn þinn til að byrja að græða."
               action={
-                <Button onClick={() => navigate('/publisher/slots/new')}>Stofna auglýsingapláss</Button>
+                <Button onClick={() => navigate('/publisher/slots/new')}>
+                  Stofna auglýsingapláss
+                </Button>
               }
             />
           </div>
@@ -249,11 +280,21 @@ function PublisherHome() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low border-b border-outline-variant">
                 <tr>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">Heiti pláss</th>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">Stærð</th>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">Staða</th>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">Árangur</th>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">Tekjur</th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                    Heiti pláss
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                    Stærð
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                    Staða
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                    Árangur
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                    Tekjur
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
@@ -290,7 +331,9 @@ function PublisherHome() {
                       </div>
                     </td>
                     <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
-                      {formatIsk(s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk)}
+                      {formatIsk(
+                        s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk,
+                      )}
                     </td>
                   </tr>
                 ))}

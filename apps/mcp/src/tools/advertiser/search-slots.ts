@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { apiCall } from '../../lib/api-client.js';
+import { URLSearchParams } from 'url';
 
 const Input = z.object({
   width: z.number().optional(),

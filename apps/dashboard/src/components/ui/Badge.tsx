@@ -16,7 +16,7 @@ export function Badge({ variant, children }: { variant: Variant; children: React
     <span
       className={clsx(
         'inline-flex items-center px-2.5 py-0.5 text-xs font-semibold rounded-md border',
-        styles[variant]
+        styles[variant],
       )}
     >
       {children}

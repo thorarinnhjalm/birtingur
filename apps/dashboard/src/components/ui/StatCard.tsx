@@ -15,7 +15,12 @@ export function StatCard({ label, value, delta }: Props) {
         <div className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">{value}</div>
       </div>
       {delta && (
-        <div className={clsx('mt-2 text-xs font-semibold inline-flex items-center gap-1', delta.positive ? 'text-green-600' : 'text-red-600')}>
+        <div
+          className={clsx(
+            'mt-2 text-xs font-semibold inline-flex items-center gap-1',
+            delta.positive ? 'text-green-600' : 'text-red-600',
+          )}
+        >
           <span className="text-sm font-bold">{delta.positive ? '↑' : '↓'}</span>
           <span>{delta.value}</span>
         </div>

@@ -9,8 +9,7 @@ interface Wallet {
 export function useWallet() {
   return useQuery({
     queryKey: ['wallet'],
-    queryFn: () =>
-      apiFetch<{ wallet: Wallet }>('/v1/advertisers/me/wallet').then((r) => r.wallet),
+    queryFn: () => apiFetch<{ wallet: Wallet }>('/v1/advertisers/me/wallet').then((r) => r.wallet),
   });
 }
 

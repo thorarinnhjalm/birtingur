@@ -32,7 +32,7 @@ export class AdplatformCampaignStats extends HTMLElement {
     if (oldValue === newValue) return;
     if (name === 'campaign-id') this.campaignId = newValue;
     if (name === 'viewer-key') this.viewerKey = newValue;
-    
+
     if (this.isConnected) {
       this.render();
       this.fetchData();
@@ -43,7 +43,7 @@ export class AdplatformCampaignStats extends HTMLElement {
     const theme = this.getAttribute('theme') || 'auto';
     if (theme === 'dark') return 'dark';
     if (theme === 'light') return 'light';
-    
+
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
@@ -62,7 +62,7 @@ export class AdplatformCampaignStats extends HTMLElement {
     try {
       const response = await fetch(`${API_BASE}/v1/widgets/campaign/stats`, {
         headers: {
-          'Authorization': `Bearer ${this.viewerKey}`,
+          Authorization: `Bearer ${this.viewerKey}`,
           'Content-Type': 'application/json',
         },
       });
@@ -83,7 +83,7 @@ export class AdplatformCampaignStats extends HTMLElement {
 
   private getStyles(): string {
     const isDark = this.getActiveTheme() === 'dark';
-    
+
     return `
       :host {
         display: block;
@@ -214,7 +214,7 @@ export class AdplatformCampaignStats extends HTMLElement {
     let sparklineHtml = '';
 
     if (hours.length > 1) {
-      const maxVal = Math.max(...hours.map(h => h.impressions), 1);
+      const maxVal = Math.max(...hours.map((h) => h.impressions), 1);
       const points = hours.map((h, idx) => {
         const x = (idx / (hours.length - 1)) * 100;
         const y = 35 - (h.impressions / maxVal) * 28; // height is 40

@@ -52,18 +52,19 @@ vi.mock('../src/lib/firebase', () => {
             }),
             withConverter: vi.fn(() => ({
               get: vi.fn(async () => {
-                const baseFiltered = colName === 'ledger'
-                  ? (mockLedgerEntries as unknown as Record<string, unknown>[])
-                  : (mockAdvertisers as unknown as Record<string, unknown>[]);
+                const baseFiltered =
+                  colName === 'ledger'
+                    ? (mockLedgerEntries as unknown as Record<string, unknown>[])
+                    : (mockAdvertisers as unknown as Record<string, unknown>[]);
                 let filtered = [...baseFiltered];
                 for (const filter of filters) {
                   if (filter.prop === 'party.type') {
                     filtered = filtered.filter(
-                      (e) => (e.party as { type: string }).type === filter.val
+                      (e) => (e.party as { type: string }).type === filter.val,
                     );
                   } else if (filter.prop === 'party.id') {
                     filtered = filtered.filter(
-                      (e) => (e.party as { id: string }).id === filter.val
+                      (e) => (e.party as { id: string }).id === filter.val,
                     );
                   } else if (filter.prop === 'relatedId') {
                     filtered = filtered.filter((e) => e.relatedId === filter.val);
@@ -105,9 +106,17 @@ vi.mock('../src/lib/firebase', () => {
               get: vi.fn(async () => {
                 let found: Record<string, unknown> | null = null;
                 if (colName === 'ledger') {
-                  found = (mockLedgerEntries.find((e) => e.id === id) as unknown as Record<string, unknown>) || null;
+                  found =
+                    (mockLedgerEntries.find((e) => e.id === id) as unknown as Record<
+                      string,
+                      unknown
+                    >) || null;
                 } else if (colName === 'advertisers') {
-                  found = (mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>) || null;
+                  found =
+                    (mockAdvertisers.find((a) => a.id === id) as unknown as Record<
+                      string,
+                      unknown
+                    >) || null;
                 }
                 return {
                   exists: found !== undefined && found !== null,

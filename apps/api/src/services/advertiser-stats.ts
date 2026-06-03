@@ -16,15 +16,15 @@ export interface AdvertiserStatsResponse {
 
 export async function getAdvertiserStats(
   advertiserId: string,
-  timeframeDays: number = 7
+  timeframeDays: number = 7,
 ): Promise<AdvertiserStatsResponse> {
   const campaigns = await listCampaignsForAdvertiser(advertiserId);
   const now = new Date();
-  
+
   // Initialize days map for historical roll-up
   const dailyMap = new Map<string, { impressions: number; clicks: number; spendIsk: number }>();
   const historyDays: string[] = [];
-  
+
   for (let i = timeframeDays - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
@@ -50,7 +50,7 @@ export async function getAdvertiserStats(
         const dayStats = dailyMap.get(dk)!;
         const imp = data.impressions || 0;
         const clk = data.clicks || 0;
-        
+
         // Estimate campaign spend based on standard 280 CPM
         const spend = Math.round((imp / 1000) * 280);
 
@@ -62,21 +62,23 @@ export async function getAdvertiserStats(
   }
 
   // If no stats documents exist in database, check if emulator or dev environment, and seed mock data
-  const isDevOrEmulator = process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
+  const isDevOrEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
     const history: AdvertiserStatsResponse['history'] = [];
-    
+
     for (let i = timeframeDays - 1; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(now.getDate() - i);
       const dateStr = d.toISOString().split('T')[0]!;
-      
+
       const dayOfWeek = d.getDay();
-      const baseImpressions = 8000 + Math.floor(Math.sin(i * 0.8) * 3000) + Math.floor(Math.random() * 1500);
-      const multiplier = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.75 : 1.0;
+      const baseImpressions =
+        8000 + Math.floor(Math.sin(i * 0.8) * 3000) + Math.floor(Math.random() * 1500);
+      const multiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 0.75 : 1.0;
       const dayImpressions = Math.floor(baseImpressions * multiplier);
-      
-      const ctr = 0.022 + (Math.sin(i * 0.5) * 0.004) + (Math.random() * 0.005);
+
+      const ctr = 0.022 + Math.sin(i * 0.5) * 0.004 + Math.random() * 0.005;
       const dayClicks = Math.floor(dayImpressions * ctr);
       const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
 

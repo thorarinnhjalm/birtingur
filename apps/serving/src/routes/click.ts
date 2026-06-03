@@ -15,7 +15,7 @@ clickRoute.get('/', async (c) => {
 
   const slot = await getSlotCache(slotId);
   const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
-  
+
   if (!slot || !creative) {
     return c.text('Not Found', 404);
   }

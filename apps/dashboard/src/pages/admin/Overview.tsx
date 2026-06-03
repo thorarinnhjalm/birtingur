@@ -20,10 +20,14 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { formatIsk } from '@/lib/format';
-import { useReviewQueue, useReviewCreative, usePendingPayouts, useMarkPayoutCompleted } from '@/hooks/useReviewQueue';
+import {
+  useReviewQueue,
+  useReviewCreative,
+  usePendingPayouts,
+  useMarkPayoutCompleted,
+} from '@/hooks/useReviewQueue';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-
 
 interface AdminStats {
   totalImpressions: number;
@@ -47,30 +51,29 @@ function Home() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Stjórnborð ADA</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">Yfirlit yfir heilsu og ástand vettvangsins.</p>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Yfirlit yfir heilsu og ástand vettvangsins.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard 
-          label="Heildarbirtingar" 
-          value={isLoading ? '...' : (stats?.totalImpressions.toLocaleString('is-IS') ?? '0')} 
+        <StatCard
+          label="Heildarbirtingar"
+          value={isLoading ? '...' : (stats?.totalImpressions.toLocaleString('is-IS') ?? '0')}
         />
-        <StatCard 
-          label="Heildarvelta" 
-          value={isLoading ? '...' : formatIsk(stats?.totalRevenueIsk ?? 0)} 
+        <StatCard
+          label="Heildarvelta"
+          value={isLoading ? '...' : formatIsk(stats?.totalRevenueIsk ?? 0)}
         />
-        <StatCard 
-          label="Þóknun (ADA)" 
-          value={isLoading ? '...' : formatIsk(stats?.platformFeeIsk ?? 0)} 
+        <StatCard
+          label="Þóknun (ADA)"
+          value={isLoading ? '...' : formatIsk(stats?.platformFeeIsk ?? 0)}
         />
-        <StatCard 
-          label="Svartími (p95)" 
-          value={isLoading ? '...' : `${stats?.p95LatencyMs ?? 24} ms`} 
+        <StatCard
+          label="Svartími (p95)"
+          value={isLoading ? '...' : `${stats?.p95LatencyMs ?? 24} ms`}
         />
-        <StatCard 
-          label="Kerfisheilsa" 
-          value={isLoading ? '...' : (stats?.systemStatus ?? 'OK')} 
-        />
+        <StatCard label="Kerfisheilsa" value={isLoading ? '...' : (stats?.systemStatus ?? 'OK')} />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -91,12 +94,13 @@ function Home() {
             </div>
           </div>
         </Card>
-        
+
         <Card className="p-6 bg-slate-900 text-white border-none flex flex-col justify-between">
           <div>
             <h3 className="text-base font-bold text-slate-100 mb-1">Hröð yfirferð</h3>
             <p className="text-xs text-slate-400 font-semibold leading-relaxed">
-              Yfirferð auglýsinga er mikilvæg til að koma í veg fyrir óviðeigandi efni á vefjum útgefenda.
+              Yfirferð auglýsinga er mikilvæg til að koma í veg fyrir óviðeigandi efni á vefjum
+              útgefenda.
             </p>
           </div>
           <div className="mt-4">
@@ -177,11 +181,24 @@ function AdminReviewQueue() {
                 </div>
                 <div className="text-xs text-slate-500 font-semibold space-y-1">
                   <p>Auglýsandi: {c.advertiserId}</p>
-                  <p>Stærð: {c.width} × {c.height} px</p>
-                  <p>Smellt á: <a href={c.clickUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-bold">{c.clickUrl}</a></p>
+                  <p>
+                    Stærð: {c.width} × {c.height} px
+                  </p>
+                  <p>
+                    Smellt á:{' '}
+                    <a
+                      href={c.clickUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline font-bold"
+                    >
+                      {c.clickUrl}
+                    </a>
+                  </p>
                   {c.autoScanResult && (
                     <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-[11px] font-semibold text-slate-600">
-                      AutoScan: NSFW {Math.round(c.autoScanResult.nsfwScore * 100)}% · Flaggaðir frasar: {c.autoScanResult.blockedTerms.join(', ') || 'engar'}
+                      AutoScan: NSFW {Math.round(c.autoScanResult.nsfwScore * 100)}% · Flaggaðir
+                      frasar: {c.autoScanResult.blockedTerms.join(', ') || 'engar'}
                     </div>
                   )}
                 </div>
@@ -213,7 +230,9 @@ function AdminReviewQueue() {
       {rejectId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full bg-white p-6 space-y-4 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Hafna auglýsingu</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Hafna auglýsingu
+            </h3>
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <Input
                 label="Ástæða höfnunar *"
@@ -223,7 +242,14 @@ function AdminReviewQueue() {
                 required
               />
               <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-                <Button type="button" variant="ghost" onClick={() => { setRejectId(null); setReason(''); }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setRejectId(null);
+                    setReason('');
+                  }}
+                >
                   Hætta við
                 </Button>
                 <Button type="submit" variant="danger" loading={reviewMutation.isPending}>
@@ -242,7 +268,7 @@ function AdminReviewQueue() {
 function AdminPayoutQueue() {
   const { data: payouts, isLoading, refetch } = usePendingPayouts();
   const markCompleted = useMarkPayoutCompleted();
-  
+
   const [completeId, setCompleteId] = useState<string | null>(null);
   const [bankRef, setBankRef] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -274,7 +300,9 @@ function AdminPayoutQueue() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Útgreiðslur og lágmarksskoðun (Payouts Queue)</h1>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Útgreiðslur og lágmarksskoðun (Payouts Queue)
+        </h1>
         <p className="text-slate-500 text-sm font-medium mt-1">
           Millifærðu handvirkt í banka og merktu útborganir sem kláraðar.
         </p>
@@ -313,7 +341,9 @@ function AdminPayoutQueue() {
                     <td className="py-3 font-mono">Millifærsla</td>
                     <td className="py-3">{p.id}</td>
                     <td className="py-3">{p.status}</td>
-                    <td className="py-3 text-right font-bold text-slate-900">{formatIsk(p.netIsk || 0)}</td>
+                    <td className="py-3 text-right font-bold text-slate-900">
+                      {formatIsk(p.netIsk || 0)}
+                    </td>
                     <td className="py-3 text-right">
                       <Button
                         onClick={() => setCompleteId(p.id)}
@@ -335,10 +365,13 @@ function AdminPayoutQueue() {
       {completeId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full bg-white p-6 space-y-4 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Staðfesta útborgun</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Staðfesta útborgun
+            </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                Sláðu inn bankatilvísun eða millifærslunúmer eftir að þú hefur framkvæmt greiðsluna í netbankanum þínum.
+                Sláðu inn bankatilvísun eða millifærslunúmer eftir að þú hefur framkvæmt greiðsluna
+                í netbankanum þínum.
               </p>
               <Input
                 label="Bankatilvísun (Færslunúmer) *"
@@ -348,7 +381,14 @@ function AdminPayoutQueue() {
                 required
               />
               <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-                <Button type="button" variant="ghost" onClick={() => { setCompleteId(null); setBankRef(''); }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setCompleteId(null);
+                    setBankRef('');
+                  }}
+                >
                   Hætta við
                 </Button>
                 <Button type="submit" loading={markCompleted.isPending}>

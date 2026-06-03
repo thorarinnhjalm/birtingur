@@ -22,7 +22,7 @@ export type CreateCreativeInput = z.infer<typeof CreateCreativeInputSchema>;
 export async function createCreative(
   advertiserId: string,
   input: CreateCreativeInput,
-  scanner: AutoScanner
+  scanner: AutoScanner,
 ): Promise<Creative> {
   const parsed = CreateCreativeInputSchema.parse(input);
   const scan = await scanner.scan({
@@ -85,7 +85,7 @@ export async function getCreative(id: string): Promise<Creative | null> {
     .doc(id)
     .withConverter(creativeConverter)
     .get();
-  return snap.exists ? (snap.data() || null) : null;
+  return snap.exists ? snap.data() || null : null;
 }
 
 export async function requireCreative(id: string): Promise<Creative> {
@@ -107,7 +107,7 @@ export async function listCreativesForAdvertiser(advertiserId: string): Promise<
 
 export async function updateCreativeReview(
   id: string,
-  patch: { reviewStatus: ReviewStatus; logEntry: Creative['reviewLog'][number] }
+  patch: { reviewStatus: ReviewStatus; logEntry: Creative['reviewLog'][number] },
 ): Promise<Creative> {
   const existing = await requireCreative(id);
   const next: Creative = CreativeSchema.parse({
@@ -115,10 +115,6 @@ export async function updateCreativeReview(
     reviewStatus: patch.reviewStatus,
     reviewLog: [...existing.reviewLog, patch.logEntry],
   });
-  await db
-    .collection(COLLECTIONS.creatives)
-    .doc(id)
-    .withConverter(creativeConverter)
-    .set(next);
+  await db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter).set(next);
   return next;
 }

@@ -7,7 +7,16 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
 import { formatIsk } from '@/lib/format';
-import { Calendar, AlertCircle, ArrowLeft, Play, Pause, ExternalLink, Check, Copy } from 'lucide-react';
+import {
+  Calendar,
+  AlertCircle,
+  ArrowLeft,
+  Play,
+  Pause,
+  ExternalLink,
+  Check,
+  Copy,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 
@@ -86,7 +95,9 @@ export default function CampaignDetail() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">Herferð: {campaign.id.substring(0, 8)}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">
+                Herferð: {campaign.id.substring(0, 8)}
+              </h1>
               <Badge
                 variant={
                   campaign.status === 'active'
@@ -96,10 +107,16 @@ export default function CampaignDetail() {
                       : 'neutral'
                 }
               >
-                {campaign.status === 'active' ? 'Virk' : campaign.status === 'pending_approval' ? 'Í yfirferð' : campaign.status}
+                {campaign.status === 'active'
+                  ? 'Virk'
+                  : campaign.status === 'pending_approval'
+                    ? 'Í yfirferð'
+                    : campaign.status}
               </Badge>
             </div>
-            <p className="text-xs text-slate-400 font-semibold mt-1">Auðkenni herferðar: {campaign.id}</p>
+            <p className="text-xs text-slate-400 font-semibold mt-1">
+              Auðkenni herferðar: {campaign.id}
+            </p>
           </div>
         </div>
 
@@ -136,8 +153,12 @@ export default function CampaignDetail() {
       {/* Dashboard KPI cards */}
       <div className="grid sm:grid-cols-3 gap-6">
         <Card className="p-5">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Fjárhagsáætlun</div>
-          <div className="text-2xl font-extrabold text-slate-900 mt-2">{formatIsk(campaign.budget.totalIsk)}</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Fjárhagsáætlun
+          </div>
+          <div className="text-2xl font-extrabold text-slate-900 mt-2">
+            {formatIsk(campaign.budget.totalIsk)}
+          </div>
           <div className="mt-3 flex justify-between text-xs text-slate-500 font-medium">
             <span>Eytt: {formatIsk(spent)}</span>
             <span>Eftir: {formatIsk(campaign.budget.remainingIsk)}</span>
@@ -148,25 +169,36 @@ export default function CampaignDetail() {
         </Card>
 
         <Card className="p-5">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Birtingarstjórnun</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Birtingarstjórnun
+          </div>
           <div className="text-2xl font-extrabold text-slate-900 mt-2">
             {campaign.targeting.slotIds.length} pláss
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Calendar size={14} />
             <span>
-              {new Date(campaign.schedule.startsAt).toLocaleDateString('is-IS')} - {campaign.schedule.endsAt ? new Date(campaign.schedule.endsAt).toLocaleDateString('is-IS') : 'ótakmarkað'}
+              {new Date(campaign.schedule.startsAt).toLocaleDateString('is-IS')} -{' '}
+              {campaign.schedule.endsAt
+                ? new Date(campaign.schedule.endsAt).toLocaleDateString('is-IS')
+                : 'ótakmarkað'}
             </span>
           </div>
         </Card>
 
         <Card className="p-5">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Samþykki vefsíðna</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Samþykki vefsíðna
+          </div>
           <div className="space-y-1.5 mt-2.5">
             {Object.entries(campaign.perPublisherApproval).map(([pubId, status]) => (
               <div key={pubId} className="flex justify-between items-center text-xs">
                 <span className="font-semibold text-slate-600">Útgefandi ({pubId}):</span>
-                <Badge variant={status === 'approved' ? 'success' : status === 'pending' ? 'pending' : 'danger'}>
+                <Badge
+                  variant={
+                    status === 'approved' ? 'success' : status === 'pending' ? 'pending' : 'danger'
+                  }
+                >
                   {status}
                 </Badge>
               </div>
@@ -184,15 +216,20 @@ export default function CampaignDetail() {
       {/* Widget Embedding for Campaign Stats */}
       <Card className="p-6 space-y-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Fella árangur inn á aðra vefi (Campaign Widget)</h3>
+          <h3 className="text-base font-bold text-slate-900">
+            Fella árangur inn á aðra vefi (Campaign Widget)
+          </h3>
           <p className="text-slate-500 text-sm font-medium mt-1">
-            Þú getur fellt þessa tölfræði beint inn á þinn eigin vef eða stjórnborð (eins og á markadssetning.is) á öruggan hátt með eftirfarandi HTML kóða:
+            Þú getur fellt þessa tölfræði beint inn á þinn eigin vef eða stjórnborð (eins og á
+            markadssetning.is) á öruggan hátt með eftirfarandi HTML kóða:
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 block">1. Setja skriftu inn á vefsíðuna þína</label>
+            <label className="text-xs font-bold text-slate-700 block">
+              1. Setja skriftu inn á vefsíðuna þína
+            </label>
             <div className="flex gap-2">
               <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
                 {`<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>`}
@@ -201,7 +238,9 @@ export default function CampaignDetail() {
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  navigator.clipboard.writeText('<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>');
+                  navigator.clipboard.writeText(
+                    '<script src="https://cdn.adplatform.is/v1/widgets.js" defer></script>',
+                  );
                   setCopiedScript(true);
                   setTimeout(() => setCopiedScript(false), 2000);
                 }}
@@ -213,7 +252,9 @@ export default function CampaignDetail() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 block">2. Setja tölfræðikassa í viðmótið</label>
+            <label className="text-xs font-bold text-slate-700 block">
+              2. Setja tölfræðikassa í viðmótið
+            </label>
             <div className="flex gap-2">
               <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
                 {`<adplatform-campaign-stats campaign-id="${campaign.id}" viewer-key="${loadingKey ? 'Hleð lykli...' : viewerKey || ''}"></adplatform-campaign-stats>`}
@@ -222,7 +263,9 @@ export default function CampaignDetail() {
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  navigator.clipboard.writeText(`<adplatform-campaign-stats campaign-id="${campaign.id}" viewer-key="${viewerKey || ''}"></adplatform-campaign-stats>`);
+                  navigator.clipboard.writeText(
+                    `<adplatform-campaign-stats campaign-id="${campaign.id}" viewer-key="${viewerKey || ''}"></adplatform-campaign-stats>`,
+                  );
                   setCopiedStats(true);
                   setTimeout(() => setCopiedStats(false), 2000);
                 }}
@@ -272,11 +315,7 @@ export default function CampaignDetail() {
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center space-y-3">
             <div className="mx-auto border border-slate-300 shadow-sm rounded overflow-hidden max-h-56 flex items-center justify-center bg-white">
               {creative?.imageUrl ? (
-                <img
-                  src={creative.imageUrl}
-                  alt="Auglýsing"
-                  className="object-contain max-h-48"
-                />
+                <img src={creative.imageUrl} alt="Auglýsing" className="object-contain max-h-48" />
               ) : campaign.creativeIds && campaign.creativeIds[0] ? (
                 <img
                   src={`https://picsum.photos/300/250`}
@@ -284,10 +323,12 @@ export default function CampaignDetail() {
                   className="object-contain max-h-48"
                 />
               ) : (
-                <div className="h-32 flex items-center justify-center text-slate-400">Engin myndskrá</div>
+                <div className="h-32 flex items-center justify-center text-slate-400">
+                  Engin myndskrá
+                </div>
               )}
             </div>
-            
+
             <div className="text-xs text-left space-y-2 border-t border-slate-200 pt-3">
               <div>
                 <span className="block text-slate-500 font-semibold">Tengill á vefsíðu:</span>

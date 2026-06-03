@@ -12,7 +12,7 @@ export default function PublisherOnboarding() {
   const [domain, setDomain] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [category, setCategory] = useState('news');
-  
+
   // Payout Details
   const [kennitala, setKennitala] = useState('');
   const [iban, setIban] = useState('');
@@ -33,7 +33,9 @@ export default function PublisherOnboarding() {
     const hasAllBankDetails = kennitala.trim() && iban.trim() && accountHolder.trim();
 
     if (hasAnyBankDetail && !hasAllBankDetails) {
-      setError('Ef bankaupplýsingar eru skráðar þarf að fylla út alla þrjá bankareitina (eða skilja alla eftir auða)');
+      setError(
+        'Ef bankaupplýsingar eru skráðar þarf að fylla út alla þrjá bankareitina (eða skilja alla eftir auða)',
+      );
       return;
     }
 
@@ -42,11 +44,13 @@ export default function PublisherOnboarding() {
         domain,
         displayName,
         category,
-        payoutDetails: hasAllBankDetails ? {
-          kennitala,
-          iban,
-          accountHolder,
-        } : undefined,
+        payoutDetails: hasAllBankDetails
+          ? {
+              kennitala,
+              iban,
+              accountHolder,
+            }
+          : undefined,
         minimumPayoutIsk: minimumPayout,
       });
       navigate('/publisher');
@@ -59,7 +63,9 @@ export default function PublisherOnboarding() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
       <Card className="max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-sky-600">Skref 1 af 2</div>
+          <div className="text-xs uppercase font-extrabold tracking-wider text-sky-600">
+            Skref 1 af 2
+          </div>
           <h1 className="text-2xl font-bold mt-2">Stofna útgefandaaðgang</h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">
             Skráðu vef þinn og bankaupplýsingar til að byrja að selja auglýsingapláss.
@@ -86,7 +92,9 @@ export default function PublisherOnboarding() {
           />
 
           <label className="block w-full">
-            <span className="block text-sm font-medium text-slate-700 mb-1">Aðalflokkur efnis *</span>
+            <span className="block text-sm font-medium text-slate-700 mb-1">
+              Aðalflokkur efnis *
+            </span>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -100,7 +108,9 @@ export default function PublisherOnboarding() {
             </select>
           </label>
 
-          <h4 className="font-bold text-sm text-slate-800 pt-3 border-t border-slate-100">Bankaupplýsingar fyrir útborganir</h4>
+          <h4 className="font-bold text-sm text-slate-800 pt-3 border-t border-slate-100">
+            Bankaupplýsingar fyrir útborganir
+          </h4>
 
           <Input
             label="Kennitala reikningshafa (valkvætt)"

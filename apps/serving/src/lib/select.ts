@@ -10,7 +10,8 @@ function isEligible(c: CachedCreative, ctx: SelectionContext, now: number): bool
   if (c.budgetExhausted) return false;
   if (now < c.validFrom || now > c.validTo) return false;
   if (ctx.consent === 'full') {
-    if (c.geoCountries && c.geoCountries.length > 0 && !c.geoCountries.includes(ctx.country)) return false;
+    if (c.geoCountries && c.geoCountries.length > 0 && !c.geoCountries.includes(ctx.country))
+      return false;
     const seen = ctx.visitorImpressionsToday[c.creativeId] ?? 0;
     if (seen >= c.frequencyCapPerDay) return false;
   }

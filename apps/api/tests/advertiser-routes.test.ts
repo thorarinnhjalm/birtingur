@@ -98,15 +98,24 @@ vi.mock('../src/lib/firebase', () => ({
           get: vi.fn(async () => {
             let data: Record<string, unknown> | null = null;
             if (colName === 'advertisers') {
-              data = (mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>) || null;
+              data =
+                (mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>) ||
+                null;
             } else if (colName === 'creatives') {
-              data = (mockCreatives.find((c) => c.id === id) as unknown as Record<string, unknown>) || null;
+              data =
+                (mockCreatives.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
+                null;
             } else if (colName === 'campaigns') {
-              data = (mockCampaigns.find((c) => c.id === id) as unknown as Record<string, unknown>) || null;
+              data =
+                (mockCampaigns.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
+                null;
             } else if (colName === 'publishers') {
-              data = (mockPublishers.find((p) => p.id === id) as unknown as Record<string, unknown>) || null;
+              data =
+                (mockPublishers.find((p) => p.id === id) as unknown as Record<string, unknown>) ||
+                null;
             } else if (colName === 'slots') {
-              data = (mockSlots.find((s) => s.id === id) as unknown as Record<string, unknown>) || null;
+              data =
+                (mockSlots.find((s) => s.id === id) as unknown as Record<string, unknown>) || null;
             }
             return {
               exists: data !== undefined && data !== null,

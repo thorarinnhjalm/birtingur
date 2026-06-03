@@ -24,7 +24,11 @@ export default function CreativeLibrary() {
   const [uploading, setUploading] = useState(false);
 
   // Fetch creatives
-  const { data: creatives, isLoading, refetch } = useQuery({
+  const {
+    data: creatives,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['creatives'],
     queryFn: () => apiFetch<{ creatives: Creative[] }>('/v1/creatives').then((r) => r.creatives),
   });
@@ -108,7 +112,9 @@ export default function CreativeLibrary() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mínar auglýsingar</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">Stjórnaðu og hlaðið upp auglýsingaborðum í ADA vettvanginn.</p>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Stjórnaðu og hlaðið upp auglýsingaborðum í ADA vettvanginn.
+          </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="font-bold text-sm py-2.5 gap-1.5">
           <Plus size={16} />
@@ -121,16 +127,14 @@ export default function CreativeLibrary() {
           icon={<ImageIcon size={44} />}
           title="Engar auglýsingar í safninu"
           description="Hlaða upp fyrsta auglýsingaborðinu þínu til að geta valið það inn í herferðir."
-          action={
-            <Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>
-          }
+          action={<Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {creatives.map((c) => {
             let statusText: string = c.reviewStatus;
             let statusVariant: 'success' | 'pending' | 'danger' | 'info' | 'neutral' = 'neutral';
-            
+
             if (c.reviewStatus === 'auto_approved' || c.reviewStatus === 'manual_approved') {
               statusText = 'Samþykkt';
               statusVariant = 'success';
@@ -143,7 +147,10 @@ export default function CreativeLibrary() {
             }
 
             return (
-              <Card key={c.id} className="flex flex-col justify-between overflow-hidden p-4 space-y-3">
+              <Card
+                key={c.id}
+                className="flex flex-col justify-between overflow-hidden p-4 space-y-3"
+              >
                 <div className="border border-slate-200 rounded-md overflow-hidden bg-slate-50 h-40 flex items-center justify-center relative group">
                   <img src={c.imageUrl} alt="Creative" className="object-contain w-full h-full" />
                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -164,7 +171,9 @@ export default function CreativeLibrary() {
                     <Badge variant={statusVariant}>{statusText}</Badge>
                   </div>
                   <div className="text-xs text-slate-600 font-semibold space-y-1">
-                    <p>Víddir: {c.width} × {c.height} px</p>
+                    <p>
+                      Víddir: {c.width} × {c.height} px
+                    </p>
                     <p className="truncate">Smellur: {c.clickUrl}</p>
                     {c.reviewStatus === 'rejected' && c.reviewLog && c.reviewLog[0] && (
                       <p className="text-red-600 font-bold mt-1 text-[10px] bg-red-50 p-1.5 rounded">
@@ -183,7 +192,9 @@ export default function CreativeLibrary() {
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="max-w-md w-full bg-white shadow-2xl overflow-hidden p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">Hlaða upp auglýsingaefni</h3>
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Hlaða upp auglýsingaefni
+            </h3>
 
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-5 text-center hover:bg-slate-50 transition">
@@ -208,10 +219,16 @@ export default function CreativeLibrary() {
 
               {imageUrl && (
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600 flex items-center gap-3">
-                  <img src={imageUrl} alt="preview" className="w-10 h-10 object-cover bg-white rounded border" />
+                  <img
+                    src={imageUrl}
+                    alt="preview"
+                    className="w-10 h-10 object-cover bg-white rounded border"
+                  />
                   <div>
                     <p className="font-bold text-slate-900">Uppgötvuð stærð:</p>
-                    <p>{imageWidth} × {imageHeight} dílar</p>
+                    <p>
+                      {imageWidth} × {imageHeight} dílar
+                    </p>
                   </div>
                 </div>
               )}

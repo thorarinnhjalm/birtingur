@@ -1,10 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth';
-import {
-  createPublisher,
-  getPublisherByOwnerEmail,
-  updatePublisher,
-} from '../services/publishers';
+import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers';
 import { getPublisherStats } from '../services/publisher-stats';
 import { AppError } from '../lib/errors';
 import {
@@ -66,7 +62,7 @@ publishersRouter.post('/', async (c) => {
 publishersRouter.get('/me', async (c) => {
   const user = c.get('user');
   const publisher = await getPublisherByOwnerEmail(user.email);
-  
+
   if (!publisher) {
     throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
   }

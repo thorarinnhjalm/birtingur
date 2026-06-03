@@ -12,6 +12,7 @@ Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xx
 ## Available Tools
 
 ### Publisher Tools
+
 - `register_publisher` — Skrá útgefanda (Domain, Display Name, Payout Method)
 - `list_my_slots` — Listar öll auglýsingapláss útgefanda
 - `create_slot` — Búa til nýtt auglýsingapláss (Supports CPM/Time-Slot)
@@ -24,6 +25,7 @@ Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xx
 - `reject_creative` — Hafna herferð með ástæðu
 
 ### Advertiser Tools
+
 - `register_advertiser` — Skrá auglýsanda (Company Name, Kennitala, VAT)
 - `get_wallet_balance` — Sækja núverandi stöðu prepaid-veskis
 - `create_topup_link` — Búa til Teya checkout greiðsluhlekk
@@ -37,7 +39,9 @@ Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xx
 ## Client Configuration Examples
 
 ### Claude Desktop
+
 Add this to your `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -60,6 +64,8 @@ Add this to your `claude_desktop_config.json`:
 ```
 
 ### Cursor / Windsurf
+
 Use the custom HTTP connector with:
+
 - URL: `https://mcp.adplatform.is/mcp`
 - Headers: `Authorization: Bearer ak_xxxxxxxxxxxxxxxx`

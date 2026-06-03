@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 export default function AdvertiserOnboarding() {
   const createAdvertiser = useCreateAdvertiser();
   const navigate = useNavigate();
-  
+
   const [companyName, setCompanyName] = useState('');
   const [kennitala, setKennitala] = useState('');
   const [vatNumber, setVatNumber] = useState('');
@@ -43,7 +43,9 @@ export default function AdvertiserOnboarding() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
       <Card className="max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="text-xs uppercase font-extrabold tracking-wider text-primary">Skref 1 af 2</div>
+          <div className="text-xs uppercase font-extrabold tracking-wider text-primary">
+            Skref 1 af 2
+          </div>
           <h1 className="text-2xl font-bold mt-2">Stofna auglýsendaaðgang</h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">
             Sláðu inn fyrirtækjaupplýsingar til að geta hafið auglýsingabirtingar.
@@ -59,7 +61,7 @@ export default function AdvertiserOnboarding() {
             required
             disabled={createAdvertiser.isPending}
           />
-          
+
           <Input
             label="Kennitala *"
             placeholder="Dæmi: 550621-1230"
