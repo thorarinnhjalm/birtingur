@@ -1,8 +1,10 @@
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth-context';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { usePublisher } from '@/hooks/usePublisher';
+import { LoadingState } from '@/components/ui/LoadingState';
 import { ArrowRight, Megaphone, Globe, Shield } from 'lucide-react';
 
 export default function RoleSelect() {
@@ -10,6 +12,40 @@ export default function RoleSelect() {
   const advertiserQuery = useAdvertiser();
   const publisherQuery = usePublisher();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const bypassRedirect = searchParams.get('select') === 'true' || searchParams.get('switch') === 'true';
+
+  useEffect(() => {
+    if (bypassRedirect) return;
+    if (advertiserQuery.isPending || publisherQuery.isPending) return;
+
+    const hasAdvertiser = !!advertiserQuery.data;
+    const hasPublisher = !!publisherQuery.data;
+
+    if (hasAdvertiser && !hasPublisher) {
+      navigate('/advertiser', { replace: true });
+    } else if (hasPublisher && !hasAdvertiser) {
+      navigate('/publisher', { replace: true });
+    }
+  }, [
+    advertiserQuery.data,
+    advertiserQuery.isPending,
+    publisherQuery.data,
+    publisherQuery.isPending,
+    bypassRedirect,
+    navigate,
+  ]);
+
+  if (advertiserQuery.isPending || publisherQuery.isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-8">
+        <div className="max-w-md w-full">
+          <LoadingState />
+        </div>
+      </div>
+    );
+  }
 
   const handleAdvertiserSelect = () => {
     // If advertiser profile already exists, go to home, else onboarding
