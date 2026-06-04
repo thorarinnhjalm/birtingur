@@ -725,11 +725,13 @@ export default function LandingPage() {
                     <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-900/50 flex items-center justify-center text-blue-400">
                       <span className="material-symbols-outlined text-2xl font-bold">cookie</span>
                     </div>
-                    <h3 className="text-lg font-bold text-white">Engin sporing (Cookie-free)</h3>
+                    <h3 className="text-lg font-bold text-white">
+                      Persónuvernd í fyrirrúmi (Cookie-free)
+                    </h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Engar njósnir. Birtingar byggja eingöngu á samhengi efnisins (contextual) og
-                      landfræði (geo), sem útilokar vafrakökur til sporingar. Það tryggir fullt GDPR
-                      lagalegt öryggi og lætur vefinn hlaðast mun hraðar.
+                      Engin persónuleg sporing. Hægt er að miða herferðir við samhengi efnisins og
+                      tiltekin landsvæði án þess að nota sporingakökur. Þetta tryggir fullt samræmi
+                      við GDPR-kröfur og gerir það að verkum að vefurinn hleðst mun hraðar.
                     </p>
                   </div>
                 </div>
