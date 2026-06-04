@@ -3,6 +3,7 @@ import { requireAdmin, requireAuth, type Env } from '../../lib/auth.js';
 import { getAdminStats } from '../../services/admin-stats.js';
 import { adminReviewRoutes } from './review.js';
 import { adminPayoutsRoutes } from './payouts.js';
+import { adminEntitiesRoutes } from './entities.js';
 
 export const adminRoutes = new Hono<Env>();
 
@@ -11,6 +12,7 @@ adminRoutes.use('/*', requireAuth, requireAdmin);
 
 adminRoutes.route('/review-queue', adminReviewRoutes);
 adminRoutes.route('/payouts', adminPayoutsRoutes);
+adminRoutes.route('/entities', adminEntitiesRoutes);
 
 adminRoutes.get('/stats', async (c) => {
   const stats = await getAdminStats();

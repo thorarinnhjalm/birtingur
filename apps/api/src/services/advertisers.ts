@@ -73,3 +73,44 @@ export async function requireAdvertiser(email: string): Promise<Advertiser> {
   }
   return a;
 }
+
+export async function updateAdvertiserStatus(
+  advertiserId: string,
+  status: 'active' | 'suspended',
+): Promise<Advertiser> {
+  const advRef = db
+    .collection(COLLECTIONS.advertisers)
+    .doc(advertiserId)
+    .withConverter(advertiserConverter);
+  const doc = await advRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Advertiser with ID ${advertiserId} not found`, 'NOT_FOUND');
+  }
+
+  const current = doc.data()!;
+  const updated = AdvertiserSchema.parse({ ...current, status });
+  await advRef.set(updated);
+
+  // Invalidate slot cache for all slots targeted by this advertiser's campaigns
+  const campaignsSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('advertiserId', '==', advertiserId)
+    .get();
+
+  const slotIds = new Set<string>();
+  for (const campDoc of campaignsSnap.docs) {
+    const targeting = campDoc.data().targeting;
+    if (targeting?.slotIds) {
+      for (const sId of targeting.slotIds) {
+        slotIds.add(sId);
+      }
+    }
+  }
+
+  const { pushSlotCache } = await import('../lib/push-cache.js');
+  for (const sId of slotIds) {
+    await pushSlotCache(sId);
+  }
+
+  return updated;
+}

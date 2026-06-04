@@ -138,3 +138,26 @@ export async function getSnippetForSlot(
     height,
   });
 }
+
+export async function listAllSlots(): Promise<Slot[]> {
+  const snapshot = await db.collection(COLLECTIONS.slots).withConverter(slotConverter).get();
+  return snapshot.docs.map((doc) => doc.data());
+}
+
+export async function updateSlotStatus(slotId: string, status: 'active' | 'paused'): Promise<Slot> {
+  const slotRef = db.collection(COLLECTIONS.slots).doc(slotId).withConverter(slotConverter);
+  const doc = await slotRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Slot with ID ${slotId} not found`, 'NOT_FOUND');
+  }
+
+  const current = doc.data()!;
+  const updated = SlotSchema.parse({ ...current, status });
+  await slotRef.set(updated);
+
+  if (process.env.UPSTASH_REDIS_REST_URL) {
+    await pushSlotCache(slotId);
+  }
+
+  return updated;
+}

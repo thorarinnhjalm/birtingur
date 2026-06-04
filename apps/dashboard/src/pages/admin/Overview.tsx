@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Building2,
   Users,
+  Calendar,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -26,6 +27,13 @@ import {
   usePendingPayouts,
   useMarkPayoutCompleted,
 } from '@/hooks/useReviewQueue';
+import {
+  useAdminPublishers,
+  useAdminAdvertisers,
+  useAdminSlots,
+  useUpdateEntityStatus,
+  useGeneratePayouts,
+} from '@/hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 
@@ -264,14 +272,20 @@ function AdminReviewQueue() {
   );
 }
 
-// 3. Payout Queue (Managing publisher bank payouts)
+// 3. Payout Queue (Managing publisher bank payouts & generation)
 function AdminPayoutQueue() {
   const { data: payouts, isLoading, refetch } = usePendingPayouts();
   const markCompleted = useMarkPayoutCompleted();
+  const generatePayouts = useGeneratePayouts();
 
   const [completeId, setCompleteId] = useState<string | null>(null);
   const [bankRef, setBankRef] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Manual generation form states
+  const [genStart, setGenStart] = useState('');
+  const [genEnd, setGenEnd] = useState('');
+  const [genSuccessMsg, setGenSuccessMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,20 +307,82 @@ function AdminPayoutQueue() {
     }
   };
 
+  const handleGenerateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setGenSuccessMsg('');
+    if (!genStart || !genEnd) {
+      setError('Velja þarf bæði upphafs- og lokadagsetningu.');
+      return;
+    }
+    try {
+      const res = await generatePayouts.mutateAsync({ periodStart: genStart, periodEnd: genEnd });
+      setGenSuccessMsg(`Útborganir stofnaðar! Stofnaðar færslur: ${res.created}`);
+      refetch();
+    } catch (err: any) {
+      setError(err.message || 'Ekki tókst að stofna útborganir.');
+    }
+  };
+
   if (isLoading) return <LoadingState />;
 
   const items = payouts || [];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Útgreiðslur og lágmarksskoðun (Payouts Queue)
-        </h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">
-          Millifærðu handvirkt í banka og merktu útborganir sem kláraðar.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Útgreiðslur og lágmarksskoðun (Payouts Queue)
+          </h1>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Millifærðu handvirkt í banka og merktu útborganir sem kláraðar.
+          </p>
+        </div>
       </div>
+
+      {/* Manual Generation Form */}
+      <Card className="p-6">
+        <h3 className="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
+          <Calendar size={18} className="text-primary" />
+          <span>Stofna útborganir handvirkt</span>
+        </h3>
+        <p className="text-xs text-slate-500 font-semibold mb-4 leading-relaxed">
+          Safnaðu saman heildartekjum allra útgefenda fyrir tiltekið tímabil og búðu til nýjar
+          útborganir (lágmark 5.000 kr.).
+        </p>
+        <form
+          onSubmit={handleGenerateSubmit}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end"
+        >
+          <Input
+            type="date"
+            label="Upphafstímabil *"
+            value={genStart}
+            onChange={(e) => setGenStart(e.target.value)}
+            required
+          />
+          <Input
+            type="date"
+            label="Lokatímabil *"
+            value={genEnd}
+            onChange={(e) => setGenEnd(e.target.value)}
+            required
+          />
+          <Button
+            type="submit"
+            loading={generatePayouts.isPending}
+            className="font-bold py-3 text-xs"
+          >
+            Reikna og stofna
+          </Button>
+        </form>
+        {genSuccessMsg && (
+          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-xs font-semibold text-green-700">
+            {genSuccessMsg}
+          </div>
+        )}
+      </Card>
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
@@ -326,21 +402,29 @@ function AdminPayoutQueue() {
             <table className="w-full text-left text-xs font-medium border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="py-2.5">Publisher ID</th>
+                  <th className="py-2.5">Útgefandi</th>
                   <th className="py-2.5">Bankareikningur (IBAN)</th>
                   <th className="py-2.5">Kennitala</th>
-                  <th className="py-2.5">Lágmarksútborgun</th>
+                  <th className="py-2.5">Tímabil</th>
                   <th className="py-2.5 text-right">Upphæð</th>
                   <th className="py-2.5 text-right">Aðgerð</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {items.map((p) => (
+                {items.map((p: any) => (
                   <tr key={p.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 font-semibold text-slate-900">{p.publisherId}</td>
-                    <td className="py-3 font-mono">Millifærsla</td>
-                    <td className="py-3">{p.id}</td>
-                    <td className="py-3">{p.status}</td>
+                    <td className="py-3">
+                      <div className="font-semibold text-slate-900">{p.publisherName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{p.publisherId}</div>
+                    </td>
+                    <td className="py-3 font-mono">{p.iban || 'Vantar reikning'}</td>
+                    <td className="py-3 font-mono">{p.kennitala || 'Vantar kennitölu'}</td>
+                    <td className="py-3 font-semibold text-slate-600">
+                      {new Date(p.periodStart).toLocaleDateString('is-IS', {
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
                     <td className="py-3 text-right font-bold text-slate-900">
                       {formatIsk(p.netIsk || 0)}
                     </td>
@@ -403,10 +487,296 @@ function AdminPayoutQueue() {
   );
 }
 
+// 4. Publishers List
+function AdminPublishersList() {
+  const { data: publishers, isLoading, refetch } = useAdminPublishers();
+  const updateStatus = useUpdateEntityStatus();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleToggleStatus = async (publisherId: string, currentStatus: string) => {
+    setError(null);
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    try {
+      await updateStatus.mutateAsync({ type: 'publisher', id: publisherId, status: newStatus });
+      refetch();
+    } catch (err: any) {
+      setError(err.message || 'Ekki tókst að uppfæra stöðu.');
+    }
+  };
+
+  if (isLoading) return <LoadingState />;
+
+  const items = publishers || [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Útgefendur (Publishers)</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Skoðaðu útgefendur og frystu reikninga þeirra ef á þarf að halda.
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
+          {error}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <EmptyState
+          title="Engir útgefendur skráðir"
+          description="Engir útgefendur finnast í kerfinu."
+        />
+      ) : (
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-medium border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5">Útgefandi</th>
+                  <th className="py-2.5">Lén</th>
+                  <th className="py-2.5">Netfang eiganda</th>
+                  <th className="py-2.5">Staða</th>
+                  <th className="py-2.5">Stofnað</th>
+                  <th className="py-2.5 text-right">Aðgerð</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {items.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/50">
+                    <td className="py-3">
+                      <div className="font-semibold text-slate-900">{p.displayName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{p.id}</div>
+                    </td>
+                    <td className="py-3 font-semibold text-slate-600">{p.domain}</td>
+                    <td className="py-3 text-slate-500 font-semibold">{p.ownerEmail}</td>
+                    <td className="py-3">
+                      <Badge variant={p.status === 'active' ? 'success' : 'danger'}>
+                        {p.status === 'active' ? 'Virkur' : 'Frystur'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-slate-500 font-semibold">
+                      {new Date(p.createdAt).toLocaleDateString('is-IS')}
+                    </td>
+                    <td className="py-3 text-right">
+                      <Button
+                        variant={p.status === 'active' ? 'danger' : 'primary'}
+                        onClick={() => handleToggleStatus(p.id, p.status)}
+                        loading={updateStatus.isPending}
+                        className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
+                      >
+                        {p.status === 'active' ? 'Frysta' : 'Virkja'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// 5. Advertisers List
+function AdminAdvertisersList() {
+  const { data: advertisers, isLoading, refetch } = useAdminAdvertisers();
+  const updateStatus = useUpdateEntityStatus();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleToggleStatus = async (advertiserId: string, currentStatus: string) => {
+    setError(null);
+    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+    try {
+      await updateStatus.mutateAsync({ type: 'advertiser', id: advertiserId, status: newStatus });
+      refetch();
+    } catch (err: any) {
+      setError(err.message || 'Ekki tókst að uppfæra stöðu.');
+    }
+  };
+
+  if (isLoading) return <LoadingState />;
+
+  const items = advertisers || [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Auglýsendur (Advertisers)</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Skoðaðu auglýsendur og stöðu veskja þeirra. Frystu þá ef þeir brjóta skilmála.
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
+          {error}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <EmptyState
+          title="Engir auglýsendur skráðir"
+          description="Engir auglýsendur finnast í kerfinu."
+        />
+      ) : (
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-medium border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5">Fyrirtæki</th>
+                  <th className="py-2.5">Kennitala</th>
+                  <th className="py-2.5">Netfang eiganda</th>
+                  <th className="py-2.5 text-right">Inneign (Veski)</th>
+                  <th className="py-2.5">Staða</th>
+                  <th className="py-2.5 text-right">Aðgerð</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {items.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50/50">
+                    <td className="py-3">
+                      <div className="font-semibold text-slate-900">{a.companyName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{a.id}</div>
+                    </td>
+                    <td className="py-3 font-semibold text-slate-600">{a.kennitala}</td>
+                    <td className="py-3 text-slate-500 font-semibold">{a.ownerEmail}</td>
+                    <td className="py-3 text-right font-bold text-slate-900">
+                      {formatIsk(a.walletBalanceIsk || 0)}
+                    </td>
+                    <td className="py-3">
+                      <Badge variant={a.status === 'active' ? 'success' : 'danger'}>
+                        {a.status === 'active' ? 'Virkur' : 'Frystur'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-right">
+                      <Button
+                        variant={a.status === 'active' ? 'danger' : 'primary'}
+                        onClick={() => handleToggleStatus(a.id, a.status)}
+                        loading={updateStatus.isPending}
+                        className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
+                      >
+                        {a.status === 'active' ? 'Frysta' : 'Virkja'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// 6. Slots List
+function AdminSlotsList() {
+  const { data: slots, isLoading, refetch } = useAdminSlots();
+  const updateStatus = useUpdateEntityStatus();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleToggleStatus = async (slotId: string, currentStatus: string) => {
+    setError(null);
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    try {
+      await updateStatus.mutateAsync({ type: 'slot', id: slotId, status: newStatus });
+      refetch();
+    } catch (err: any) {
+      setError(err.message || 'Ekki tókst að breyta stöðu.');
+    }
+  };
+
+  if (isLoading) return <LoadingState />;
+
+  const items = slots || [];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Auglýsingapláss (Slots)</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Skoðaðu og frystu auglýsingapláss útgefenda á kerfisvísu ef þörf krefur.
+        </p>
+      </div>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
+          {error}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <EmptyState
+          title="Engin pláss skráð"
+          description="Engin auglýsingapláss finnast í kerfinu."
+        />
+      ) : (
+        <Card className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-medium border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5">Pláss / Heiti</th>
+                  <th className="py-2.5">Útgefandi ID</th>
+                  <th className="py-2.5">Stærðir</th>
+                  <th className="py-2.5">Verðlagning</th>
+                  <th className="py-2.5">Staða</th>
+                  <th className="py-2.5 text-right">Aðgerð</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {items.map((s) => (
+                  <tr key={s.id} className="hover:bg-slate-50/50">
+                    <td className="py-3">
+                      <div className="font-semibold text-slate-900">{s.name}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{s.id}</div>
+                    </td>
+                    <td className="py-3 font-mono text-slate-500">{s.publisherId}</td>
+                    <td className="py-3 text-slate-600 font-semibold">
+                      {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')} px
+                    </td>
+                    <td className="py-3 text-slate-600 font-semibold">
+                      {s.pricing.mode === 'cpm'
+                        ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                        : `${formatIsk(s.pricing.slotPriceIsk)} á ${s.pricing.slotPeriodDays} daga`}
+                    </td>
+                    <td className="py-3">
+                      <Badge variant={s.status === 'active' ? 'success' : 'pending'}>
+                        {s.status === 'active' ? 'Virkt' : 'Fryst/Pásað'}
+                      </Badge>
+                    </td>
+                    <td className="py-3 text-right">
+                      <Button
+                        variant={s.status === 'active' ? 'danger' : 'primary'}
+                        onClick={() => handleToggleStatus(s.id, s.status)}
+                        loading={updateStatus.isPending}
+                        className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
+                      >
+                        {s.status === 'active' ? 'Frysta' : 'Virkja'}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 const sidebar = [
   { to: '/admin', label: 'Yfirlit', icon: 'dashboard' },
   { to: '/admin/review', label: 'Yfirferð', icon: 'shield' },
   { to: '/admin/payouts', label: 'Útborganir', icon: 'payments' },
+  { to: '/admin/publishers', label: 'Útgefendur', icon: 'web' },
+  { to: '/admin/advertisers', label: 'Auglýsendur', icon: 'business' },
+  { to: '/admin/slots', label: 'Auglýsingapláss', icon: 'grid_view' },
 ];
 
 export default function AdminOverview() {
@@ -416,6 +786,9 @@ export default function AdminOverview() {
         <Route path="/" element={<Home />} />
         <Route path="review" element={<AdminReviewQueue />} />
         <Route path="payouts" element={<AdminPayoutQueue />} />
+        <Route path="publishers" element={<AdminPublishersList />} />
+        <Route path="advertisers" element={<AdminAdvertisersList />} />
+        <Route path="slots" element={<AdminSlotsList />} />
       </Routes>
     </AppShell>
   );

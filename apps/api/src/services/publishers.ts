@@ -103,3 +103,34 @@ export async function updatePublisher(
 
   return validated;
 }
+
+export async function updatePublisherStatus(
+  publisherId: string,
+  status: 'active' | 'suspended',
+): Promise<Publisher> {
+  const pubRef = db
+    .collection(COLLECTIONS.publishers)
+    .doc(publisherId)
+    .withConverter(publisherConverter);
+  const doc = await pubRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Publisher with ID ${publisherId} not found`, 'NOT_FOUND');
+  }
+
+  const current = doc.data()!;
+  const updated = PublisherSchema.parse({ ...current, status });
+  await pubRef.set(updated);
+
+  // Invalidate slot cache for all slots owned by this publisher
+  const slotsSnap = await db
+    .collection(COLLECTIONS.slots)
+    .where('publisherId', '==', publisherId)
+    .get();
+
+  const { pushSlotCache } = await import('../lib/push-cache.js');
+  for (const slotDoc of slotsSnap.docs) {
+    await pushSlotCache(slotDoc.id);
+  }
+
+  return updated;
+}

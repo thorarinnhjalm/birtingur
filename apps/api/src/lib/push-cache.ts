@@ -6,6 +6,7 @@ import {
   publisherConverter,
   campaignConverter,
   creativeConverter,
+  advertiserConverter,
 } from '@ada/shared/firestore';
 import { FREQUENCY_CAP_DEFAULT_PER_DAY, CACHE_TTL_SECONDS } from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
@@ -70,8 +71,28 @@ export async function pushSlotCache(slotId: string): Promise<void> {
 
   const campaigns = campaignsSnapshot.docs.map((doc) => doc.data());
 
-  // Filter campaigns in memory for perPublisherApproval and budget
+  // Batch fetch advertiser statuses to filter out suspended ones
+  const advertiserIds = Array.from(new Set(campaigns.map((c) => c.advertiserId)));
+  const advertiserStatusMap = new Map<string, string>();
+
+  if (advertiserIds.length > 0) {
+    const advRefs = advertiserIds.map((id) =>
+      db.collection(COLLECTIONS.advertisers).doc(id).withConverter(advertiserConverter),
+    );
+    const advDocs = await db.getAll(...advRefs);
+    for (const doc of advDocs) {
+      const data = doc.data();
+      if (doc.exists && data) {
+        advertiserStatusMap.set(doc.id, data.status);
+      }
+    }
+  }
+
+  // Filter campaigns in memory for perPublisherApproval, budget, and advertiser status
   const eligibleCampaigns = campaigns.filter((campaign) => {
+    // Check if advertiser is active
+    if (advertiserStatusMap.get(campaign.advertiserId) !== 'active') return false;
+
     // Check if approved by this publisher
     const approval = campaign.perPublisherApproval[slot.publisherId];
     if (approval !== 'approved') return false;

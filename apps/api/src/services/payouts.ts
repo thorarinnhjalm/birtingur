@@ -63,13 +63,25 @@ export async function generateMonthlyPayouts(
   return created;
 }
 
-export async function listPendingPayouts(): Promise<Payout[]> {
+export async function listPendingPayouts(): Promise<any[]> {
   const snap = await db
     .collection(COLLECTIONS.payouts)
     .where('status', 'in', ['pending', 'processing'])
     .withConverter(payoutConverter)
     .get();
-  return snap.docs.map((d) => d.data());
+  const payouts = snap.docs.map((d) => d.data());
+
+  const enriched = [];
+  for (const p of payouts) {
+    const pub = await getPublisherById(p.publisherId);
+    enriched.push({
+      ...p,
+      publisherName: pub?.displayName || 'Óþekktur',
+      iban: pub?.payoutMethod?.iban || '',
+      kennitala: pub?.payoutMethod?.kennitala || '',
+    });
+  }
+  return enriched;
 }
 
 export async function markPayoutCompleted(
