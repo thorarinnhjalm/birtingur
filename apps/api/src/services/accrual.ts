@@ -2,6 +2,7 @@ import { getRedis } from '../lib/redis.js';
 import { COLLECTIONS, campaignConverter, slotConverter } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { chargeCampaign, creditPublisher } from './wallet.js';
+import { pushCacheForCampaign } from '../lib/push-cache.js';
 
 interface QueuedEvent {
   type: 'impression' | 'click';
@@ -84,7 +85,12 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
         await chargeCampaign(cmp.advertiserId, campaignId, totalCharge);
       } catch (err) {
         // out of balance — campaign should already be marked budgetExhausted by serving counter
-        console.warn(`Campaign charge failed for ${campaignId}:`, err);
+        console.warn(`Campaign charge failed for ${campaignId}, pausing:`, err);
+        // Explicitly pause the campaign in Firestore and push cache to Redis to stop any leak
+        await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
+          status: 'paused',
+        });
+        await pushCacheForCampaign(campaignId);
         continue;
       }
 

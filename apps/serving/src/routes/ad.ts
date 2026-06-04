@@ -8,6 +8,7 @@ import {
   getVisitorImpressionsToday,
 } from '../lib/visitor.js';
 import { logEvent } from '../lib/analytics.js';
+import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
 
@@ -77,10 +78,13 @@ adRoute.get('/', async (c) => {
     });
   }
 
-  // Build impression pixel URL (points to relative /v1/impression route)
+  // Build impression pixel URL (points to relative /v1/impression route) with signature
+  const ts = Date.now();
+  const signature = createSignature(creative.creativeId, slotId, token, ts);
   const impressionPixel =
     `/v1/impression?c=${encodeURIComponent(creative.creativeId)}` +
-    `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}`;
+    `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
+    `&ts=${ts}&sig=${signature}`;
 
   // Log impression event
   void logEvent({
@@ -101,7 +105,7 @@ adRoute.get('/', async (c) => {
   return c.json({
     creativeId: creative.creativeId,
     imageUrl: creative.imageUrl,
-    clickUrl: `/v1/click?c=${encodeURIComponent(creative.creativeId)}&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}`,
+    clickUrl: `/v1/click?c=${encodeURIComponent(creative.creativeId)}&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&ts=${ts}&sig=${signature}`,
     width: creative.width,
     height: creative.height,
     impressionPixel,

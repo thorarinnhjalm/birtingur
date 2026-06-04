@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'crypto';
+import { URL } from 'url';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { getWallet } from '../services/wallet.js';
@@ -33,11 +34,23 @@ walletRouter.post('/topup', async (c) => {
   }
   const body = (await c.req.json()) as { amountIsk: number };
   const teya = getTeya();
+
+  const referer = c.req.header('referer');
+  let baseUrl = process.env.APP_BASE_URL ?? 'https://app.adplatform.is';
+  if (referer) {
+    try {
+      const url = new URL(referer);
+      baseUrl = url.origin;
+    } catch {
+      // ignore, use fallback
+    }
+  }
+
   const session = await teya.createCheckoutSession({
     advertiserId: adv.id,
     amountIsk: body.amountIsk,
-    successUrl: `${process.env.APP_BASE_URL ?? 'https://app.adplatform.is'}/wallet?topup=success`,
-    cancelUrl: `${process.env.APP_BASE_URL ?? 'https://app.adplatform.is'}/wallet?topup=cancelled`,
+    successUrl: `${baseUrl}/advertiser/topup?success=true`,
+    cancelUrl: `${baseUrl}/advertiser/topup?cancelled=true`,
     idempotencyKey: randomBytes(12).toString('hex'),
   });
   return c.json({ checkoutUrl: session.url, sessionId: session.sessionId }, 201);

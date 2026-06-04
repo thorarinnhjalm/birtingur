@@ -1,17 +1,22 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTopUp, useWallet } from '@/hooks/useWallet';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatIsk } from '@/lib/format';
 import { VAT_RATE } from '@ada/shared';
-import { AlertCircle, CreditCard, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CreditCard, ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const PRESETS = [5000, 20000, 50000, 100000];
 
 export default function TopUp() {
   const wallet = useWallet();
   const topup = useTopUp();
+  const [searchParams] = useSearchParams();
+  const success = searchParams.get('success') === 'true';
+  const cancelled = searchParams.get('cancelled') === 'true';
+
   const [amount, setAmount] = useState(20000);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +38,10 @@ export default function TopUp() {
     }
   }
 
-  // Calculate VAT included in the total amount
-  const vat = Math.round((amount * VAT_RATE) / (1 + VAT_RATE));
-  const subtotal = amount - vat;
+  // Under consignment model, the deposit itself is VAT-free.
+  // VAT is calculated only on the 20% platform brokerage fee.
+  const platformFee = Math.round(amount * 0.20);
+  const platformFeeVat = Math.round(platformFee * VAT_RATE);
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -45,6 +51,30 @@ export default function TopUp() {
           Bættu inneign á auglýsendaaðganginn þinn til að halda herferðum gangandi.
         </p>
       </div>
+
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-3 shadow-sm">
+          <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} />
+          <div>
+            <h4 className="font-bold text-emerald-900 text-sm">Innborgun tókst!</h4>
+            <p className="text-emerald-700 text-xs font-medium mt-0.5">
+              Greiðslan hefur verið staðfest og inneignin hefur verið uppfærð á aðgangi þínum.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {cancelled && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-start gap-3 shadow-sm">
+          <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+          <div>
+            <h4 className="font-bold text-amber-900 text-sm">Hætt við greiðslu</h4>
+            <p className="text-amber-700 text-xs font-medium mt-0.5">
+              Hætt var við greiðsluferlið. Engir peningar voru dregnir af kortinu þínu.
+            </p>
+          </div>
+        </div>
+      )}
 
       <Card className="p-6">
         <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
@@ -94,17 +124,25 @@ export default function TopUp() {
         {/* Pricing breakdown */}
         <div className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
           <div className="flex justify-between text-slate-600 font-medium">
-            <span>Upphæð (án VSK)</span>
-            <span>{formatIsk(subtotal)}</span>
+            <span>Innlögn á veltureikning (VSK-frítt)</span>
+            <span>{formatIsk(amount)}</span>
           </div>
-          <div className="flex justify-between text-slate-500 font-medium">
-            <span>VSK (24% innifalinn)</span>
-            <span>{formatIsk(vat)}</span>
+          <div className="flex justify-between text-slate-500 font-medium text-xs pl-2 border-l-2 border-slate-200">
+            <span>Áætluð þóknun Birtingar (20%)</span>
+            <span>{formatIsk(platformFee)}</span>
+          </div>
+          <div className="flex justify-between text-slate-500 font-medium text-xs pl-2 border-l-2 border-slate-200">
+            <span>Áætlaður VSK af þóknun (24%)</span>
+            <span>{formatIsk(platformFeeVat)}</span>
           </div>
           <div className="flex justify-between text-slate-900 font-extrabold text-base border-t border-slate-100 pt-3">
             <span>Heildargreiðsla</span>
             <span>{formatIsk(amount)}</span>
           </div>
+          <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2">
+            * Samkvæmt lögum um umboðssölu er innlögnin sjálf VSK-frjáls innlögn á veltureikning. 
+            Virðisaukaskattur (24%) reiknast eingöngu af þjónustuþóknun Birtingar (20%) þegar auglýsingar eru sýndar.
+          </p>
         </div>
 
         {error && (

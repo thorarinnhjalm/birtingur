@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { recordVisitorImpression } from '../lib/visitor.js';
 import { decrementBudget, logEvent } from '../lib/analytics.js';
+import { verifySignature } from '../lib/crypto.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -42,6 +43,24 @@ impressionRoute.get('/', async (c) => {
       });
     }
   } else {
+    // Validate signature to prevent impression fraud
+    const tsStr = c.req.query('ts') ?? '0';
+    const sig = c.req.query('sig') ?? '';
+    const ts = parseInt(tsStr, 10);
+    const isValid = verifySignature(creativeId, slotId, token, ts, sig);
+    const age = Date.now() - ts;
+
+    if (!isValid || age < 0 || age > 300000) {
+      // Invalid signature or expired signature: ignore silently (still return pixel)
+      return new Response(PIXEL, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/gif',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     const slot = await getSlotCache(slotId);
     const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
 

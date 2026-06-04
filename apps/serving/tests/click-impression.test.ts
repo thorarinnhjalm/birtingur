@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SlotCacheEntry } from '../src/lib/cache';
+import { createSignature } from '../src/lib/crypto';
 
 const mockSlot: SlotCacheEntry = {
   slotId: 'slot_a',
@@ -52,7 +53,9 @@ describe('GET /v1/click', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('redirects to clickUrl for valid slot and creative', async () => {
-    const res = await app.request('/v1/click?s=slot_a&c=cre_a&t=tok123', {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const res = await app.request(`/v1/click?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`, {
       headers: { 'CF-IPCountry': 'IS' },
     });
     expect(res.status).toBe(302);
@@ -76,7 +79,9 @@ describe('GET /v1/click', () => {
   });
 
   it('returns 404 for unknown slot or creative', async () => {
-    const res = await app.request('/v1/click?s=slot_b&c=cre_a');
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_b', '', ts);
+    const res = await app.request(`/v1/click?s=slot_b&c=cre_a&ts=${ts}&sig=${sig}`);
     expect(res.status).toBe(404);
   });
 });
@@ -85,7 +90,9 @@ describe('GET /v1/impression', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('returns transparent pixel and processes impression for valid slot and creative', async () => {
-    const res = await app.request('/v1/impression?s=slot_a&c=cre_a&t=tok123');
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const res = await app.request(`/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
 
