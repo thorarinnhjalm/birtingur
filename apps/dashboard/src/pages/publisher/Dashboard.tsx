@@ -248,7 +248,7 @@ function PublisherHome() {
             <p className="font-bold text-headline-md text-on-surface">
               {stats && stats.pageviews > 0
                 ? `${Math.round((stats.impressions / stats.pageviews) * 100)}%`
-                : '94%'}
+                : '0%'}
             </p>
           </div>
         </div>
@@ -263,7 +263,7 @@ function PublisherHome() {
             <p className="font-bold text-headline-md text-on-surface">
               {stats && stats.impressions > 0
                 ? formatIsk(Math.round((stats.spendIsk / stats.impressions) * 1000))
-                : '280 kr.'}
+                : '0 kr.'}
             </p>
           </div>
         </div>
