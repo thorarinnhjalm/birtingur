@@ -34,7 +34,7 @@ interface MockCampaign {
   advertiserId: string;
   creativeIds: string[];
   targeting: {
-    slotIds: string[];
+    categories: string[];
   };
   schedule: {
     startsAt: Date;
@@ -299,6 +299,7 @@ describe('End-to-End Smoke Test', () => {
           blockedCategories: [],
           requireManualApproval: false,
         },
+        categories: ['taekni'],
       }),
     });
     expect(pubRes.status).toBe(201);
@@ -393,7 +394,7 @@ describe('End-to-End Smoke Test', () => {
       },
       body: JSON.stringify({
         creativeIds: [creative.id],
-        slotIds: [slot.id],
+        categories: ['taekni'],
         schedule: {
           startsAt: new Date(Date.now() + 86400000).toISOString(),
           endsAt: new Date(Date.now() + 86400000 * 3).toISOString(),
@@ -404,6 +405,9 @@ describe('End-to-End Smoke Test', () => {
         },
       }),
     });
+    if (campaignRes.status !== 201) {
+      console.log('campaignRes failed:', campaignRes.status, await campaignRes.json());
+    }
     expect(campaignRes.status).toBe(201);
     const { campaign } = await campaignRes.json();
     expect(campaign.status).toBe('active');

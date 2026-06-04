@@ -54,6 +54,7 @@ describe('Publisher HTTP Routes', () => {
           displayName: 'My Publisher Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       });
 
@@ -79,6 +80,7 @@ describe('Publisher HTTP Routes', () => {
           displayName: 'My Publisher Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       });
 
@@ -94,6 +96,7 @@ describe('Publisher HTTP Routes', () => {
           displayName: 'Another Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       });
 
@@ -119,6 +122,7 @@ describe('Publisher HTTP Routes', () => {
           displayName: 'My Publisher Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       });
 
@@ -165,6 +169,7 @@ describe('Publisher HTTP Routes', () => {
           displayName: 'My Publisher Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       });
 

@@ -26,7 +26,7 @@ export const handleError: ErrorHandler = (err, c) => {
   }
 
   // Handle other unexpected errors
-  console.error('Unhandled API Error:', err);
+  console.error('Unhandled API Error:', err?.message || err, err?.stack);
   return c.json(
     {
       error: 'InternalServerError',

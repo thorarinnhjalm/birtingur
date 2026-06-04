@@ -159,6 +159,7 @@ async function seedPublisher() {
       blockedCategories: [],
       requireManualApproval: false,
     },
+    categories: ['taekni'],
   });
 }
 

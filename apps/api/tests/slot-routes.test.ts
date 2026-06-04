@@ -51,7 +51,6 @@ describe('Slot HTTP Routes', () => {
 
   const sampleSizes = [{ width: 300, height: 250 }];
 
-  // Helper to register publisher profile
   async function createPublisherProfile() {
     vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
     await app.request('/v1/publishers', {
@@ -65,6 +64,7 @@ describe('Slot HTTP Routes', () => {
         displayName: 'My Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       }),
     });
   }

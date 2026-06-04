@@ -94,6 +94,7 @@ describe('Authentication Middleware', () => {
         uid: 'user-123',
         email: 'user@example.is',
         admin: false,
+        scope: 'both',
       });
       expect(auth.verifyIdToken).toHaveBeenCalledWith('valid-token');
     });

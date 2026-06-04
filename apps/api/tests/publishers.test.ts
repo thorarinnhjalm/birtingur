@@ -34,6 +34,7 @@ describe('Publisher Service', () => {
         displayName: 'Test Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       });
 
       expect(pub.id).toMatch(/^pub_[a-f0-9]{24}$/);
@@ -63,6 +64,7 @@ describe('Publisher Service', () => {
           displayName: 'Test Publisher',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       ).rejects.toThrow();
     });
@@ -75,6 +77,7 @@ describe('Publisher Service', () => {
           displayName: 'Test Publisher',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,
+          categories: ['taekni'],
         }),
       ).rejects.toThrow();
     });
@@ -88,6 +91,7 @@ describe('Publisher Service', () => {
         displayName: 'Test Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       });
 
       const fetched = await getPublisherById(created.id);
@@ -110,6 +114,7 @@ describe('Publisher Service', () => {
         displayName: 'Test Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       });
 
       const fetched = await getPublisherByOwnerEmail('owner@test.is');
@@ -131,6 +136,7 @@ describe('Publisher Service', () => {
         displayName: 'Test Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       });
 
       const updated = await updatePublisher(created.id, {
@@ -154,6 +160,7 @@ describe('Publisher Service', () => {
         displayName: 'Test Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       });
 
       await expect(

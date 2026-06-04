@@ -54,6 +54,7 @@ describe('Publisher Stats HTTP Route', () => {
         displayName: 'My Publisher',
         payoutMethod: samplePayout,
         contentPolicy: samplePolicy,
+        categories: ['taekni'],
       }),
     });
     return res.json();
