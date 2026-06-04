@@ -1,16 +1,16 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { publishersRouter } from './routes/publishers';
-import { slotsRouter } from './routes/slots';
-import { advertisersRouter } from './routes/advertisers';
-import { creativesRouter } from './routes/creatives';
-import { campaignsRouter } from './routes/campaigns';
-import { slotsSearchRouter } from './routes/slots-search';
-import { walletRouter } from './routes/wallet';
-import { teyaWebhookRoute } from './routes/webhooks/teya';
-import { handleError } from './lib/errors';
-import { adminRoutes } from './routes/admin';
-import { publisherApprovalsRoutes } from './routes/publisher-approvals';
+import { publishersRouter } from './routes/publishers.js';
+import { slotsRouter } from './routes/slots.js';
+import { advertisersRouter } from './routes/advertisers.js';
+import { creativesRouter } from './routes/creatives.js';
+import { campaignsRouter } from './routes/campaigns.js';
+import { slotsSearchRouter } from './routes/slots-search.js';
+import { walletRouter } from './routes/wallet.js';
+import { teyaWebhookRoute } from './routes/webhooks/teya.js';
+import { handleError } from './lib/errors.js';
+import { adminRoutes } from './routes/admin/index.js';
+import { publisherApprovalsRoutes } from './routes/publisher-approvals.js';
 import { apiKeysRouter } from './routes/api-keys.js';
 import { widgetsRouter } from './routes/widgets.js';
 
