@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GEO_REGIONS } from '../constants.js';
+import { GEO_REGIONS, AD_CATEGORY_SLUGS } from '../constants.js';
 
 export const ScheduleSchema = z
   .object({
@@ -14,9 +14,7 @@ export type Schedule = z.infer<typeof ScheduleSchema>;
 export const GeoRegionSchema = z.enum(GEO_REGIONS);
 
 export const TargetingSchema = z.object({
-  slotIds: z.array(z.string().min(1)).min(1),
-  geoCountries: z.array(z.string().length(2)).optional(),
-  geoRegions: z.array(GeoRegionSchema).optional(),
+  categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
 });
 export type Targeting = z.infer<typeof TargetingSchema>;
 
@@ -40,8 +38,6 @@ export const CampaignStatusSchema = z.enum([
 ]);
 export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 
-export const PerPublisherApprovalSchema = z.enum(['pending', 'approved', 'rejected']);
-
 export const CampaignSchema = z.object({
   id: z.string().min(1),
   advertiserId: z.string().min(1),
@@ -50,6 +46,5 @@ export const CampaignSchema = z.object({
   schedule: ScheduleSchema,
   budget: BudgetSchema,
   status: CampaignStatusSchema,
-  perPublisherApproval: z.record(z.string(), PerPublisherApprovalSchema),
 });
 export type Campaign = z.infer<typeof CampaignSchema>;
