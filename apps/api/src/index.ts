@@ -13,6 +13,7 @@ import { adminRoutes } from './routes/admin/index.js';
 import { publisherApprovalsRoutes } from './routes/publisher-approvals.js';
 import { apiKeysRouter } from './routes/api-keys.js';
 import { widgetsRouter } from './routes/widgets.js';
+import { categoriesRouter } from './routes/categories.js';
 
 export const app = new Hono();
 
@@ -43,5 +44,6 @@ app.route('/v1/admin', adminRoutes);
 app.route('/v1/publishers/me', publisherApprovalsRoutes);
 app.route('/v1/api-keys', apiKeysRouter);
 app.route('/v1/widgets', widgetsRouter);
+app.route('/v1/categories', categoriesRouter);
 
 export default app;
