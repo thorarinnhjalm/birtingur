@@ -1,4 +1,4 @@
-import type { CheckoutSession, TeyaClient } from './index';
+import type { CheckoutSession, TeyaClient } from './index.js';
 
 export class HttpTeyaClient implements TeyaClient {
   constructor(

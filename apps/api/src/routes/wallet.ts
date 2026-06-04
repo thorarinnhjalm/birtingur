@@ -1,11 +1,11 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'crypto';
-import { requireAuth, type Env } from '../lib/auth';
-import { getAdvertiserByOwnerEmail } from '../services/advertisers';
-import { getWallet } from '../services/wallet';
-import { StubTeyaClient, HttpTeyaClient } from '../services/teya';
-import type { TeyaClient } from '../services/teya';
-import { AppError } from '../lib/errors';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
+import { getWallet } from '../services/wallet.js';
+import { StubTeyaClient, HttpTeyaClient } from '../services/teya/index.js';
+import type { TeyaClient } from '../services/teya/index.js';
+import { AppError } from '../lib/errors.js';
 
 function getTeya(): TeyaClient {
   if (process.env.TEYA_API_KEY) return new HttpTeyaClient(process.env.TEYA_API_KEY);

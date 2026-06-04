@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 
 export interface CampaignStatsResponse {
   impressions: number;

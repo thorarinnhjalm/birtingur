@@ -2,13 +2,13 @@ import { z } from 'zod';
 import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { CampaignSchema } from '@ada/shared';
 import type { Campaign, CampaignStatus } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { generateId } from '../lib/id';
-import { AppError } from '../lib/errors';
-import { getCreative } from './creatives';
-import { getSlot } from './slots';
-import { getPublisherById } from './publishers';
-import { pushCacheForCampaign } from '../lib/push-cache';
+import { db } from '../lib/firebase.js';
+import { generateId } from '../lib/id.js';
+import { AppError } from '../lib/errors.js';
+import { getCreative } from './creatives.js';
+import { getSlot } from './slots.js';
+import { getPublisherById } from './publishers.js';
+import { pushCacheForCampaign } from '../lib/push-cache.js';
 
 const CreateCampaignInputSchema = z.object({
   name: z.string().min(1).max(120).optional(),

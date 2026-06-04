@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers';
-import { getPublisherStats } from '../services/publisher-stats';
-import { AppError } from '../lib/errors';
-import { scrapeAndClassifyDomain } from '../services/domain-classifier';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers.js';
+import { getPublisherStats } from '../services/publisher-stats.js';
+import { AppError } from '../lib/errors.js';
+import { scrapeAndClassifyDomain } from '../services/domain-classifier.js';
 import {
   getOrCreateWidgetKey,
   getWidgetKeyByTargetId,

@@ -1,5 +1,5 @@
-import { db } from './firebase';
-import { getRedis } from './redis';
+import { db } from './firebase.js';
+import { getRedis } from './redis.js';
 import {
   COLLECTIONS,
   slotConverter,

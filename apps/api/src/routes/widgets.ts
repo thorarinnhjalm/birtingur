@@ -3,7 +3,7 @@ import { verifyWidgetKey, type WidgetKeyRecord } from '../services/widget-keys.j
 import { getPublisherStats } from '../services/publisher-stats.js';
 import { listPublisherQueue, publisherReview } from '../services/approvals.js';
 import { getCampaignStats } from '../services/campaign-stats.js';
-import { AppError } from '../lib/errors';
+import { AppError } from '../lib/errors.js';
 
 export interface WidgetEnv {
   Variables: {

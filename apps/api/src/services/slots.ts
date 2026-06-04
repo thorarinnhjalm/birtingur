@@ -1,11 +1,11 @@
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
 import { SlotSchema } from '@ada/shared/schemas';
 import type { Slot } from '@ada/shared/types';
-import { generateId } from '../lib/id';
-import { AppError } from '../lib/errors';
-import { generateSnippet } from '../lib/snippet';
-import { pushSlotCache } from '../lib/push-cache';
+import { generateId } from '../lib/id.js';
+import { AppError } from '../lib/errors.js';
+import { generateSnippet } from '../lib/snippet.js';
+import { pushSlotCache } from '../lib/push-cache.js';
 
 export async function createSlot(input: {
   publisherId: string;

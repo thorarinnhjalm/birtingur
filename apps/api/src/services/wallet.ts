@@ -1,8 +1,8 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { appendLedger, sumByParty } from './ledger';
-import { AppError } from '../lib/errors';
+import { db } from '../lib/firebase.js';
+import { appendLedger, sumByParty } from './ledger.js';
+import { AppError } from '../lib/errors.js';
 
 export interface Wallet {
   advertiserId: string;

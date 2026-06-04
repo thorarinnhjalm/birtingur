@@ -1,8 +1,8 @@
 import { COLLECTIONS, ledgerEntryConverter } from '@ada/shared/firestore';
 import { LedgerEntrySchema } from '@ada/shared';
 import type { LedgerEntry, LedgerParty, LedgerEntryType } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { generateId } from '../lib/id';
+import { db } from '../lib/firebase.js';
+import { generateId } from '../lib/id.js';
 
 export interface AppendInput {
   party: LedgerParty;

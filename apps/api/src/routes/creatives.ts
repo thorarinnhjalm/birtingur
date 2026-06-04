@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { getAdvertiserByOwnerEmail } from '../services/advertisers';
-import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives';
-import { StubAutoScanner } from '../services/auto-scan/stub';
-import { AppError } from '../lib/errors';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
+import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives.js';
+import { StubAutoScanner } from '../services/auto-scan/stub.js';
+import { AppError } from '../lib/errors.js';
 
 const scanner = new StubAutoScanner();
 

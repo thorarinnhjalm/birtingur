@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { searchSlots } from '../services/slot-search';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { searchSlots } from '../services/slot-search.js';
 
 export const slotsSearchRouter = new Hono<Env>();
 slotsSearchRouter.use('*', requireAuth);

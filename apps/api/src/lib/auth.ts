@@ -1,4 +1,4 @@
-import { auth } from './firebase';
+import { auth } from './firebase.js';
 import type { MiddlewareHandler } from 'hono';
 
 export interface UserContext {

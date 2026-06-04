@@ -13,5 +13,5 @@ export interface TeyaClient {
   }): Promise<CheckoutSession>;
 }
 
-export { StubTeyaClient } from './stub';
-export { HttpTeyaClient } from './http';
+export { StubTeyaClient } from './stub.js';
+export { HttpTeyaClient } from './http.js';

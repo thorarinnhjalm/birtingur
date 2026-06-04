@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { parseTeyaEvent, verifyTeyaSignature } from '../../services/teya/webhook';
-import { topUp } from '../../services/wallet';
+import { parseTeyaEvent, verifyTeyaSignature } from '../../services/teya/webhook.js';
+import { topUp } from '../../services/wallet.js';
 
 export const teyaWebhookRoute = new Hono();
 

@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { getAdvertiserByOwnerEmail } from '../services/advertisers';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import {
   createCampaign,
   getCampaign,
   listCampaignsForAdvertiser,
   updateCampaign,
-} from '../services/campaigns';
-import { getCampaignStats } from '../services/campaign-stats';
-import { AppError } from '../lib/errors';
+} from '../services/campaigns.js';
+import { getCampaignStats } from '../services/campaign-stats.js';
+import { AppError } from '../lib/errors.js';
 import {
   getOrCreateWidgetKey,
   getWidgetKeyByTargetId,

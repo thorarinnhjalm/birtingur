@@ -2,9 +2,9 @@ import { z } from 'zod';
 import { COLLECTIONS, advertiserConverter } from '@ada/shared/firestore';
 import { AdvertiserSchema } from '@ada/shared';
 import type { Advertiser } from '@ada/shared/types';
-import { db } from '../lib/firebase';
-import { generateId } from '../lib/id';
-import { AppError } from '../lib/errors';
+import { db } from '../lib/firebase.js';
+import { generateId } from '../lib/id.js';
+import { AppError } from '../lib/errors.js';
 
 const CreateAdvertiserSchema = z.object({
   ownerEmail: z.string().email(),

@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { getPublisherByOwnerEmail } from '../services/publishers';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { getPublisherByOwnerEmail } from '../services/publishers.js';
 import {
   createSlot,
   getSlot,
   listSlotsForPublisher,
   updateSlot,
   getSnippetForSlot,
-} from '../services/slots';
-import { AppError } from '../lib/errors';
+} from '../services/slots.js';
+import { AppError } from '../lib/errors.js';
 
 export const slotsRouter = new Hono<Env>();
 

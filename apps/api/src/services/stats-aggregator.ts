@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 

@@ -17,4 +17,4 @@ export interface AutoScanner {
   scan(input: ScanInput): Promise<ScanReturn>;
 }
 
-export { StubAutoScanner } from './stub';
+export { StubAutoScanner } from './stub.js';

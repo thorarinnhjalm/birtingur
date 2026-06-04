@@ -1,6 +1,6 @@
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
 import type { Slot } from '@ada/shared/types';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 
 export interface SearchFilters {
   width?: number;

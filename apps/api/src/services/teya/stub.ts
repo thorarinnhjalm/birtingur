@@ -1,6 +1,6 @@
-import type { CheckoutSession, TeyaClient } from './index';
+import type { CheckoutSession, TeyaClient } from './index.js';
 import { randomBytes } from 'crypto';
-import { topUp } from '../wallet';
+import { topUp } from '../wallet.js';
 
 export class StubTeyaClient implements TeyaClient {
   async createCheckoutSession(opts: {

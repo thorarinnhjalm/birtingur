@@ -1,6 +1,6 @@
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { listCampaignsForAdvertiser } from './campaigns';
+import { listCampaignsForAdvertiser } from './campaigns.js';
 
 export interface AdvertiserStatsResponse {
   impressions: number;

@@ -1,7 +1,7 @@
-import { getRedis } from '../lib/redis';
+import { getRedis } from '../lib/redis.js';
 import { COLLECTIONS, campaignConverter, slotConverter } from '@ada/shared/firestore';
-import { db } from '../lib/firebase';
-import { chargeCampaign, creditPublisher } from './wallet';
+import { db } from '../lib/firebase.js';
+import { chargeCampaign, creditPublisher } from './wallet.js';
 
 interface QueuedEvent {
   type: 'impression' | 'click';

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { requireAdmin, requireAuth } from '../../lib/auth';
-import type { Env } from '../../lib/auth';
-import { adminReview, listAdminQueue } from '../../services/approvals';
+import { requireAdmin, requireAuth } from '../../lib/auth.js';
+import type { Env } from '../../lib/auth.js';
+import { adminReview, listAdminQueue } from '../../services/approvals.js';
 
 export const adminReviewRoutes = new Hono<Env>();
 adminReviewRoutes.use('/*', requireAuth, requireAdmin);

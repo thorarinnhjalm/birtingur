@@ -1,4 +1,4 @@
-import type { AutoScanner, ScanInput, ScanReturn } from './index';
+import type { AutoScanner, ScanInput, ScanReturn } from './index.js';
 
 const BLOCKED_TERMS = [
   'casino',

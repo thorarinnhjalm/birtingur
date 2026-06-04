@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { COLLECTIONS, creativeConverter } from '@ada/shared/firestore';
 import { CreativeSchema } from '@ada/shared';
 import type { Creative, ReviewStatus } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { generateId } from '../lib/id';
-import { AppError } from '../lib/errors';
-import type { AutoScanner } from './auto-scan';
+import { db } from '../lib/firebase.js';
+import { generateId } from '../lib/id.js';
+import { AppError } from '../lib/errors.js';
+import type { AutoScanner } from './auto-scan/index.js';
 
 const CreateCreativeInputSchema = z.object({
   imageUrl: z.string().url(),

@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
-import { requireAuth } from '../lib/auth';
-import type { Env } from '../lib/auth';
-import { AppError } from '../lib/errors';
-import { getPublisherByOwnerEmail } from '../services/publishers';
-import { listPublisherQueue, publisherReview } from '../services/approvals';
+import { requireAuth } from '../lib/auth.js';
+import type { Env } from '../lib/auth.js';
+import { AppError } from '../lib/errors.js';
+import { getPublisherByOwnerEmail } from '../services/publishers.js';
+import { listPublisherQueue, publisherReview } from '../services/approvals.js';
 
 export const publisherApprovalsRoutes = new Hono<Env>();
 publisherApprovalsRoutes.use('/*', requireAuth);

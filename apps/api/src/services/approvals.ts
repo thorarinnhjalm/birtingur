@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { COLLECTIONS, creativeConverter, campaignConverter } from '@ada/shared/firestore';
 import type { Creative, Campaign } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { AppError } from '../lib/errors';
-import { updateCreativeReview, requireCreative } from './creatives';
-import { pushCacheForCampaign } from '../lib/push-cache';
-import { refundCampaign } from './wallet';
+import { db } from '../lib/firebase.js';
+import { AppError } from '../lib/errors.js';
+import { updateCreativeReview, requireCreative } from './creatives.js';
+import { pushCacheForCampaign } from '../lib/push-cache.js';
+import { refundCampaign } from './wallet.js';
 
 export async function listAdminQueue(limit = 50): Promise<Creative[]> {
   const snap = await db

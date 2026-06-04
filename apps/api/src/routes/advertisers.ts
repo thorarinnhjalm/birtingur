@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth';
-import { createAdvertiser, getAdvertiserByOwnerEmail } from '../services/advertisers';
-import { getAdvertiserStats } from '../services/advertiser-stats';
-import { AppError } from '../lib/errors';
+import { requireAuth, type Env } from '../lib/auth.js';
+import { createAdvertiser, getAdvertiserByOwnerEmail } from '../services/advertisers.js';
+import { getAdvertiserStats } from '../services/advertiser-stats.js';
+import { AppError } from '../lib/errors.js';
 
 export const advertisersRouter = new Hono<Env>();
 advertisersRouter.use('*', requireAuth);

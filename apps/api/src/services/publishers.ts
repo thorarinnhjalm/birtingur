@@ -1,9 +1,9 @@
-import { db } from '../lib/firebase';
+import { db } from '../lib/firebase.js';
 import { COLLECTIONS, publisherConverter } from '@ada/shared/firestore';
 import { PublisherSchema } from '@ada/shared/schemas';
 import type { Publisher } from '@ada/shared/types';
-import { generateId } from '../lib/id';
-import { AppError } from '../lib/errors';
+import { generateId } from '../lib/id.js';
+import { AppError } from '../lib/errors.js';
 
 export async function createPublisher(input: {
   ownerEmail: string;

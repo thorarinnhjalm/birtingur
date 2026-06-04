@@ -1,10 +1,10 @@
 import { COLLECTIONS, payoutConverter, ledgerEntryConverter } from '@ada/shared/firestore';
 import { PayoutSchema, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import type { Payout } from '@ada/shared';
-import { db } from '../lib/firebase';
-import { generateId } from '../lib/id';
-import { appendLedger } from './ledger';
-import { AppError } from '../lib/errors';
+import { db } from '../lib/firebase.js';
+import { generateId } from '../lib/id.js';
+import { appendLedger } from './ledger.js';
+import { AppError } from '../lib/errors.js';
 
 export async function generateMonthlyPayouts(
   periodStart: Date,

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { requireAdmin, requireAuth } from '../../lib/auth';
-import type { Env } from '../../lib/auth';
-import { listPendingPayouts, markPayoutCompleted } from '../../services/payouts';
+import { requireAdmin, requireAuth } from '../../lib/auth.js';
+import type { Env } from '../../lib/auth.js';
+import { listPendingPayouts, markPayoutCompleted } from '../../services/payouts.js';
 
 export const adminPayoutsRoutes = new Hono<Env>();
 adminPayoutsRoutes.use('/*', requireAuth, requireAdmin);

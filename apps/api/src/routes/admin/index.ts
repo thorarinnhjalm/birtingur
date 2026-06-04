@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { requireAdmin, requireAuth, type Env } from '../../lib/auth';
-import { getAdminStats } from '../../services/admin-stats';
-import { adminReviewRoutes } from './review';
-import { adminPayoutsRoutes } from './payouts';
+import { requireAdmin, requireAuth, type Env } from '../../lib/auth.js';
+import { getAdminStats } from '../../services/admin-stats.js';
+import { adminReviewRoutes } from './review.js';
+import { adminPayoutsRoutes } from './payouts.js';
 
 export const adminRoutes = new Hono<Env>();
 
