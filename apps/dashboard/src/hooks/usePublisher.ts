@@ -23,6 +23,8 @@ export function useCreatePublisher() {
         accountHolder: string;
       };
       minimumPayoutIsk: number;
+      integrationPreference?: 'widget' | 'mcp' | 'both';
+      estimatedSlotsCount?: number;
     }) =>
       apiFetch<{ publisher: Publisher }>('/v1/publishers', {
         method: 'POST',

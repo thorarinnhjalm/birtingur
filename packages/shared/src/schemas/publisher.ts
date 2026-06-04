@@ -53,6 +53,8 @@ export const PublisherSchema = z.object({
   contentPolicy: ContentPolicySchema,
   status: PublisherStatusSchema,
   createdAt: z.date(),
+  integrationPreference: z.enum(['widget', 'mcp', 'both']).default('widget'),
+  estimatedSlotsCount: z.number().int().nonnegative().optional(),
 });
 export type Publisher = z.infer<typeof PublisherSchema>;
 

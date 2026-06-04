@@ -11,6 +11,8 @@ export async function createPublisher(input: {
   displayName: string;
   payoutMethod: any;
   contentPolicy: any;
+  integrationPreference?: 'widget' | 'mcp' | 'both';
+  estimatedSlotsCount?: number;
 }): Promise<Publisher> {
   const id = generateId('pub');
   const publisherData = {
@@ -22,6 +24,8 @@ export async function createPublisher(input: {
     contentPolicy: input.contentPolicy,
     status: 'active' as const,
     createdAt: new Date(),
+    integrationPreference: input.integrationPreference ?? 'widget',
+    estimatedSlotsCount: input.estimatedSlotsCount,
   };
 
   // Validate using Zod schema

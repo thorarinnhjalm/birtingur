@@ -56,6 +56,8 @@ publishersRouter.post('/', async (c) => {
     displayName: body.displayName,
     payoutMethod,
     contentPolicy,
+    integrationPreference: body.integrationPreference,
+    estimatedSlotsCount: body.estimatedSlotsCount,
   });
 
   // Automatically provision the default widget key
