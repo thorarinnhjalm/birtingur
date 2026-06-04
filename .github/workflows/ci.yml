@@ -56,6 +56,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Build shared package
+        run: pnpm --filter @ada/shared build
+
       - name: Setup Java (required for Firebase emulators)
         uses: actions/setup-java@v4
         with:
