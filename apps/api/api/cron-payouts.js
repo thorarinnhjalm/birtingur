@@ -2,7 +2,7 @@ import { generateMonthlyPayouts } from '../dist/src/services/payouts.js';
 
 export const config = { runtime: 'nodejs' };
 
-export default async function handler(req) {
+export async function GET(req) {
   if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('forbidden', { status: 403 });
   }
