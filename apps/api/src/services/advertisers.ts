@@ -9,7 +9,10 @@ import { AppError } from '../lib/errors.js';
 const CreateAdvertiserSchema = z.object({
   ownerEmail: z.string().email(),
   companyName: z.string().min(1).max(200),
-  kennitala: z.string().transform((val) => val.replace(/[-\s]/g, '')).pipe(z.string().regex(/^\d{10}$/)),
+  kennitala: z
+    .string()
+    .transform((val) => val.replace(/[-\s]/g, ''))
+    .pipe(z.string().regex(/^\d{10}$/)),
   vatNumber: z.string().min(1).max(20),
 });
 

@@ -65,7 +65,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   try {
     const decodedToken = await auth.verifyIdToken(token);
     const email = decodedToken.email || '';
-    
+
     const adminEmails = (process.env.ADMIN_EMAILS || '')
       .split(',')
       .map((e) => e.trim().toLowerCase())

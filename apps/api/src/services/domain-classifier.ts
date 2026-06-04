@@ -199,7 +199,9 @@ function classifyLocal(
     }
   }
 
-  const fallbackCategory = allowedCategories.includes('other') ? 'other' : allowedCategories[0] || 'other';
+  const fallbackCategory = allowedCategories.includes('other')
+    ? 'other'
+    : allowedCategories[0] || 'other';
   return {
     category: fallbackCategory,
     confidence: 0.4,
@@ -220,7 +222,8 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ADA-AdPlatform-Scraper/1.0',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ADA-AdPlatform-Scraper/1.0',
         },
         signal: AbortSignal.timeout(6000),
       });
@@ -244,12 +247,14 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     title = titleMatch?.[1] ? titleMatch[1].trim() : '';
 
-    const descMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
+    const descMatch =
+      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i) ||
       html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
     description = descMatch?.[1] ? descMatch[1].trim() : '';
 
-    const kwMatch = html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i) ||
+    const kwMatch =
+      html.match(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i) ||
       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']keywords["']/i);
     keywords = kwMatch?.[1] ? kwMatch[1].trim() : '';
   }

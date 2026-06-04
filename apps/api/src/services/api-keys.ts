@@ -63,10 +63,7 @@ export async function revokeApiKey(id: string): Promise<void> {
 }
 
 export async function listApiKeys(ownerEmail: string): Promise<Omit<ApiKeyRecord, 'hash'>[]> {
-  const snap = await db
-    .collection(KEY_COLLECTION)
-    .where('ownerEmail', '==', ownerEmail)
-    .get();
+  const snap = await db.collection(KEY_COLLECTION).where('ownerEmail', '==', ownerEmail).get();
 
   return snap.docs.map((doc) => {
     const data = doc.data();
@@ -82,4 +79,3 @@ export async function listApiKeys(ownerEmail: string): Promise<Omit<ApiKeyRecord
     } as any;
   });
 }
-

@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const tokenResult = await u.getIdTokenResult(true); // force refresh to get latest claims
           const email = u.email || '';
-          
+
           const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
             .split(',')
             .map((e: string) => e.trim().toLowerCase())

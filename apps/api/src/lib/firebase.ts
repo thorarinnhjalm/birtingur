@@ -29,8 +29,8 @@ function init() {
     if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
       throw new Error(
         `Firebase Admin SDK initialization failed: Missing environment variables. ` +
-        `Ensure FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID are configured in Vercel settings. ` +
-        `Received: projectId=${projectId}, clientEmail=${clientEmail}, privateKeyLength=${privateKey ? privateKey.length : 0}`
+          `Ensure FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL, and FIREBASE_PROJECT_ID are configured in Vercel settings. ` +
+          `Received: projectId=${projectId}, clientEmail=${clientEmail}, privateKeyLength=${privateKey ? privateKey.length : 0}`,
       );
     }
 

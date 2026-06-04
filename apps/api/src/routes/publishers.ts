@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
-import { createPublisher, getPublisherByOwnerEmail, updatePublisher } from '../services/publishers.js';
+import {
+  createPublisher,
+  getPublisherByOwnerEmail,
+  updatePublisher,
+} from '../services/publishers.js';
 import { getPublisherStats } from '../services/publisher-stats.js';
 import { AppError } from '../lib/errors.js';
 import { scrapeAndClassifyDomain } from '../services/domain-classifier.js';

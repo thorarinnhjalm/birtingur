@@ -80,7 +80,6 @@ export default function Settings() {
     }
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);

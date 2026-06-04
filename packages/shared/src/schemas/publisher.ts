@@ -4,7 +4,8 @@ import { z } from 'zod';
  * Icelandic kennitala: 10 digits.
  * (We accept the canonical form without dash; UI may format with dash.)
  */
-const KennitalaSchema = z.string()
+const KennitalaSchema = z
+  .string()
   .transform((val) => val.replace(/[-\s]/g, ''))
   .pipe(z.string().regex(/^\d{10}$/, 'Kennitala must be exactly 10 digits'));
 
@@ -12,15 +13,17 @@ const KennitalaSchema = z.string()
  * IBAN or 12-digit Icelandic bank account number.
  * We strip spaces and hyphens before validating.
  */
-const IbanSchema = z.string()
+const IbanSchema = z
+  .string()
   .transform((val) => val.replace(/[-\s]/g, '').toUpperCase())
   .pipe(
-    z.string().refine(
-      (val) => /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(val) || /^\d{12}$/.test(val),
-      'Invalid bank format. Please enter a valid 12-digit Icelandic bank account or an IBAN.'
-    )
+    z
+      .string()
+      .refine(
+        (val) => /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(val) || /^\d{12}$/.test(val),
+        'Invalid bank format. Please enter a valid 12-digit Icelandic bank account or an IBAN.',
+      ),
   );
-
 
 const DomainSchema = z.string().regex(/^([a-z0-9](-?[a-z0-9])*\.)+[a-z]{2,}$/i, 'Invalid domain');
 

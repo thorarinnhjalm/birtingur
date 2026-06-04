@@ -134,4 +134,3 @@ describe('API Key Authentication & Management', () => {
     expect(keys.every((k) => (k as any).hash === undefined)).toBe(true);
   });
 });
-

@@ -12,7 +12,6 @@ apiKeysRouter.get('/', async (c) => {
 });
 
 apiKeysRouter.post('/', async (c) => {
-
   const user = c.get('user');
   const body = (await c.req.json().catch(() => ({}))) as {
     scope?: 'advertiser' | 'publisher' | 'both';
