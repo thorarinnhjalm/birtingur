@@ -70,7 +70,7 @@ export default function SlotDetail() {
                 {formatIsk(
                   slot.pricing.mode === 'cpm' ? slot.pricing.cpmIsk : slot.pricing.slotPriceIsk,
                 )}{' '}
-                {slot.pricing.mode === 'cpm' ? 'CPM' : 'á viku'}
+                {slot.pricing.mode === 'cpm' ? 'CPM' : `fyrir ${slot.pricing.slotPeriodDays} daga`}
               </span>
             </div>
             <div>

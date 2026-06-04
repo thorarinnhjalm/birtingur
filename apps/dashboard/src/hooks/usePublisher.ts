@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-import type { Publisher, Slot } from '@ada/shared';
+import type { Publisher, Slot, Pricing } from '@ada/shared';
 
 export function usePublisher() {
   return useQuery({
@@ -59,10 +59,7 @@ export function useCreateSlot() {
     mutationFn: (input: {
       name: string;
       sizes: { width: number; height: number }[];
-      pricing: {
-        mode: 'cpm';
-        cpmIsk: number;
-      };
+      pricing: Pricing;
       targeting: {
         regions?: string[];
         categories?: string[];
