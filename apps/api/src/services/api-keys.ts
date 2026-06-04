@@ -61,3 +61,25 @@ export async function verifyApiKey(key: string): Promise<ApiKeyRecord | null> {
 export async function revokeApiKey(id: string): Promise<void> {
   await db.collection(KEY_COLLECTION).doc(id).update({ revoked: true });
 }
+
+export async function listApiKeys(ownerEmail: string): Promise<Omit<ApiKeyRecord, 'hash'>[]> {
+  const snap = await db
+    .collection(KEY_COLLECTION)
+    .where('ownerEmail', '==', ownerEmail)
+    .get();
+
+  return snap.docs.map((doc) => {
+    const data = doc.data();
+    const { hash, ...rest } = data;
+    return {
+      ...rest,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+      lastUsedAt: data.lastUsedAt?.toDate
+        ? data.lastUsedAt.toDate()
+        : data.lastUsedAt
+          ? new Date(data.lastUsedAt)
+          : undefined,
+    } as any;
+  });
+}
+

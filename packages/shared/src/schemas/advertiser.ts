@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-const KennitalaSchema = z.string().regex(/^\d{10}$/);
+const KennitalaSchema = z.string()
+  .transform((val) => val.replace(/[-\s]/g, ''))
+  .pipe(z.string().regex(/^\d{10}$/));
+
 
 export const AdvertiserStatusSchema = z.enum(['active', 'suspended']);
 export type AdvertiserStatus = z.infer<typeof AdvertiserStatusSchema>;

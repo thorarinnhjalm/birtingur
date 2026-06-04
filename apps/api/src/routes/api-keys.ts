@@ -1,11 +1,18 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
-import { issueApiKey, revokeApiKey } from '../services/api-keys.js';
+import { issueApiKey, revokeApiKey, listApiKeys } from '../services/api-keys.js';
 
 export const apiKeysRouter = new Hono<Env>();
 apiKeysRouter.use('*', requireAuth);
 
+apiKeysRouter.get('/', async (c) => {
+  const user = c.get('user');
+  const keys = await listApiKeys(user.email);
+  return c.json(keys);
+});
+
 apiKeysRouter.post('/', async (c) => {
+
   const user = c.get('user');
   const body = (await c.req.json().catch(() => ({}))) as {
     scope?: 'advertiser' | 'publisher' | 'both';

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { apiFetch } from '@/lib/api';
-import { Check, ShieldAlert } from 'lucide-react';
+import { Check, ShieldAlert, Copy, Trash2, Key, AlertTriangle, Plus } from 'lucide-react';
 
 export default function Settings() {
   const { data: advertiser, isLoading, refetch } = useAdvertiser();
@@ -16,13 +16,70 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(false);
+  const [newKey, setNewKey] = useState<string | null>(null);
+  const [generatingKey, setGeneratingKey] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
+
+  const fetchApiKeys = async () => {
+    setLoadingKeys(true);
+    try {
+      const keys = await apiFetch<any[]>('/v1/api-keys');
+      // Show non-revoked keys first
+      setApiKeys(keys.filter((k) => !k.revoked));
+    } catch (err) {
+      console.error('Ekki tókst að sækja API lykla:', err);
+    } finally {
+      setLoadingKeys(false);
+    }
+  };
+
   useEffect(() => {
     if (advertiser) {
       setCompanyName(advertiser.companyName);
       setBillingEmail(advertiser.ownerEmail);
       setVatNumber(advertiser.vatNumber);
+      fetchApiKeys();
     }
   }, [advertiser]);
+
+  const handleGenerateKey = async () => {
+    setGeneratingKey(true);
+    setNewKey(null);
+    try {
+      const res = await apiFetch<{ apiKey: string; apiKeyId: string }>('/v1/api-keys', {
+        method: 'POST',
+        body: JSON.stringify({ scope: 'advertiser' }),
+      });
+      setNewKey(res.apiKey);
+      fetchApiKeys();
+    } catch (err: any) {
+      alert(err.message || 'Ekki tókst að búa til API lykil.');
+    } finally {
+      setGeneratingKey(false);
+    }
+  };
+
+  const handleRevokeKey = async (id: string) => {
+    if (
+      !window.confirm(
+        'Ertu viss um að þú viljir afturkalla þennan API lykil? Þessi aðgerð er óafturkræf og öll kerfi eða fulltrúar sem nota hann munu hætta að virka strax.',
+      )
+    ) {
+      return;
+    }
+    try {
+      await apiFetch(`/v1/api-keys/${id}`, {
+        method: 'DELETE',
+      });
+      fetchApiKeys();
+    } catch (err: any) {
+      alert(err.message || 'Ekki tókst að afturkalla API lykil.');
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +177,132 @@ export default function Settings() {
             </div>
           </div>
         </form>
+      </Card>
+
+      {/* API Tengingar (API Access) */}
+      <Card className="p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Key size={20} className="text-blue-600" />
+            <span>API Tengingar (API Access)</span>
+          </h3>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Búðu til API lykla til að tengja gervigreindarfulltrúa og ytri kerfi (t.d. Datera) við
+            ADA reikninginn þinn.
+          </p>
+        </div>
+
+        {newKey && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-xl space-y-3">
+            <div className="flex items-start gap-3">
+              <Check size={18} className="text-green-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-green-900">
+                  API lykill hefur verið búinn til!
+                </h4>
+                <p className="text-xs text-green-800/90 mt-1 leading-relaxed">
+                  Afritaðu lykilinn og geymdu hann á öruggum stað. Af öryggisástæðum verður hann{' '}
+                  <strong>ekki sýndur aftur</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="font-mono text-xs bg-white text-slate-800 p-2.5 rounded-lg border border-green-200 grow select-all break-all font-semibold">
+                {newKey}
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(newKey);
+                  setCopiedKey(true);
+                  setTimeout(() => setCopiedKey(false), 2000);
+                }}
+                className="px-3 shrink-0"
+              >
+                {copiedKey ? (
+                  <Check size={16} className="text-green-600 font-bold" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4 pt-3 border-t border-slate-100">
+          <div className="flex justify-between items-center">
+            <h4 className="font-bold text-sm text-slate-800">Virkir lyklar ({apiKeys.length})</h4>
+            <Button
+              type="button"
+              onClick={handleGenerateKey}
+              disabled={generatingKey}
+              className="text-xs py-1.5 px-3 flex items-center gap-1 font-bold"
+            >
+              <Plus size={14} />
+              <span>Nýr API lykill</span>
+            </Button>
+          </div>
+
+          {loadingKeys ? (
+            <div className="text-slate-500 text-xs py-4 text-center">Hleð API lyklum...</div>
+          ) : apiKeys.length === 0 ? (
+            <div className="text-slate-400 text-xs py-6 text-center border border-dashed border-slate-200 rounded-xl">
+              Engir virkir API lyklar fundust. Búðu til nýjan lykil til að tengja ytri kerfi.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
+                    <th className="py-2.5 font-bold">Lykilauðkenni (ID)</th>
+                    <th className="py-2.5 font-bold">Umfang (Scope)</th>
+                    <th className="py-2.5 font-bold">Stofnaður</th>
+                    <th className="py-2.5 font-bold">Síðast notaður</th>
+                    <th className="py-2.5 text-right font-bold">Aðgerðir</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                  {apiKeys.map((key) => (
+                    <tr key={key.id} className="hover:bg-slate-50/50">
+                      <td className="py-3 font-mono font-semibold">{key.id}</td>
+                      <td className="py-3 capitalize text-slate-600 font-semibold">
+                        {key.scope === 'both'
+                          ? 'Allt'
+                          : key.scope === 'advertiser'
+                            ? 'Auglýsandi'
+                            : 'Útgefandi'}
+                      </td>
+                      <td className="py-3">
+                        {new Date(key.createdAt).toLocaleDateString('is-IS')}
+                      </td>
+                      <td className="py-3">
+                        {key.lastUsedAt
+                          ? new Date(key.lastUsedAt).toLocaleDateString('is-IS') +
+                            ' ' +
+                            new Date(key.lastUsedAt).toLocaleTimeString('is-IS', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'Aldrei'}
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeKey(key.id)}
+                          className="text-red-600 hover:text-red-800 transition flex items-center gap-1 ml-auto font-bold"
+                        >
+                          <Trash2 size={14} />
+                          <span>Afturkalla</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </Card>
 
       {/* Danger Zone */}

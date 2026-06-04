@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { requireAuth } from '../src/lib/auth.js';
-import { issueApiKey, verifyApiKey, revokeApiKey } from '../src/services/api-keys.js';
+import { issueApiKey, verifyApiKey, revokeApiKey, listApiKeys } from '../src/services/api-keys.js';
 import { apiKeysRouter } from '../src/routes/api-keys.js';
 import { db } from '../src/lib/firebase.js';
 
@@ -24,6 +24,17 @@ vi.mock('../src/lib/firebase.js', () => {
               store[id] = { ...store[id], ...val };
             }
             return {};
+          },
+        }),
+        where: (field: string, op: string, value: any) => ({
+          get: async () => {
+            const docs = Object.values(store)
+              .filter((item) => item && item[field] === value)
+              .map((item) => ({
+                exists: true,
+                data: () => item,
+              }));
+            return { docs };
           },
         }),
       }),
@@ -110,4 +121,17 @@ describe('API Key Authentication & Management', () => {
     });
     expect(res.status).toBe(401);
   });
+
+  it('can list API keys for a user', async () => {
+    const email = 'list-user@example.is';
+    await issueApiKey(email, 'advertiser');
+    await issueApiKey(email, 'publisher');
+
+    const keys = await listApiKeys(email);
+    expect(keys.length).toBe(2);
+    expect(keys.find((k) => k.scope === 'advertiser')).toBeDefined();
+    expect(keys.find((k) => k.scope === 'publisher')).toBeDefined();
+    expect(keys.every((k) => (k as any).hash === undefined)).toBe(true);
+  });
 });
+
