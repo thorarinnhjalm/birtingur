@@ -1,12 +1,31 @@
+import { useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import type { ReactNode } from 'react';
 
 export interface SidebarItem {
   to: string;
   label: string;
   icon: string | ReactNode;
 }
+
+const FAQS = [
+  {
+    q: 'Hvernig virka flokkatengd netkaup?',
+    a: 'Auglýsendur velja þá efnisflokka sem lýsa markhópnum best (t.d. Tækni, Íþróttir, Matur) í stað þess að velja stök pláss. Kerfið birtir auglýsingarnar sjálfkrafa á öllum viðeigandi plássum útgefenda í þeim flokkum.',
+  },
+  {
+    q: 'Hvert er verðlagið á birtingum?',
+    a: 'Birtingur styðst við fast verðlag upp á 550 kr. CPM (fyrir hverjar 1000 birtingar) fyrir allar herferðir og pláss á vettvangnum. Þetta tryggir gagnsæi og einfaldleika í reikningum.',
+  },
+  {
+    q: 'Hvernig virka greiðslur og veskið?',
+    a: 'Auglýsendur geta sett inn inneign í veskið sitt með greiðslukorti í gegnum örugga Teya-greiðslugátt. Útgefendur safna tekjum og fá greitt mánaðarlega inn á bankareikning þegar inneignin nær 5.000 kr.',
+  },
+  {
+    q: 'Hvernig eru auglýsingar samþykktar?',
+    a: 'Allt auglýsingaefni (creatives) fer í gegnum sjálfvirka gervigreindargreiningu við upphleðslu. Herferðir virkjast sjálfkrafa þegar efnið er samþykkt og herferðin á virka áætlun.',
+  },
+];
 
 export function Sidebar({
   items,
@@ -17,6 +36,7 @@ export function Sidebar({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const isAdvertiser = location.pathname.startsWith('/advertiser');
   const isPublisher = location.pathname.startsWith('/publisher');
@@ -96,14 +116,65 @@ export function Sidebar({
           <span className="material-symbols-outlined">settings</span>
           <span className="text-label-md">Stillingar</span>
         </NavLink>
-        <a
-          href="#"
-          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-on-secondary-fixed-variant hover:bg-secondary-container/50"
+        <button
+          onClick={() => setIsHelpOpen(true)}
+          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-on-secondary-fixed-variant hover:bg-secondary-container/50 w-full text-left cursor-pointer"
         >
           <span className="material-symbols-outlined">help</span>
           <span className="text-label-md">Aðstoð</span>
-        </a>
+        </button>
       </div>
+
+      {isHelpOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 animate-scaleIn mx-4 relative text-slate-800">
+            <button
+              onClick={() => setIsHelpOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <span className="material-symbols-outlined">help</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                  Aðstoð & Algengar Spurningar
+                </h3>
+                <p className="text-xs text-slate-500">Hvernig getum við hjálpað þér í dag?</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+              {FAQS.map((faq, idx) => (
+                <div key={idx} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                  <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-start gap-2">
+                    <span className="text-primary font-extrabold mt-0.5">•</span>
+                    {faq.q}
+                  </h4>
+                  <p className="text-xs text-slate-600 leading-relaxed pl-3.5">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h5 className="font-bold text-xs text-slate-900">Enn með spurningar?</h5>
+                <p className="text-[11px] text-slate-500">Hafðu samband og við svörum fljótt.</p>
+              </div>
+              <a
+                href="mailto:hjalp@birtingur.is?subject=Aðstoð varðandi Birting"
+                className="inline-flex items-center justify-center gap-2 bg-primary hover:opacity-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-primary/10 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm animate-pulse">mail</span>
+                Senda tölvupóst
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
