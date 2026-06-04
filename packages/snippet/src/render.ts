@@ -16,6 +16,7 @@ export function renderAd(el: HTMLElement, ad: AdResponse): void {
     img.style.opacity = '0';
     img.style.pointerEvents = 'none';
     el.appendChild(img);
+    el.style.display = 'none';
   } else {
     const a = document.createElement('a');
     a.href = ad.clickUrl;
