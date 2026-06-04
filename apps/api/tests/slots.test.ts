@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/lib/firebase';
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
+import { FLAT_CPM_ISK } from '@ada/shared';
 import { clearFirestoreEmulator } from './helpers/emulator';
 import {
   createSlot,
@@ -64,6 +65,18 @@ describe('Slot Service', () => {
           placement: samplePlacement,
         }),
       ).rejects.toThrow();
+    });
+
+    it('forces cpm pricing to the locked flat CPM regardless of client input', async () => {
+      const slot = await createSlot({
+        publisherId: 'pub_x',
+        name: 'Test',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { type: 'cpm', amountIsk: 9999 },
+        placement: { pageMatcher: '/*', position: 'sidebar' },
+      });
+      expect(slot.pricing.mode).toBe('cpm');
+      expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
     });
   });
 

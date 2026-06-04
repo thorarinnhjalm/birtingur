@@ -1,6 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
 import { SlotSchema } from '@ada/shared/schemas';
+import { FLAT_CPM_ISK } from '@ada/shared';
 import type { Slot } from '@ada/shared/types';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
@@ -17,15 +18,22 @@ export async function createSlot(input: {
   const id = generateId('slot');
   // Normalize pricing: frontend uses type/amountIsk, backend expects mode/cpmIsk (or slot/slotPriceIsk/slotPeriodDays)
   let pricing = input.pricing;
-  if (pricing && pricing.type) {
-    pricing = {
-      mode: pricing.type === 'flat' ? 'slot' : 'cpm',
-      cpmIsk: pricing.type === 'cpm' ? pricing.amountIsk : undefined,
-      slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
-      slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
-    };
-    // Clean up undefined fields
-    Object.keys(pricing).forEach((key) => pricing[key] === undefined && delete pricing[key]);
+  if (pricing) {
+    if (pricing.type) {
+      pricing = {
+        mode: pricing.type === 'flat' ? 'slot' : 'cpm',
+        cpmIsk: pricing.type === 'cpm' ? FLAT_CPM_ISK : undefined,
+        slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
+        slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
+      };
+      // Clean up undefined fields
+      Object.keys(pricing).forEach((key) => pricing[key] === undefined && delete pricing[key]);
+    } else if (pricing.mode === 'cpm') {
+      pricing = {
+        ...pricing,
+        cpmIsk: FLAT_CPM_ISK,
+      };
+    }
   }
 
   const slotData = {
@@ -82,10 +90,18 @@ export async function updateSlot(
 
   const current = doc.data()!;
 
+  let updatedPricing = updates.pricing ? { ...current.pricing, ...updates.pricing } : current.pricing;
+  if (updatedPricing && updatedPricing.mode === 'cpm') {
+    updatedPricing = {
+      ...updatedPricing,
+      cpmIsk: FLAT_CPM_ISK,
+    };
+  }
+
   const merged = {
     ...current,
     ...updates,
-    pricing: updates.pricing ? { ...current.pricing, ...updates.pricing } : current.pricing,
+    pricing: updatedPricing,
     placement: updates.placement
       ? { ...current.placement, ...updates.placement }
       : current.placement,
