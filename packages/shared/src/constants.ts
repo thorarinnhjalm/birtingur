@@ -37,3 +37,22 @@ export const CURRENCY = 'ISK' as const;
 
 /** Flat CPM rate applied to all ad impressions */
 export const FLAT_CPM_ISK = 550;
+
+/** Ad-buying content categories (advertiser picks these; publisher belongs to 1..n). */
+export const AD_CATEGORIES = [
+  { slug: 'matur', label: 'Matur & matreiðsla' },
+  { slug: 'ferdalog', label: 'Ferðalög' },
+  { slug: 'tiska_fegurd', label: 'Tíska & fegurð' },
+  { slug: 'taekni', label: 'Tækni' },
+  { slug: 'heilsa_likamsraekt', label: 'Heilsa & líkamsrækt' },
+  { slug: 'fjarmal_vidskipti', label: 'Fjármál & viðskipti' },
+  { slug: 'ithrottir', label: 'Íþróttir' },
+  { slug: 'born_foreldrar', label: 'Börn & foreldrar' },
+  { slug: 'bilar', label: 'Bílar' },
+  { slug: 'heimili_honnun', label: 'Heimili & hönnun' },
+  { slug: 'afthreying_menning', label: 'Afþreying & menning' },
+  { slug: 'dyr_gaeludyr', label: 'Dýr & gæludýr' },
+] as const;
+
+export const AD_CATEGORY_SLUGS = AD_CATEGORIES.map((c) => c.slug) as readonly string[];
+export type AdCategory = (typeof AD_CATEGORIES)[number]['slug'];
