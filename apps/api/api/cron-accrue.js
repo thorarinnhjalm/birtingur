@@ -1,8 +1,8 @@
-import { drainAndAccrue } from '../src/services/accrual';
+import { drainAndAccrue } from '../dist/src/services/accrual.js';
 
 export const config = { runtime: 'nodejs' };
 
-export default async function handler(req: Request) {
+export default async function handler(req) {
   if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('forbidden', { status: 403 });
   }

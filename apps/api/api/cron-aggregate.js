@@ -1,13 +1,13 @@
-import { drainAndAggregate } from '../src/services/stats-aggregator';
+import { drainAndAggregate } from '../dist/src/services/stats-aggregator.js';
 
 export const config = { runtime: 'nodejs' };
 
-export default async function handler(req: Request) {
+export default async function handler(req) {
   if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('forbidden', { status: 403 });
   }
 
-  const total: number[] = [];
+  const total = [];
   // Drain up to 5 batches per cron run (5000 events max)
   for (let i = 0; i < 5; i++) {
     const n = await drainAndAggregate(1000);
