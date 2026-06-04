@@ -1,8 +1,9 @@
 import { getRedis } from '../lib/redis.js';
-import { COLLECTIONS, campaignConverter, slotConverter } from '@ada/shared/firestore';
+import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { chargeCampaign, creditPublisher } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 interface QueuedEvent {
   type: 'impression' | 'click';
@@ -57,27 +58,20 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
     const cmp = cmpSnap.data()!;
     if (cmp.budget.mode !== 'cpm_capped') continue;
 
-    // Determine CPM from each impression's slot
-    let totalCharge = 0;
-    const publisherCharges = new Map<string, number>();
-
+    // Count impressions per publisher (flat CPM, so price is uniform).
+    const countByPublisher = new Map<string, number>();
     for (const ev of evs) {
-      const slotSnap = await db
-        .collection(COLLECTIONS.slots)
-        .doc(ev.slotId)
-        .withConverter(slotConverter)
-        .get();
+      countByPublisher.set(ev.publisherId, (countByPublisher.get(ev.publisherId) ?? 0) + 1);
+    }
 
-      if (!slotSnap.exists) continue;
-      const slot = slotSnap.data()!;
-      const cpm = slot.pricing.mode === 'cpm' ? (slot.pricing.cpmIsk ?? 0) : 0;
-      const perImpression = Math.round(cpm / 1000);
-
-      totalCharge += perImpression;
-      publisherCharges.set(
-        ev.publisherId,
-        (publisherCharges.get(ev.publisherId) ?? 0) + perImpression,
-      );
+    // Gross per publisher = round(cpm * count / 1000); campaign charge = sum (conserves money).
+    const grossByPublisher = new Map<string, number>();
+    let totalCharge = 0;
+    for (const [publisherId, count] of countByPublisher) {
+      const gross = Math.round((FLAT_CPM_ISK * count) / 1000);
+      if (gross <= 0) continue;
+      grossByPublisher.set(publisherId, gross);
+      totalCharge += gross;
     }
 
     if (totalCharge > 0) {
@@ -94,8 +88,16 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
         continue;
       }
 
-      for (const [publisherId, amount] of publisherCharges) {
-        await creditPublisher(publisherId, campaignId, amount);
+      // Decrement the campaign remaining budget in Firestore atomically
+      const newRemaining = Math.max(0, cmp.budget.remainingIsk - totalCharge);
+      await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
+        'budget.remainingIsk': newRemaining,
+        ...(newRemaining <= 0 ? { status: 'paused' } : {}),
+      });
+      await pushCacheForCampaign(campaignId); // re-push so budgetExhausted + Redis counter refresh
+
+      for (const [publisherId, gross] of grossByPublisher) {
+        await creditPublisher(publisherId, campaignId, gross);
       }
     }
   }
