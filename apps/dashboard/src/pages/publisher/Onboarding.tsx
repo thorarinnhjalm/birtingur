@@ -5,18 +5,18 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
-import { 
-  Globe, 
-  Cpu, 
-  Layers, 
-  ArrowRight, 
-  ArrowLeft, 
-  CheckCircle2, 
-  Info, 
-  Sparkles, 
-  ChevronDown, 
+import {
+  Globe,
+  Cpu,
+  Layers,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  Info,
+  Sparkles,
+  ChevronDown,
   ChevronUp,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 
 export default function PublisherOnboarding() {
@@ -26,43 +26,48 @@ export default function PublisherOnboarding() {
   const [step, setStep] = useState<1 | 2>(1);
   const [domain, setDomain] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Scraped metadata states
   const [displayName, setDisplayName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('news');
   const [confidence, setConfidence] = useState<number | null>(null);
-  
+
   // Custom preferences states
-  const [integrationPreference, setIntegrationPreference] = useState<'widget' | 'mcp' | 'both'>('widget');
+  const [integrationPreference, setIntegrationPreference] = useState<'widget' | 'mcp' | 'both'>(
+    'widget',
+  );
   const [estimatedSlotsCount, setEstimatedSlotsCount] = useState(2);
-  
+
   // Payout Details
   const [kennitala, setKennitala] = useState('');
   const [iban, setIban] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [minimumPayout, setMinimumPayout] = useState(5000);
   const [showPayoutPanel, setShowPayoutPanel] = useState(false);
-  
+
   const [error, setError] = useState<string | null>(null);
 
   // Step 1: Scrape & Classify
   const handleStartScrape = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!domain.trim()) return;
-    
+
     setError(null);
     setIsLoading(true);
 
     // Clean up domain format (strip protocol)
-    const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/i, '').replace(/\/$/, '').toLowerCase();
+    const cleanDomain = domain
+      .replace(/^(https?:\/\/)?(www\.)?/i, '')
+      .replace(/\/$/, '')
+      .toLowerCase();
 
     try {
       const data = await apiFetch<any>('/v1/publishers/analyze-domain', {
         method: 'POST',
         body: JSON.stringify({ domain: cleanDomain }),
       });
-      
+
       // Map classification result to states
       setDomain(cleanDomain);
       setDisplayName(data.title || cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1));
@@ -128,15 +133,18 @@ export default function PublisherOnboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 md:p-12">
       <Card className="max-w-2xl w-full p-6 md:p-8 shadow-xl border border-slate-100 rounded-2xl bg-white transition-all duration-300">
-        
         {/* Wizard Header Progress */}
         <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-lg text-primary tracking-tight">Birtingur</span>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-sky-50 text-sky-600 rounded-full border border-sky-100">Útgefandi</span>
+            <span className="text-xs font-semibold px-2 py-0.5 bg-sky-50 text-sky-600 rounded-full border border-sky-100">
+              Útgefandi
+            </span>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-            <span className={step === 1 ? 'text-primary font-extrabold' : 'text-slate-500'}>1. Slóð</span>
+            <span className={step === 1 ? 'text-primary font-extrabold' : 'text-slate-500'}>
+              1. Slóð
+            </span>
             <ArrowRight className="h-3 w-3" />
             <span className={step === 2 ? 'text-primary font-extrabold' : ''}>2. Stillingar</span>
           </div>
@@ -149,9 +157,12 @@ export default function PublisherOnboarding() {
               <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-sky-100">
                 <Globe className="h-6 w-6 text-sky-600 animate-pulse" />
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Skráðu vefsvæðið þitt</h1>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Skráðu vefsvæðið þitt
+              </h1>
               <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Sláðu inn vefslóðina þína. Gervigreindin okkar mun sjálfkrafa skoða og flokka vefinn til að hámarka tekjur þínar og hjálpa auglýsendum að finna þig.
+                Sláðu inn vefslóðina þína. Gervigreindin okkar mun sjálfkrafa skoða og flokka vefinn
+                til að hámarka tekjur þínar og hjálpa auglýsendum að finna þig.
               </p>
             </div>
 
@@ -171,12 +182,16 @@ export default function PublisherOnboarding() {
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                   <Loader2 className="h-8 w-8 text-sky-600 animate-spin" />
-                  <span className="text-sm font-semibold text-slate-700">Skoðum vefsíðuna þína...</span>
-                  <span className="text-xs text-slate-400">Sækjum lýsingu og gervigreindin flokkar efnið</span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Skoðum vefsíðuna þína...
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Sækjum lýsingu og gervigreindin flokkar efnið
+                  </span>
                 </div>
               ) : (
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="w-full py-4 text-base font-bold rounded-xl shadow-lg shadow-primary/10 flex items-center justify-center gap-2"
                 >
                   Greina vefsíðu
@@ -191,9 +206,12 @@ export default function PublisherOnboarding() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Upplýsingar og stillingar</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Upplýsingar og stillingar
+              </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Gervigreindin fann eftirfarandi upplýsingar. Þú getur lagfært þær eða bætt við stillingum hér að neðan.
+                Gervigreindin fann eftirfarandi upplýsingar. Þú getur lagfært þær eða bætt við
+                stillingum hér að neðan.
               </p>
             </div>
 
@@ -202,16 +220,25 @@ export default function PublisherOnboarding() {
               <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-start gap-3">
                 <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-bold text-emerald-800">Sjálfvirk flokkun gervigreindar tókst</h4>
+                  <h4 className="text-xs font-bold text-emerald-800">
+                    Sjálfvirk flokkun gervigreindar tókst
+                  </h4>
                   <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
-                    Vefurinn var greindur sem **{
-                      category === 'news' ? 'Fréttir / Fjölmiðlar' :
-                      category === 'sports' ? 'Íþróttir' :
-                      category === 'tech' ? 'Tækni / Leikir' :
-                      category === 'finance' ? 'Viðskipti / Fjármál' :
-                      category === 'lifestyle' ? 'Lífsstíll / Blogg' :
-                      category === 'entertainment' ? 'Afþreying / Skemmtun' : category
-                    }** með {Math.round(confidence * 100)}% öryggi.
+                    Vefurinn var greindur sem **
+                    {category === 'news'
+                      ? 'Fréttir / Fjölmiðlar'
+                      : category === 'sports'
+                        ? 'Íþróttir'
+                        : category === 'tech'
+                          ? 'Tækni / Leikir'
+                          : category === 'finance'
+                            ? 'Viðskipti / Fjármál'
+                            : category === 'lifestyle'
+                              ? 'Lífsstíll / Blogg'
+                              : category === 'entertainment'
+                                ? 'Afþreying / Skemmtun'
+                                : category}
+                    ** með {Math.round(confidence * 100)}% öryggi.
                   </p>
                 </div>
               </div>
@@ -237,7 +264,9 @@ export default function PublisherOnboarding() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-slate-700">Lýsing á vef (fyrir auglýsendur)</label>
+              <label className="block text-sm font-medium text-slate-700">
+                Lýsing á vef (fyrir auglýsendur)
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -269,60 +298,69 @@ export default function PublisherOnboarding() {
             {/* Premium Selector: Integration Preference */}
             <div className="space-y-3 pt-2">
               <div>
-                <label className="block text-sm font-bold text-slate-800">Hvernig viltu birta auglýsingar?</label>
-                <p className="text-xs text-slate-400 mt-0.5">Veldu þá samþættingu sem hentar þínum þörfum best.</p>
+                <label className="block text-sm font-bold text-slate-800">
+                  Hvernig viltu birta auglýsingar?
+                </label>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Veldu þá samþættingu sem hentar þínum þörfum best.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                
                 {/* Option 1: Widget */}
-                <div 
+                <div
                   onClick={() => !createPublisher.isPending && setIntegrationPreference('widget')}
                   className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'widget' 
-                      ? 'border-primary bg-blue-50/20' 
+                    integrationPreference === 'widget'
+                      ? 'border-primary bg-blue-50/20'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Layers className="h-5 w-5 text-primary" />
-                      {integrationPreference === 'widget' && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                      {integrationPreference === 'widget' && (
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                      )}
                     </div>
                     <h4 className="text-xs font-bold text-slate-900">Vef-Sniðmát (Widget)</h4>
                     <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Hefðbundið samþættingarform. Þú setur inn einfaldan JavaScript kóða á síðuna þína til að birta myndræna borða á ákveðnum stöðum.
+                      Hefðbundið samþættingarform. Þú setur inn einfaldan JavaScript kóða á síðuna
+                      þína til að birta myndræna borða á ákveðnum stöðum.
                     </p>
                   </div>
                 </div>
 
                 {/* Option 2: MCP */}
-                <div 
+                <div
                   onClick={() => !createPublisher.isPending && setIntegrationPreference('mcp')}
                   className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'mcp' 
-                      ? 'border-primary bg-blue-50/20' 
+                    integrationPreference === 'mcp'
+                      ? 'border-primary bg-blue-50/20'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
                   }`}
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Cpu className="h-5 w-5 text-primary" />
-                      {integrationPreference === 'mcp' && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                      {integrationPreference === 'mcp' && (
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                      )}
                     </div>
                     <h4 className="text-xs font-bold text-slate-900">Gervigreindar-tengi (MCP)</h4>
                     <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Tengdu vefinn þinn beint við gervigreindarforrit (LLM) með Model Context Protocol. AI spjallmenn geta þá kynnt þínar auglýsingar beint.
+                      Tengdu vefinn þinn beint við gervigreindarforrit (LLM) með Model Context
+                      Protocol. AI spjallmenn geta þá kynnt þínar auglýsingar beint.
                     </p>
                   </div>
                 </div>
 
                 {/* Option 3: Both */}
-                <div 
+                <div
                   onClick={() => !createPublisher.isPending && setIntegrationPreference('both')}
                   className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'both' 
-                      ? 'border-primary bg-blue-50/20' 
+                    integrationPreference === 'both'
+                      ? 'border-primary bg-blue-50/20'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
                   }`}
                 >
@@ -332,15 +370,17 @@ export default function PublisherOnboarding() {
                         <Layers className="h-4 w-4 text-primary" />
                         <Cpu className="h-4 w-4 text-primary" />
                       </div>
-                      {integrationPreference === 'both' && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                      {integrationPreference === 'both' && (
+                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                      )}
                     </div>
                     <h4 className="text-xs font-bold text-slate-900">Bæði (Widget + MCP)</h4>
                     <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Fáðu hámarksútbreiðslu. Sýndu bæði hefðbundnar borðaauglýsingar á vefnum þínum og leyfðu gervigreindar-umboðsmönnum að selja þín pláss.
+                      Fáðu hámarksútbreiðslu. Sýndu bæði hefðbundnar borðaauglýsingar á vefnum þínum
+                      og leyfðu gervigreindar-umboðsmönnum að selja þín pláss.
                     </p>
                   </div>
                 </div>
-
               </div>
             </div>
 
@@ -348,14 +388,18 @@ export default function PublisherOnboarding() {
             <div className="space-y-2 pt-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-sm font-bold text-slate-800">Áætluð auglýsingapláss</label>
-                  <p className="text-xs text-slate-400 mt-0.5">Hversu mörg pláss ætlar þú að stofna í byrjun?</p>
+                  <label className="block text-sm font-bold text-slate-800">
+                    Áætluð auglýsingapláss
+                  </label>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Hversu mörg pláss ætlar þú að stofna í byrjun?
+                  </p>
                 </div>
                 <span className="px-3 py-1 bg-sky-50 text-sky-600 font-extrabold text-sm rounded-lg border border-sky-100">
                   {estimatedSlotsCount} {estimatedSlotsCount === 1 ? 'pláss' : 'pláss'}
                 </span>
               </div>
-              
+
               <input
                 type="range"
                 min="1"
@@ -383,17 +427,25 @@ export default function PublisherOnboarding() {
               >
                 <div className="flex items-center gap-2">
                   <Info className="h-4 w-4 text-slate-400 shrink-0" />
-                  <span className="text-sm font-bold">Greiðslu- og bankaupplýsingar (Valfrjálst)</span>
+                  <span className="text-sm font-bold">
+                    Greiðslu- og bankaupplýsingar (Valfrjálst)
+                  </span>
                 </div>
-                {showPayoutPanel ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+                {showPayoutPanel ? (
+                  <ChevronUp className="h-4 w-4 shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 shrink-0" />
+                )}
               </button>
 
               {showPayoutPanel && (
                 <div className="mt-3 space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 animate-fadeIn">
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær eingöngu þegar reikningurinn þinn nær lágmarksútborgun (**5.000 kr.**). Þá geturðu auðveldlega skráð þær í stillingum.
+                    Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær
+                    eingöngu þegar reikningurinn þinn nær lágmarksútborgun (**5.000 kr.**). Þá
+                    geturðu auðveldlega skráð þær í stillingum.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label="Kennitala reikningshafa"
@@ -452,9 +504,9 @@ export default function PublisherOnboarding() {
                 <ArrowLeft className="h-4 w-4" />
                 Til baka
               </Button>
-              
-              <Button 
-                type="submit" 
+
+              <Button
+                type="submit"
                 loading={createPublisher.isPending}
                 className="px-6 font-bold shadow-lg shadow-primary/10 animate-pulse"
               >
@@ -463,7 +515,6 @@ export default function PublisherOnboarding() {
             </div>
           </form>
         )}
-
       </Card>
     </div>
   );

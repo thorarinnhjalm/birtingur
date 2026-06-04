@@ -49,5 +49,6 @@ init();
 
 const databaseId = process.env.FIREBASE_DATABASE_ID;
 export const db = databaseId ? getFirestore(getApp(), databaseId) : getFirestore();
+db.settings({ ignoreUndefinedProperties: true });
 export const auth = getAuth();
 export const storage = getStorage();

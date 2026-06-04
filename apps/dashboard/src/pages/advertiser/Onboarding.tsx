@@ -17,7 +17,7 @@ import {
   Mail,
   FileText,
   Copy,
-  Check
+  Check,
 } from 'lucide-react';
 
 export default function AdvertiserOnboarding() {
@@ -164,12 +164,13 @@ export default function AdvertiserOnboarding() {
       {
         headline: `Gæðaþjónusta hjá ${name}`,
         description: `Kynntu þér úrvalið á ${cleanDomain || 'vefnum okkar'}! Traust þjónusta í flokknum ${translateCategory(
-          scrapedCategory
+          scrapedCategory,
         )}.`,
       },
       {
         headline: `${name} - Fyrir þig`,
-        description: 'Vantar þig faglegar lausnir? Við bjóðum upp á fyrsta flokks þjónustu. Smelltu til að lesa meira.',
+        description:
+          'Vantar þig faglegar lausnir? Við bjóðum upp á fyrsta flokks þjónustu. Smelltu til að lesa meira.',
       },
     ];
   };
@@ -185,7 +186,6 @@ export default function AdvertiserOnboarding() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 md:p-12">
       <Card className="max-w-2xl w-full p-6 md:p-8 shadow-xl border border-slate-100 rounded-2xl bg-white transition-all duration-300">
-        
         {/* Wizard Header Progress */}
         <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
@@ -195,7 +195,9 @@ export default function AdvertiserOnboarding() {
             </span>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-            <span className={step === 1 ? 'text-primary font-extrabold' : 'text-slate-500'}>1. Slóð</span>
+            <span className={step === 1 ? 'text-primary font-extrabold' : 'text-slate-500'}>
+              1. Slóð
+            </span>
             <ArrowRight className="h-3 w-3" />
             <span className={step === 2 ? 'text-primary font-extrabold' : ''}>2. Stofnun</span>
           </div>
@@ -208,9 +210,13 @@ export default function AdvertiserOnboarding() {
               <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-indigo-100">
                 <Globe className="h-6 w-6 text-indigo-600 animate-pulse" />
               </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Greindu vefsíðuna þína</h1>
+              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Greindu vefsíðuna þína
+              </h1>
               <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Sláðu inn vefslóð fyrirtækisins þíns. Gervigreindin okkar greinir hana til að fylla sjálfkrafa út upplýsingar, mæla með markhópum og hanna fyrstu auglýsingatextana þína.
+                Sláðu inn vefslóð fyrirtækisins þíns. Gervigreindin okkar greinir hana til að fylla
+                sjálfkrafa út upplýsingar, mæla með markhópum og hanna fyrstu auglýsingatextana
+                þína.
               </p>
             </div>
 
@@ -229,8 +235,12 @@ export default function AdvertiserOnboarding() {
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                   <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
-                  <span className="text-sm font-semibold text-slate-700">Skoðum vefsíðuna þína...</span>
-                  <span className="text-xs text-slate-400">Sækjum heiti, lýsingu og greinum helstu efnisflokka</span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Skoðum vefsíðuna þína...
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Sækjum heiti, lýsingu og greinum helstu efnisflokka
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -260,9 +270,12 @@ export default function AdvertiserOnboarding() {
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">Stofna auglýsendaaðgang</h2>
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Stofna auglýsendaaðgang
+              </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Gervigreindin greindi vefsíðuna þína og pre-fyllti út fyrirtækjaupplýsingar. Lagfærðu eða bættu við það sem upp á vantar.
+                Gervigreindin greindi vefsíðuna þína og pre-fyllti út fyrirtækjaupplýsingar.
+                Lagfærðu eða bættu við það sem upp á vantar.
               </p>
             </div>
 
@@ -271,10 +284,13 @@ export default function AdvertiserOnboarding() {
               <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-start gap-3">
                 <Sparkles className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-bold text-indigo-800">Sjálfvirk vefgreining gervigreindar</h4>
+                  <h4 className="text-xs font-bold text-indigo-800">
+                    Sjálfvirk vefgreining gervigreindar
+                  </h4>
                   <p className="text-xs text-indigo-600 mt-0.5 leading-relaxed">
                     Vefsíðan þín var flokkuð sem **{translateCategory(scrapedCategory)}** með{' '}
-                    {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til að mæla með bestu birtingarstöðunum fyrir auglýsingar þínar.
+                    {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til að mæla
+                    með bestu birtingarstöðunum fyrir auglýsingar þínar.
                   </p>
                 </div>
               </div>
@@ -339,7 +355,8 @@ export default function AdvertiserOnboarding() {
                   </h3>
                 </div>
                 <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-                  Hér eru drög að auglýsingum sem gervigreindin hannaði út frá vefnum þínum. Þú getur afritað þær og notað þegar þú stofnar fyrstu herferðina þína!
+                  Hér eru drög að auglýsingum sem gervigreindin hannaði út frá vefnum þínum. Þú
+                  getur afritað þær og notað þegar þú stofnar fyrstu herferðina þína!
                 </p>
 
                 <div className="space-y-3">
@@ -349,14 +366,18 @@ export default function AdvertiserOnboarding() {
                       className="p-3 bg-white border border-slate-100 rounded-lg shadow-sm flex items-start justify-between gap-4 hover:border-slate-200 transition-colors"
                     >
                       <div className="space-y-1 min-w-0">
-                        <div className="text-xs font-bold text-indigo-600 truncate">{ad.headline}</div>
+                        <div className="text-xs font-bold text-indigo-600 truncate">
+                          {ad.headline}
+                        </div>
                         <div className="text-[11px] text-slate-600 leading-snug line-clamp-2">
                           {ad.description}
                         </div>
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleCopyText(`Fyrirsögn: ${ad.headline}\nTexti: ${ad.description}`, idx)}
+                        onClick={() =>
+                          handleCopyText(`Fyrirsögn: ${ad.headline}\nTexti: ${ad.description}`, idx)
+                        }
                         className="p-1.5 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600 transition-colors shrink-0 border border-slate-100"
                         title="Afrita texta"
                       >
