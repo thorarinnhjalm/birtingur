@@ -16,6 +16,36 @@ describe('AdvertiserSchema', () => {
     expect(() => AdvertiserSchema.parse(valid)).not.toThrow();
   });
 
+  it('accepts valid advertiser with websiteUrl', () => {
+    const valid = {
+      id: 'adv_xyz',
+      ownerEmail: 'anna@blomabud.is',
+      companyName: 'Blómabúð Vesturbæjar',
+      kennitala: '1234567890',
+      vatNumber: '123456',
+      walletBalanceIsk: 47250,
+      status: 'active' as const,
+      createdAt: new Date(),
+      websiteUrl: 'https://blomabud.is',
+    };
+    expect(() => AdvertiserSchema.parse(valid)).not.toThrow();
+  });
+
+  it('rejects invalid websiteUrl format', () => {
+    const invalid = {
+      id: 'adv_xyz',
+      ownerEmail: 'anna@blomabud.is',
+      companyName: 'Blómabúð Vesturbæjar',
+      kennitala: '1234567890',
+      vatNumber: '123456',
+      walletBalanceIsk: 47250,
+      status: 'active' as const,
+      createdAt: new Date(),
+      websiteUrl: 'invalid-url',
+    };
+    expect(() => AdvertiserSchema.parse(invalid)).toThrow();
+  });
+
   it('accepts zero wallet balance', () => {
     const v = {
       id: 'adv_xyz',

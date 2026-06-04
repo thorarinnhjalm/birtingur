@@ -19,6 +19,7 @@ export function useCreateAdvertiser() {
       kennitala: string;
       vatNumber: string;
       billingEmail: string;
+      websiteUrl?: string;
     }) =>
       apiFetch<{ advertiser: Advertiser }>('/v1/advertisers', {
         method: 'POST',

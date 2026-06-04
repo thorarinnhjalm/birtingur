@@ -14,6 +14,7 @@ const CreateAdvertiserSchema = z.object({
     .transform((val) => val.replace(/[-\s]/g, ''))
     .pipe(z.string().regex(/^\d{10}$/)),
   vatNumber: z.string().min(1).max(20),
+  websiteUrl: z.string().url().optional(),
 });
 
 export type CreateAdvertiserInput = z.infer<typeof CreateAdvertiserSchema>;
@@ -34,6 +35,7 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
     walletBalanceIsk: 0,
     status: 'active',
     createdAt: new Date(),
+    websiteUrl: parsed.websiteUrl,
   });
 
   await db

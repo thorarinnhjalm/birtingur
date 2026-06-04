@@ -17,6 +17,7 @@ export const AdvertiserSchema = z.object({
   walletBalanceIsk: z.number().int().min(0),
   status: AdvertiserStatusSchema,
   createdAt: z.date(),
+  websiteUrl: z.string().url().optional(),
 });
 export type Advertiser = z.infer<typeof AdvertiserSchema>;
 
