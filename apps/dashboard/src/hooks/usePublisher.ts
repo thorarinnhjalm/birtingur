@@ -16,7 +16,7 @@ export function useCreatePublisher() {
     mutationFn: (input: {
       domain: string;
       displayName: string;
-      category: string;
+      categories: string[];
       payoutDetails?: {
         kennitala: string;
         iban: string;

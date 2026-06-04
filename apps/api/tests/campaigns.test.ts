@@ -1,36 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createCampaign, listCampaignsForAdvertiser } from '../src/services/campaigns';
 
-interface MockPublisher {
-  id: string;
-  ownerEmail: string;
-  domain: string;
-  displayName: string;
-  status: string;
-  contentPolicy: {
-    blockedCategories: string[];
-    requireManualApproval: boolean;
-  };
-}
-
-interface MockSlot {
-  id: string;
-  publisherId: string;
-  name: string;
-  sizes: Array<{ width: number; height: number }>;
-  pricing: {
-    mode: 'cpm' | 'slot';
-    cpmIsk?: number;
-    slotPriceIsk?: number;
-    slotPeriodDays?: number;
-  };
-  placement: {
-    pageMatcher: string;
-    position: string;
-  };
-  status: string;
-}
-
 interface MockAdvertiser {
   id: string;
   ownerEmail: string;
@@ -57,7 +27,7 @@ interface MockCampaign {
   advertiserId: string;
   creativeIds: string[];
   targeting: {
-    slotIds: string[];
+    categories: string[];
   };
   schedule: {
     startsAt: Date;
@@ -69,11 +39,8 @@ interface MockCampaign {
     remainingIsk: number;
   };
   status: string;
-  perPublisherApproval: Record<string, string>;
 }
 
-let mockPublishers: MockPublisher[] = [];
-let mockSlots: MockSlot[] = [];
 let mockAdvertisers: MockAdvertiser[] = [];
 let mockCreatives: MockCreative[] = [];
 let mockCampaigns: MockCampaign[] = [];
@@ -86,11 +53,7 @@ vi.mock('../src/lib/firebase', () => ({
         withConverter: vi.fn(() => ({
           get: vi.fn(async () => {
             let data: unknown = null;
-            if (colName === 'publishers') {
-              data = mockPublishers.find((p) => p.id === id);
-            } else if (colName === 'slots') {
-              data = mockSlots.find((s) => s.id === id);
-            } else if (colName === 'advertisers') {
+            if (colName === 'advertisers') {
               data = mockAdvertisers.find((a) => a.id === id);
             } else if (colName === 'creatives') {
               data = mockCreatives.find((c) => c.id === id);
@@ -141,33 +104,19 @@ vi.mock('../src/lib/firebase', () => ({
   storage: {},
 }));
 
+// Mock pushCacheForCampaign
+vi.mock('../src/lib/push-cache', () => ({
+  pushCacheForCampaign: vi.fn(async () => {}),
+}));
+
 describe('Campaign Service', () => {
   beforeEach(() => {
-    mockPublishers = [];
-    mockSlots = [];
     mockAdvertisers = [];
     mockCreatives = [];
     mockCampaigns = [];
   });
 
   const setupMockData = () => {
-    const pub: MockPublisher = {
-      id: 'pub_123',
-      ownerEmail: 'p@p.is',
-      domain: 'p.is',
-      displayName: 'P',
-      status: 'active',
-      contentPolicy: { blockedCategories: [], requireManualApproval: false },
-    };
-    const slot: MockSlot = {
-      id: 'slot_123',
-      publisherId: 'pub_123',
-      name: 'A',
-      sizes: [{ width: 728, height: 90 }],
-      pricing: { mode: 'cpm', cpmIsk: 1500 },
-      placement: { pageMatcher: '/', position: 'above_fold' },
-      status: 'active',
-    };
     const adv: MockAdvertiser = {
       id: 'adv_123',
       ownerEmail: 'a@a.is',
@@ -187,19 +136,17 @@ describe('Campaign Service', () => {
       reviewStatus: 'auto_approved',
       reviewLog: [],
     };
-    mockPublishers.push(pub);
-    mockSlots.push(slot);
     mockAdvertisers.push(adv);
     mockCreatives.push(cre);
-    return { pub, slot, adv, cre };
+    return { adv, cre };
   };
 
   describe('createCampaign', () => {
-    it('creates a CPM-capped campaign in active status when all approved', async () => {
-      const { adv, cre, slot } = setupMockData();
+    it('creates a category-targeted campaign that is active when creatives are approved', async () => {
+      const { adv, cre } = setupMockData();
       const cmp = await createCampaign(adv.id, {
         creativeIds: [cre.id],
-        slotIds: [slot.id],
+        categories: ['matur'],
         schedule: {
           startsAt: new Date(Date.now() + 1000),
           endsAt: new Date(Date.now() + 86400_000),
@@ -207,17 +154,18 @@ describe('Campaign Service', () => {
         budget: { mode: 'cpm_capped', totalIsk: 20000 },
       });
       expect(cmp.id).toMatch(/^cmp_[a-f0-9]{24}$/);
+      expect(cmp.targeting.categories).toEqual(['matur']);
       expect(cmp.status).toBe('active');
       expect(cmp.budget.remainingIsk).toBe(20000);
-      expect(cmp.perPublisherApproval.pub_123).toBe('approved');
+      expect((cmp as any).perPublisherApproval).toBeUndefined();
     });
 
-    it('creates campaign in pending_approval if publisher requireManualApproval is true', async () => {
-      const { adv, cre, slot, pub } = setupMockData();
-      pub.contentPolicy.requireManualApproval = true;
+    it('creates campaign in pending_approval if creatives are not approved', async () => {
+      const { adv, cre } = setupMockData();
+      cre.reviewStatus = 'pending';
       const cmp = await createCampaign(adv.id, {
         creativeIds: [cre.id],
-        slotIds: [slot.id],
+        categories: ['matur'],
         schedule: {
           startsAt: new Date(Date.now() + 1000),
           endsAt: new Date(Date.now() + 86400_000),
@@ -225,15 +173,14 @@ describe('Campaign Service', () => {
         budget: { mode: 'cpm_capped', totalIsk: 20000 },
       });
       expect(cmp.status).toBe('pending_approval');
-      expect(cmp.perPublisherApproval.pub_123).toBe('pending');
     });
 
     it('rejects when creativeIds reference unknown creative', async () => {
-      const { adv, slot } = setupMockData();
+      const { adv } = setupMockData();
       await expect(
         createCampaign(adv.id, {
           creativeIds: ['cre_nope'],
-          slotIds: [slot.id],
+          categories: ['matur'],
           schedule: {
             startsAt: new Date(Date.now() + 1000),
             endsAt: new Date(Date.now() + 86400_000),
@@ -246,10 +193,10 @@ describe('Campaign Service', () => {
 
   describe('listCampaignsForAdvertiser', () => {
     it('returns campaigns for advertiser', async () => {
-      const { adv, cre, slot } = setupMockData();
+      const { adv, cre } = setupMockData();
       await createCampaign(adv.id, {
         creativeIds: [cre.id],
-        slotIds: [slot.id],
+        categories: ['matur'],
         schedule: {
           startsAt: new Date(Date.now() + 1000),
           endsAt: new Date(Date.now() + 86400_000),

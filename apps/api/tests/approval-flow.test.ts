@@ -33,7 +33,7 @@ interface MockCampaign {
   advertiserId: string;
   creativeIds: string[];
   targeting: {
-    slotIds: string[];
+    categories: string[];
   };
   schedule: {
     startsAt: Date;
@@ -45,7 +45,6 @@ interface MockCampaign {
     remainingIsk: number;
   };
   status: string;
-  perPublisherApproval: Record<string, string>;
 }
 
 interface MockPublisher {
@@ -305,146 +304,5 @@ describe('E2E Approval Flow Routes', () => {
     const approvedCreative = await approveRes.json();
     expect(approvedCreative.creative.reviewStatus).toBe('manual_approved');
     expect(approvedCreative.creative.reviewLog.at(-1).action).toBe('approved');
-  });
-
-  it('publisher approvals workflow: lists publisher queue, publisher approves campaign', async () => {
-    // 1. Create Advertiser & Advertiser Wallet top up
-    const advRes = await app.request('/v1/advertisers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer adv-token',
-      },
-      body: JSON.stringify({
-        companyName: 'Bókaforlagið Saga',
-        kennitala: '1234567890',
-        vatNumber: '12345',
-      }),
-    });
-    expect(advRes.status).toBe(201);
-    const advertiser = await advRes.json();
-
-    // Setup wallet via mock since topUp appends ledger and we sum it
-    mockAdvertisers[0].walletBalanceIsk = 100000;
-
-    // 2. Create Publisher (with contentPolicy.requireManualApproval = true)
-    const pubRes = await app.request('/v1/publishers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer pub-token',
-      },
-      body: JSON.stringify({
-        domain: 'morgunbladid.is',
-        displayName: 'Morgunblaðið',
-        payoutMethod: {
-          type: 'bank',
-          iban: 'IS260123456789012345678901',
-          kennitala: '5566778899',
-          accountName: 'Árvakur hf.',
-        },
-        contentPolicy: {
-          blockedCategories: [],
-          requireManualApproval: true,
-        },
-      }),
-    });
-    expect(pubRes.status).toBe(201);
-    const publisher = await pubRes.json();
-
-    // 3. Create Slot for Publisher
-    const slotRes = await app.request('/v1/publishers/me/slots', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer pub-token',
-      },
-      body: JSON.stringify({
-        name: 'Forsíða Banner',
-        sizes: [{ width: 728, height: 90 }],
-        pricing: {
-          mode: 'cpm',
-          cpmIsk: 1200,
-        },
-        placement: {
-          pageMatcher: '^/$',
-          position: 'above_fold',
-        },
-      }),
-    });
-    expect(slotRes.status).toBe(201);
-    const slot = await slotRes.json();
-
-    // 4. Create Creative (auto-approved so it doesn't get stuck)
-    const creRes = await app.request('/v1/creatives', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer adv-token',
-      },
-      body: JSON.stringify({
-        imageUrl: 'https://cdn.example.is/images/ad1.png',
-        width: 728,
-        height: 90,
-        clickUrl: 'https://safe.is/saga',
-      }),
-    });
-    expect(creRes.status).toBe(201);
-    const { creative } = await creRes.json();
-    expect(creative.reviewStatus).toBe('auto_approved');
-
-    // 5. Create Campaign targeting the slot (which has requireManualApproval = true)
-    const campaignRes = await app.request('/v1/campaigns', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer adv-token',
-      },
-      body: JSON.stringify({
-        creativeIds: [creative.id],
-        slotIds: [slot.id],
-        schedule: {
-          startsAt: new Date(Date.now() + 86400000).toISOString(),
-          endsAt: new Date(Date.now() + 86400000 * 5).toISOString(),
-        },
-        budget: {
-          mode: 'cpm_capped',
-          totalIsk: 50000,
-        },
-      }),
-    });
-    expect(campaignRes.status).toBe(201);
-    const { campaign } = await campaignRes.json();
-    expect(campaign.status).toBe('pending_approval');
-    expect(campaign.perPublisherApproval[publisher.id]).toBe('pending');
-
-    // 6. Publisher lists their pending approvals queue
-    const pendingQueueRes = await app.request('/v1/publishers/me/pending-approvals', {
-      method: 'GET',
-      headers: {
-        Authorization: 'Bearer pub-token',
-      },
-    });
-    expect(pendingQueueRes.status).toBe(200);
-    const pendingQueue = await pendingQueueRes.json();
-    expect(pendingQueue.items.length).toBe(1);
-    expect(pendingQueue.items[0].campaign.id).toBe(campaign.id);
-    expect(pendingQueue.items[0].creative.id).toBe(creative.id);
-
-    // 7. Publisher approves the campaign
-    const decisionRes = await app.request(`/v1/publishers/me/approvals/${campaign.id}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer pub-token',
-      },
-      body: JSON.stringify({
-        action: 'approve',
-      }),
-    });
-    expect(decisionRes.status).toBe(200);
-    const updatedCmp = await decisionRes.json();
-    expect(updatedCmp.campaign.perPublisherApproval[publisher.id]).toBe('approved');
-    expect(updatedCmp.campaign.status).toBe('active');
   });
 });

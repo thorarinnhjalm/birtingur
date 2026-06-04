@@ -13,6 +13,7 @@ export async function createPublisher(input: {
   contentPolicy: any;
   integrationPreference?: 'widget' | 'mcp' | 'both';
   estimatedSlotsCount?: number;
+  categories: string[];
 }): Promise<Publisher> {
   const id = generateId('pub');
   const publisherData = {
@@ -26,6 +27,7 @@ export async function createPublisher(input: {
     createdAt: new Date(),
     integrationPreference: input.integrationPreference ?? 'widget',
     estimatedSlotsCount: input.estimatedSlotsCount,
+    categories: input.categories,
   };
 
   // Validate using Zod schema

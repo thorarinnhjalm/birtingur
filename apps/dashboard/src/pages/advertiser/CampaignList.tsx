@@ -7,6 +7,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatIsk } from '@/lib/format';
 import { Megaphone, Plus, Calendar } from 'lucide-react';
+import { AD_CATEGORIES } from '@ada/shared';
 
 export default function CampaignList() {
   const navigate = useNavigate();
@@ -95,7 +96,12 @@ export default function CampaignList() {
                     </span>
                   </div>
                   <div>·</div>
-                  <div>{c.targeting.slotIds.length} auglýsingapláss valin</div>
+                  <div>
+                    Flokkar:{' '}
+                    {c.targeting.categories
+                      .map((cat) => AD_CATEGORIES.find((a) => a.slug === cat)?.label || cat)
+                      .join(', ')}
+                  </div>
                 </div>
               </div>
 

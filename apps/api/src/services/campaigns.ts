@@ -1,19 +1,17 @@
 import { z } from 'zod';
 import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
-import { CampaignSchema } from '@ada/shared';
+import { CampaignSchema, AD_CATEGORY_SLUGS } from '@ada/shared';
 import type { Campaign, CampaignStatus } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { getCreative } from './creatives.js';
-import { getSlot } from './slots.js';
-import { getPublisherById } from './publishers.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 
 const CreateCampaignInputSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   creativeIds: z.array(z.string()).min(1),
-  slotIds: z.array(z.string()).min(1),
+  categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
   schedule: z.object({
     startsAt: z.coerce.date(),
     endsAt: z.coerce.date(),
@@ -45,31 +43,15 @@ export async function createCampaign(
     }
   }
 
-  // Build per-publisher approval map from slot lookups
-  const perPublisherApproval: Record<string, 'pending' | 'approved' | 'rejected'> = {};
-  for (const sid of parsed.slotIds) {
-    const slot = await getSlot(sid);
-    if (!slot) {
-      throw new AppError(400, `Slot ${sid} not found`, 'BAD_REQUEST');
-    }
-    const pub = await getPublisherById(slot.publisherId);
-    if (!pub) {
-      throw new AppError(400, `Publisher for slot ${sid} not found`, 'BAD_REQUEST');
-    }
-    perPublisherApproval[pub.id] = pub.contentPolicy.requireManualApproval ? 'pending' : 'approved';
-  }
-
   // Determine overall status
   const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
-  const allPublishersApproved = Object.values(perPublisherApproval).every((v) => v === 'approved');
-  const status: CampaignStatus =
-    allCreativesApproved && allPublishersApproved ? 'active' : 'pending_approval';
+  const status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
 
   const campaign: Campaign = CampaignSchema.parse({
     id: generateId('cmp'),
     advertiserId,
     creativeIds: parsed.creativeIds,
-    targeting: { slotIds: parsed.slotIds },
+    targeting: { categories: parsed.categories },
     schedule: parsed.schedule,
     budget: {
       mode: parsed.budget.mode,
@@ -77,7 +59,6 @@ export async function createCampaign(
       remainingIsk: parsed.budget.totalIsk,
     },
     status,
-    perPublisherApproval,
   });
 
   await db

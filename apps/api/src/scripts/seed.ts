@@ -24,6 +24,7 @@ async function seed() {
       blockedCategories: [],
       requireManualApproval: true,
     },
+    categories: ['matur'],
     status: 'active',
     createdAt: now,
   });
@@ -99,7 +100,7 @@ async function seed() {
     advertiserId: 'adv_demo_id',
     creativeIds: ['creative_demo_id'],
     targeting: {
-      slotIds: ['slot_demo_id'],
+      categories: ['matur'],
     },
     schedule: {
       startsAt: new Date(now.getTime() - 86400000 * 5),
@@ -111,9 +112,6 @@ async function seed() {
       remainingIsk: 112000,
     },
     status: 'active',
-    perPublisherApproval: {
-      pub_demo_id: 'approved',
-    },
   });
   console.log('✔ Seeded Active Campaign: camp_demo_id');
 
@@ -124,7 +122,7 @@ async function seed() {
     advertiserId: 'adv_demo_id',
     creativeIds: ['creative_pending_demo'],
     targeting: {
-      slotIds: ['slot_demo_id'],
+      categories: ['matur'],
     },
     schedule: {
       startsAt: now,
@@ -136,9 +134,6 @@ async function seed() {
       remainingIsk: 50000,
     },
     status: 'pending_approval',
-    perPublisherApproval: {
-      pub_demo_id: 'pending',
-    },
   });
   console.log('✔ Seeded Pending Campaign: camp_pending_demo');
 

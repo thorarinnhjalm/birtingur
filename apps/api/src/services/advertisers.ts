@@ -97,19 +97,9 @@ export async function updateAdvertiserStatus(
     .where('advertiserId', '==', advertiserId)
     .get();
 
-  const slotIds = new Set<string>();
+  const { pushCacheForCampaign } = await import('../lib/push-cache.js');
   for (const campDoc of campaignsSnap.docs) {
-    const targeting = campDoc.data().targeting;
-    if (targeting?.slotIds) {
-      for (const sId of targeting.slotIds) {
-        slotIds.add(sId);
-      }
-    }
-  }
-
-  const { pushSlotCache } = await import('../lib/push-cache.js');
-  for (const sId of slotIds) {
-    await pushSlotCache(sId);
+    await pushCacheForCampaign(campDoc.id);
   }
 
   return updated;

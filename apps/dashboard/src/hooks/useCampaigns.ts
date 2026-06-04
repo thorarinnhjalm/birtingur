@@ -39,12 +39,16 @@ export function useCreateCampaign() {
   return useMutation({
     mutationFn: (input: {
       name: string;
-      startDate: string;
-      endDate: string;
-      totalBudgetIsk: number;
-      clickUrl: string;
-      creativeUrl: string;
-      slotIds: string[];
+      creativeIds: string[];
+      categories: string[];
+      schedule: {
+        startsAt: string;
+        endsAt: string;
+      };
+      budget: {
+        mode: 'cpm_capped' | 'slot_purchased';
+        totalIsk: number;
+      };
     }) =>
       apiFetch<{ campaign: Campaign }>('/v1/campaigns', {
         method: 'POST',

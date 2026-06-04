@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
+import { AD_CATEGORIES } from '@ada/shared';
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
@@ -172,8 +173,8 @@ export default function CampaignDetail() {
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
             Birtingarstjórnun
           </div>
-          <div className="text-2xl font-extrabold text-slate-900 mt-2">
-            {campaign.targeting.slotIds.length} pláss
+          <div className="text-lg font-extrabold text-slate-900 mt-2 truncate">
+            {campaign.targeting.categories.map(cat => AD_CATEGORIES.find(c => c.slug === cat)?.label || cat).join(', ')}
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Calendar size={14} />
@@ -188,21 +189,23 @@ export default function CampaignDetail() {
 
         <Card className="p-5">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Samþykki vefsíðna
+            Yfirferð auglýsingar
           </div>
-          <div className="space-y-1.5 mt-2.5">
-            {Object.entries(campaign.perPublisherApproval).map(([pubId, status]) => (
-              <div key={pubId} className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-slate-600">Útgefandi ({pubId}):</span>
-                <Badge
-                  variant={
-                    status === 'approved' ? 'success' : status === 'pending' ? 'pending' : 'danger'
-                  }
-                >
-                  {status}
-                </Badge>
-              </div>
-            ))}
+          <div className="text-xl font-extrabold text-slate-900 mt-2">
+            {creative?.reviewStatus === 'auto_approved' || creative?.reviewStatus === 'manual_approved'
+              ? 'Samþykkt'
+              : creative?.reviewStatus === 'pending'
+                ? 'Í yfirferð'
+                : creative?.reviewStatus === 'rejected'
+                  ? 'Hafnað'
+                  : 'Óþekkt'}
+          </div>
+          <div className="mt-3 text-xs text-slate-500 font-medium">
+            {creative?.reviewStatus === 'pending'
+              ? 'Gervigreindin fann grunsamlegt efni. Bið eftir handvirkri yfirferð stjórnanda.'
+              : creative?.reviewStatus === 'rejected'
+                ? 'Auglýsingu var hafnað. Vinsamlegast skoðaðu reglur okkar og búðu til nýja.'
+                : 'Auglýsingin er virk og tilbúin í birtingar.'}
           </div>
         </Card>
       </div>
@@ -282,12 +285,12 @@ export default function CampaignDetail() {
       <div className="grid md:grid-cols-3 gap-6">
         {/* Performance by Site */}
         <Card className="p-6 md:col-span-2 space-y-4">
-          <h3 className="text-base font-bold text-slate-900">Frammistaða eftir vefjum</h3>
+          <h3 className="text-base font-bold text-slate-900">Frammistaða eftir flokkum</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-medium border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="py-2.5">Auglýsingapláss</th>
+                  <th className="py-2.5">Flokkur</th>
                   <th className="py-2.5">Birtingar</th>
                   <th className="py-2.5">Smellir</th>
                   <th className="py-2.5">CTR</th>
@@ -295,15 +298,18 @@ export default function CampaignDetail() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {campaign.targeting.slotIds.map((slotId) => (
-                  <tr key={slotId} className="hover:bg-slate-50/50">
-                    <td className="py-3 font-semibold text-slate-900">{slotId}</td>
-                    <td className="py-3">0</td>
-                    <td className="py-3">0</td>
-                    <td className="py-3">0,0%</td>
-                    <td className="py-3 text-right">0 kr</td>
-                  </tr>
-                ))}
+                {campaign.targeting.categories.map((cat) => {
+                  const label = AD_CATEGORIES.find((c) => c.slug === cat)?.label || cat;
+                  return (
+                    <tr key={cat} className="hover:bg-slate-50/50">
+                      <td className="py-3 font-semibold text-slate-900">{label}</td>
+                      <td className="py-3">0</td>
+                      <td className="py-3">0</td>
+                      <td className="py-3">0,0%</td>
+                      <td className="py-3 text-right">0 kr</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -35,7 +35,7 @@ interface MockCampaign {
   advertiserId: string;
   creativeIds: string[];
   targeting: {
-    slotIds: string[];
+    categories: string[];
   };
   schedule: {
     startsAt: Date;
@@ -47,7 +47,6 @@ interface MockCampaign {
     remainingIsk: number;
   };
   status: string;
-  perPublisherApproval: Record<string, string>;
 }
 
 interface MockPublisher {
@@ -336,7 +335,7 @@ describe('Advertiser HTTP Routes', () => {
         },
         body: JSON.stringify({
           creativeIds: ['crt_123'],
-          slotIds: ['slot_123'],
+          categories: ['matur'],
           schedule: {
             startsAt: new Date(Date.now() + 1000).toISOString(),
             endsAt: new Date(Date.now() + 86400_000).toISOString(),
@@ -435,11 +434,10 @@ describe('Advertiser HTTP Routes', () => {
         id: 'cmp_123',
         advertiserId: 'adv_123',
         creativeIds: ['crt_123'],
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['matur'] },
         schedule: { startsAt: new Date(), endsAt: new Date(Date.now() + 86400_000) },
         budget: { mode: 'cpm_capped', totalIsk: 10000, remainingIsk: 10000 },
         status: 'active',
-        perPublisherApproval: {},
       });
 
       const res = await app.request('/v1/campaigns', {
@@ -469,11 +467,10 @@ describe('Advertiser HTTP Routes', () => {
         id: 'cmp_123',
         advertiserId: 'adv_123',
         creativeIds: ['crt_123'],
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['matur'] },
         schedule: { startsAt: new Date(), endsAt: new Date(Date.now() + 86400_000) },
         budget: { mode: 'cpm_capped', totalIsk: 10000, remainingIsk: 10000 },
         status: 'active',
-        perPublisherApproval: {},
       });
 
       const res = await app.request('/v1/campaigns/cmp_123', {
@@ -502,11 +499,10 @@ describe('Advertiser HTTP Routes', () => {
         id: 'cmp_123',
         advertiserId: 'adv_123',
         creativeIds: ['crt_123'],
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['matur'] },
         schedule: { startsAt: new Date(), endsAt: new Date(Date.now() + 86400_000) },
         budget: { mode: 'cpm_capped', totalIsk: 10000, remainingIsk: 10000 },
         status: 'active',
-        perPublisherApproval: {},
       });
 
       const res = await app.request('/v1/campaigns/cmp_123', {

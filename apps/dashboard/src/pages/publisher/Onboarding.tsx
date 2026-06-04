@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
+import { AD_CATEGORIES } from '@ada/shared';
 import {
   Globe,
   Cpu,
@@ -19,6 +20,19 @@ import {
   Loader2,
 } from 'lucide-react';
 
+const mapCategory = (cat: string): string => {
+  const map: Record<string, string> = {
+    news: 'afthreying_menning',
+    lifestyle: 'tiska_fegurd',
+    tech: 'taekni',
+    sports: 'ithrottir',
+    finance: 'fjarmal_vidskipti',
+    entertainment: 'afthreying_menning',
+    other: 'afthreying_menning',
+  };
+  return map[cat] || cat;
+};
+
 export default function PublisherOnboarding() {
   const createPublisher = useCreatePublisher();
   const navigate = useNavigate();
@@ -30,7 +44,7 @@ export default function PublisherOnboarding() {
   // Scraped metadata states
   const [displayName, setDisplayName] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('news');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [confidence, setConfidence] = useState<number | null>(null);
 
   // Custom preferences states
@@ -72,7 +86,8 @@ export default function PublisherOnboarding() {
       setDomain(cleanDomain);
       setDisplayName(data.title || cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1));
       setDescription(data.description || '');
-      setCategory(data.category || 'news');
+      const mapped = mapCategory(data.category || 'other');
+      setSelectedCategories([mapped]);
       setConfidence(data.confidence || null);
       setStep(2);
     } catch (err: any) {
@@ -80,7 +95,7 @@ export default function PublisherOnboarding() {
       setDomain(cleanDomain);
       setDisplayName(cleanDomain.split('.')[0] || cleanDomain);
       setDescription('');
-      setCategory('news');
+      setSelectedCategories(['afthreying_menning']);
       setConfidence(null);
       setStep(2);
     } finally {
@@ -98,6 +113,11 @@ export default function PublisherOnboarding() {
       return;
     }
 
+    if (selectedCategories.length === 0) {
+      setError('Vinsamlegast veldu að minnsta kosti einn flokk efnis');
+      return;
+    }
+
     const hasAnyBankDetail = kennitala.trim() || iban.trim() || accountHolder.trim();
     const hasAllBankDetails = kennitala.trim() && iban.trim() && accountHolder.trim();
 
@@ -112,7 +132,7 @@ export default function PublisherOnboarding() {
       await createPublisher.mutateAsync({
         domain,
         displayName,
-        category,
+        categories: selectedCategories,
         payoutDetails: hasAllBankDetails
           ? {
               kennitala,
@@ -225,19 +245,7 @@ export default function PublisherOnboarding() {
                   </h4>
                   <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
                     Vefurinn var greindur sem **
-                    {category === 'news'
-                      ? 'Fréttir / Fjölmiðlar'
-                      : category === 'sports'
-                        ? 'Íþróttir'
-                        : category === 'tech'
-                          ? 'Tækni / Leikir'
-                          : category === 'finance'
-                            ? 'Viðskipti / Fjármál'
-                            : category === 'lifestyle'
-                              ? 'Lífsstíll / Blogg'
-                              : category === 'entertainment'
-                                ? 'Afþreying / Skemmtun'
-                                : category}
+                    {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label || 'Almennt'}
                     ** með {Math.round(confidence * 100)}% öryggi.
                   </p>
                 </div>
@@ -276,24 +284,40 @@ export default function PublisherOnboarding() {
               />
             </div>
 
-            <label className="block w-full">
-              <span className="block text-sm font-medium text-slate-700 mb-1">
-                Aðalflokkur efnis *
-              </span>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-              >
-                <option value="news">Fréttir / Fjölmiðlar</option>
-                <option value="lifestyle">Lífsstíll / Blogg</option>
-                <option value="tech">Tækni / Leikir</option>
-                <option value="sports">Íþróttir</option>
-                <option value="finance">Viðskipti / Fjármál</option>
-                <option value="entertainment">Afþreying / Skemmtun</option>
-                <option value="other">Annað / Almennt</option>
-              </select>
-            </label>
+            <div className="space-y-2">
+              <label className="block text-sm font-bold text-slate-800">
+                Flokkar efnis * (Veldu einn eða fleiri)
+              </label>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt birtingar í þessum flokkum.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                {AD_CATEGORIES.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.slug);
+                  return (
+                    <div
+                      key={cat.slug}
+                      onClick={() => {
+                        if (isSelected) {
+                          if (selectedCategories.length > 1) {
+                            setSelectedCategories(selectedCategories.filter((s) => s !== cat.slug));
+                          }
+                        } else {
+                          setSelectedCategories([...selectedCategories, cat.slug]);
+                        }
+                      }}
+                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
+                        isSelected
+                          ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {cat.label}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Premium Selector: Integration Preference */}
             <div className="space-y-3 pt-2">

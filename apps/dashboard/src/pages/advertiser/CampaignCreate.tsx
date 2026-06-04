@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateCampaign } from '@/hooks/useCampaigns';
-import { useSearchSlots } from '@/hooks/usePublisher';
+import { useCategoryInventory } from '@/hooks/useCategoryInventory';
 import { useWallet } from '@/hooks/useWallet';
 import { apiFetch } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { formatIsk } from '@/lib/format';
-import { AlertTriangle, ShieldCheck, Upload, Link, Check, AlertCircle } from 'lucide-react';
-import type { Slot, Creative } from '@ada/shared';
+import { AlertTriangle, ShieldCheck, Upload, Check, AlertCircle, Info, Sparkles } from 'lucide-react';
+import { AD_CATEGORIES } from '@ada/shared';
+import type { Creative } from '@ada/shared';
 
 export default function CampaignCreate() {
   const navigate = useNavigate();
   const walletQuery = useWallet();
-  const slotsQuery = useSearchSlots();
+  const categoriesInventoryQuery = useCategoryInventory();
   const createCampaignMutation = useCreateCampaign();
 
   const [step, setStep] = useState(1);
@@ -40,9 +40,8 @@ export default function CampaignCreate() {
   const [creative, setCreative] = useState<Creative | null>(null);
   const [scanning, setScanning] = useState(false);
 
-  // Step 3: Slots
-  const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
-  const [sizeFilter, setSizeFilter] = useState('');
+  // Step 3: Categories
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Handle local image file load for sizing
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,26 +99,7 @@ export default function CampaignCreate() {
     }
   };
 
-  // Toggle Slot Selection
-  const toggleSlot = (slotId: string) => {
-    setSelectedSlotIds((prev) =>
-      prev.includes(slotId) ? prev.filter((id) => id !== slotId) : [...prev, slotId],
-    );
-  };
 
-  // Filtered Slots
-  const filteredSlots =
-    slotsQuery.data?.filter((s) => {
-      const matchesSize = sizeFilter
-        ? s.sizes.some((sz) => `${sz.width}x${sz.height}` === sizeFilter)
-        : true;
-      return matchesSize;
-    }) || [];
-
-  // Get distinct sizes from all available slots
-  const allSizes = Array.from(
-    new Set(slotsQuery.data?.flatMap((s) => s.sizes.map((sz) => `${sz.width}x${sz.height}`)) || []),
-  );
 
   // Submit entire Campaign
   const handleFinalSubmit = async () => {
@@ -129,14 +109,18 @@ export default function CampaignCreate() {
     try {
       await createCampaignMutation.mutateAsync({
         name,
-        startDate: new Date(startDate).toISOString(),
-        endDate: endDate
-          ? new Date(endDate).toISOString()
-          : new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-        totalBudgetIsk: totalBudget,
-        clickUrl,
-        creativeUrl: creative.imageUrl,
-        slotIds: selectedSlotIds,
+        creativeIds: [creative.id],
+        categories: selectedCategories,
+        schedule: {
+          startsAt: new Date(startDate).toISOString(),
+          endsAt: endDate
+            ? new Date(endDate).toISOString()
+            : new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+        },
+        budget: {
+          mode: 'cpm_capped',
+          totalIsk: totalBudget,
+        },
       });
       navigate('/advertiser/campaigns');
     } catch (err: any) {
@@ -194,41 +178,15 @@ export default function CampaignCreate() {
               />
             </div>
 
-            <div className="space-y-2">
-              <span className="block text-sm font-medium text-slate-700">Tegund birtingar</span>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setBudgetMode('cpm_capped')}
-                  className={`p-4 rounded-lg border text-left cursor-pointer transition-all ${
-                    budgetMode === 'cpm_capped'
-                      ? 'border-primary bg-blue-50/50 ring-1 ring-primary'
-                      : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="block font-bold text-sm text-slate-900">
-                    CPM Birtingar (Greiða fyrir áhorf)
-                  </span>
-                  <span className="block text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                    Þú greiðir tiltekna upphæð á hverjar 1.000 birtingar uns hámarki er náð.
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBudgetMode('slot_purchased')}
-                  className={`p-4 rounded-lg border text-left cursor-pointer transition-all ${
-                    budgetMode === 'slot_purchased'
-                      ? 'border-primary bg-blue-50/50 ring-1 ring-primary'
-                      : 'border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="block font-bold text-sm text-slate-900">
-                    Fast plásskaup (Flat rate)
-                  </span>
-                  <span className="block text-xs text-slate-500 mt-1 font-medium leading-relaxed">
-                    Keyptu tiltekið pláss alveg á föstu verði í ákveðinn tíma.
-                  </span>
-                </button>
+            <div className="p-4 bg-slate-50/50 border border-slate-200 rounded-xl flex items-start gap-3">
+              <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="text-xs font-bold text-slate-800">
+                  Greiðslukerfi: Flöt CPM birting
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Birtingar eru verðlagðar samkvæmt flötu gjaldskrá kerfisins á <strong>550 kr. pr. 1.000 birtingar</strong> (CPM). Greitt er úr veskinu þínu í rauntíma eftir því sem auglýsingar birtast.
+                </p>
               </div>
             </div>
 
@@ -333,86 +291,96 @@ export default function CampaignCreate() {
           </div>
         )}
 
-        {/* Step 3: Slot Selection */}
+        {/* Step 3: Category Targeting */}
         {step === 3 && (
           <div className="space-y-5">
             <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Veldu auglýsingapláss
+              Veldu efnisflokka til að kaupa birtingar í *
             </h3>
+            <p className="text-xs text-slate-500 font-medium">
+              Herferðin þín verður birt á öllum útgefendasíðum sem tilheyra völdum flokkum.
+            </p>
 
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <select
-                  value={sizeFilter}
-                  onChange={(e) => setSizeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none"
-                >
-                  <option value="">Allar stærðir</option>
-                  {allSizes.map((sz) => (
-                    <option key={sz} value={sz}>
-                      {sz}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {slotsQuery.isLoading ? (
+            {categoriesInventoryQuery.isLoading ? (
               <LoadingState />
-            ) : filteredSlots.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 border border-slate-200 border-dashed rounded-lg text-sm font-medium">
-                Engin auglýsingapláss fundust sem passa við síuna.
-              </div>
             ) : (
-              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {filteredSlots.map((s) => {
-                  const isChecked = selectedSlotIds.includes(s.id);
-                  const isSizeMatch = s.sizes.some(
-                    (sz) => sz.width === imageWidth && sz.height === imageHeight,
-                  );
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
+                {AD_CATEGORIES.map((cat) => {
+                  const isSelected = selectedCategories.includes(cat.slug);
+                  const forecast = categoriesInventoryQuery.data?.find((f) => f.category === cat.slug);
+                  const avgDaily = forecast?.avgDailyImpressions ?? 0;
 
                   return (
                     <div
-                      key={s.id}
-                      onClick={() => toggleSlot(s.id)}
-                      className={`p-4 border rounded-lg flex items-center justify-between cursor-pointer transition-all ${
-                        isChecked
-                          ? 'border-primary bg-blue-50/20'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      } ${!isSizeMatch ? 'opacity-50' : ''}`}
+                      key={cat.slug}
+                      onClick={() => {
+                        setSelectedCategories((prev) =>
+                          prev.includes(cat.slug)
+                            ? prev.filter((s) => s !== cat.slug)
+                            : [...prev, cat.slug]
+                        );
+                      }}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between select-none ${
+                        isSelected
+                          ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                            isChecked
-                              ? 'bg-primary border-primary text-white'
-                              : 'border-slate-300 bg-white'
-                          }`}
-                        >
-                          {isChecked && <Check size={14} />}
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                            <span>{s.name}</span>
-                            {!isSizeMatch && <Badge variant="neutral">Stærð passar ekki</Badge>}
-                          </div>
-                          <div className="text-xs text-slate-500 font-semibold mt-1">
-                            Snið: {s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ')} ·
-                            Verð:{' '}
-                            {s.pricing.mode === 'cpm'
-                              ? `${formatIsk(s.pricing.cpmIsk)} CPM`
-                              : `${formatIsk(s.pricing.slotPriceIsk)} pr. tímabil`}
-                          </div>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 text-xs">{cat.label}</span>
+                        {isSelected && <Check size={14} className="text-primary animate-scaleIn" />}
                       </div>
-                      <div className="text-sm font-bold text-slate-950">
-                        {s.pricing.mode === 'cpm'
-                          ? formatIsk(s.pricing.cpmIsk)
-                          : formatIsk(s.pricing.slotPriceIsk)}
-                      </div>
+                      <span className="text-[10px] text-slate-500 font-semibold mt-3">
+                        Daglegt áætlað: {avgDaily.toLocaleString('is-IS')} áhorf
+                      </span>
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Reach Forecast Panel */}
+            {selectedCategories.length > 0 && !categoriesInventoryQuery.isLoading && (
+              <div className="p-5 bg-gradient-to-r from-blue-50/30 to-sky-50/30 border border-blue-100 rounded-xl space-y-4 shadow-sm">
+                <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-primary animate-pulse" />
+                  <span>Áætlað ná herferðar (Reach & Delivery Forecast)</span>
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daglegt áhorf í boði</span>
+                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
+                      {selectedCategories.reduce((sum, slug) => {
+                        const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
+                        return sum + (forecast?.avgDailyImpressions ?? 0);
+                      }, 0).toLocaleString('is-IS')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">Samanlagðar birtingar á dag</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Áætlaðar heildarbirtingar</span>
+                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
+                      {Math.round((totalBudget / 550) * 1000).toLocaleString('is-IS')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">Miðað við 550 kr. flatt CPM verð</span>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Áætlaður líftími herferðar</span>
+                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
+                      {(() => {
+                        const totalDaily = selectedCategories.reduce((sum, slug) => {
+                          const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
+                          return sum + (forecast?.avgDailyImpressions ?? 0);
+                        }, 0);
+                        const totalCamp = Math.round((totalBudget / 550) * 1000);
+                        return totalDaily > 0 ? `${(totalCamp / totalDaily).toFixed(1)} dagar` : 'N/A';
+                      })()}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">Hversu hratt fjárhagsáætlun klárast</span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -426,7 +394,7 @@ export default function CampaignCreate() {
               <Button variant="ghost" onClick={() => setStep(2)}>
                 Til baka
               </Button>
-              <Button disabled={selectedSlotIds.length === 0} onClick={() => setStep(4)}>
+              <Button disabled={selectedCategories.length === 0} onClick={() => setStep(4)}>
                 Næsta skref (Yfirlit) →
               </Button>
             </div>
@@ -452,7 +420,7 @@ export default function CampaignCreate() {
                     Tegund og áætlun:
                   </span>
                   <span className="font-bold text-slate-950 text-sm">
-                    {formatIsk(totalBudget)} ({budgetMode === 'cpm_capped' ? 'CPM' : 'Fast verð'})
+                    {formatIsk(totalBudget)} (CPM flöt verðlagning)
                   </span>
                 </div>
                 <div>
@@ -471,11 +439,11 @@ export default function CampaignCreate() {
 
               <div className="border-t border-slate-200/80 pt-3">
                 <span className="block text-slate-500 font-medium text-xs mb-1">
-                  Vefir og pláss valin ({selectedSlotIds.length}):
+                  Valdir flokkar herferðar ({selectedCategories.length}):
                 </span>
                 <span className="font-semibold text-slate-800 text-xs">
-                  {selectedSlotIds
-                    .map((id) => slotsQuery.data?.find((s) => s.id === id)?.name || id)
+                  {selectedCategories
+                    .map((slug) => AD_CATEGORIES.find((c) => c.slug === slug)?.label || slug)
                     .join(', ')}
                 </span>
               </div>

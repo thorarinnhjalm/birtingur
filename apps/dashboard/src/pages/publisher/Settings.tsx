@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { apiFetch } from '@/lib/api';
 import { Check, Copy, RefreshCw, Trash2, Key, Plus } from 'lucide-react';
+import { AD_CATEGORIES } from '@ada/shared';
 
 export default function Settings() {
   const { data: publisher, isLoading, refetch } = usePublisher();
@@ -16,6 +17,7 @@ export default function Settings() {
   const [iban, setIban] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
   const [vatNumber, setVatNumber] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -69,6 +71,7 @@ export default function Settings() {
       setIban(publisher.payoutMethod?.iban || '');
       setAccountHolder(publisher.payoutMethod?.accountName || '');
       setVatNumber(publisher.vatNumber || '');
+      setSelectedCategories(publisher.categories || []);
       fetchWidgetKey();
       fetchApiKeys();
     }
@@ -137,6 +140,12 @@ export default function Settings() {
     setSaved(false);
     setError(null);
 
+    if (selectedCategories.length === 0) {
+      setError('Vinsamlegast veldu að minnsta kosti einn flokk efnis');
+      setSaving(false);
+      return;
+    }
+
     const hasAnyBankDetail = kennitala.trim() || iban.trim() || accountHolder.trim();
     const hasAllBankDetails = kennitala.trim() && iban.trim() && accountHolder.trim();
 
@@ -153,6 +162,7 @@ export default function Settings() {
         displayName,
         domain,
         vatNumber: vatNumber.trim() || undefined,
+        categories: selectedCategories,
       };
 
       if (hasAllBankDetails) {
@@ -206,6 +216,41 @@ export default function Settings() {
             required
             disabled={saving}
           />
+
+          <div className="space-y-2 pt-3 border-t border-slate-100">
+            <label className="block text-sm font-bold text-slate-800">
+              Flokkar efnis * (Veldu einn eða fleiri)
+            </label>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt birtingar í þessum flokkum.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+              {AD_CATEGORIES.map((cat) => {
+                const isSelected = selectedCategories.includes(cat.slug);
+                return (
+                  <div
+                    key={cat.slug}
+                    onClick={() => {
+                      if (isSelected) {
+                        if (selectedCategories.length > 1) {
+                          setSelectedCategories(selectedCategories.filter((s) => s !== cat.slug));
+                        }
+                      } else {
+                        setSelectedCategories([...selectedCategories, cat.slug]);
+                      }
+                    }}
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
+                      isSelected
+                        ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {cat.label}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           <h4 className="font-bold text-sm text-slate-800 pt-3 border-t border-slate-100">
             Bankaupplýsingar fyrir útborganir
