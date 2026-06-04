@@ -341,7 +341,7 @@ export default function CampaignCreate() {
 
             {/* Reach Forecast Panel */}
             {selectedCategories.length > 0 && !categoriesInventoryQuery.isLoading && (
-              <div className="p-5 bg-gradient-to-r from-blue-50/30 to-sky-50/30 border border-blue-100 rounded-xl space-y-4 shadow-sm">
+              <div className="p-5 bg-linear-to-r from-blue-50/30 to-sky-50/30 border border-blue-100 rounded-xl space-y-4 shadow-sm">
                 <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles size={14} className="text-primary animate-pulse" />
                   <span>Áætlað ná herferðar (Reach & Delivery Forecast)</span>
