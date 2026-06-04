@@ -22,6 +22,7 @@ export default function Settings() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [generatingKey, setGeneratingKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedMcp, setCopiedMcp] = useState(false);
 
   const fetchApiKeys = async () => {
     setLoadingKeys(true);
@@ -301,6 +302,109 @@ export default function Settings() {
               </table>
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* MCP Connection Guide */}
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl">smart_toy</span>
+            <span>Gervigreindartenging (Model Context Protocol - MCP)</span>
+          </h3>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Tengdu gervigreindartól (eins og Claude Desktop eða Cursor) beint við Birting með Model
+            Context Protocol. AI spjallmenn geta þá kynnt, greint eða stjórnað þínum gögnum með API
+            lyklinum þínum.
+          </p>
+        </div>
+
+        <div className="space-y-4 pt-3 border-t border-slate-100">
+          <div className="space-y-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+              MCP Endpoint slóð (Streamable HTTP)
+            </span>
+            <div className="flex gap-2">
+              <div className="font-mono text-xs bg-slate-50 text-slate-800 p-2.5 rounded-lg border border-slate-200 grow select-all break-all font-semibold">
+                https://mcp.birtingur.app/mcp
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText('https://mcp.birtingur.app/mcp');
+                  setCopiedMcp(true);
+                  setTimeout(() => setCopiedMcp(false), 2000);
+                }}
+                className="px-3 shrink-0"
+              >
+                {copiedMcp ? (
+                  <Check size={16} className="text-green-600 font-bold" />
+                ) : (
+                  <Copy size={16} />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-700">Uppsetning í Cursor / Windsurf</h4>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              Bættu við nýjum MCP netþjóni í Cursor stillingunum (Settings → Features → MCP):
+            </p>
+            <ul className="list-disc list-inside text-xs text-slate-600 font-semibold space-y-1 pl-1">
+              <li>
+                Heiti:{' '}
+                <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">
+                  birtingur
+                </code>
+              </li>
+              <li>
+                Tegund (Type):{' '}
+                <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">http</code>
+              </li>
+              <li>
+                Slóð (URL):{' '}
+                <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">
+                  https://mcp.birtingur.app/mcp
+                </code>
+              </li>
+              <li>
+                Headers (lykilgildi):{' '}
+                <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">
+                  {'Authorization: Bearer ak_xxx'}
+                </code>{' '}
+                (notaðu API lykilinn þinn fyrir ofan)
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-bold text-slate-700">Uppsetning í Claude Desktop</h4>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              Bættu þessari stillingu við í{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">
+                claude_desktop_config.json
+              </code>{' '}
+              skránni þinni:
+            </p>
+            <pre className="font-mono text-[10px] bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto select-all leading-tight font-semibold">
+              {`{
+  "mcpServers": {
+    "birtingur": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "-H", "Authorization: Bearer ak_DÍNN_API_LYKILL_HÉR",
+        "-H", "Content-Type: application/json",
+        "-d", "{{mcp_payload}}",
+        "https://mcp.birtingur.app/mcp"
+      ]
+    }
+  }
+}`}
+            </pre>
+          </div>
         </div>
       </Card>
 
