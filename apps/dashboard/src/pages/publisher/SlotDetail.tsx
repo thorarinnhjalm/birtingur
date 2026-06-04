@@ -26,7 +26,7 @@ export default function SlotDetail() {
   }
 
   // Generate JavaScript HTML Integration Code
-  const snippetCode = `<!-- ADA Auglýsingapláss: ${slot.name} -->
+  const snippetCode = `<!-- Birtingur Auglýsingapláss: ${slot.name} -->
 <div data-adplatform-slot="${slot.id}"></div>
 <script async src="https://cdn.adplatform.is/snippet.js"></script>`;
 

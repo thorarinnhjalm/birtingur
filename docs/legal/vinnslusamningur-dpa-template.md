@@ -10,7 +10,7 @@
 
 og
 
-**Neðri Hóll Hugmyndahús ehf.**, kt. 470126-2480, með skráð lögheimili að Álfhólsvegi 97, 200 Kópavogur (rekstraraðili auglýsingakerfisins Birta.is, hér eftir nefnt **„Vinnsluaðili“** eða **„Birta“**)
+**Neðri Hóll Hugmyndahús ehf.**, kt. 470126-2480, með skráð lögheimili að Álfhólsvegi 97, 200 Kópavogur (rekstraraðili auglýsingakerfisins Birtingur.is, hér eftir nefnt **„Vinnsluaðili“** eða **„Birtingur“**)
 
 Hvor um sig nefnd „Aðili“ og sameiginlega „Aðilar“.
 
@@ -18,7 +18,7 @@ Hvor um sig nefnd „Aðili“ og sameiginlega „Aðilar“.
 
 ## 1. INNGANGUR OG TILGANGUR
 
-1.1. Ábyrgðaraðili rekur vefsvæði (hér eftir „Vefurinn“) og nýtir tæknilausn Vinnsluaðila (auglýsingakerfi Birta.is) til að birta stafrænar auglýsingar á Vefnum.
+1.1. Ábyrgðaraðili rekur vefsvæði (hér eftir „Vefurinn“) og nýtir tæknilausn Vinnsluaðila (auglýsingakerfi Birtingur.is) til að birta stafrænar auglýsingar á Vefnum.
 1.2. Vinnsluaðili vinnur persónuupplýsingar fyrir hönd Ábyrgðaraðila samkvæmt skilmálum aðalsamnings Aðila um auglýsingabirtingar. Tilgangur þessa samnings er að tryggja að vinnsla persónuupplýsinga uppfylli kröfur persónuverndarlaga og að réttindi hinna skráðu séu tryggð.
 
 ---
@@ -90,7 +90,7 @@ Staða: **\*\*\*\***\*\***\*\*\*\***\_**\*\*\*\***\*\***\*\*\*\***
 Dagsetning: **\*\***\*\***\*\***\_\_\_\_**\*\***\*\***\*\***
 Undirskrift: **\*\***\*\***\*\***\_\_\_**\*\***\*\***\*\***
 
-Fyrir hönd Vinnsluaðila (Neðri Hóll Hugmyndahús ehf. / Birta.is):
+Fyrir hönd Vinnsluaðila (Neðri Hóll Hugmyndahús ehf. / Birtingur.is):
 
 Nafn: Þórarinn Hjálmarsson
 Staða: Stjórnarmaður
@@ -119,7 +119,7 @@ Tilgangur vinnslunnar er að keyra stafrænt auglýsingakerfi á vefsvæði Útg
 Kerfið er hannað til að lágmarka söfnun persónuupplýsinga og notar engar viðvarandi kökur sem rekja notendur á milli ólíkra vefsvæða. Eftirfarandi gögn eru unnin í skammtímaminni eða geymd í dulkóðuðu/gervigervðu formi:
 
 - **Tímabundinn heimsóknarlykill (Session Token / Cookie)**: Dulritaður fyrsta aðila lykill (first-party cookie) sem geymdur er í 90 daga til að stýra birtingartakmörkunum (frequency capping). Lykillinn er bundinn við viðkomandi vefsvæði og leyfir ekki þvertengingar á milli vefja.
-- **Landfræðilegar upplýsingar (Geo location)**: Land eða landshluti (t.d. höfuðborgarsvæði vs. landsbyggð) sem ákvarðaður er út frá IP-tölu notanda við beiðni (gegnum Cloudflare headers). IP-talan sjálf er **aldrei vistuð** í gagnagrunni Birta.is.
+- **Landfræðilegar upplýsingar (Geo location)**: Land eða landshluti (t.d. höfuðborgarsvæði vs. landsbyggð) sem ákvarðaður er út frá IP-tölu notanda við beiðni (gegnum Cloudflare headers). IP-talan sjálf er **aldrei vistuð** í gagnagrunni Birtingur.is.
 - **Atburðaskráning (Event logs)**: Upplýsingar um gerð atburðar (birting eða smellur), auðkenni auglýsingar (creative ID), auðkenni auglýsingapláss (slot ID) og tímastimpill.
 
 ### 4. Viðkvæmar persónuupplýsingar
@@ -130,7 +130,7 @@ Engar viðkvæmar persónuupplýsingar (s.s. heilsufarsupplýsingar, stjórnmál
 
 ## VIÐAUKI B: SAMÞYKKTIR UNDIRVINNSLUAÐILAR (SUB-PROCESSORS)
 
-Vinnsluaðili nýtir eftirfarandi þjónustuaðila til að hýsa og reka innviði Birta.is:
+Vinnsluaðili nýtir eftirfarandi þjónustuaðila til að hýsa og reka innviði Birtingur.is:
 
 1. **Google Ireland Limited (Firebase / Google Cloud Platform)**
    - **Hlutverk**: Gagnageymsla (Firestore), notendaauðkenning og skráahýsing (Storage).

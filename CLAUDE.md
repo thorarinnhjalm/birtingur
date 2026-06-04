@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ADA is a self-service display advertising platform for the Icelandic market (publishers sell ad slots, advertisers buy campaigns, platform serves ads and handles billing/payouts). All money is in **ISK** (integer króna, no decimals); VAT is 24%.
+Birtingur is a self-service display advertising platform for the Icelandic market (publishers sell ad slots, advertisers buy campaigns, platform serves ads and handles billing/payouts). All money is in **ISK** (integer króna, no decimals); VAT is 24%.
 
 ## Commands
 

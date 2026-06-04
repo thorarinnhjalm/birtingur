@@ -408,7 +408,7 @@ export default function PublisherDashboard() {
           !publisher ? (
             <Navigate to="/publisher/onboarding" replace />
           ) : (
-            <AppShell items={sidebarItems} title="ADA Útgefandi">
+            <AppShell items={sidebarItems} title="Birtingur Útgefandi">
               <Routes>
                 <Route path="/" element={<PublisherHome />} />
                 <Route path="slots" element={<SlotList />} />

@@ -34,7 +34,7 @@ export default function SignIn() {
     setLoading(true);
 
     if (
-      (email.trim() === 'DemoA' || email.trim() === 'demoa@birta.is') &&
+      (email.trim() === 'DemoA' || email.trim() === 'demoa@birtingur.is') &&
       password === 'password'
     ) {
       try {
@@ -64,9 +64,9 @@ export default function SignIn() {
       <Card className="w-full max-w-md backdrop-blur-md bg-white/95 border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] py-8 px-6">
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-primary/20 mb-3">
-            A
+            B
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary">ADA</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary">Birtingur</h1>
           <p className="text-sm text-slate-500 mt-1 font-medium">
             Sjálfsafgreiðslu auglýsingavettvangur
           </p>

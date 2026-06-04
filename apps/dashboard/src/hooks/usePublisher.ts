@@ -56,8 +56,8 @@ export function useCreateSlot() {
       name: string;
       sizes: { width: number; height: number }[];
       pricing: {
-        type: 'cpm' | 'flat';
-        amountIsk: number;
+        mode: 'cpm';
+        cpmIsk: number;
       };
       targeting: {
         regions?: string[];

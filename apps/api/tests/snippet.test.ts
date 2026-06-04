@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { generateSnippet } from '../src/lib/snippet';
 
 describe('Snippet Builder', () => {
-  const cdnUrl = 'https://cdn.birta.is/widget.js';
+  const cdnUrl = 'https://cdn.birtingur.is/widget.js';
 
   it('generates a standard HTML snippet with data-adplatform-slot and dimensions', () => {
     const html = generateSnippet({

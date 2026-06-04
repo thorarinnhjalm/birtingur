@@ -37,7 +37,7 @@ export default function RoleSelect() {
             Veldu þitt hlutverk
           </h1>
           <p className="mt-3 max-w-2xl mx-auto text-base text-slate-500 sm:mt-4 font-medium">
-            Hvernig ætlarðu að nota ADA vettvanginn í dag? Þú getur breytt þessu hvenær sem er.
+            Hvernig ætlarðu að nota Birting í dag? Þú getur breytt þessu hvenær sem er.
           </p>
         </div>
 

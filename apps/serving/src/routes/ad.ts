@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
+import { FLAT_CPM_ISK } from '@ada/shared';
 import { selectCreative } from '../lib/select.js';
 import {
   getOrCreateVisitorToken,
@@ -24,13 +25,13 @@ adRoute.get('/', async (c) => {
       slotId: slotId,
       publisherId: 'pub_demo_123',
       sizes: [{ width: 300, height: 250 }],
-      pricing: { mode: 'cpm', cpmIsk: 280 },
+      pricing: { mode: 'cpm', cpmIsk: FLAT_CPM_ISK },
       activeCreatives: [
         {
           creativeId: 'cre_demo_123',
           imageUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ',
-          clickUrl: 'https://birta.is',
+          clickUrl: 'https://birtingur.is',
           width: 300,
           height: 250,
           campaignId: 'cmp_demo_123',

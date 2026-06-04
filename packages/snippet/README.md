@@ -1,6 +1,6 @@
-# Birta - Ad Delivery Snippet
+# Birtingur - Ad Delivery Snippet
 
-A minified, ultra-lightweight, self-contained JavaScript script (IIFE) designed to be embedded directly into publisher websites. It detects publisher CMP consent, fetches eligible display ads from the Birta Serving API, and injects them securely via iframe elements.
+A minified, ultra-lightweight, self-contained JavaScript script (IIFE) designed to be embedded directly into publisher websites. It detects publisher CMP consent, fetches eligible display ads from the Birtingur Serving API, and injects them securely via iframe elements.
 
 ## Key Features
 
@@ -33,7 +33,7 @@ This executes the script defined in `esbuild.config.mjs`:
 
 ## Cloudflare R2 CDN Upload & Deployment
 
-Once compiled, `dist/index.js` should be uploaded to a Cloudflare R2 bucket mapped to a custom domain (e.g., `cdn.birta.is/v1/snippet.js`).
+Once compiled, `dist/index.js` should be uploaded to a Cloudflare R2 bucket mapped to a custom domain (e.g., `cdn.birtingur.is/v1/snippet.js`).
 
 ### Upload Configuration
 
@@ -50,18 +50,18 @@ When uploading to Cloudflare R2, configure the following metadata headers to ens
 To deploy automatically using the wrangler CLI:
 
 ```bash
-wrangler r2 object put "birta-cdn/v1/snippet.js" --file="./dist/index.js" --content-type="application/javascript; charset=utf-8"
+wrangler r2 object put "birtingur-cdn/v1/snippet.js" --file="./dist/index.js" --content-type="application/javascript; charset=utf-8"
 ```
 
 ---
 
 ## Fail-Silent & Layout Resilience
 
-Ad platforms must never break host sites. The Birta snippet employs several strategies to achieve this:
+Ad platforms must never break host sites. The Birtingur snippet employs several strategies to achieve this:
 
 1. **Global Try-Catch Wrapper**:
    All execution logic resides in a top-level try-catch block. Any exceptions (e.g., legacy browser APIs) are captured and suppressed. No errors leak to the browser console.
 2. **Network Timeout Handling**:
-   Ad fetching uses the standard `AbortController` API with a strict **2-second timeout**. If the Birta Serving API does not respond within this window, the fetch is aborted silently.
+   Ad fetching uses the standard `AbortController` API with a strict **2-second timeout**. If the Birtingur Serving API does not respond within this window, the fetch is aborted silently.
 3. **Graceful UI Rendering**:
    If an ad fails to load, or if the server returns `{ "empty": true }`, the target script container is untouched. The container maintains `display: none` or collapses naturally, avoiding blank white spaces on the publisher page.

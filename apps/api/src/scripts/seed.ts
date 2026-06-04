@@ -1,5 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 async function seed() {
   console.log('Seeding demo data into Firestore...');
@@ -10,7 +11,7 @@ async function seed() {
   const pubRef = db.collection(COLLECTIONS.publishers).doc('pub_demo_id');
   await pubRef.set({
     id: 'pub_demo_id',
-    ownerEmail: 'demoa@birta.is',
+    ownerEmail: 'demoa@birtingur.is',
     domain: 'visir.is',
     displayName: 'Vísir.is',
     payoutMethod: {
@@ -40,7 +41,7 @@ async function seed() {
     ],
     pricing: {
       mode: 'cpm',
-      cpmIsk: 450,
+      cpmIsk: FLAT_CPM_ISK,
     },
     placement: {
       pageMatcher: '/',
@@ -54,7 +55,7 @@ async function seed() {
   const advRef = db.collection(COLLECTIONS.advertisers).doc('adv_demo_id');
   await advRef.set({
     id: 'adv_demo_id',
-    ownerEmail: 'demoa@birta.is',
+    ownerEmail: 'demoa@birtingur.is',
     companyName: 'Gullfoss Ferðaþjónusta ehf.',
     kennitala: '1234567890',
     vatNumber: '159950',

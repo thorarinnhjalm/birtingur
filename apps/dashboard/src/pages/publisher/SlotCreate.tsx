@@ -4,7 +4,7 @@ import { useCreateSlot } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { IAB_STANDARD_SIZES } from '@ada/shared';
+import { IAB_STANDARD_SIZES, FLAT_CPM_ISK } from '@ada/shared';
 import { ShieldCheck, Plus, Check } from 'lucide-react';
 
 export default function SlotCreate() {
@@ -13,8 +13,6 @@ export default function SlotCreate() {
 
   const [name, setName] = useState('');
   const [selectedSizes, setSelectedSizes] = useState<Array<{ width: number; height: number }>>([]);
-  const [priceType, setPriceType] = useState<'cpm' | 'flat'>('cpm');
-  const [amount, setAmount] = useState(1500);
   const [categories, setCategories] = useState<string[]>([]);
   const [autoApprove, setAutoApprove] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,18 +44,14 @@ export default function SlotCreate() {
       setError('Veldu að minnsta kosti eina leyfilega stærð');
       return;
     }
-    if (amount <= 0) {
-      setError('Upphæð verður að vera stærri en 0 kr.');
-      return;
-    }
 
     try {
       await createSlotMutation.mutateAsync({
         name,
         sizes: selectedSizes,
         pricing: {
-          type: priceType,
-          amountIsk: amount,
+          mode: 'cpm',
+          cpmIsk: FLAT_CPM_ISK,
         },
         targeting: {
           categories: categories.length > 0 ? categories : undefined,
@@ -129,29 +123,16 @@ export default function SlotCreate() {
           </div>
 
           {/* Pricing Config */}
-          <div className="grid grid-cols-2 gap-4">
-            <label className="block w-full">
-              <span className="block text-sm font-medium text-slate-700 mb-1">Greiðslukerfi</span>
-              <select
-                value={priceType}
-                onChange={(e) => setPriceType(e.target.value as 'cpm' | 'flat')}
-                disabled={createSlotMutation.isPending}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-              >
-                <option value="cpm">CPM (kr. fyrir hverjar 1.000 flettingar)</option>
-                <option value="flat">Fast verð (Fast gjald á viku)</option>
-              </select>
-            </label>
-
-            <Input
-              label={priceType === 'cpm' ? 'CPM Verð (kr.) *' : 'Flat rate Verð á viku (kr.) *'}
-              type="number"
-              min="1"
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value) || 0)}
-              required
-              disabled={createSlotMutation.isPending}
-            />
+          <div className="bg-blue-50/40 border border-blue-200/80 rounded-lg p-5 flex gap-3 text-xs font-semibold text-slate-600">
+            <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
+              <p className="leading-relaxed text-slate-500 mt-1 font-medium">
+                Vettvangurinn vinnur með flatt CPM (verð fyrir hverjar 1.000 flettingar) upp á{' '}
+                <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir allar auglýsingabirtingar.
+                Greiðslur til þín safnast sjálfkrafa upp í veskið þitt út frá þessu verði.
+              </p>
+            </div>
           </div>
 
           {/* Auto Approve campaigns toggle */}
@@ -161,7 +142,7 @@ export default function SlotCreate() {
                 Sjálfvirk samþykkt (Auto Approve)
               </span>
               <span className="block text-xs text-slate-400 font-semibold leading-relaxed">
-                Ræstu herferðir sjálfkrafa ef auglýsingin er auto-approved af ADA scanner.
+                Ræstu herferðir sjálfkrafa ef auglýsingin er sjálfkrafa samþykkt af Birtingur-skannanum.
               </span>
             </div>
             <input

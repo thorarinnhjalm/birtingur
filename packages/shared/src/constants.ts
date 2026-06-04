@@ -34,3 +34,7 @@ export const VAT_RATE = 0.24;
 
 /** Currency code (ISK only in V1) */
 export const CURRENCY = 'ISK' as const;
+
+/** Flat CPM rate applied to all ad impressions */
+export const FLAT_CPM_ISK = 550;
+

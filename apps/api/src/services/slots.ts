@@ -15,13 +15,26 @@ export async function createSlot(input: {
   placement: any;
 }): Promise<Slot> {
   const id = generateId('slot');
+  // Normalize pricing: frontend uses type/amountIsk, backend expects mode/cpmIsk (or slot/slotPriceIsk/slotPeriodDays)
+  let pricing = input.pricing;
+  if (pricing && pricing.type) {
+    pricing = {
+      mode: pricing.type === 'flat' ? 'slot' : 'cpm',
+      cpmIsk: pricing.type === 'cpm' ? pricing.amountIsk : undefined,
+      slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
+      slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
+    };
+    // Clean up undefined fields
+    Object.keys(pricing).forEach((key) => pricing[key] === undefined && delete pricing[key]);
+  }
+
   const slotData = {
     id,
     publisherId: input.publisherId,
     name: input.name,
     sizes: input.sizes,
-    pricing: input.pricing,
-    placement: input.placement,
+    pricing,
+    placement: input.placement || { pageMatcher: '/*', position: 'sidebar' as const },
     status: 'active' as const,
   };
 

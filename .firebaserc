@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "ada-dev",
-    "production": "ada-prod"
+    "default": "birtingur-8b5a4",
+    "production": "birtingur-8b5a4"
   }
 }

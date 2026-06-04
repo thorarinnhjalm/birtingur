@@ -92,71 +92,87 @@ vi.mock('../src/lib/firebase', () => ({
   },
   db: {
     collection: vi.fn((colName: string) => ({
-      doc: vi.fn((id: string) => ({
-        id,
-        withConverter: vi.fn(() => ({
-          get: vi.fn(async () => {
-            let data: Record<string, unknown> | null = null;
-            if (colName === 'advertisers') {
-              data =
-                (mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>) ||
-                null;
-            } else if (colName === 'creatives') {
-              data =
-                (mockCreatives.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
-                null;
-            } else if (colName === 'campaigns') {
-              data =
-                (mockCampaigns.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
-                null;
-            } else if (colName === 'publishers') {
-              data =
-                (mockPublishers.find((p) => p.id === id) as unknown as Record<string, unknown>) ||
-                null;
-            } else if (colName === 'slots') {
-              data =
-                (mockSlots.find((s) => s.id === id) as unknown as Record<string, unknown>) || null;
-            }
-            return {
-              exists: data !== undefined && data !== null,
-              data: () => data,
-            };
-          }),
-          set: vi.fn(async (val: unknown) => {
-            if (colName === 'advertisers') {
-              mockAdvertisers.push(val as MockAdvertiser);
-            } else if (colName === 'creatives') {
-              mockCreatives.push(val as MockCreative);
-            } else if (colName === 'campaigns') {
-              mockCampaigns.push(val as MockCampaign);
-            }
-          }),
-        })),
-      })),
+      doc: vi.fn((id: string) => {
+        const docGet = async () => {
+          let data: Record<string, unknown> | null = null;
+          if (colName === 'advertisers') {
+            data =
+              (mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>) ||
+              null;
+          } else if (colName === 'creatives') {
+            data =
+              (mockCreatives.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
+              null;
+          } else if (colName === 'campaigns') {
+            data =
+              (mockCampaigns.find((c) => c.id === id) as unknown as Record<string, unknown>) ||
+              null;
+          } else if (colName === 'publishers') {
+            data =
+              (mockPublishers.find((p) => p.id === id) as unknown as Record<string, unknown>) ||
+              null;
+          } else if (colName === 'slots') {
+            data =
+              (mockSlots.find((s) => s.id === id) as unknown as Record<string, unknown>) || null;
+          }
+          return {
+            exists: data !== undefined && data !== null,
+            data: () => data,
+          };
+        };
+        const docSet = async (val: unknown) => {
+          if (colName === 'advertisers') {
+            mockAdvertisers.push(val as MockAdvertiser);
+          } else if (colName === 'creatives') {
+            mockCreatives.push(val as MockCreative);
+          } else if (colName === 'campaigns') {
+            mockCampaigns.push(val as MockCampaign);
+          }
+        };
+        // Mirror the real DocumentReference: `.get()`/`.set()` are available
+        // directly and after `.withConverter()`. Without the direct methods,
+        // source paths that call `.doc().set()` without a converter throw
+        // "set is not a function".
+        return {
+          id,
+          get: vi.fn(docGet),
+          set: vi.fn(docSet),
+          withConverter: vi.fn(() => ({
+            get: vi.fn(docGet),
+            set: vi.fn(docSet),
+          })),
+        };
+      }),
       where: vi.fn((prop: string, _op: string, val: unknown) => {
+        const runQuery = async () => {
+          let list: Record<string, unknown>[] = [];
+          if (colName === 'advertisers') {
+            list = mockAdvertisers as unknown as Record<string, unknown>[];
+          } else if (colName === 'creatives') {
+            list = mockCreatives as unknown as Record<string, unknown>[];
+          } else if (colName === 'campaigns') {
+            list = mockCampaigns as unknown as Record<string, unknown>[];
+          } else if (colName === 'slots') {
+            list = mockSlots as unknown as Record<string, unknown>[];
+          }
+          const filtered = list.filter((item) => item[prop] === val);
+          return {
+            empty: filtered.length === 0,
+            docs: filtered.map((item) => ({
+              data: () => item,
+            })),
+          };
+        };
+        // Mirror the real Firestore Query: `.get()` is available directly on the
+        // query (with or without `.withConverter()`), and `.where()`/`.limit()`
+        // are chainable. Without the direct `.get`, source paths that call
+        // `.where().limit().get()` without a converter throw "get is not a function".
         const builder: any = {
           where: vi.fn(() => builder),
           limit: vi.fn(() => builder),
+          get: vi.fn(runQuery),
           withConverter: vi.fn(() => ({
-            get: vi.fn(async () => {
-              let list: Record<string, unknown>[] = [];
-              if (colName === 'advertisers') {
-                list = mockAdvertisers as unknown as Record<string, unknown>[];
-              } else if (colName === 'creatives') {
-                list = mockCreatives as unknown as Record<string, unknown>[];
-              } else if (colName === 'campaigns') {
-                list = mockCampaigns as unknown as Record<string, unknown>[];
-              } else if (colName === 'slots') {
-                list = mockSlots as unknown as Record<string, unknown>[];
-              }
-              const filtered = list.filter((item) => item[prop] === val);
-              return {
-                empty: filtered.length === 0,
-                docs: filtered.map((item) => ({
-                  data: () => item,
-                })),
-              };
-            }),
+            get: vi.fn(runQuery),
           })),
         };
         return builder;

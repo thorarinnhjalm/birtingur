@@ -187,7 +187,7 @@ export default function Settings() {
           </h3>
           <p className="text-slate-500 text-sm font-medium mt-1">
             Búðu til API lykla til að tengja gervigreindarfulltrúa og ytri kerfi (t.d. Datera) við
-            ADA reikninginn þinn.
+            Birtingar-reikninginn þinn.
           </p>
         </div>
 

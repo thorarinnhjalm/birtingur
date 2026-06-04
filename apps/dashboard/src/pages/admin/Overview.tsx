@@ -50,7 +50,7 @@ function Home() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Stjórnborð ADA</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Stjórnborð Birtings</h1>
         <p className="text-slate-500 text-sm font-medium mt-1">
           Yfirlit yfir heilsu og ástand vettvangsins.
         </p>
@@ -66,7 +66,7 @@ function Home() {
           value={isLoading ? '...' : formatIsk(stats?.totalRevenueIsk ?? 0)}
         />
         <StatCard
-          label="Þóknun (ADA)"
+          label="Þóknun (Birtingur)"
           value={isLoading ? '...' : formatIsk(stats?.platformFeeIsk ?? 0)}
         />
         <StatCard
@@ -411,7 +411,7 @@ const sidebar = [
 
 export default function AdminOverview() {
   return (
-    <AppShell items={sidebar} title="ADA Stjórnandi">
+    <AppShell items={sidebar} title="Birtingur Stjórnandi">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="review" element={<AdminReviewQueue />} />

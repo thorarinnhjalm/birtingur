@@ -507,7 +507,7 @@ export default function AdvertiserDashboard() {
           !advertiser ? (
             <Navigate to="/advertiser/onboarding" replace />
           ) : (
-            <AppShell items={sidebarItems} title="ADA Auglýsandi">
+            <AppShell items={sidebarItems} title="Birtingur Auglýsandi">
               <Routes>
                 <Route path="/" element={<AdvertiserHome />} />
                 <Route path="topup" element={<TopUp />} />

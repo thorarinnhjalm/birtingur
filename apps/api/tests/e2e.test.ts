@@ -247,12 +247,12 @@ vi.mock('../src/lib/firebase', () => {
               }
             };
 
-            const docObj = {
+            const docObj: any = {
               id,
               set: vi.fn(setFn),
               get: vi.fn(getFn),
               update: vi.fn(updateFn),
-              withConverter: vi.fn(() => docObj),
+              withConverter: vi.fn((): any => docObj),
             };
             return docObj;
           }),

@@ -34,7 +34,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   if (token === 'demo-mock-token') {
     c.set('user', {
       uid: 'demo-user-id',
-      email: 'demoa@birta.is',
+      email: 'demoa@birtingur.is',
       admin: true,
     });
     await next();

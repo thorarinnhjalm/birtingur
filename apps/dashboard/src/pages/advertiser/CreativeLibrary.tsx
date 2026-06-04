@@ -113,7 +113,7 @@ export default function CreativeLibrary() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mínar auglýsingar</h1>
           <p className="text-slate-500 text-sm font-medium mt-1">
-            Stjórnaðu og hlaðið upp auglýsingaborðum í ADA vettvanginn.
+            Stjórnaðu og hlaðið upp auglýsingaborðum í Birtingur-vettvanginn.
           </p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="font-bold text-sm py-2.5 gap-1.5">

@@ -48,7 +48,7 @@ export async function verifyWidgetKey(key: string): Promise<WidgetKeyRecord | nu
     return {
       id: key,
       key: key,
-      ownerEmail: 'demoa@birta.is',
+      ownerEmail: 'demoa@birtingur.is',
       type: key.includes('publisher') ? 'publisher' : 'campaign',
       targetId: key.includes('publisher') ? 'pub_demo_id' : 'camp_demo_id',
       createdAt: new Date(),

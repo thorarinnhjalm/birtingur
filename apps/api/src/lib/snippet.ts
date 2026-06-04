@@ -18,5 +18,5 @@ export function generateSnippet(options: SnippetOptions): string {
   const widthAttr = options.width != null ? ` data-adplatform-width="${options.width}"` : '';
   const heightAttr = options.height != null ? ` data-adplatform-height="${options.height}"` : '';
 
-  return `<div data-adplatform-slot="${escapedSlotId}"${widthAttr}${heightAttr}></div>\n<script async src="https://cdn.birta.is/widget.js"></script>`;
+  return `<div data-adplatform-slot="${escapedSlotId}"${widthAttr}${heightAttr}></div>\n<script async src="https://cdn.birtingur.is/widget.js"></script>`;
 }

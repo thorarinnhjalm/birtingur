@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "ADA",
+    "name": "Birtingur",
     "tagline": "Sjálfsafgreiðslu auglýsingavettvangur"
   },
   "nav": {
@@ -28,7 +28,7 @@
     "noAccount": "Ertu ekki með aðgang?",
     "createAccount": "Skráðu þig nýjan",
     "roleSelectTitle": "Veldu þitt hlutverk",
-    "roleSelectSubtitle": "Hvernig ætlarðu að nota ADA vettvanginn?",
+    "roleSelectSubtitle": "Hvernig ætlarðu að nota Birting?",
     "roleAdvertiserTitle": "Ég vil birta auglýsingar",
     "roleAdvertiserDesc": "Settu inn inneign, hladdu upp auglýsingum og veldu pláss á íslenskum vefjum til að ná til þinna viðskiptavina.",
     "rolePublisherTitle": "Ég er með vef og vil selja pláss",

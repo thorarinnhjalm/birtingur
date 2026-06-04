@@ -62,12 +62,12 @@ export default function LandingPage() {
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => changeTab('home')}>
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-xl text-white shadow-lg shadow-blue-500/20">
-              A
+              B
             </div>
             <div>
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">ADA</span>
+              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Birtingur</span>
               <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60">
-                Birta.is
+                birtingur.is
               </span>
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function LandingPage() {
 
                   {/* Subtitle */}
                   <p className="text-base sm:text-lg lg:text-xl text-slate-500 max-w-xl font-medium leading-relaxed">
-                    Ada (birta.is) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir saman
+                    Birtingur (birtingur.is) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir saman
                     íslenska útgefendur og auglýsendur. Stofnaðu herferðir á nokkrum mínútum eða
                     byrjaðu að græða á vefnum þínum í dag.
                   </p>
@@ -547,9 +547,9 @@ export default function LandingPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center font-black text-xs text-white">
-                          A
+                          B
                         </div>
-                        <span className="text-xs font-bold text-slate-800">Birta.is</span>
+                        <span className="text-xs font-bold text-slate-800">birtingur.is</span>
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                         Auglýsing
@@ -598,7 +598,7 @@ export default function LandingPage() {
                       {`     data-adplatform-width="${sandboxSize === '300x250' ? '300' : sandboxSize === '728' ? '728' : '970'}"\n`}
                       {`     data-adplatform-height="${sandboxSize === '300x250' ? '250' : '90'}"></div>\n\n`}
                       {`<!-- Skriftan þarf aðeins að koma einu sinni á síðunni -->\n`}
-                      {`<script async src="https://cdn.birta.is/widget.js"></script>`}
+                      {`<script async src="https://cdn.birtingur.is/widget.js"></script>`}
                     </code>
                   </div>
                 </div>
@@ -612,7 +612,7 @@ export default function LandingPage() {
                   Einfaldari vinnubrögð
                 </h2>
                 <p className="text-base text-slate-500">
-                  Ada (birta.is) er sérsniðin lausn til að leysa algengustu vandamálin við sölu og
+                  Birtingur (birtingur.is) er sérsniðin lausn til að leysa algengustu vandamálin við sölu og
                   birtingu vefauglýsinga.
                 </p>
               </div>
@@ -843,7 +843,7 @@ export default function LandingPage() {
 
                   <div className="flex items-center gap-2 text-[10px] text-slate-500">
                     <span className="material-symbols-outlined text-xs">info</span>
-                    Útgefið af: Birta.is ehf. (Kt. 560126-1020) VSK nr: 148902
+                    Útgefið af: Birtingur ehf. (Kt. 560126-1020) VSK nr: 148902
                   </div>
                 </div>
               </div>
@@ -1000,7 +1000,7 @@ export default function LandingPage() {
                 <div className="lg:col-span-5 rounded-xl bg-slate-950 border border-slate-900 overflow-hidden shadow-lg font-mono text-xs">
                   <div className="px-4 py-2 border-b border-slate-900 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-400">Uppsetningarkóði</span>
-                    <span className="text-[9px] text-slate-500">CDN CDN.BIRTA.IS</span>
+                    <span className="text-[9px] text-slate-500">CDN CDN.BIRTINGUR.IS</span>
                   </div>
                   <div className="p-4 text-blue-400 leading-relaxed overflow-x-auto select-all">
                     <code>
@@ -1008,7 +1008,7 @@ export default function LandingPage() {
                       {`<div data-adplatform-slot="slot_id">\n`}
                       {`</div>\n\n`}
                       {`<!-- Keyrir ósamstillt í head eða body -->\n`}
-                      {`<script async src="https://cdn.birta.is/widget.js">\n`}
+                      {`<script async src="https://cdn.birtingur.is/widget.js">\n`}
                       {`</script>`}
                     </code>
                   </div>
@@ -1071,15 +1071,15 @@ export default function LandingPage() {
               {[
                 {
                   q: 'Hvernig set ég upp auglýsingar á vefsíðuna mína?',
-                  a: 'Eftir að þú skráir þig sem útgefanda færðu úthlutað sérstöku script-taggi (<script async src="https://cdn.birta.is/widget.js"></script>) sem þú setur inn í <head> eða undir lok <body> á síðunni þinni. Svo setur þú inn <div> með viðeigandi data-pláss auðkenni á þá staði þar sem þú vilt að auglýsingar birtist.',
+                  a: 'Eftir að þú skráir þig som útgefanda færðu úthlutað sérstöku script-taggi (<script async src="https://cdn.birtingur.is/widget.js"></script>) sem þú setur inn í <head> eða undir lok <body> á síðunni þinni. Svo setur þú inn <div> með viðeigandi data-pláss auðkenni á þá staði þar sem þú vilt að auglýsingar birtist.',
                 },
                 {
                   q: 'Hvernig borga ég fyrir herferðir og hver er lágmarksgreiðsla?',
                   a: 'Greiðslur fara fram með kreditkorti í gegnum örugga greiðslugátt Teya. Þú getur keypt inneign fyrir þá upphæð sem þér hentar, en lágmarksupphæð hverrar innborgunar er 2.000 kr. (með VSK). Rafrænn VSK-reikningur er sendur á skráð netfang í kjölfar hverrar greiðslu.',
                 },
                 {
-                  q: 'Hvað tekur Ada háa þóknun af sölu?',
-                  a: 'Ada tekur 20% þóknun af heildar auglýsingagreiðslum sem fara í gegnum kerfið til að standa straum af hýsingu, greiðsluþóknunum og rekstri kerfisins. Engin mánaðarleg fastagjöld eða stofngjöld eru tekin af notendum.',
+                  q: 'Hvað tekur Birtingur háa þóknun af sölu?',
+                  a: 'Birtingur tekur 20% þóknun af heildar auglýsingagreiðslum sem fara í gegnum kerfið til að standa straum af hýsingu, greiðsluþóknunum og rekstri kerfisins. Engin mánaðarleg fastagjöld eða stofngjöld eru tekin af notendum.',
                 },
                 {
                   q: 'Þarf ég að breyta vafrakökustefnu (Cookie policy) hjá mér?',
@@ -1139,7 +1139,7 @@ export default function LandingPage() {
             <div className="space-y-4 text-center">
               <h1 className="text-4xl font-extrabold text-slate-900">Skilmálar og Persónuvernd</h1>
               <p className="text-lg text-slate-500 font-medium">
-                Notendaskilmálar og stefna um meðferð persónuupplýsinga hjá Birtu (birta.is).
+                Notendaskilmálar og stefna um meðferð persónuupplýsinga hjá Birtingi (birtingur.is).
               </p>
             </div>
 
@@ -1149,13 +1149,13 @@ export default function LandingPage() {
                   1. Almenn ákvæði
                 </h2>
                 <p>
-                  Vefurinn **birta.is** (hér eftir „Birta“ eða „Vettvangurinn“) er rekinn af
+                  Vefurinn **birtingur.is** (hér eftir „Birtingur“ eða „Vettvangurinn“) er rekinn af
                   **Nútímalegri auglýsingamiðlun ehf.**, kt. 560126-1020, Laugavegi 182, 105
-                  Reykjavík (hér eftir „Félagið“). Birta er sjálfvirkur sjálfsafgreiðsluvettvangur
+                  Reykjavík (hér eftir „Félagið“). Birtingur er sjálfvirkur sjálfsafgreiðsluvettvangur
                   sem tengir saman útgefendur vefsvæða og auglýsendur á Íslandi.
                 </p>
                 <p>
-                  Skilmálar þessir gilda um öll viðskipti og notkun á þjónustu Birtu, hvort sem um
+                  Skilmálar þessir gilda um öll viðskipti og notkun á þjónustu Birtings, hvort sem um
                   ræðir kaup á auglýsingaplássi (auglýsendur) eða sölu á birtingum (útgefendur). Með
                   því að stofna aðgang samþykkja notendur skilmála þessa í heild sinni.
                 </p>
@@ -1166,7 +1166,7 @@ export default function LandingPage() {
                   2. Skilmálar fyrir auglýsendur (Kaupendur)
                 </h2>
                 <p>
-                  **Innborgun og Wallet**: Birta notar fyrirframgreitt inneignarkerfi (Wallet).
+                  **Innborgun og Wallet**: Birtingur notar fyrirframgreitt inneignarkerfi (Wallet).
                   Auglýsendur leggja inn inneign með kreditkorti í gegnum örugga greiðslugátt
                   **Teya**. Lágmarksinnborgun er 2.000 kr. (brúttó, VSK innifalinn). Við hverja
                   innborgun er sjálfkrafa stofnaður rafrænn sölureikningur með 24% virðisaukaskatti
@@ -1203,7 +1203,7 @@ export default function LandingPage() {
                   hafna öllum auglýsingaborðum áður en þeir birtast á vefnum.
                 </p>
                 <p>
-                  **Þóknun og greiðslur**: Birta tekur **20% flatgreidda þóknun** af öllum
+                  **Þóknun og greiðslur**: Birtingur tekur **20% flatgreidda þóknun** af öllum
                   auglýsingatekjum sem miðlast í gegnum kerfið. Þóknunin stendur straum af rekstri,
                   greiðslugáttum og umsýslu. Tekjur útgefanda safnast upp í rauntíma. Ef áunnin
                   inneign nær **5.000 kr.** nettó greiðist hún út á skráðan bankareikning fyrsta
@@ -1217,7 +1217,7 @@ export default function LandingPage() {
                   4. Persónuverndarstefna (GDPR)
                 </h2>
                 <p>
-                  Birta leggur mikla áherslu á persónuvernd og lágmarkar söfnun gagna. Kerfið safnar
+                  Birtingur leggur mikla áherslu á persónuvernd og lágmarkar söfnun gagna. Kerfið safnar
                   **ekki persónugreinanlegum vafrakökum** (tracking cookies) til að fylgjast með
                   notendum á milli vefsvæða.
                 </p>
@@ -1226,7 +1226,7 @@ export default function LandingPage() {
                   Targeting) og byggist á flokkun vefefnis og grófri staðsetningu (landfræðilegt
                   svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru aldrei vistaðar í
                   gagnagrunni okkar heldur eru þær eingöngu notaðar í rauntíma til að ákvarða
-                  birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birta telst því vera
+                  birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur telst því vera
                   vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili (Controller)
                   gagnvart sínum lesendum.
                 </p>
@@ -1237,7 +1237,7 @@ export default function LandingPage() {
                   5. Takmörkun ábyrgðar
                 </h2>
                 <p>
-                  Birta.is ehf. ábyrgist ekki 100% samfellda keyrslu eða algjört villuleysi í
+                  Birtingur ehf. ábyrgist ekki 100% samfellda keyrslu eða algjört villuleysi í
                   kerfinu. Þjónustan er afhent „eins og hún er“. Félagið ber enga ábyrgð á óbeinu
                   tjóni, glötuðum tekjum útgefenda, eða rekstrartjóni auglýsenda vegna bilana eða
                   tafa á birtingum.
@@ -1253,7 +1253,7 @@ export default function LandingPage() {
                   notkunar á vettvangnum skal málinu vísað til Héraðsdóms Reykjavíkur.
                 </p>
                 <p className="text-xs text-slate-400 pt-4">
-                  Síðast uppfært: 3. júní 2026. Birta.is ehf. áskilur sér rétt til að uppfæra
+                  Síðast uppfært: 3. júní 2026. Birtingur ehf. áskilur sér rétt til að uppfæra
                   skilmála þessa reglulega.
                 </p>
               </section>
@@ -1273,9 +1273,9 @@ export default function LandingPage() {
                 onClick={() => changeTab('home')}
               >
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-extrabold text-sm text-white shadow-md shadow-blue-500/20">
-                  A
+                  B
                 </div>
-                <span className="font-extrabold text-lg text-slate-850">ADA</span>
+                <span className="font-extrabold text-lg text-slate-850">Birtingur</span>
               </div>
               <p className="text-xs text-slate-550 leading-relaxed">
                 Nútímaleg auglýsingamiðlun ehf.
@@ -1285,7 +1285,7 @@ export default function LandingPage() {
                 Laugavegur 182, 105 Reykjavík
               </p>
             </div>
-
+ 
             {/* Links Advertiser */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1310,7 +1310,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-
+ 
             {/* Links Publisher */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1335,7 +1335,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-
+ 
             {/* Legal / Contact */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1345,20 +1345,20 @@ export default function LandingPage() {
                 <li>
                   Hafa samband:{' '}
                   <a
-                    href="mailto:info@birta.is"
+                    href="mailto:info@birtingur.is"
                     className="text-slate-500 hover:text-slate-850 transition"
                   >
-                    info@birta.is
+                    info@birtingur.is
                   </a>
                 </li>
                 <li>Hjálparmiðstöð & FAQ</li>
               </ul>
             </div>
           </div>
-
+ 
           <div className="pt-8 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="text-[10px] text-slate-500">
-              © 2026 Ada (birta.is) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
+              © 2026 Birtingur (birtingur.is) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
             </span>
             <div className="flex gap-4 text-[10px] text-slate-550">
               <button

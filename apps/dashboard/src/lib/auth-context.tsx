@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInDemo = (username: string) => {
     const mockUser = {
       uid: 'demo-user-id',
-      email: `${username.toLowerCase()}@birta.is`,
+      email: `${username.toLowerCase()}@birtingur.is`,
       displayName: username,
       emailVerified: true,
       isDemo: true,
