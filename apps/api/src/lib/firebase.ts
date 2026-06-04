@@ -14,9 +14,17 @@ function init() {
     return;
   }
 
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY?.trim();
+  if (privateKey) {
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    } else if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  }
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
+  const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
 
   if (privateKey && clientEmail && projectId) {
     initializeApp({
