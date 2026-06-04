@@ -63,10 +63,18 @@ vi.mock('../src/lib/firebase', () => ({
     getAll: vi.fn(async (...refs: Array<{ id: string }>) => {
       return refs.map((ref) => {
         const creative = mockState.creatives.find((c) => c.id === ref.id);
+        if (creative) {
+          return {
+            id: ref.id,
+            exists: true,
+            data: () => creative,
+          };
+        }
+        // If not in creatives list, assume it is an advertiser ref and return active status
         return {
           id: ref.id,
-          exists: creative !== undefined,
-          data: () => creative,
+          exists: true,
+          data: () => ({ status: 'active' }),
         };
       });
     }),
