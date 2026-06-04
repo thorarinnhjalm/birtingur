@@ -1,10 +1,11 @@
 import { COLLECTIONS, payoutConverter, ledgerEntryConverter } from '@ada/shared/firestore';
-import { PayoutSchema, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import { PayoutSchema, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT, VAT_RATE } from '@ada/shared';
 import type { Payout } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { appendLedger } from './ledger.js';
 import { AppError } from '../lib/errors.js';
+import { getPublisherById } from './publishers.js';
 
 export async function generateMonthlyPayouts(
   periodStart: Date,
@@ -32,6 +33,9 @@ export async function generateMonthlyPayouts(
     const grossIsk = Math.round(netIsk / (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
     const platformFeeIsk = grossIsk - netIsk;
 
+    const publisher = await getPublisherById(publisherId);
+    const vatIsk = publisher?.vatNumber ? Math.round(netIsk * VAT_RATE) : 0;
+
     const payout: Payout = PayoutSchema.parse({
       id: generateId('pay'),
       publisherId,
@@ -40,6 +44,7 @@ export async function generateMonthlyPayouts(
       grossIsk,
       platformFeeIsk,
       netIsk,
+      vatIsk,
       status: 'pending',
       bankReference: '',
     });

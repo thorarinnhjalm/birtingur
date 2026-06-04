@@ -57,6 +57,7 @@ export const PayoutSchema = z
     grossIsk: z.number().int().nonnegative(),
     platformFeeIsk: z.number().int().nonnegative(),
     netIsk: z.number().int().nonnegative(),
+    vatIsk: z.number().int().nonnegative().default(0),
     status: PayoutStatusSchema,
     bankReference: z.string(),
   })

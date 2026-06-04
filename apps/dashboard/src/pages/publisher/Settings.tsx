@@ -15,6 +15,7 @@ export default function Settings() {
   const [kennitala, setKennitala] = useState('');
   const [iban, setIban] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
+  const [vatNumber, setVatNumber] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -66,6 +67,7 @@ export default function Settings() {
       setKennitala(publisher.payoutMethod?.kennitala || '');
       setIban(publisher.payoutMethod?.iban || '');
       setAccountHolder(publisher.payoutMethod?.accountName || '');
+      setVatNumber(publisher.vatNumber || '');
       fetchWidgetKey();
       fetchApiKeys();
     }
@@ -149,6 +151,7 @@ export default function Settings() {
       const updateData: any = {
         displayName,
         domain,
+        vatNumber: vatNumber.trim() || undefined,
       };
 
       if (hasAllBankDetails) {
@@ -226,6 +229,14 @@ export default function Settings() {
             value={accountHolder}
             onChange={(e) => setAccountHolder(e.target.value)}
             disabled={saving}
+          />
+
+          <Input
+            label="VSK-númer (valkvætt - ef skráð fyrirtæki)"
+            value={vatNumber}
+            onChange={(e) => setVatNumber(e.target.value)}
+            disabled={saving}
+            placeholder="t.d. 123456"
           />
 
           {error && (
