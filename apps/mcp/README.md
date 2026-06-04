@@ -1,6 +1,9 @@
 # ADA MCP Server
 
-Exposes the ADA display ad platform operations as MCP tools for AI agents.
+The publisher integration channel for the Birtingur ad platform: project/site owners
+use AI agents to create ad slots and embed them on their site, and to manage policy,
+approvals, and stats. Advertiser/buying operations are intentionally **not** exposed
+over MCP — those live in the dashboard and REST API.
 
 ## Endpoint
 
@@ -9,9 +12,7 @@ Exposes the ADA display ad platform operations as MCP tools for AI agents.
 All requests should be POST requests using the MCP Streamable HTTP transport.
 Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xxxxx` is a service-account API key obtained from your dashboard or via `POST /v1/api-keys`).
 
-## Available Tools
-
-### Publisher Tools
+## Available Tools (publisher)
 
 - `register_publisher` — Skrá útgefanda (Domain, Display Name, Payout Method)
 - `list_my_slots` — Listar öll auglýsingapláss útgefanda
@@ -23,18 +24,6 @@ Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xx
 - `list_pending_approvals` — Sækja herferðir sem bíða samþykkis á útgefendaplássum
 - `approve_creative` — Samþykkja herferð til birtingar
 - `reject_creative` — Hafna herferð með ástæðu
-
-### Advertiser Tools
-
-- `register_advertiser` — Skrá auglýsanda (Company Name, Kennitala, VAT)
-- `get_wallet_balance` — Sækja núverandi stöðu prepaid-veskis
-- `create_topup_link` — Búa til Teya checkout greiðsluhlekk
-- `upload_creative` — Hlaða inn auglýsingu og skanna
-- `search_slots` — Leita að tiltækum auglýsingaplássum (Size, Max CPM)
-- `create_campaign` — Stofna nýja herferð (Creative, Slots, Schedule, Budget)
-- `pause_campaign` — Stöðva birtingar herferðar tímabundið
-- `get_campaign_stats` — Sækja frammistöðutölur herferðar (Impressions, Clicks, Spend per publisher)
-- `list_my_campaigns` — Sækja allar eigin herferðir
 
 ## Client Configuration Examples
 
