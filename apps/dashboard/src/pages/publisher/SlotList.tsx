@@ -82,7 +82,9 @@ export default function SlotList() {
                   {formatIsk(s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk)}
                 </span>
                 <span className="text-[10px] text-slate-500 block font-bold">
-                  {s.pricing.mode === 'cpm' ? 'fyrir 1.000 birtingar' : `fyrir ${s.pricing.slotPeriodDays} daga`}
+                  {s.pricing.mode === 'cpm'
+                    ? 'fyrir 1.000 birtingar'
+                    : `fyrir ${s.pricing.slotPeriodDays} daga`}
                 </span>
               </div>
               <ArrowRight size={18} className="text-slate-400" />

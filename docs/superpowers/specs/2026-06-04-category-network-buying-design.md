@@ -57,9 +57,11 @@ with Icelandic labels. Starting set (~12):
 `afþreying_menning` · `dýr_gæludýr`
 
 `PublisherSchema` gains:
+
 ```ts
-categories: z.array(z.enum(AD_CATEGORIES)).min(1)   // 1..n
+categories: z.array(z.enum(AD_CATEGORIES)).min(1); // 1..n
 ```
+
 Slots have no category field; they inherit the publisher's categories at cache-build.
 
 The domain classifier maps its coarse result to a best-guess subset of `AD_CATEGORIES`
@@ -68,11 +70,13 @@ to pre-fill onboarding. The publisher's chosen categories are the source of trut
 ## 2. Targeting & campaign creation
 
 `TargetingSchema` (`packages/shared/src/schemas/campaign.ts`) — `slotIds` removed:
+
 ```ts
 export const TargetingSchema = z.object({
   categories: z.array(z.enum(AD_CATEGORIES)).min(1),
 });
 ```
+
 `perPublisherApproval` is removed from `CampaignSchema` (control moves to the publisher,
 §5).
 

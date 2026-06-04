@@ -90,10 +90,13 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
 
       // Decrement the campaign remaining budget in Firestore atomically
       const newRemaining = Math.max(0, cmp.budget.remainingIsk - totalCharge);
-      await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
-        'budget.remainingIsk': newRemaining,
-        ...(newRemaining <= 0 ? { status: 'paused' } : {}),
-      });
+      await db
+        .collection(COLLECTIONS.campaigns)
+        .doc(campaignId)
+        .update({
+          'budget.remainingIsk': newRemaining,
+          ...(newRemaining <= 0 ? { status: 'paused' } : {}),
+        });
       await pushCacheForCampaign(campaignId); // re-push so budgetExhausted + Redis counter refresh
 
       for (const [publisherId, gross] of grossByPublisher) {

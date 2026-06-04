@@ -174,7 +174,9 @@ export default function CampaignDetail() {
             Birtingarstjórnun
           </div>
           <div className="text-lg font-extrabold text-slate-900 mt-2 truncate">
-            {campaign.targeting.categories.map(cat => AD_CATEGORIES.find(c => c.slug === cat)?.label || cat).join(', ')}
+            {campaign.targeting.categories
+              .map((cat) => AD_CATEGORIES.find((c) => c.slug === cat)?.label || cat)
+              .join(', ')}
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Calendar size={14} />
@@ -192,7 +194,8 @@ export default function CampaignDetail() {
             Yfirferð auglýsingar
           </div>
           <div className="text-xl font-extrabold text-slate-900 mt-2">
-            {creative?.reviewStatus === 'auto_approved' || creative?.reviewStatus === 'manual_approved'
+            {creative?.reviewStatus === 'auto_approved' ||
+            creative?.reviewStatus === 'manual_approved'
               ? 'Samþykkt'
               : creative?.reviewStatus === 'pending'
                 ? 'Í yfirferð'

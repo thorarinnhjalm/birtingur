@@ -700,7 +700,9 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-lg font-bold text-white">Gagnsætt og samræmt verðlag</h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu fyrir almennar sýningar, en styðjum einnig **fasta tímabilsleigu** (t.d. fast verð fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
+                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu fyrir
+                      almennar sýningar, en styðjum einnig **fasta tímabilsleigu** (t.d. fast verð
+                      fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
                     </p>
                   </div>
 
@@ -1024,8 +1026,9 @@ export default function LandingPage() {
                     Greiðsluleiðir að þínu vali
                   </h3>
                   <p className="text-sm text-slate-500 leading-relaxed">
-                    Þú getur valið á milli þess að nota okkar flata 550 kr. CPM verð (greitt fyrir sýningar)
-                    eða leigt út plássið á föstu leiguverði yfir ákveðinn fjölda daga sem þú ákveður sjálfur.
+                    Þú getur valið á milli þess að nota okkar flata 550 kr. CPM verð (greitt fyrir
+                    sýningar) eða leigt út plássið á föstu leiguverði yfir ákveðinn fjölda daga sem
+                    þú ákveður sjálfur.
                   </p>
                 </div>
               </div>

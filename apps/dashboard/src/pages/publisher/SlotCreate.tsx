@@ -162,7 +162,8 @@ export default function SlotCreate() {
               >
                 <span className="block font-bold text-xs text-slate-900">CPM (Flatt verð)</span>
                 <span className="block text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">
-                  Fast samræmt verð upp á <strong>{FLAT_CPM_ISK} kr. CPM</strong> á öllu netinu samkvæmt stefnuyfirlýsingu okkar.
+                  Fast samræmt verð upp á <strong>{FLAT_CPM_ISK} kr. CPM</strong> á öllu netinu
+                  samkvæmt stefnuyfirlýsingu okkar.
                 </span>
               </button>
               <button
@@ -174,9 +175,12 @@ export default function SlotCreate() {
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                <span className="block font-bold text-xs text-slate-900">Tímabil (Fast leiguverð)</span>
+                <span className="block font-bold text-xs text-slate-900">
+                  Tímabil (Fast leiguverð)
+                </span>
                 <span className="block text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">
-                  Auglýsandi leigir plássið fyrir fast verð yfir ákveðinn fjölda daga sem þú ákveður sjálfur.
+                  Auglýsandi leigir plássið fyrir fast verð yfir ákveðinn fjölda daga sem þú ákveður
+                  sjálfur.
                 </span>
               </button>
             </div>
@@ -189,7 +193,10 @@ export default function SlotCreate() {
               <div>
                 <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
                 <p className="leading-relaxed text-slate-500 mt-1 font-medium">
-                  Vefurinn notar samræmt og gagnsætt verðlag upp á <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir hverjar 1.000 sýningar. Verðið er óbreytanlegt til að standa vörð um stefnuyfirlýsingu okkar.
+                  Vefurinn notar samræmt og gagnsætt verðlag upp á{' '}
+                  <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong>{' '}
+                  fyrir hverjar 1.000 sýningar. Verðið er óbreytanlegt til að standa vörð um
+                  stefnuyfirlýsingu okkar.
                 </p>
               </div>
             </div>
@@ -222,10 +229,19 @@ export default function SlotCreate() {
           {pricingMode === 'slot' && (
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 text-xs text-slate-650 space-y-2">
               <h5 className="font-bold text-slate-900 text-sm">Viðmið fyrir tímabilsleigu</h5>
-              <p className="font-medium text-slate-500">Hér eru gróf viðmið á íslenska markaðinum til að aðstoða við verðlagningu leiguplássa:</p>
+              <p className="font-medium text-slate-500">
+                Hér eru gróf viðmið á íslenska markaðinum til að aðstoða við verðlagningu
+                leiguplássa:
+              </p>
               <ul className="list-disc pl-5 space-y-1 text-slate-500 font-medium">
-                <li><strong>300x250 (in-content / hliðarborði)</strong>: t.d. 30.000–80.000 kr. á mánuði (miðað við miðlungsvef).</li>
-                <li><strong>Stærri pláss (leiðarar og risaborð)</strong>: oft verðlögð hærra, allt eftir sýnileika og umferð.</li>
+                <li>
+                  <strong>300x250 (in-content / hliðarborði)</strong>: t.d. 30.000–80.000 kr. á
+                  mánuði (miðað við miðlungsvef).
+                </li>
+                <li>
+                  <strong>Stærri pláss (leiðarar og risaborð)</strong>: oft verðlögð hærra, allt
+                  eftir sýnileika og umferð.
+                </li>
               </ul>
             </div>
           )}

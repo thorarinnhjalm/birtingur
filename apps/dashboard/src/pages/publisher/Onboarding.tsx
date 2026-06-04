@@ -245,7 +245,8 @@ export default function PublisherOnboarding() {
                   </h4>
                   <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
                     Vefurinn var greindur sem **
-                    {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label || 'Almennt'}
+                    {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label ||
+                      'Almennt'}
                     ** með {Math.round(confidence * 100)}% öryggi.
                   </p>
                 </div>
@@ -289,7 +290,8 @@ export default function PublisherOnboarding() {
                 Flokkar efnis * (Veldu einn eða fleiri)
               </label>
               <p className="text-xs text-slate-400 mt-0.5">
-                Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt birtingar í þessum flokkum.
+                Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt
+                birtingar í þessum flokkum.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
                 {AD_CATEGORIES.map((cat) => {

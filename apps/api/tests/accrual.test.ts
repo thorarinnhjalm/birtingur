@@ -227,7 +227,11 @@ function enqueueImpressions({
 async function getCampaignChargeTotal(advertiserId: string): Promise<number> {
   let total = 0;
   for (const entry of mockLedgerEntries) {
-    if (entry.party.type === 'advertiser' && entry.party.id === advertiserId && entry.type === 'campaign_charge') {
+    if (
+      entry.party.type === 'advertiser' &&
+      entry.party.id === advertiserId &&
+      entry.type === 'campaign_charge'
+    ) {
       total += Math.abs(entry.amountIsk);
     }
   }
@@ -246,7 +250,12 @@ describe('Accrual Service', () => {
 
   it('charges flat CPM per 1000 impressions, not rounded per impression', async () => {
     await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
-    enqueueImpressions({ campaignId: 'cmp_acc', slotId: 'slot_acc', publisherId: 'pub_acc', count: 1000 });
+    enqueueImpressions({
+      campaignId: 'cmp_acc',
+      slotId: 'slot_acc',
+      publisherId: 'pub_acc',
+      count: 1000,
+    });
     await drainAndAccrue(2000);
     const charge = await getCampaignChargeTotal('adv_acc');
     expect(charge).toBe(FLAT_CPM_ISK);
@@ -254,7 +263,12 @@ describe('Accrual Service', () => {
 
   it('decrements campaign remainingIsk by the charged amount', async () => {
     await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK, totalIsk: 50000 });
-    enqueueImpressions({ campaignId: 'cmp_acc', slotId: 'slot_acc', publisherId: 'pub_acc', count: 1000 });
+    enqueueImpressions({
+      campaignId: 'cmp_acc',
+      slotId: 'slot_acc',
+      publisherId: 'pub_acc',
+      count: 1000,
+    });
     await drainAndAccrue(2000);
     const cmp = mockCampaigns.get('cmp_acc');
     expect(cmp!.budget.remainingIsk).toBe(50000 - FLAT_CPM_ISK);

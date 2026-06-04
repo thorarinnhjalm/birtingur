@@ -14,7 +14,8 @@ export default function RoleSelect() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const bypassRedirect = searchParams.get('select') === 'true' || searchParams.get('switch') === 'true';
+  const bypassRedirect =
+    searchParams.get('select') === 'true' || searchParams.get('switch') === 'true';
 
   useEffect(() => {
     if (bypassRedirect) return;

@@ -25,6 +25,7 @@
 ### Task 1: Add the `AD_CATEGORIES` taxonomy
 
 **Files:**
+
 - Modify: `packages/shared/src/constants.ts`
 - Test: `packages/shared/tests/constants.test.ts` (create if absent)
 
@@ -99,6 +100,7 @@ git commit -m "feat(shared): add AD_CATEGORIES taxonomy"
 ### Task 2: Add `categories` to `PublisherSchema`
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/publisher.ts`
 - Test: `packages/shared/tests/publisher.test.ts` (create if absent)
 
@@ -170,6 +172,7 @@ git commit -m "feat(shared): require categories (1..n) on Publisher"
 ### Task 3: Switch `TargetingSchema` to categories; drop `perPublisherApproval`
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/campaign.ts`
 - Test: `packages/shared/tests/campaign.test.ts` (create if absent)
 
@@ -250,6 +253,7 @@ git commit -m "feat(shared): target campaigns by category, drop slotIds + perPub
 ### Task 4: Lock flat CPM in `createSlot`
 
 **Files:**
+
 - Modify: `apps/api/src/services/slots.ts:18-30`
 - Test: `apps/api/tests/slots.test.ts` (add case)
 
@@ -283,15 +287,15 @@ In `apps/api/src/services/slots.ts`, import the constant and override the cpm va
 ```ts
 import { FLAT_CPM_ISK } from '@ada/shared';
 // ...
-  if (pricing && pricing.type) {
-    pricing = {
-      mode: pricing.type === 'flat' ? 'slot' : 'cpm',
-      cpmIsk: pricing.type === 'cpm' ? FLAT_CPM_ISK : undefined, // locked, ignore client value
-      slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
-      slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
-    };
-    Object.keys(pricing).forEach((k) => pricing[k] === undefined && delete pricing[k]);
-  }
+if (pricing && pricing.type) {
+  pricing = {
+    mode: pricing.type === 'flat' ? 'slot' : 'cpm',
+    cpmIsk: pricing.type === 'cpm' ? FLAT_CPM_ISK : undefined, // locked, ignore client value
+    slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
+    slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
+  };
+  Object.keys(pricing).forEach((k) => pricing[k] === undefined && delete pricing[k]);
+}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -311,6 +315,7 @@ git commit -m "feat(api): lock slot CPM to FLAT_CPM_ISK server-side"
 ### Task 5: Fix per-impression rounding in accrual (batch charge)
 
 **Files:**
+
 - Modify: `apps/api/src/services/accrual.ts:60-101`
 - Test: `apps/api/tests/accrual.test.ts` (add case)
 
@@ -324,7 +329,12 @@ The bug: `Math.round(550/1000)=1` per impression → 1000 impressions cost 1000 
 // Assert the advertiser was charged round(550 * 1000 / 1000) = 550, not 1000.
 it('charges flat CPM per 1000 impressions, not rounded per impression', async () => {
   await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: 550 });
-  await enqueueImpressions({ campaignId: 'cmp_acc', slotId: 'slot_acc', publisherId: 'pub_acc', count: 1000 });
+  await enqueueImpressions({
+    campaignId: 'cmp_acc',
+    slotId: 'slot_acc',
+    publisherId: 'pub_acc',
+    count: 1000,
+  });
   await drainAndAccrue(2000);
   const charge = await getCampaignChargeTotal('adv_acc'); // helper sums campaign_charge ledger (absolute)
   expect(charge).toBe(550);
@@ -345,44 +355,46 @@ Replace the per-impression rounding loop in `drainAndAccrue`. Compute per-publis
 ```ts
 import { FLAT_CPM_ISK } from '@ada/shared';
 // ...
-  for (const [campaignId, evs] of byCampaign) {
-    const cmpSnap = await db
-      .collection(COLLECTIONS.campaigns).doc(campaignId)
-      .withConverter(campaignConverter).get();
-    if (!cmpSnap.exists) continue;
-    const cmp = cmpSnap.data()!;
-    if (cmp.budget.mode !== 'cpm_capped') continue;
+for (const [campaignId, evs] of byCampaign) {
+  const cmpSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter)
+    .get();
+  if (!cmpSnap.exists) continue;
+  const cmp = cmpSnap.data()!;
+  if (cmp.budget.mode !== 'cpm_capped') continue;
 
-    // Count impressions per publisher (flat CPM, so price is uniform).
-    const countByPublisher = new Map<string, number>();
-    for (const ev of evs) {
-      countByPublisher.set(ev.publisherId, (countByPublisher.get(ev.publisherId) ?? 0) + 1);
-    }
-
-    // Gross per publisher = round(cpm * count / 1000); campaign charge = sum (conserves money).
-    const grossByPublisher = new Map<string, number>();
-    let totalCharge = 0;
-    for (const [publisherId, count] of countByPublisher) {
-      const gross = Math.round((FLAT_CPM_ISK * count) / 1000);
-      if (gross <= 0) continue;
-      grossByPublisher.set(publisherId, gross);
-      totalCharge += gross;
-    }
-    if (totalCharge <= 0) continue;
-
-    try {
-      await chargeCampaign(cmp.advertiserId, campaignId, totalCharge);
-    } catch (err) {
-      console.warn(`Campaign charge failed for ${campaignId}, pausing:`, err);
-      await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({ status: 'paused' });
-      await pushCacheForCampaign(campaignId);
-      continue;
-    }
-
-    for (const [publisherId, gross] of grossByPublisher) {
-      await creditPublisher(publisherId, campaignId, gross);
-    }
+  // Count impressions per publisher (flat CPM, so price is uniform).
+  const countByPublisher = new Map<string, number>();
+  for (const ev of evs) {
+    countByPublisher.set(ev.publisherId, (countByPublisher.get(ev.publisherId) ?? 0) + 1);
   }
+
+  // Gross per publisher = round(cpm * count / 1000); campaign charge = sum (conserves money).
+  const grossByPublisher = new Map<string, number>();
+  let totalCharge = 0;
+  for (const [publisherId, count] of countByPublisher) {
+    const gross = Math.round((FLAT_CPM_ISK * count) / 1000);
+    if (gross <= 0) continue;
+    grossByPublisher.set(publisherId, gross);
+    totalCharge += gross;
+  }
+  if (totalCharge <= 0) continue;
+
+  try {
+    await chargeCampaign(cmp.advertiserId, campaignId, totalCharge);
+  } catch (err) {
+    console.warn(`Campaign charge failed for ${campaignId}, pausing:`, err);
+    await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({ status: 'paused' });
+    await pushCacheForCampaign(campaignId);
+    continue;
+  }
+
+  for (const [publisherId, gross] of grossByPublisher) {
+    await creditPublisher(publisherId, campaignId, gross);
+  }
+}
 ```
 
 > The old per-slot cpm lookup is removed because CPM is now locked flat (Task 4). The `slotConverter` import in `accrual.ts` becomes unused — remove it.
@@ -404,6 +416,7 @@ git commit -m "fix(api): charge flat CPM per batch, not rounded per impression"
 ### Task 6: Enforce the budget cap (Firestore source of truth + Redis gate)
 
 **Files:**
+
 - Modify: `apps/api/src/services/accrual.ts` (decrement `remainingIsk`)
 - Modify: `apps/api/src/lib/push-cache.ts` (seed Redis budget counter on push)
 - Modify: `apps/serving/src/routes/ad.ts` + `apps/serving/src/lib/select.ts` (gate on the counter)
@@ -414,7 +427,12 @@ git commit -m "fix(api): charge flat CPM per batch, not rounded per impression"
 ```ts
 it('decrements campaign remainingIsk by the charged amount', async () => {
   await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: 550, totalIsk: 50000 });
-  await enqueueImpressions({ campaignId: 'cmp_acc', slotId: 'slot_acc', publisherId: 'pub_acc', count: 1000 });
+  await enqueueImpressions({
+    campaignId: 'cmp_acc',
+    slotId: 'slot_acc',
+    publisherId: 'pub_acc',
+    count: 1000,
+  });
   await drainAndAccrue(2000);
   const cmp = await getCampaign('cmp_acc');
   expect(cmp!.budget.remainingIsk).toBe(50000 - 550);
@@ -433,12 +451,15 @@ After a successful `chargeCampaign(...)` in `drainAndAccrue`, update the campaig
 ```ts
 import { FieldValue } from 'firebase-admin/firestore';
 // ...after chargeCampaign succeeds, before crediting publishers:
-    const newRemaining = Math.max(0, cmp.budget.remainingIsk - totalCharge);
-    await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
-      'budget.remainingIsk': newRemaining,
-      ...(newRemaining <= 0 ? { status: 'paused' } : {}),
-    });
-    await pushCacheForCampaign(campaignId); // re-push so budgetExhausted + Redis counter refresh
+const newRemaining = Math.max(0, cmp.budget.remainingIsk - totalCharge);
+await db
+  .collection(COLLECTIONS.campaigns)
+  .doc(campaignId)
+  .update({
+    'budget.remainingIsk': newRemaining,
+    ...(newRemaining <= 0 ? { status: 'paused' } : {}),
+  });
+await pushCacheForCampaign(campaignId); // re-push so budgetExhausted + Redis counter refresh
 ```
 
 - [ ] **Step 4: Run api test to verify it passes**
@@ -452,7 +473,9 @@ In `apps/api/src/lib/push-cache.ts`, at the end of `pushSlotCache` (and anywhere
 
 ```ts
 for (const campaign of eligibleCampaigns) {
-  await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
+  await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, {
+    ex: CACHE_TTL_SECONDS * 5,
+  });
 }
 ```
 
@@ -464,7 +487,9 @@ In `apps/serving/tests/ad.test.ts` (create if absent; mock `getSlotCache` and `g
 it('does not serve a creative whose campaign budget counter is exhausted', async () => {
   // mock slot cache with one cpm creative for campaign cmp_z
   // mock redis GET budget:cmp_z -> "0"
-  const res = await app.request('/v1/ad?slot=slot_z&consent=full', { headers: { 'CF-IPCountry': 'IS' } });
+  const res = await app.request('/v1/ad?slot=slot_z&consent=full', {
+    headers: { 'CF-IPCountry': 'IS' },
+  });
   const body = await res.json();
   expect(body.creativeId).toBe('cre_fallback_transparent'); // no eligible creative
 });
@@ -485,7 +510,9 @@ export async function getRemainingBudgets(campaignIds: string[]): Promise<Record
   const redis = getRedis();
   const vals = await redis.mget<(number | null)[]>(...campaignIds.map((id) => `budget:${id}`));
   const out: Record<string, number> = {};
-  campaignIds.forEach((id, i) => { out[id] = vals[i] ?? Number.POSITIVE_INFINITY; });
+  campaignIds.forEach((id, i) => {
+    out[id] = vals[i] ?? Number.POSITIVE_INFINITY;
+  });
   return out;
 }
 ```
@@ -497,8 +524,15 @@ import { getRemainingBudgets } from '../lib/analytics.js';
 // ...
 const campaignIds = Array.from(new Set(slot.activeCreatives.map((c) => c.campaignId)));
 const budgets = await getRemainingBudgets(campaignIds);
-const fundedSlot = { ...slot, activeCreatives: slot.activeCreatives.filter((c) => (budgets[c.campaignId] ?? Infinity) > 0) };
-const creative = selectCreative(fundedSlot, { country, consent: consentParam, visitorImpressionsToday });
+const fundedSlot = {
+  ...slot,
+  activeCreatives: slot.activeCreatives.filter((c) => (budgets[c.campaignId] ?? Infinity) > 0),
+};
+const creative = selectCreative(fundedSlot, {
+  country,
+  consent: consentParam,
+  visitorImpressionsToday,
+});
 ```
 
 > A missing counter (`null` → `Infinity`) means "not yet seeded" and is treated as funded, so the slow-path `budgetExhausted` flag still protects it. The counter is the fast real-time gate.
@@ -520,6 +554,7 @@ git commit -m "feat: enforce campaign budget cap via Firestore source of truth +
 ### Task 7: Replay protection for signed click/impression
 
 **Files:**
+
 - Modify: `apps/serving/src/lib/crypto.ts` (add dedup helper)
 - Modify: `apps/serving/src/routes/click.ts`, `apps/serving/src/routes/impression.ts`
 - Test: `apps/serving/tests/click-impression.test.ts` (add cases)
@@ -575,7 +610,10 @@ In `impression.ts`, in the signed (`else`) branch after validation passes, befor
 import { claimSignatureOnce } from '../lib/crypto.js';
 const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
 if (!fresh) {
-  return new Response(PIXEL, { status: 200, headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' } });
+  return new Response(PIXEL, {
+    status: 200,
+    headers: { 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' },
+  });
 }
 ```
 
@@ -598,6 +636,7 @@ git commit -m "feat(serving): dedup signed click/impression to prevent replay in
 ### Task 8: Resolve campaigns by category in `pushSlotCache`
 
 **Files:**
+
 - Modify: `apps/api/src/lib/push-cache.ts:64-107`
 - Test: `apps/api/tests/push-cache.test.ts` (create if absent)
 
@@ -673,6 +712,7 @@ git commit -m "feat(api): resolve campaigns to slots by category in push-cache"
 ### Task 9: Generalize `pushCacheForCampaign` to resolve slots by category
 
 **Files:**
+
 - Modify: `apps/api/src/lib/push-cache.ts:206-217`
 - Test: `apps/api/tests/push-cache.test.ts` (add case)
 
@@ -697,8 +737,10 @@ Expected: FAIL — function reads `cmp.targeting.slotIds` (undefined → no slot
 ```ts
 export async function pushCacheForCampaign(campaignId: string): Promise<void> {
   const snap = await db
-    .collection(COLLECTIONS.campaigns).doc(campaignId)
-    .withConverter(campaignConverter).get();
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter)
+    .get();
   if (!snap.exists) return;
   const cmp = snap.data()!;
 
@@ -746,6 +788,7 @@ git commit -m "feat(api): pushCacheForCampaign resolves slots by category"
 ### Task 10: `GET /v1/categories/inventory`
 
 **Files:**
+
 - Create: `apps/api/src/services/inventory.ts`
 - Create: `apps/api/src/routes/categories.ts`
 - Modify: `apps/api/src/index.ts` (mount router)
@@ -793,8 +836,11 @@ function lastNDateKeys(n: number): string[] {
 }
 
 export async function getCategoryInventory(): Promise<CategoryInventory[]> {
-  const pubSnap = await db.collection(COLLECTIONS.publishers)
-    .where('status', '==', 'active').withConverter(publisherConverter).get();
+  const pubSnap = await db
+    .collection(COLLECTIONS.publishers)
+    .where('status', '==', 'active')
+    .withConverter(publisherConverter)
+    .get();
 
   const dateKeys = lastNDateKeys(7);
   const totalByCategory = new Map<string, number>();
@@ -864,6 +910,7 @@ git commit -m "feat(api): per-category inventory forecast endpoint"
 ### Task 11: Rewrite `createCampaign` for category targeting + auto-opt-in
 
 **Files:**
+
 - Modify: `apps/api/src/services/campaigns.ts`
 - Test: `apps/api/tests/campaigns.test.ts` (update existing cases)
 
@@ -911,25 +958,31 @@ const CreateCampaignInputSchema = z.object({
 In `createCampaign`, delete the per-publisher approval block (lines building `perPublisherApproval`). Status now depends only on creative approval:
 
 ```ts
-  const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
-  const status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
+const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
+const status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
 
-  const campaign: Campaign = CampaignSchema.parse({
-    id: generateId('cmp'),
-    advertiserId,
-    creativeIds: parsed.creativeIds,
-    targeting: { categories: parsed.categories },
-    schedule: parsed.schedule,
-    budget: { mode: parsed.budget.mode, totalIsk: parsed.budget.totalIsk, remainingIsk: parsed.budget.totalIsk },
-    status,
-  });
+const campaign: Campaign = CampaignSchema.parse({
+  id: generateId('cmp'),
+  advertiserId,
+  creativeIds: parsed.creativeIds,
+  targeting: { categories: parsed.categories },
+  schedule: parsed.schedule,
+  budget: {
+    mode: parsed.budget.mode,
+    totalIsk: parsed.budget.totalIsk,
+    remainingIsk: parsed.budget.totalIsk,
+  },
+  status,
+});
 ```
 
 Remove the now-unused imports `getSlot` and `getPublisherById` if nothing else uses them.
 
 > **Per-publisher manual-approval valve:** the optional `requireManualApproval` valve is enforced at serve-resolution, not at campaign creation. In `pushSlotCache` (Task 8), when `publisher.contentPolicy.requireManualApproval` is true, only include creatives whose `reviewStatus === 'manual_approved'` for that publisher. Add this guard in the creative loop:
+>
 > ```ts
-> if (publisher.contentPolicy.requireManualApproval && creative.reviewStatus !== 'manual_approved') continue;
+> if (publisher.contentPolicy.requireManualApproval && creative.reviewStatus !== 'manual_approved')
+>   continue;
 > ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -953,15 +1006,18 @@ git commit -m "feat(api): create campaigns by category, auto-opt-in, manual-appr
 ### Task 12: Fix remaining `slotIds` / `perPublisherApproval` references + seed script
 
 **Files:**
+
 - Modify: `apps/api/src/scripts/seed.ts`, `apps/api/src/routes/widgets.ts`, any approvals/admin code referencing `perPublisherApproval` (surfaced by Task 3 Step 5)
 - Test: existing suites
 
 - [ ] **Step 1: Find all references**
 
 Run:
+
 ```bash
 grep -rn "perPublisherApproval\|targeting.slotIds\|slotIds:" apps/api/src apps/mcp/src --include="*.ts" | grep -v "/dist/"
 ```
+
 Expected: a list of call sites in seed.ts, widgets.ts, possibly approvals.ts/admin.
 
 - [ ] **Step 2: Update each site**
@@ -996,6 +1052,7 @@ git commit -m "refactor(api): migrate remaining call sites to category targeting
 ### Task 13: Publisher category selection (onboarding + settings)
 
 **Files:**
+
 - Modify: `apps/dashboard/src/pages/publisher/Onboarding.tsx`
 - Modify: `apps/dashboard/src/pages/publisher/Settings.tsx`
 - Modify: `apps/dashboard/src/hooks/usePublisher.ts` (include `categories` in create payload)
@@ -1008,20 +1065,24 @@ git commit -m "refactor(api): migrate remaining call sites to category targeting
 ### Task 14: Advertiser category buy flow + forecast
 
 **Files:**
+
 - Modify: `apps/dashboard/src/pages/advertiser/` campaign-creation page (the page that currently collects slot selection)
 - Create: `apps/dashboard/src/hooks/useCategoryInventory.ts`
 
 - [ ] **Step 1:** Create `useCategoryInventory` hook:
+
 ```ts
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 export function useCategoryInventory() {
   return useQuery({
     queryKey: ['categories', 'inventory'],
-    queryFn: () => apiFetch<{ category: string; avgDailyImpressions: number }[]>('/v1/categories/inventory'),
+    queryFn: () =>
+      apiFetch<{ category: string; avgDailyImpressions: number }[]>('/v1/categories/inventory'),
   });
 }
 ```
+
 - [ ] **Step 2:** Replace slot selection in the campaign-creation form with an `AD_CATEGORIES` multi-select. For each category show the forecast from `useCategoryInventory` (e.g. "matur ≈ 240.000 birtingar/dag"). Send `categories` (not `slotIds`) in the create-campaign mutation.
 - [ ] **Step 3:** Show an estimated-reach line from the chosen budget: `~round(totalIsk / FLAT_CPM_ISK * 1000)` impressions, and compare against the summed forecast of selected categories.
 - [ ] **Step 4:** Run `pnpm --filter @ada/dashboard typecheck`. Expected: PASS.
@@ -1030,6 +1091,7 @@ export function useCategoryInventory() {
 ### Task 15: Remove slot-picking UI + per-publisher approval UI
 
 **Files:**
+
 - Modify/Delete: any advertiser slot-search/selection components, admin per-publisher approval views
 
 - [ ] **Step 1:** Remove the advertiser-facing slot search/selection UI and any "approve campaign for my slot" publisher UI (approval is now creative-level only, handled by admin). Keep the publisher's optional "require manual approval" toggle (it maps to `contentPolicy.requireManualApproval`).

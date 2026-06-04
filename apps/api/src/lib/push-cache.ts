@@ -103,7 +103,9 @@ export async function pushSlotCache(slotId: string): Promise<void> {
   });
 
   for (const campaign of eligibleCampaigns) {
-    await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
+    await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, {
+      ex: CACHE_TTL_SECONDS * 5,
+    });
   }
 
   // 5. Gather unique creative IDs from the campaigns

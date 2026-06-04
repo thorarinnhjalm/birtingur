@@ -9,7 +9,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { formatIsk } from '@/lib/format';
-import { AlertTriangle, ShieldCheck, Upload, Check, AlertCircle, Info, Sparkles } from 'lucide-react';
+import {
+  AlertTriangle,
+  ShieldCheck,
+  Upload,
+  Check,
+  AlertCircle,
+  Info,
+  Sparkles,
+} from 'lucide-react';
 import { AD_CATEGORIES } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 
@@ -99,8 +107,6 @@ export default function CampaignCreate() {
     }
   };
 
-
-
   // Submit entire Campaign
   const handleFinalSubmit = async () => {
     if (!creative) return;
@@ -185,7 +191,9 @@ export default function CampaignCreate() {
                   Greiðslukerfi: Flöt CPM birting
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  Birtingar eru verðlagðar samkvæmt flötu gjaldskrá kerfisins á <strong>550 kr. pr. 1.000 birtingar</strong> (CPM). Greitt er úr veskinu þínu í rauntíma eftir því sem auglýsingar birtast.
+                  Birtingar eru verðlagðar samkvæmt flötu gjaldskrá kerfisins á{' '}
+                  <strong>550 kr. pr. 1.000 birtingar</strong> (CPM). Greitt er úr veskinu þínu í
+                  rauntíma eftir því sem auglýsingar birtast.
                 </p>
               </div>
             </div>
@@ -307,7 +315,9 @@ export default function CampaignCreate() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
                 {AD_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategories.includes(cat.slug);
-                  const forecast = categoriesInventoryQuery.data?.find((f) => f.category === cat.slug);
+                  const forecast = categoriesInventoryQuery.data?.find(
+                    (f) => f.category === cat.slug,
+                  );
                   const avgDaily = forecast?.avgDailyImpressions ?? 0;
 
                   return (
@@ -317,7 +327,7 @@ export default function CampaignCreate() {
                         setSelectedCategories((prev) =>
                           prev.includes(cat.slug)
                             ? prev.filter((s) => s !== cat.slug)
-                            : [...prev, cat.slug]
+                            : [...prev, cat.slug],
                         );
                       }}
                       className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between select-none ${
@@ -348,37 +358,57 @@ export default function CampaignCreate() {
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daglegt áhorf í boði</span>
-                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
-                      {selectedCategories.reduce((sum, slug) => {
-                        const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
-                        return sum + (forecast?.avgDailyImpressions ?? 0);
-                      }, 0).toLocaleString('is-IS')}
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Daglegt áhorf í boði
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Samanlagðar birtingar á dag</span>
+                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
+                      {selectedCategories
+                        .reduce((sum, slug) => {
+                          const forecast = categoriesInventoryQuery.data?.find(
+                            (f) => f.category === slug,
+                          );
+                          return sum + (forecast?.avgDailyImpressions ?? 0);
+                        }, 0)
+                        .toLocaleString('is-IS')}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Samanlagðar birtingar á dag
+                    </span>
                   </div>
 
                   <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Áætlaðar heildarbirtingar</span>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Áætlaðar heildarbirtingar
+                    </span>
                     <span className="block text-lg font-extrabold text-slate-900 mt-1">
                       {Math.round((totalBudget / 550) * 1000).toLocaleString('is-IS')}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Miðað við 550 kr. flatt CPM verð</span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Miðað við 550 kr. flatt CPM verð
+                    </span>
                   </div>
 
                   <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Áætlaður líftími herferðar</span>
+                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Áætlaður líftími herferðar
+                    </span>
                     <span className="block text-lg font-extrabold text-slate-900 mt-1">
                       {(() => {
                         const totalDaily = selectedCategories.reduce((sum, slug) => {
-                          const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
+                          const forecast = categoriesInventoryQuery.data?.find(
+                            (f) => f.category === slug,
+                          );
                           return sum + (forecast?.avgDailyImpressions ?? 0);
                         }, 0);
                         const totalCamp = Math.round((totalBudget / 550) * 1000);
-                        return totalDaily > 0 ? `${(totalCamp / totalDaily).toFixed(1)} dagar` : 'N/A';
+                        return totalDaily > 0
+                          ? `${(totalCamp / totalDaily).toFixed(1)} dagar`
+                          : 'N/A';
                       })()}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Hversu hratt fjárhagsáætlun klárast</span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Hversu hratt fjárhagsáætlun klárast
+                    </span>
                   </div>
                 </div>
               </div>

@@ -90,7 +90,9 @@ export async function updateSlot(
 
   const current = doc.data()!;
 
-  let updatedPricing = updates.pricing ? { ...current.pricing, ...updates.pricing } : current.pricing;
+  let updatedPricing = updates.pricing
+    ? { ...current.pricing, ...updates.pricing }
+    : current.pricing;
   if (updatedPricing && updatedPricing.mode === 'cpm') {
     updatedPricing = {
       ...updatedPricing,
