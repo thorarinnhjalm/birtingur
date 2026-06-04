@@ -16,7 +16,7 @@ app.all('/mcp', async (c) => {
   } catch {
     return c.json({ error: 'missing_auth' }, 401);
   }
-  const server = createMcpServer(apiKey);
+  const server = await createMcpServer(apiKey);
   const transport = new WebStandardStreamableHTTPServerTransport();
   await server.connect(transport);
   return transport.handleRequest(c.req.raw);

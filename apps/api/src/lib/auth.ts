@@ -5,6 +5,8 @@ export interface UserContext {
   uid: string;
   email: string;
   admin?: boolean;
+  apiKeyId?: string;
+  scope?: 'advertiser' | 'publisher' | 'both';
 }
 
 export type Env = {
@@ -36,6 +38,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
       uid: 'demo-user-id',
       email: 'demoa@birtingur.is',
       admin: true,
+      scope: 'both',
     });
     await next();
     return;
@@ -57,6 +60,8 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
       uid: `apikey:${record.id}`,
       email: record.ownerEmail,
       admin: false,
+      apiKeyId: record.id,
+      scope: record.scope,
     });
     await next();
     return;
@@ -81,6 +86,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
       uid: decodedToken.uid,
       email,
       admin: isAdmin,
+      scope: 'both',
     });
 
     await next();

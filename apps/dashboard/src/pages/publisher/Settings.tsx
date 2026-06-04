@@ -491,6 +491,42 @@ export default function Settings() {
 }`}
             </pre>
           </div>
+
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-slate-700">Uppsetning í Claude Code (CLI)</h4>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              Keyrðu eftirfarandi skipun í skipanalínunni (terminalinu) til að bæta við Birtingi
+              sjálfkrafa:
+            </p>
+            <pre className="font-mono text-[10px] bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto select-all leading-tight font-semibold whitespace-pre-wrap">
+              {`claude mcp add birtingur curl -X POST -H "Authorization: Bearer ak_DÍNN_API_LYKILL_HÉR" -H "Content-Type: application/json" -d "{{mcp_payload}}" https://mcp.birtingur.app/mcp`}
+            </pre>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+              Eða ef þú vilt stilla þetta handvirkt eingöngu fyrir þetta verkefni, búðu til skrána{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">.mcp.json</code>{' '}
+              í rót verkefnisins (eða breyttu{' '}
+              <code className="font-mono bg-slate-100 px-1 rounded text-slate-800">
+                ~/.claude.json
+              </code>{' '}
+              fyrir allan notandann) með þessu innihaldi:
+            </p>
+            <pre className="font-mono text-[10px] bg-slate-900 text-slate-100 p-3 rounded-lg overflow-x-auto select-all leading-tight font-semibold">
+              {`{
+  "mcpServers": {
+    "birtingur": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "-H", "Authorization: Bearer ak_DÍNN_API_LYKILL_HÉR",
+        "-H", "Content-Type: application/json",
+        "-d", "{{mcp_payload}}",
+        "https://mcp.birtingur.app/mcp"
+      ]
+    }
+  }
+}`}
+            </pre>
+          </div>
         </div>
       </Card>
 

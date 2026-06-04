@@ -63,6 +63,37 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
+### Claude Code (CLI)
+
+Add the MCP server to Claude Code automatically using the CLI:
+
+```bash
+claude mcp add birtingur curl -X POST -H "Authorization: Bearer ak_xxxxxxxxxxxxxxxx" -H "Content-Type: application/json" -d "{{mcp_payload}}" https://mcp.birtingur.app/mcp
+```
+
+Or configure it manually in your `.mcp.json` (in the project root) or `~/.claude.json` (globally):
+
+```json
+{
+  "mcpServers": {
+    "birtingur": {
+      "command": "curl",
+      "args": [
+        "-X",
+        "POST",
+        "-H",
+        "Authorization: Bearer ak_xxxxxxxxxxxxxxxx",
+        "-H",
+        "Content-Type: application/json",
+        "-d",
+        "{{mcp_payload}}",
+        "https://mcp.birtingur.app/mcp"
+      ]
+    }
+  }
+}
+```
+
 ### Cursor / Windsurf
 
 Use the custom HTTP connector with:

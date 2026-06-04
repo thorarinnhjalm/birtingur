@@ -25,7 +25,7 @@ export function registerCreateSlot(server: McpServer, apiKey: string) {
     {
       title: 'Búa til auglýsingapláss',
       description:
-        'Býr til nýtt auglýsingapláss með nafni, stærðum, verðlagningu (CPM eða tímabil) og staðsetningu á síðunni. Eftir gerð, kalla á get_snippet_code til að fá HTML kóða til að líma inn.',
+        'Býr til nýtt auglýsingapláss með nafni, stærðum, verðlagningu (CPM eða tímabil) og staðsetningu á síðunni. Eftir gerð, kalla á get_snippet_code til að fá HTML kóða til að líma inn. Styður einungis eftirfarandi staðlaðar stærðir: 728x90 (Leaderboard), 300x250 (Medium Rectangle), 300x600 (Half Page), 320x100 (Mobile Banner) og 980x120 (Billboard IS).',
       inputSchema: Input.shape,
     },
     async (input) => {

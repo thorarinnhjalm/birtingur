@@ -5,6 +5,16 @@ import { issueApiKey, revokeApiKey, listApiKeys } from '../services/api-keys.js'
 export const apiKeysRouter = new Hono<Env>();
 apiKeysRouter.use('*', requireAuth);
 
+apiKeysRouter.get('/me', async (c) => {
+  const user = c.get('user');
+  return c.json({
+    email: user.email,
+    admin: user.admin,
+    apiKeyId: user.apiKeyId,
+    scope: user.scope ?? 'both',
+  });
+});
+
 apiKeysRouter.get('/', async (c) => {
   const user = c.get('user');
   const keys = await listApiKeys(user.email);
