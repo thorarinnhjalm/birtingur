@@ -5,6 +5,11 @@ import { verifySignature } from '../lib/crypto.js';
 
 export const clickRoute = new Hono();
 
+// A click can happen long after the ad was served (the ts is stamped at serve
+// time, not click time) — a user may leave the page open and click hours later.
+// Keep the window generous so legitimate late clicks are not dropped.
+const CLICK_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+
 clickRoute.get('/', async (c) => {
   const creativeId = c.req.query('c');
   const slotId = c.req.query('s');
@@ -21,7 +26,7 @@ clickRoute.get('/', async (c) => {
   const isValid = verifySignature(creativeId, slotId, token, ts, sig);
   const age = Date.now() - ts;
 
-  if (!isValid || age < 0 || age > 300000) {
+  if (!isValid || age < 0 || age > CLICK_MAX_AGE_MS) {
     return c.text('Bad Request: Invalid or expired tracking token', 400);
   }
 

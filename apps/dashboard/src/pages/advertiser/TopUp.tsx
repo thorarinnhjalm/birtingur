@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatIsk } from '@/lib/format';
-import { VAT_RATE } from '@ada/shared';
+import { VAT_RATE, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import { AlertCircle, CreditCard, ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const PRESETS = [5000, 20000, 50000, 100000];
@@ -39,8 +39,8 @@ export default function TopUp() {
   }
 
   // Under consignment model, the deposit itself is VAT-free.
-  // VAT is calculated only on the 20% platform brokerage fee.
-  const platformFee = Math.round(amount * 0.2);
+  // VAT is calculated only on the platform brokerage fee.
+  const platformFee = Math.round(amount * (DEFAULT_PLATFORM_FEE_PERCENT / 100));
   const platformFeeVat = Math.round(platformFee * VAT_RATE);
 
   return (

@@ -1,6 +1,17 @@
 import { createHmac } from 'crypto';
 
-const SECRET = process.env.SIGNING_SECRET ?? 'birtingur-default-signing-secret-key-12345';
+function resolveSecret(): string {
+  const secret = process.env.SIGNING_SECRET;
+  if (secret) return secret;
+  // Without a configured secret the HMAC key would be a publicly-known constant,
+  // letting anyone forge click/impression signatures. Fail fast in production.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SIGNING_SECRET environment variable is required in production');
+  }
+  return 'birtingur-dev-signing-secret-not-for-production';
+}
+
+const SECRET = resolveSecret();
 
 export function createSignature(
   creativeId: string,

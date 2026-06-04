@@ -34,6 +34,11 @@ export async function generateMonthlyPayouts(
     const platformFeeIsk = grossIsk - netIsk;
 
     const publisher = await getPublisherById(publisherId);
+    // TODO(payments): vatIsk is currently informational only — it is stored on the
+    // payout record but NOT included in the disbursed amount (markPayoutCompleted
+    // drains the ledger by -netIsk). Before connecting real payment/accounting,
+    // decide whether VAT-registered publishers are paid netIsk + vatIsk and wire
+    // the actual transfer + ledger entry accordingly. (Demo mode: no payouts run.)
     const vatIsk = publisher?.vatNumber ? Math.round(netIsk * VAT_RATE) : 0;
 
     const payout: Payout = PayoutSchema.parse({

@@ -35,12 +35,18 @@ walletRouter.post('/topup', async (c) => {
   const body = (await c.req.json()) as { amountIsk: number };
   const teya = getTeya();
 
+  // Only honour the referer origin if it belongs to a trusted host, otherwise an
+  // attacker-supplied referer could redirect the post-payment flow anywhere.
   const referer = c.req.header('referer');
-  let baseUrl = process.env.APP_BASE_URL ?? 'https://app.adplatform.is';
+  let baseUrl = process.env.APP_BASE_URL ?? 'https://app.birtingur.app';
   if (referer) {
     try {
       const url = new URL(referer);
-      baseUrl = url.origin;
+      const host = url.hostname;
+      const trusted = host === 'birtingur.app' || host.endsWith('.birtingur.app') || host === 'localhost';
+      if (trusted) {
+        baseUrl = url.origin;
+      }
     } catch {
       // ignore, use fallback
     }

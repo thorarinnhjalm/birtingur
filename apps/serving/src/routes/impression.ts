@@ -7,6 +7,10 @@ import { verifySignature } from '../lib/crypto.js';
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
+// Below-the-fold / lazy-loaded slots can render minutes after the ad is served,
+// so allow a window wider than the original 5 min but still bounded.
+const IMPRESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1h
+
 export const impressionRoute = new Hono();
 
 impressionRoute.get('/', async (c) => {
@@ -50,7 +54,7 @@ impressionRoute.get('/', async (c) => {
     const isValid = verifySignature(creativeId, slotId, token, ts, sig);
     const age = Date.now() - ts;
 
-    if (!isValid || age < 0 || age > 300000) {
+    if (!isValid || age < 0 || age > IMPRESSION_MAX_AGE_MS) {
       // Invalid signature or expired signature: ignore silently (still return pixel)
       return new Response(PIXEL, {
         status: 200,
