@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { getSlotCache } from '../lib/cache';
-import { recordVisitorImpression } from '../lib/visitor';
-import { decrementBudget, logEvent } from '../lib/analytics';
+import { getSlotCache } from '../lib/cache.js';
+import { recordVisitorImpression } from '../lib/visitor.js';
+import { decrementBudget, logEvent } from '../lib/analytics.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GEO_REGIONS } from '../constants';
+import { GEO_REGIONS } from '../constants.js';
 
 export const ScheduleSchema = z
   .object({

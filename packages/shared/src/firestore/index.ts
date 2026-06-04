@@ -1,4 +1,4 @@
-export { COLLECTIONS, type CollectionName } from './collections';
+export { COLLECTIONS, type CollectionName } from './collections.js';
 export {
   publisherConverter,
   slotConverter,
@@ -7,4 +7,4 @@ export {
   campaignConverter,
   ledgerEntryConverter,
   payoutConverter,
-} from './converters';
+} from './converters.js';

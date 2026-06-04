@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { adRoute } from './routes/ad';
-import { clickRoute } from './routes/click';
-import { impressionRoute } from './routes/impression';
+import { adRoute } from './routes/ad.js';
+import { clickRoute } from './routes/click.js';
+import { impressionRoute } from './routes/impression.js';
 
 export const app = new Hono();
 

@@ -9,7 +9,7 @@ export type {
   Size,
   Pricing,
   Placement,
-} from '../schemas/publisher';
+} from '../schemas/publisher.js';
 
 export type {
   Advertiser,
@@ -18,14 +18,14 @@ export type {
   ReviewStatus,
   ReviewLogEntry,
   AutoScanResult,
-} from '../schemas/advertiser';
+} from '../schemas/advertiser.js';
 
-export type { Campaign, CampaignStatus, Schedule, Targeting, Budget } from '../schemas/campaign';
+export type { Campaign, CampaignStatus, Schedule, Targeting, Budget } from '../schemas/campaign.js';
 
-export type { LedgerEntry, LedgerEntryType, LedgerParty, Payout } from '../schemas/ledger';
+export type { LedgerEntry, LedgerEntryType, LedgerParty, Payout } from '../schemas/ledger.js';
 
-export type { HourlyStats, PublisherStatsBreakdown } from '../schemas/stats';
-export type { WidgetKey, WidgetKeyType } from '../schemas/widget-key';
+export type { HourlyStats, PublisherStatsBreakdown } from '../schemas/stats.js';
+export type { WidgetKey, WidgetKeyType } from '../schemas/widget-key.js';
 
 export interface CachedCreative {
   creativeId: string;

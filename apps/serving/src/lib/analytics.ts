@@ -1,4 +1,4 @@
-import { getRedis } from './redis';
+import { getRedis } from './redis.js';
 
 export interface AdEvent {
   type: 'impression' | 'click' | 'pageview';

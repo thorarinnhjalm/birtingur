@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
-import { getSlotCache } from '../lib/cache';
-import { selectCreative } from '../lib/select';
+import { getSlotCache } from '../lib/cache.js';
+import { selectCreative } from '../lib/select.js';
 import {
   getOrCreateVisitorToken,
   setCookieHeader,
   getVisitorImpressionsToday,
-} from '../lib/visitor';
-import { logEvent } from '../lib/analytics';
+} from '../lib/visitor.js';
+import { logEvent } from '../lib/analytics.js';
 
 export const adRoute = new Hono();
 

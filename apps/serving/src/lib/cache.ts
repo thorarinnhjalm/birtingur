@@ -1,4 +1,4 @@
-import { getRedis } from './redis';
+import { getRedis } from './redis.js';
 import { CACHE_TTL_SECONDS } from '@ada/shared';
 import type { SlotCacheEntry } from '@ada/shared';
 

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'crypto';
-import { getRedis } from './redis';
+import { getRedis } from './redis.js';
 
 export function hashVisitorToken(input: string): string {
   return createHash('sha256').update(input).digest('hex').slice(0, 12);

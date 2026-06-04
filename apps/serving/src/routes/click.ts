@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { getSlotCache } from '../lib/cache';
-import { logEvent } from '../lib/analytics';
+import { getSlotCache } from '../lib/cache.js';
+import { logEvent } from '../lib/analytics.js';
 
 export const clickRoute = new Hono();
 

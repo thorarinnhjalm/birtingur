@@ -4,14 +4,14 @@ import type {
   FirestoreDataConverter,
   QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import { PublisherSchema, SlotSchema } from '../schemas/publisher';
-import { AdvertiserSchema, CreativeSchema } from '../schemas/advertiser';
-import { CampaignSchema } from '../schemas/campaign';
-import { LedgerEntrySchema, PayoutSchema } from '../schemas/ledger';
-import type { Publisher, Slot } from '../schemas/publisher';
-import type { Advertiser, Creative } from '../schemas/advertiser';
-import type { Campaign } from '../schemas/campaign';
-import type { LedgerEntry, Payout } from '../schemas/ledger';
+import { PublisherSchema, SlotSchema } from '../schemas/publisher.js';
+import { AdvertiserSchema, CreativeSchema } from '../schemas/advertiser.js';
+import { CampaignSchema } from '../schemas/campaign.js';
+import { LedgerEntrySchema, PayoutSchema } from '../schemas/ledger.js';
+import type { Publisher, Slot } from '../schemas/publisher.js';
+import type { Advertiser, Creative } from '../schemas/advertiser.js';
+import type { Campaign } from '../schemas/campaign.js';
+import type { LedgerEntry, Payout } from '../schemas/ledger.js';
 import type { ZodType, ZodTypeDef } from 'zod';
 
 /**

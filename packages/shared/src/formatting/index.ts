@@ -1,2 +1,2 @@
-export { formatIsk, parseIsk } from './currency';
-export { formatDate, formatRelative } from './date';
+export { formatIsk, parseIsk } from './currency.js';
+export { formatDate, formatRelative } from './date.js';
