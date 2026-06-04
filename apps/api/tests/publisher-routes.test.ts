@@ -3,8 +3,10 @@ import { app } from '../src/index';
 import { auth } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
 
+import type * as firebaseModule from '../src/lib/firebase';
+
 vi.mock('../src/lib/firebase', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../src/lib/firebase')>();
+  const original = await importOriginal<typeof firebaseModule>();
   return {
     ...original,
     auth: {

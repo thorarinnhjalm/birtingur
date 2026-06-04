@@ -67,9 +67,9 @@ export async function listApiKeys(ownerEmail: string): Promise<Omit<ApiKeyRecord
 
   return snap.docs.map((doc) => {
     const data = doc.data();
-    const { hash, ...rest } = data;
+    delete data.hash;
     return {
-      ...rest,
+      ...data,
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
       lastUsedAt: data.lastUsedAt?.toDate
         ? data.lastUsedAt.toDate()

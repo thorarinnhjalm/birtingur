@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { apiFetch } from '@/lib/api';
-import { Check, Copy, RefreshCw, Trash2, Key, AlertTriangle, Plus } from 'lucide-react';
+import { Check, Copy, RefreshCw, Trash2, Key, Plus } from 'lucide-react';
 
 export default function Settings() {
   const { data: publisher, isLoading, refetch } = usePublisher();

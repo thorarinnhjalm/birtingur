@@ -163,6 +163,8 @@ vi.mock('../src/lib/firebase', () => {
         return {
           doc: vi.fn((id: string) => ({
             id,
+            set: vi.fn(async () => {}),
+            get: vi.fn(async () => ({ exists: false, data: () => null })),
             update: vi.fn(async (fields: unknown) => {
               let found: any = null;
               if (colName === 'creatives') {

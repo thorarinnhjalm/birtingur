@@ -214,7 +214,6 @@ function classifyLocal(
 export async function scrapeAndClassifyDomain(domain: string): Promise<ClassificationResult> {
   const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/i, '').toLowerCase();
   let html = '';
-  let finalUrl = '';
 
   // Try https first, then http
   const urls = [`https://${cleanDomain}`, `http://${cleanDomain}`];
@@ -225,14 +224,13 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 ADA-AdPlatform-Scraper/1.0',
         },
-        signal: AbortSignal.timeout(6000),
+        signal: globalThis.AbortSignal.timeout(6000),
       });
       if (res.ok) {
         html = await res.text();
-        finalUrl = url;
         break;
       }
-    } catch (e) {
+    } catch {
       // Continue to next URL fallback
     }
   }

@@ -84,7 +84,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     });
 
     await next();
-  } catch (error) {
+  } catch {
     return c.json(
       {
         error: 'Unauthorized',

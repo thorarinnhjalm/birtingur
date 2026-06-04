@@ -3,13 +3,11 @@ import { Hono } from 'hono';
 import { requireAuth } from '../src/lib/auth.js';
 import { issueApiKey, verifyApiKey, revokeApiKey, listApiKeys } from '../src/services/api-keys.js';
 import { apiKeysRouter } from '../src/routes/api-keys.js';
-import { db } from '../src/lib/firebase.js';
-
 vi.mock('../src/lib/firebase.js', () => {
   const store: Record<string, any> = {};
   return {
     db: {
-      collection: (col: string) => ({
+      collection: () => ({
         doc: (id: string) => ({
           set: async (val: any) => {
             store[id] = val;

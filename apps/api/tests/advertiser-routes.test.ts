@@ -134,7 +134,8 @@ vi.mock('../src/lib/firebase', () => ({
         })),
       })),
       where: vi.fn((prop: string, _op: string, val: unknown) => {
-        const builder = {
+        const builder: any = {
+          where: vi.fn(() => builder),
           limit: vi.fn(() => builder),
           withConverter: vi.fn(() => ({
             get: vi.fn(async () => {
