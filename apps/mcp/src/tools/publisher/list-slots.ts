@@ -10,8 +10,8 @@ export function registerListSlots(server: McpServer, apiKey: string) {
       inputSchema: {},
     },
     async () => {
-      const r = await apiCall<{ slots: unknown[] }>('/v1/publishers/me/slots', { apiKey });
-      return { content: [{ type: 'text', text: JSON.stringify(r.slots) }] };
+      const r = await apiCall<unknown[]>('/v1/publishers/me/slots', { apiKey });
+      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
     },
   );
 }
