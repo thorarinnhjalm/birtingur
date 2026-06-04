@@ -69,7 +69,7 @@ export default function LandingPage() {
                 Birtingur
               </span>
               <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60">
-                birtingur.is
+                birtingur.app
               </span>
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function LandingPage() {
 
                   {/* Subtitle */}
                   <p className="text-base sm:text-lg lg:text-xl text-slate-500 max-w-xl font-medium leading-relaxed">
-                    Birtingur (birtingur.is) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir
+                    Birtingur (birtingur.app) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir
                     saman íslenska útgefendur og auglýsendur. Stofnaðu herferðir á nokkrum mínútum
                     eða byrjaðu að græða á vefnum þínum í dag.
                   </p>
@@ -551,7 +551,7 @@ export default function LandingPage() {
                         <div className="w-6 h-6 rounded bg-blue-600 flex items-center justify-center font-black text-xs text-white">
                           B
                         </div>
-                        <span className="text-xs font-bold text-slate-800">birtingur.is</span>
+                        <span className="text-xs font-bold text-slate-800">birtingur.app</span>
                       </div>
                       <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                         Auglýsing
@@ -600,7 +600,7 @@ export default function LandingPage() {
                       {`     data-adplatform-width="${sandboxSize === '300x250' ? '300' : sandboxSize === '728' ? '728' : '970'}"\n`}
                       {`     data-adplatform-height="${sandboxSize === '300x250' ? '250' : '90'}"></div>\n\n`}
                       {`<!-- Skriftan þarf aðeins að koma einu sinni á síðunni -->\n`}
-                      {`<script async src="https://cdn.birtingur.is/widget.js"></script>`}
+                      {`<script async src="https://cdn.birtingur.app/widget.js"></script>`}
                     </code>
                   </div>
                 </div>
@@ -614,8 +614,8 @@ export default function LandingPage() {
                   Einfaldari vinnubrögð
                 </h2>
                 <p className="text-base text-slate-500">
-                  Birtingur (birtingur.is) er sérsniðin lausn til að leysa algengustu vandamálin við
-                  sölu og birtingu vefauglýsinga.
+                  Birtingur (birtingur.app) er sérsniðin lausn til að leysa algengustu vandamálin
+                  við sölu og birtingu vefauglýsinga.
                 </p>
               </div>
 
@@ -1078,7 +1078,7 @@ export default function LandingPage() {
                 <div className="lg:col-span-5 rounded-xl bg-slate-950 border border-slate-900 overflow-hidden shadow-lg font-mono text-xs">
                   <div className="px-4 py-2 border-b border-slate-900 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-400">Uppsetningarkóði</span>
-                    <span className="text-[9px] text-slate-500">CDN CDN.BIRTINGUR.IS</span>
+                    <span className="text-[9px] text-slate-500">CDN CDN.BIRTINGUR.APP</span>
                   </div>
                   <div className="p-4 text-blue-400 leading-relaxed overflow-x-auto select-all">
                     <code>
@@ -1086,7 +1086,7 @@ export default function LandingPage() {
                       {`<div data-adplatform-slot="slot_id">\n`}
                       {`</div>\n\n`}
                       {`<!-- Keyrir ósamstillt í head eða body -->\n`}
-                      {`<script async src="https://cdn.birtingur.is/widget.js">\n`}
+                      {`<script async src="https://cdn.birtingur.app/widget.js">\n`}
                       {`</script>`}
                     </code>
                   </div>
@@ -1149,7 +1149,7 @@ export default function LandingPage() {
               {[
                 {
                   q: 'Hvernig set ég upp auglýsingar á vefsíðuna mína?',
-                  a: 'Eftir að þú skráir þig som útgefanda færðu úthlutað sérstöku script-taggi (<script async src="https://cdn.birtingur.is/widget.js"></script>) sem þú setur inn í <head> eða undir lok <body> á síðunni þinni. Svo setur þú inn <div> með viðeigandi data-pláss auðkenni á þá staði þar sem þú vilt að auglýsingar birtist.',
+                  a: 'Eftir að þú skráir þig som útgefanda færðu úthlutað sérstöku script-taggi (<script async src="https://cdn.birtingur.app/widget.js"></script>) sem þú setur inn í <head> eða undir lok <body> á síðunni þinni. Svo setur þú inn <div> með viðeigandi data-pláss auðkenni á þá staði þar sem þú vilt að auglýsingar birtist.',
                 },
                 {
                   q: 'Hvernig borga ég fyrir herferðir og hver er lágmarksgreiðsla?',
@@ -1217,7 +1217,8 @@ export default function LandingPage() {
             <div className="space-y-4 text-center">
               <h1 className="text-4xl font-extrabold text-slate-900">Skilmálar og Persónuvernd</h1>
               <p className="text-lg text-slate-500 font-medium">
-                Notendaskilmálar og stefna um meðferð persónuupplýsinga hjá Birtingi (birtingur.is).
+                Notendaskilmálar og stefna um meðferð persónuupplýsinga hjá Birtingi
+                (birtingur.app).
               </p>
             </div>
 
@@ -1227,8 +1228,8 @@ export default function LandingPage() {
                   1. Almenn ákvæði
                 </h2>
                 <p>
-                  Vefurinn **birtingur.is** (hér eftir „Birtingur“ eða „Vettvangurinn“) er rekinn af
-                  **Nútímalegri auglýsingamiðlun ehf.**, kt. 560126-1020, Laugavegi 182, 105
+                  Vefurinn **birtingur.app** (hér eftir „Birtingur“ eða „Vettvangurinn“) er rekinn
+                  af **Nútímalegri auglýsingamiðlun ehf.**, kt. 560126-1020, Laugavegi 182, 105
                   Reykjavík (hér eftir „Félagið“). Birtingur er sjálfvirkur
                   sjálfsafgreiðsluvettvangur sem tengir saman útgefendur vefsvæða og auglýsendur á
                   Íslandi.
@@ -1426,10 +1427,10 @@ export default function LandingPage() {
                 <li>
                   Hafa samband:{' '}
                   <a
-                    href="mailto:info@birtingur.is"
+                    href="mailto:info@birtingur.app"
                     className="text-slate-500 hover:text-slate-850 transition"
                   >
-                    info@birtingur.is
+                    info@birtingur.app
                   </a>
                 </li>
                 <li>Hjálparmiðstöð & FAQ</li>
@@ -1439,7 +1440,7 @@ export default function LandingPage() {
 
           <div className="pt-8 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="text-[10px] text-slate-500">
-              © 2026 Birtingur (birtingur.is) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
+              © 2026 Birtingur (birtingur.app) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
             </span>
             <div className="flex gap-4 text-[10px] text-slate-550">
               <button

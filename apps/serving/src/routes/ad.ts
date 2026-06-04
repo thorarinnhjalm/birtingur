@@ -32,7 +32,7 @@ adRoute.get('/', async (c) => {
           creativeId: 'cre_demo_123',
           imageUrl:
             'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ',
-          clickUrl: 'https://birtingur.is',
+          clickUrl: 'https://birtingur.app',
           width: 300,
           height: 250,
           campaignId: 'cmp_demo_123',
