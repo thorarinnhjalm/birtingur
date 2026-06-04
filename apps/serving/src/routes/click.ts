@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { logEvent } from '../lib/analytics.js';
-import { verifySignature } from '../lib/crypto.js';
+import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
 
 export const clickRoute = new Hono();
 
@@ -28,6 +28,11 @@ clickRoute.get('/', async (c) => {
 
   if (!isValid || age < 0 || age > CLICK_MAX_AGE_MS) {
     return c.text('Bad Request: Invalid or expired tracking token', 400);
+  }
+
+  const fresh = await claimSignatureOnce(sig, CLICK_MAX_AGE_MS / 1000);
+  if (!fresh) {
+    return c.text('Already counted', 409);
   }
 
   const slot = await getSlotCache(slotId);

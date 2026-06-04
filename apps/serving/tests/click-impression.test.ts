@@ -2,6 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SlotCacheEntry } from '@ada/shared';
 import { createSignature } from '../src/lib/crypto';
 
+const mockSeenKeys = new Set<string>();
+
+vi.mock('../src/lib/redis', () => ({
+  getRedis: () => ({
+    set: vi.fn(async (key: string, val: string, options?: { nx?: boolean; ex?: number }) => {
+      if (options?.nx) {
+        if (mockSeenKeys.has(key)) {
+          return null;
+        }
+        mockSeenKeys.add(key);
+        return 'OK';
+      }
+      return 'OK';
+    }),
+  }),
+}));
+
 const mockSlot: SlotCacheEntry = {
   slotId: 'slot_a',
   publisherId: 'pub_a',
@@ -52,6 +69,7 @@ import app from '../src/index';
 describe('GET /v1/click', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSeenKeys.clear();
   });
 
   it('redirects to clickUrl for valid slot and creative', async () => {
@@ -86,11 +104,22 @@ describe('GET /v1/click', () => {
     const res = await app.request(`/v1/click?s=slot_b&c=cre_a&ts=${ts}&sig=${sig}`);
     expect(res.status).toBe(404);
   });
+
+  it('counts a replayed signed click only once', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const url = `/v1/click?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`;
+    const first = await app.request(url, { headers: { 'CF-IPCountry': 'IS' } });
+    const second = await app.request(url, { headers: { 'CF-IPCountry': 'IS' } });
+    expect(first.status).toBe(302);
+    expect(second.status).toBe(409); // replay rejected
+  });
 });
 
 describe('GET /v1/impression', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSeenKeys.clear();
   });
 
   it('returns transparent pixel and processes impression for valid slot and creative', async () => {
@@ -110,5 +139,19 @@ describe('GET /v1/impression', () => {
     expect(res.headers.get('Content-Type')).toBe('image/gif');
     expect(vi.mocked(recordVisitorImpression)).not.toHaveBeenCalled();
     expect(vi.mocked(decrementBudget)).not.toHaveBeenCalled();
+  });
+
+  it('ignores a replayed signed impression', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const url = `/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`;
+    const first = await app.request(url);
+    const second = await app.request(url);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+
+    // The first one records the impression and decrements the budget, the second one does not (silently ignored)
+    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledTimes(1);
   });
 });

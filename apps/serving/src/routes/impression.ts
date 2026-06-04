@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { recordVisitorImpression } from '../lib/visitor.js';
 import { decrementBudget, logEvent } from '../lib/analytics.js';
-import { verifySignature } from '../lib/crypto.js';
+import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -56,6 +56,17 @@ impressionRoute.get('/', async (c) => {
 
     if (!isValid || age < 0 || age > IMPRESSION_MAX_AGE_MS) {
       // Invalid signature or expired signature: ignore silently (still return pixel)
+      return new Response(PIXEL, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/gif',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
+    const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
+    if (!fresh) {
       return new Response(PIXEL, {
         status: 200,
         headers: {

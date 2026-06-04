@@ -33,3 +33,12 @@ export function verifySignature(
   const expected = createSignature(creativeId, slotId, token, ts);
   return expected === sig;
 }
+
+import { getRedis } from './redis.js';
+
+/** Returns true if this signature is seen for the first time; false if it is a replay. */
+export async function claimSignatureOnce(sig: string, ttlSeconds: number): Promise<boolean> {
+  if (!sig) return false;
+  const res = await getRedis().set(`seen:${sig}`, '1', { nx: true, ex: ttlSeconds });
+  return res === 'OK';
+}
