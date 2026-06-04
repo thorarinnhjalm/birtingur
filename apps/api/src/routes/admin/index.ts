@@ -98,4 +98,3 @@ adminRoutes.get('/diagnostics', async (c) => {
 
   return c.json(diagnosticResult);
 });
-
