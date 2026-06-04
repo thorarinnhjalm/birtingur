@@ -729,9 +729,9 @@ export default function LandingPage() {
                       Persónuvernd í fyrirrúmi (Cookie-free)
                     </h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Engin persónuleg sporing. Hægt er að miða herferðir við samhengi efnisins og
-                      tiltekin landsvæði án þess að nota sporingakökur. Þetta tryggir fullt samræmi
-                      við GDPR-kröfur og gerir það að verkum að vefurinn hleðst mun hraðar.
+                      Engin vefsporun. Hægt er að miða herferðir við samhengi efnisins og tiltekin
+                      landsvæði án þess að nota vafrakökur. Þetta tryggir fullt samræmi við
+                      GDPR-kröfur og gerir það að verkum að vefurinn hleðst mun hraðar.
                     </p>
                   </div>
                 </div>
@@ -1163,7 +1163,7 @@ export default function LandingPage() {
                 },
                 {
                   q: 'Þarf ég að breyta vafrakökustefnu (Cookie policy) hjá mér?',
-                  a: 'Nei, almennt ekki. Kerfið okkar er hannað án persónugreinanlegra rekstrarkaka (tracking cookies) til sporingar. Auglýsingamiðlun okkar byggist á samhengi þess efnis sem lesandinn skoðar (Contextual Advertising) og almennum upplýsingum (t.d. landsvæði út frá IP-tölu) sem telst fullkomlega GDPR-samhæft án sérstaks samþykkis vafrakaka.',
+                  a: 'Nei, almennt ekki. Kerfið okkar er hannað án persónugreinanlegra vafrakaka (e. tracking cookies) til vefsporunar. Auglýsingamiðlun okkar byggist á samhengi þess efnis sem lesandinn skoðar (e. Contextual Advertising) og almennum upplýsingum (t.d. landsvæði út frá IP-tölu) sem telst fullkomlega GDPR-samhæft án þess að krefjast sérstaks samþykkis fyrir vafrakökum.',
                 },
                 {
                   q: 'Hvenær fara útborganir til útgefenda fram og hver er lágmarksupphæð?',
