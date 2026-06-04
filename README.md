@@ -11,6 +11,37 @@ pnpm install
 pnpm dev
 ```
 
+Sjá nánar:
+* [Rekstrarhandbók (Deployment)](file:///Users/thorarinnhjalmarsson/Documents/Antigravity/ada/docs/deployment.md) - Uppsetning á Vercel, Firebase og Upstash.
+* [Kerfishönnun (Architecture)](file:///Users/thorarinnhjalmarsson/Documents/Antigravity/ada/docs/architecture.md) - Gagnamódel, Mermaid flæðirit og bókhaldskerfið.
+
+## Gagnagrunnur og Prufugögn (Database Seeding)
+
+Til að prófa kerfið staðbundið með gervigögnum eftir að hermirinn (emulator) er ræstur:
+
+1. Ræstu Firebase herminn í sérstökum glugga:
+   ```bash
+   pnpm emulator
+   ```
+2. Keyrðu gagnaútsæðis-skriftuna (seeding) í öðrum glugga til að fylla herminn af prufugögnum (herferðum, útgefendum, plássum, veskjum):
+   ```bash
+   pnpm --filter @ada/api seed
+   ```
+
+## Prófanir (Testing)
+
+Hluti prófanna keyrir á móti Firestore herminum og krefst þess að **Java** sé uppsett á tölvunni (`java -version`).
+
+* **Keyra einingapróf án hermis** (Plain Vitest for `@ada/shared` & `@ada/dashboard`):
+  ```bash
+  pnpm --filter @ada/shared test
+  ```
+* **Keyra einingapróf með hermi** (Ræsir herminn sjálfkrafa, keyrir prófin og lokar honum):
+  ```bash
+  pnpm test:rules     # Prófar Firestore öryggisreglur
+  pnpm test:api       # Prófar API bakendann
+  ```
+
 ## Architecture
 
 Turborepo monorepo:
