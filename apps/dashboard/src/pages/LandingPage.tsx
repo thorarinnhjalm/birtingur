@@ -65,7 +65,9 @@ export default function LandingPage() {
               B
             </div>
             <div>
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Birtingur</span>
+              <span className="font-extrabold text-2xl tracking-tight text-slate-900">
+                Birtingur
+              </span>
               <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60">
                 birtingur.is
               </span>
@@ -222,9 +224,9 @@ export default function LandingPage() {
 
                   {/* Subtitle */}
                   <p className="text-base sm:text-lg lg:text-xl text-slate-500 max-w-xl font-medium leading-relaxed">
-                    Birtingur (birtingur.is) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir saman
-                    íslenska útgefendur og auglýsendur. Stofnaðu herferðir á nokkrum mínútum eða
-                    byrjaðu að græða á vefnum þínum í dag.
+                    Birtingur (birtingur.is) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir
+                    saman íslenska útgefendur og auglýsendur. Stofnaðu herferðir á nokkrum mínútum
+                    eða byrjaðu að græða á vefnum þínum í dag.
                   </p>
 
                   {/* Actions */}
@@ -612,8 +614,8 @@ export default function LandingPage() {
                   Einfaldari vinnubrögð
                 </h2>
                 <p className="text-base text-slate-500">
-                  Birtingur (birtingur.is) er sérsniðin lausn til að leysa algengustu vandamálin við sölu og
-                  birtingu vefauglýsinga.
+                  Birtingur (birtingur.is) er sérsniðin lausn til að leysa algengustu vandamálin við
+                  sölu og birtingu vefauglýsinga.
                 </p>
               </div>
 
@@ -1151,13 +1153,14 @@ export default function LandingPage() {
                 <p>
                   Vefurinn **birtingur.is** (hér eftir „Birtingur“ eða „Vettvangurinn“) er rekinn af
                   **Nútímalegri auglýsingamiðlun ehf.**, kt. 560126-1020, Laugavegi 182, 105
-                  Reykjavík (hér eftir „Félagið“). Birtingur er sjálfvirkur sjálfsafgreiðsluvettvangur
-                  sem tengir saman útgefendur vefsvæða og auglýsendur á Íslandi.
+                  Reykjavík (hér eftir „Félagið“). Birtingur er sjálfvirkur
+                  sjálfsafgreiðsluvettvangur sem tengir saman útgefendur vefsvæða og auglýsendur á
+                  Íslandi.
                 </p>
                 <p>
-                  Skilmálar þessir gilda um öll viðskipti og notkun á þjónustu Birtings, hvort sem um
-                  ræðir kaup á auglýsingaplássi (auglýsendur) eða sölu á birtingum (útgefendur). Með
-                  því að stofna aðgang samþykkja notendur skilmála þessa í heild sinni.
+                  Skilmálar þessir gilda um öll viðskipti og notkun á þjónustu Birtings, hvort sem
+                  um ræðir kaup á auglýsingaplássi (auglýsendur) eða sölu á birtingum (útgefendur).
+                  Með því að stofna aðgang samþykkja notendur skilmála þessa í heild sinni.
                 </p>
               </section>
 
@@ -1217,17 +1220,17 @@ export default function LandingPage() {
                   4. Persónuverndarstefna (GDPR)
                 </h2>
                 <p>
-                  Birtingur leggur mikla áherslu á persónuvernd og lágmarkar söfnun gagna. Kerfið safnar
-                  **ekki persónugreinanlegum vafrakökum** (tracking cookies) til að fylgjast með
-                  notendum á milli vefsvæða.
+                  Birtingur leggur mikla áherslu á persónuvernd og lágmarkar söfnun gagna. Kerfið
+                  safnar **ekki persónugreinanlegum vafrakökum** (tracking cookies) til að fylgjast
+                  með notendum á milli vefsvæða.
                 </p>
                 <p>
                   **Gagnaúrvinnsla**: Auglýsingamiðlun okkar er samhengismiðuð (Contextual
                   Targeting) og byggist á flokkun vefefnis og grófri staðsetningu (landfræðilegt
                   svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru aldrei vistaðar í
                   gagnagrunni okkar heldur eru þær eingöngu notaðar í rauntíma til að ákvarða
-                  birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur telst því vera
-                  vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili (Controller)
+                  birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur telst því
+                  vera vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili (Controller)
                   gagnvart sínum lesendum.
                 </p>
               </section>
@@ -1285,7 +1288,7 @@ export default function LandingPage() {
                 Laugavegur 182, 105 Reykjavík
               </p>
             </div>
- 
+
             {/* Links Advertiser */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1310,7 +1313,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
- 
+
             {/* Links Publisher */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1335,7 +1338,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
- 
+
             {/* Legal / Contact */}
             <div>
               <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
@@ -1355,7 +1358,7 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
- 
+
           <div className="pt-8 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span className="text-[10px] text-slate-500">
               © 2026 Birtingur (birtingur.is) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.

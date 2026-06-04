@@ -21,6 +21,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/publishers/$(publisherId)).data.ownerEmail == request.auth.token.email;
     }
 
+    function ownsCampaign(campaignId) {
+      return isSignedIn()
+        && ownsAdvertiser(get(/databases/$(database)/documents/campaigns/$(campaignId)).data.advertiserId);
+    }
+
     // PUBLISHERS: owners can read/write own doc; admin reads all
     match /publishers/{publisherId} {
       allow read: if isAdmin()
@@ -75,9 +80,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // STATS: any signed-in user can read their own (path-based scoping in subsequent plans)
+    // STATS: publisher stats restricted to owner; campaign stats restricted to owner; admin reads all
+    match /stats/publishers/{publisherId}/{document=**} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsPublisher(publisherId));
+      allow write: if false;
+    }
+
+    match /stats/{campaignId}/hourly/{document=**} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && ownsCampaign(campaignId));
+      allow write: if false;
+    }
+
+    // Deny read access to all other paths in stats
     match /stats/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow write: if false;
     }
 

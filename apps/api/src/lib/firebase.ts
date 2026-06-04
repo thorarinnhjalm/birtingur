@@ -1,3 +1,4 @@
+import './env.js';
 import { initializeApp, getApps, getApp, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';

@@ -37,4 +37,3 @@ export const CURRENCY = 'ISK' as const;
 
 /** Flat CPM rate applied to all ad impressions */
 export const FLAT_CPM_ISK = 550;
-

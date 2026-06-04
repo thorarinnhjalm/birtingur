@@ -44,7 +44,7 @@ jobs:
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ZONE_ID != ''
         run: |
           curl -X POST \
-            -H "Authorization: Bearer ${{ env.CLOUDFLARE_API_TOKEN }}" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
             -H "Content-Type: application/json" \
             --data '{"files":["https://cdn.adplatform.is/v1/snippet.js"]}' \
-            https://api.cloudflare.com/client/v4/zones/${{ env.CLOUDFLARE_ZONE_ID }}/purge_cache
+            https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache

@@ -129,8 +129,9 @@ export default function SlotCreate() {
               <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
               <p className="leading-relaxed text-slate-500 mt-1 font-medium">
                 Vettvangurinn vinnur með flatt CPM (verð fyrir hverjar 1.000 flettingar) upp á{' '}
-                <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir allar auglýsingabirtingar.
-                Greiðslur til þín safnast sjálfkrafa upp í veskið þitt út frá þessu verði.
+                <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir
+                allar auglýsingabirtingar. Greiðslur til þín safnast sjálfkrafa upp í veskið þitt út
+                frá þessu verði.
               </p>
             </div>
           </div>
@@ -142,7 +143,8 @@ export default function SlotCreate() {
                 Sjálfvirk samþykkt (Auto Approve)
               </span>
               <span className="block text-xs text-slate-400 font-semibold leading-relaxed">
-                Ræstu herferðir sjálfkrafa ef auglýsingin er sjálfkrafa samþykkt af Birtingur-skannanum.
+                Ræstu herferðir sjálfkrafa ef auglýsingin er sjálfkrafa samþykkt af
+                Birtingur-skannanum.
               </span>
             </div>
             <input
