@@ -7,7 +7,7 @@ import {
   setCookieHeader,
   getVisitorImpressionsToday,
 } from '../lib/visitor.js';
-import { logEvent } from '../lib/analytics.js';
+import { logEvent, getRemainingBudgets } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
@@ -58,7 +58,16 @@ adRoute.get('/', async (c) => {
   const visitorImpressionsToday =
     consentParam === 'full' ? await getVisitorImpressionsToday(token) : {};
 
-  const creative = selectCreative(slot, {
+  const campaignIds = Array.from(new Set(slot.activeCreatives.map((ac) => ac.campaignId)));
+  const budgets = await getRemainingBudgets(campaignIds);
+  const fundedSlot = {
+    ...slot,
+    activeCreatives: slot.activeCreatives.filter(
+      (ac) => (budgets[ac.campaignId] ?? Number.POSITIVE_INFINITY) > 0,
+    ),
+  };
+
+  const creative = selectCreative(fundedSlot, {
     country,
     consent: consentParam,
     visitorImpressionsToday,

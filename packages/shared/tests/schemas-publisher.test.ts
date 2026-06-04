@@ -73,6 +73,7 @@ describe('PublisherSchema', () => {
         blockedCategories: ['gambling'],
         requireManualApproval: true,
       },
+      categories: ['matur'] as const,
       status: 'active' as const,
       createdAt: new Date('2026-06-02T12:00:00Z'),
     };
@@ -93,6 +94,7 @@ describe('PublisherSchema', () => {
           accountName: 'X',
         },
         contentPolicy: { blockedCategories: [] },
+        categories: ['matur'],
         status: 'active',
         createdAt: new Date(),
       }),
@@ -113,6 +115,7 @@ describe('PublisherSchema', () => {
           accountName: 'X',
         },
         contentPolicy: { blockedCategories: [] },
+        categories: ['matur'],
         status: 'active',
         createdAt: new Date(),
       }),

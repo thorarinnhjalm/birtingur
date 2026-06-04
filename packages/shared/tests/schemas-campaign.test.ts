@@ -26,29 +26,18 @@ describe('ScheduleSchema', () => {
 });
 
 describe('TargetingSchema', () => {
-  it('accepts targeting with only slots', () => {
-    expect(() => TargetingSchema.parse({ slotIds: ['slot_a', 'slot_b'] })).not.toThrow();
+  it('accepts targeting with categories', () => {
+    expect(() => TargetingSchema.parse({ categories: ['matur', 'taekni'] })).not.toThrow();
   });
 
-  it('accepts targeting with geo', () => {
+  it('requires at least one category', () => {
+    expect(() => TargetingSchema.parse({ categories: [] })).toThrow();
+  });
+
+  it('rejects invalid category slugs', () => {
     expect(() =>
       TargetingSchema.parse({
-        slotIds: ['slot_a'],
-        geoCountries: ['IS'],
-        geoRegions: ['capital'],
-      }),
-    ).not.toThrow();
-  });
-
-  it('requires at least one slot', () => {
-    expect(() => TargetingSchema.parse({ slotIds: [] })).toThrow();
-  });
-
-  it('rejects invalid geoRegions', () => {
-    expect(() =>
-      TargetingSchema.parse({
-        slotIds: ['slot_a'],
-        geoRegions: ['mars'],
+        categories: ['invalid_cat'],
       }),
     ).toThrow();
   });
@@ -79,8 +68,7 @@ describe('CampaignSchema', () => {
       advertiserId: 'adv_xyz',
       creativeIds: ['cre_a'],
       targeting: {
-        slotIds: ['slot_a', 'slot_b'],
-        geoCountries: ['IS'] as const,
+        categories: ['matur'],
       },
       schedule: {
         startsAt: new Date('2026-06-02T00:00:00Z'),
@@ -88,7 +76,6 @@ describe('CampaignSchema', () => {
       },
       budget: { mode: 'cpm_capped' as const, totalIsk: 20000, remainingIsk: 20000 },
       status: 'active' as const,
-      perPublisherApproval: { pub_a: 'approved' as const, pub_b: 'pending' as const },
     };
     expect(() => CampaignSchema.parse(valid)).not.toThrow();
   });
@@ -99,14 +86,13 @@ describe('CampaignSchema', () => {
         id: 'cmp_xyz',
         advertiserId: 'adv_xyz',
         creativeIds: [],
-        targeting: { slotIds: ['slot_a'] },
+        targeting: { categories: ['matur'] },
         schedule: {
           startsAt: new Date('2026-06-02T00:00:00Z'),
           endsAt: new Date('2026-06-30T00:00:00Z'),
         },
         budget: { mode: 'cpm_capped', totalIsk: 20000, remainingIsk: 20000 },
         status: 'draft',
-        perPublisherApproval: {},
       }),
     ).toThrow();
   });

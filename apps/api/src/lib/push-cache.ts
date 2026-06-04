@@ -106,6 +106,10 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     return true;
   });
 
+  for (const campaign of eligibleCampaigns) {
+    await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
+  }
+
   // 5. Gather unique creative IDs from the campaigns
   const creativeIds = Array.from(new Set(eligibleCampaigns.flatMap((c) => c.creativeIds)));
 
@@ -211,6 +215,10 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
     .get();
   if (!snap.exists) return;
   const cmp = snap.data()!;
+
+  const redis = getRedis();
+  await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
+
   for (const slotId of cmp.targeting.slotIds) {
     await pushSlotCache(slotId);
   }

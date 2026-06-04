@@ -43,9 +43,18 @@ vi.mock('../src/lib/visitor', () => ({
   recordVisitorImpression: vi.fn(),
 }));
 
+let mockBudgets: Record<string, number> = {};
+
 vi.mock('../src/lib/analytics', () => ({
   logEvent: vi.fn(),
   decrementBudget: vi.fn(async () => 100),
+  getRemainingBudgets: vi.fn(async (campaignIds: string[]) => {
+    const out: Record<string, number> = {};
+    campaignIds.forEach((id) => {
+      out[id] = mockBudgets[id] ?? Number.POSITIVE_INFINITY;
+    });
+    return out;
+  }),
 }));
 
 import app from '../src/index';
@@ -53,6 +62,7 @@ import app from '../src/index';
 describe('GET /v1/ad', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockBudgets = {};
   });
 
   it('returns ad JSON for known slot', async () => {
@@ -86,5 +96,13 @@ describe('GET /v1/ad', () => {
   it('400 when slot param missing', async () => {
     const res = await app.request('/v1/ad?consent=full');
     expect(res.status).toBe(400);
+  });
+
+  it('does not serve a creative whose campaign budget counter is exhausted', async () => {
+    mockBudgets['cmp_a'] = 0;
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_transparent');
   });
 });

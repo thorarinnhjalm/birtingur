@@ -17,6 +17,7 @@ describe('publisherConverter', () => {
         accountName: 'Example ehf',
       },
       contentPolicy: { blockedCategories: [], requireManualApproval: false },
+      categories: ['matur'],
       status: 'active' as const,
       createdAt: date,
     };
@@ -42,6 +43,7 @@ describe('publisherConverter', () => {
           accountName: 'Example ehf',
         },
         contentPolicy: { blockedCategories: [], requireManualApproval: false },
+        categories: ['matur'],
         status: 'active',
         createdAt: ts,
       }),
@@ -68,6 +70,7 @@ describe('publisherConverter', () => {
           accountName: 'Example',
         },
         contentPolicy: { blockedCategories: [], requireManualApproval: false },
+        categories: ['matur'],
         status: 'active',
         createdAt: Timestamp.now(),
       }),

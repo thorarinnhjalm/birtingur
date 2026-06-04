@@ -201,8 +201,9 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    expect(mockRedisSet).toHaveBeenCalledTimes(1);
-    const entry = mockRedisSet.mock.calls[0][1];
+    expect(mockRedisSet).toHaveBeenCalled();
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].creativeId).toBe('creative_approved');
   });
@@ -257,7 +258,8 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls[0][1];
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].creativeId).toBe('creative_right_size');
   });
@@ -316,7 +318,8 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls[0][1];
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(0);
   });
 
@@ -384,7 +387,8 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls[0][1];
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_sponsor');
     expect(entry.activeCreatives[0].creativeId).toBe('creative_sponsor');
@@ -454,7 +458,8 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls[0][1];
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_high_budget');
     expect(entry.activeCreatives[0].creativeId).toBe('creative_high');
@@ -511,7 +516,8 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls[0][1];
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_multi_creatives');
     expect(entry.activeCreatives[0].creativeId).toBe('creative_first');

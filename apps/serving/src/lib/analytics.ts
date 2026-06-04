@@ -31,3 +31,16 @@ export async function decrementBudget(campaignId: string, costIsk: number): Prom
   const newVal = await getRedis().decrby(key, costIsk);
   return newVal;
 }
+
+export async function getRemainingBudgets(campaignIds: string[]): Promise<Record<string, number>> {
+  if (campaignIds.length === 0) return {};
+  const redis = getRedis();
+  const vals = await redis.mget<(number | null)[]>(...campaignIds.map((id) => `budget:${id}`));
+  const out: Record<string, number> = {};
+  campaignIds.forEach((id, i) => {
+    // Treat null/undefined as Infinity (not seeded yet)
+    const val = vals[i];
+    out[id] = val != null ? Number(val) : Number.POSITIVE_INFINITY;
+  });
+  return out;
+}
