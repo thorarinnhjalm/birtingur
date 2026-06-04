@@ -6,10 +6,12 @@ interface Wallet {
   balanceIsk: number;
 }
 
-export function useWallet() {
+export function useWallet(enabled = true) {
   return useQuery({
     queryKey: ['wallet'],
     queryFn: () => apiFetch<{ wallet: Wallet }>('/v1/advertisers/me/wallet').then((r) => r.wallet),
+    enabled,
+    retry: false,
   });
 }
 

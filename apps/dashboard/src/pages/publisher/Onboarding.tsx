@@ -347,10 +347,13 @@ export default function PublisherOnboarding() {
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                       )}
                     </div>
-                    <h4 className="text-xs font-bold text-slate-900">Gervigreindar-tengi (MCP)</h4>
+                    <h4 className="text-xs font-bold text-slate-900">
+                      Gervigreindar-uppsetning (MCP)
+                    </h4>
                     <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Tengdu vefinn þinn beint við gervigreindarforrit (LLM) með Model Context
-                      Protocol. AI spjallmenn geta þá kynnt þínar auglýsingar beint.
+                      Sjálfvirk uppsetning með gervigreind. Tengdu Claude eða Cursor við okkar MCP
+                      vefþjón svo gervigreindarkóðarinn þinn geti sjálfkrafa búið til og sett upp
+                      auglýsingapláss í þínum kóðagrunni.
                     </p>
                   </div>
                 </div>
@@ -374,10 +377,11 @@ export default function PublisherOnboarding() {
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                       )}
                     </div>
-                    <h4 className="text-xs font-bold text-slate-900">Bæði (Widget + MCP)</h4>
+                    <h4 className="text-xs font-bold text-slate-900">Bæði (Handvirkt + MCP)</h4>
                     <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Fáðu hámarksútbreiðslu. Sýndu bæði hefðbundnar borðaauglýsingar á vefnum þínum
-                      og leyfðu gervigreindar-umboðsmönnum að selja þín pláss.
+                      Hámarks sveigjanleiki. Settu upp hefðbundna borða og vefkassa handvirkt með
+                      kóðaklippum, eða leyfðu gervigreindarkóðaranum þínum að sjá um alla kóðunina í
+                      gegnum MCP.
                     </p>
                   </div>
                 </div>

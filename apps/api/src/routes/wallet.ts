@@ -43,7 +43,8 @@ walletRouter.post('/topup', async (c) => {
     try {
       const url = new URL(referer);
       const host = url.hostname;
-      const trusted = host === 'birtingur.app' || host.endsWith('.birtingur.app') || host === 'localhost';
+      const trusted =
+        host === 'birtingur.app' || host.endsWith('.birtingur.app') || host === 'localhost';
       if (trusted) {
         baseUrl = url.origin;
       }

@@ -51,8 +51,8 @@ interface StatsResponse {
 
 function AdvertiserHome() {
   const { data: advertiser, isLoading: isAdvLoading } = useAdvertiser();
-  const { data: wallet, isLoading: isWalletLoading } = useWallet();
-  const { data: campaigns, isLoading: isCampaignsLoading } = useCampaigns();
+  const { data: wallet, isLoading: isWalletLoading } = useWallet(!!advertiser);
+  const { data: campaigns, isLoading: isCampaignsLoading } = useCampaigns(!!advertiser);
   const { data: stats } = useQuery<StatsResponse>({
     queryKey: ['advertiser', 'stats'],
     queryFn: () => apiFetch<StatsResponse>('/v1/advertisers/me/stats?timeframe=30'),

@@ -44,7 +44,7 @@ interface StatsResponse {
 
 function PublisherHome() {
   const { data: publisher, isLoading: isPubLoading } = usePublisher();
-  const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots();
+  const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(!!publisher);
   const { data: stats } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats'],
     queryFn: () => apiFetch<StatsResponse>('/v1/publishers/me/stats?timeframe=30'),

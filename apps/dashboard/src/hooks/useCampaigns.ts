@@ -8,10 +8,12 @@ export interface CampaignStatsPoint {
   clicks: number;
 }
 
-export function useCampaigns() {
+export function useCampaigns(enabled = true) {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: () => apiFetch<{ campaigns: Campaign[] }>('/v1/campaigns').then((r) => r.campaigns),
+    enabled,
+    retry: false,
   });
 }
 

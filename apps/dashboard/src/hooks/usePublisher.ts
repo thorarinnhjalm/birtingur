@@ -36,10 +36,12 @@ export function useCreatePublisher() {
   });
 }
 
-export function usePublisherSlots() {
+export function usePublisherSlots(enabled = true) {
   return useQuery({
     queryKey: ['publisher', 'slots'],
     queryFn: () => apiFetch<Slot[]>('/v1/publishers/me/slots'),
+    enabled,
+    retry: false,
   });
 }
 
