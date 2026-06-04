@@ -61,11 +61,11 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     return;
   }
 
-  // 4. Fetch campaigns targeting this slot with status 'active'
+  // 4. Fetch active campaigns whose categories intersect this publisher's categories
   const campaignsSnapshot = await db
     .collection(COLLECTIONS.campaigns)
     .where('status', '==', 'active')
-    .where('targeting.slotIds', 'array-contains', slotId)
+    .where('targeting.categories', 'array-contains-any', publisher.categories)
     .withConverter(campaignConverter)
     .get();
 
@@ -88,14 +88,10 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     }
   }
 
-  // Filter campaigns in memory for perPublisherApproval, budget, and advertiser status
+  // Filter campaigns in memory for budget and advertiser status
   const eligibleCampaigns = campaigns.filter((campaign) => {
     // Check if advertiser is active
     if (advertiserStatusMap.get(campaign.advertiserId) !== 'active') return false;
-
-    // Check if approved by this publisher
-    const approval = campaign.perPublisherApproval[slot.publisherId];
-    if (approval !== 'approved') return false;
 
     // Check remaining budget
     if (campaign.budget.remainingIsk <= 0) return false;
@@ -151,12 +147,19 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       const creative = creativeMap.get(cId);
       if (!creative) continue;
 
-      // Must be approved
-      if (
-        creative.reviewStatus !== 'auto_approved' &&
-        creative.reviewStatus !== 'manual_approved'
-      ) {
-        continue;
+      // Must be approved, honoring requireManualApproval policy
+      const needsManual = publisher.contentPolicy.requireManualApproval === true;
+      if (needsManual) {
+        if (creative.reviewStatus !== 'manual_approved') {
+          continue;
+        }
+      } else {
+        if (
+          creative.reviewStatus !== 'auto_approved' &&
+          creative.reviewStatus !== 'manual_approved'
+        ) {
+          continue;
+        }
       }
 
       // Check size compatibility with the slot
@@ -180,8 +183,8 @@ export async function pushSlotCache(slotId: string): Promise<void> {
         width: creative.width,
         height: creative.height,
         weight: 1, // Default weight is 1
-        geoCountries: campaign.targeting.geoCountries ?? [],
-        geoRegions: campaign.targeting.geoRegions ?? [],
+        geoCountries: [],
+        geoRegions: [],
         frequencyCapPerDay: FREQUENCY_CAP_DEFAULT_PER_DAY,
         budgetExhausted: campaign.budget.remainingIsk <= 0,
         validFrom: campaign.schedule.startsAt.getTime(),
@@ -219,7 +222,24 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
   const redis = getRedis();
   await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
 
-  for (const slotId of cmp.targeting.slotIds) {
-    await pushSlotCache(slotId);
+  // Find publishers in any of the campaign's categories
+  const pubSnap = await db
+    .collection(COLLECTIONS.publishers)
+    .where('categories', 'array-contains-any', cmp.targeting.categories)
+    .withConverter(publisherConverter)
+    .get();
+  const publisherIds = pubSnap.docs.map((d) => d.id);
+  if (publisherIds.length === 0) return;
+
+  // Refresh every active slot owned by those publishers
+  for (const publisherId of publisherIds) {
+    const slotSnap = await db
+      .collection(COLLECTIONS.slots)
+      .where('publisherId', '==', publisherId)
+      .withConverter(slotConverter)
+      .get();
+    for (const slotDoc of slotSnap.docs) {
+      await pushSlotCache(slotDoc.id);
+    }
   }
 }

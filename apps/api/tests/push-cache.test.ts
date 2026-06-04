@@ -4,6 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 interface MockState {
   slot: Record<string, unknown> | null;
   publisher: Record<string, unknown> | null;
+  slots: Record<string, unknown>[];
+  publishers: Record<string, unknown>[];
   campaigns: Record<string, unknown>[];
   creatives: Array<{ id: string; [key: string]: unknown }>;
 }
@@ -11,6 +13,8 @@ interface MockState {
 const mockState: MockState = {
   slot: null,
   publisher: null,
+  slots: [],
+  publishers: [],
   campaigns: [],
   creatives: [],
 };
@@ -25,15 +29,24 @@ vi.mock('../src/lib/firebase', () => ({
             id,
             get: vi.fn(async () => {
               if (colName === 'slots') {
+                const found = mockState.slots.find((s) => s.id === id) || mockState.slot;
                 return {
-                  exists: mockState.slot !== null,
-                  data: () => mockState.slot,
+                  exists: found !== null,
+                  data: () => found,
                 };
               }
               if (colName === 'publishers') {
+                const found = mockState.publishers.find((p) => p.id === id) || mockState.publisher;
                 return {
-                  exists: mockState.publisher !== null,
-                  data: () => mockState.publisher,
+                  exists: found !== null,
+                  data: () => found,
+                };
+              }
+              if (colName === 'campaigns') {
+                const found = mockState.campaigns.find((c) => c.id === id);
+                return {
+                  exists: found !== undefined,
+                  data: () => found,
                 };
               }
               return { exists: false, data: () => null };
@@ -48,7 +61,24 @@ vi.mock('../src/lib/firebase', () => ({
                 if (colName === 'campaigns') {
                   return {
                     docs: mockState.campaigns.map((c) => ({
+                      id: c.id,
                       data: () => c,
+                    })),
+                  };
+                }
+                if (colName === 'publishers') {
+                  return {
+                    docs: mockState.publishers.map((p) => ({
+                      id: p.id,
+                      data: () => p,
+                    })),
+                  };
+                }
+                if (colName === 'slots') {
+                  return {
+                    docs: mockState.slots.map((s) => ({
+                      id: s.id,
+                      data: () => s,
                     })),
                   };
                 }
@@ -93,13 +123,15 @@ vi.mock('../src/lib/redis', () => ({
   }),
 }));
 
-import { pushSlotCache } from '../src/lib/push-cache';
+import { pushSlotCache, pushCacheForCampaign } from '../src/lib/push-cache';
 
 describe('pushSlotCache helper', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.slot = null;
     mockState.publisher = null;
+    mockState.slots = [];
+    mockState.publishers = [];
     mockState.campaigns = [];
     mockState.creatives = [];
   });
@@ -521,5 +553,114 @@ describe('pushSlotCache helper', () => {
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_multi_creatives');
     expect(entry.activeCreatives[0].creativeId).toBe('creative_first');
+  });
+
+  async function seedCategoryFixture() {
+    mockState.publisher = {
+      id: 'pub_food',
+      status: 'active',
+      categories: ['matur'],
+      contentPolicy: { blockedCategories: [] },
+    };
+    mockState.publishers = [
+      {
+        id: 'pub_food',
+        status: 'active',
+        categories: ['matur'],
+        contentPolicy: { blockedCategories: [] },
+      },
+      {
+        id: 'pub_travel',
+        status: 'active',
+        categories: ['ferdalog'],
+        contentPolicy: { blockedCategories: [] },
+      },
+    ];
+    mockState.slot = {
+      id: 'slot_food',
+      publisherId: 'pub_food',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 550 },
+    };
+    mockState.slots = [
+      {
+        id: 'slot_food',
+        publisherId: 'pub_food',
+        status: 'active',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { mode: 'cpm', cpmIsk: 550 },
+      },
+      {
+        id: 'slot_travel',
+        publisherId: 'pub_travel',
+        status: 'active',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { mode: 'cpm', cpmIsk: 550 },
+      },
+    ];
+    mockState.campaigns = [
+      {
+        id: 'cmp_food',
+        advertiserId: 'adv_active',
+        status: 'active',
+        creativeIds: ['cre_food'],
+        budget: { remainingIsk: 5000, mode: 'cpm_capped', totalIsk: 10000 },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { categories: ['matur'] },
+      },
+      {
+        id: 'cmp_travel',
+        advertiserId: 'adv_active',
+        status: 'active',
+        creativeIds: ['cre_travel'],
+        budget: { remainingIsk: 5000, mode: 'cpm_capped', totalIsk: 10000 },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { categories: ['ferdalog'] },
+      },
+    ];
+    mockState.creatives = [
+      {
+        id: 'cre_food',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/food.png',
+        clickUrl: 'https://ex.com/food',
+      },
+      {
+        id: 'cre_travel',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/travel.png',
+        clickUrl: 'https://ex.com/travel',
+      },
+    ];
+  }
+
+  it('includes a campaign whose category matches the slot publisher, and excludes a non-matching one', async () => {
+    await seedCategoryFixture();
+    await pushSlotCache('slot_food');
+    const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
+    expect(slotCall).toBeDefined();
+    const entry = slotCall[1];
+    const campaignIds = entry.activeCreatives.map((c) => c.campaignId);
+    expect(campaignIds).toContain('cmp_food');
+    expect(campaignIds).not.toContain('cmp_travel');
+  });
+
+  it('pushCacheForCampaign refreshes every slot whose publisher matches the campaign categories', async () => {
+    await seedCategoryFixture();
+    mockRedisSet.mockClear();
+    await pushCacheForCampaign('cmp_food');
+    const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
+    expect(slotCall).toBeDefined();
   });
 });
