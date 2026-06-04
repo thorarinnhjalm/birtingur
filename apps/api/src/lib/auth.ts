@@ -64,11 +64,23 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
 
   try {
     const decodedToken = await auth.verifyIdToken(token);
+    const email = decodedToken.email || '';
+    
+    const adminEmails = (process.env.ADMIN_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    const isAdmin =
+      !!decodedToken.admin ||
+      email.endsWith('@adplatform.is') ||
+      email === 'admin@a.is' ||
+      adminEmails.includes(email.toLowerCase());
 
     c.set('user', {
       uid: decodedToken.uid,
-      email: decodedToken.email || '',
-      admin: !!decodedToken.admin,
+      email,
+      admin: isAdmin,
     });
 
     await next();

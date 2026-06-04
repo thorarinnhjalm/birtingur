@@ -16,7 +16,17 @@ import { widgetsRouter } from './routes/widgets.js';
 
 export const app = new Hono();
 
-app.use('/*', cors());
+app.use(
+  '/*',
+  cors({
+    origin: (origin) => origin,
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
 app.onError(handleError);
 
 app.get('/healthz', (c) => c.json({ ok: true }));

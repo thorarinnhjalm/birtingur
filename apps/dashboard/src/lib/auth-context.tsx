@@ -36,11 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (u) {
         try {
           const tokenResult = await u.getIdTokenResult(true); // force refresh to get latest claims
-          setAdmin(
+          const email = u.email || '';
+          
+          const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+            .split(',')
+            .map((e: string) => e.trim().toLowerCase())
+            .filter(Boolean);
+
+          const isAdmin =
             !!tokenResult.claims.admin ||
-              u.email?.endsWith('@adplatform.is') ||
-              u.email === 'admin@a.is',
-          );
+            email.endsWith('@adplatform.is') ||
+            email === 'admin@a.is' ||
+            adminEmails.includes(email.toLowerCase());
+
+          setAdmin(isAdmin);
         } catch {
           setAdmin(false);
         }

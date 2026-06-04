@@ -104,12 +104,25 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     }
   }
 
+  // Sort eligible campaigns by priority (slot_purchased first) and remaining budget (descending)
+  const sortedCampaigns = [...eligibleCampaigns].sort((a, b) => {
+    const aPrio = a.budget.mode === 'slot_purchased' ? 1 : 0;
+    const bPrio = b.budget.mode === 'slot_purchased' ? 1 : 0;
+    if (aPrio !== bPrio) return bPrio - aPrio;
+    return b.budget.remainingIsk - a.budget.remainingIsk;
+  });
+
   const activeCreatives: CachedCreative[] = [];
   const blockedCategories = publisher.contentPolicy.blockedCategories ?? [];
+  const seenAdvertisers = new Set<string>();
 
   // 6. Map to CachedCreative
-  for (const campaign of eligibleCampaigns) {
+  for (const campaign of sortedCampaigns) {
+    if (seenAdvertisers.has(campaign.advertiserId)) continue;
+
     for (const cId of campaign.creativeIds) {
+      if (seenAdvertisers.has(campaign.advertiserId)) continue;
+
       const creative = creativeMap.get(cId);
       if (!creative) continue;
 
@@ -150,6 +163,9 @@ export async function pushSlotCache(slotId: string): Promise<void> {
         validTo: campaign.schedule.endsAt.getTime(),
         priority: campaign.budget.mode === 'slot_purchased' ? 'slot_purchased' : 'cpm',
       });
+
+      seenAdvertisers.add(campaign.advertiserId);
+      break; // Only one creative per advertiser
     }
   }
 

@@ -311,4 +311,201 @@ describe('pushSlotCache helper', () => {
     const entry = mockRedisSet.mock.calls[0][1];
     expect(entry.activeCreatives).toHaveLength(0);
   });
+
+  it('enforces one creative per advertiser, prioritizing slot_purchased over cpm', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    mockState.campaigns = [
+      {
+        id: 'camp_cpm',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['creative_cpm'],
+        perPublisherApproval: { pub_123: 'approved' },
+        budget: { remainingIsk: 5000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { slotIds: ['slot_123'] },
+      },
+      {
+        id: 'camp_sponsor',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['creative_sponsor'],
+        perPublisherApproval: { pub_123: 'approved' },
+        budget: { remainingIsk: 1000, mode: 'slot_purchased' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { slotIds: ['slot_123'] },
+      },
+    ];
+
+    mockState.creatives = [
+      {
+        id: 'creative_cpm',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/cpm.png',
+        clickUrl: 'https://ex.com/cpm',
+      },
+      {
+        id: 'creative_sponsor',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/sponsor.png',
+        clickUrl: 'https://ex.com/sponsor',
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls[0][1];
+    expect(entry.activeCreatives).toHaveLength(1);
+    expect(entry.activeCreatives[0].campaignId).toBe('camp_sponsor');
+    expect(entry.activeCreatives[0].creativeId).toBe('creative_sponsor');
+  });
+
+  it('enforces one creative per advertiser, prioritizing higher remaining budget for CPM', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    mockState.campaigns = [
+      {
+        id: 'camp_low_budget',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['creative_low'],
+        perPublisherApproval: { pub_123: 'approved' },
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { slotIds: ['slot_123'] },
+      },
+      {
+        id: 'camp_high_budget',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['creative_high'],
+        perPublisherApproval: { pub_123: 'approved' },
+        budget: { remainingIsk: 9000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { slotIds: ['slot_123'] },
+      },
+    ];
+
+    mockState.creatives = [
+      {
+        id: 'creative_low',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/low.png',
+        clickUrl: 'https://ex.com/low',
+      },
+      {
+        id: 'creative_high',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/high.png',
+        clickUrl: 'https://ex.com/high',
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls[0][1];
+    expect(entry.activeCreatives).toHaveLength(1);
+    expect(entry.activeCreatives[0].campaignId).toBe('camp_high_budget');
+    expect(entry.activeCreatives[0].creativeId).toBe('creative_high');
+  });
+
+  it('enforces one creative per advertiser within the same campaign', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    mockState.campaigns = [
+      {
+        id: 'camp_multi_creatives',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['creative_first', 'creative_second'],
+        perPublisherApproval: { pub_123: 'approved' },
+        budget: { remainingIsk: 5000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { slotIds: ['slot_123'] },
+      },
+    ];
+
+    mockState.creatives = [
+      {
+        id: 'creative_first',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/1.png',
+        clickUrl: 'https://ex.com/1',
+      },
+      {
+        id: 'creative_second',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/2.png',
+        clickUrl: 'https://ex.com/2',
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls[0][1];
+    expect(entry.activeCreatives).toHaveLength(1);
+    expect(entry.activeCreatives[0].campaignId).toBe('camp_multi_creatives');
+    expect(entry.activeCreatives[0].creativeId).toBe('creative_first');
+  });
 });
