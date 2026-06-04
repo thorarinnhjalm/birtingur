@@ -356,10 +356,7 @@ function PublisherHome() {
                     <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
                       {formatIsk(
                         s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk,
-                      )}{' '}
-                      <span className="text-[10px] text-secondary font-medium block">
-                        {s.pricing.mode === 'cpm' ? 'CPM' : `fyrir ${s.pricing.slotPeriodDays}d`}
-                      </span>
+                      )}
                     </td>
                   </tr>
                 ))}
