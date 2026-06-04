@@ -38,7 +38,7 @@ if (isTest) {
   // Force emulator hosts for testing
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
   process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-  process.env.GCLOUD_PROJECT = 'ada-test';
+  process.env.GCLOUD_PROJECT = 'birtingur-8b5a4';
   // Clear production credentials to ensure we don't accidentally write to live Firestore
   delete process.env.FIREBASE_PRIVATE_KEY;
   delete process.env.FIREBASE_CLIENT_EMAIL;

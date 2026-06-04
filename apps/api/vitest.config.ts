@@ -13,7 +13,7 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       FIRESTORE_EMULATOR_HOST: '127.0.0.1:8080',
-      GCLOUD_PROJECT: 'ada-test',
+      GCLOUD_PROJECT: 'birtingur-8b5a4',
     },
   },
 });

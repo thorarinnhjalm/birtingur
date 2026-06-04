@@ -44,7 +44,7 @@ if (!hasProductionCredentials) {
   if (process.env.FIREBASE_AUTH_EMULATOR_HOST === undefined) {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
   }
-  process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'ada-test';
+  process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'birtingur-8b5a4';
   console.log('[API] Using local Firebase Emulators (Firestore: 8080, Auth: 9099)');
 } else {
   // Clear any emulator host env vars to ensure we talk to live Firestore/Auth

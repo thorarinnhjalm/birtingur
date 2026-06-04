@@ -5,7 +5,7 @@ export async function clearFirestoreEmulator() {
     return;
   }
 
-  const projectId = process.env.GCLOUD_PROJECT ?? 'ada-test';
+  const projectId = process.env.GCLOUD_PROJECT ?? 'birtingur-8b5a4';
   const url = `http://${host}/emulator/v1/projects/${projectId}/databases/(default)/documents`;
 
   try {
