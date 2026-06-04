@@ -31,13 +31,27 @@ if (existsSync(envPath)) {
   }
 }
 
-if (process.env.FIRESTORE_EMULATOR_HOST === undefined) {
-  process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+const hasProductionCredentials = !!(
+  process.env.FIREBASE_PRIVATE_KEY &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PROJECT_ID
+);
+
+if (!hasProductionCredentials) {
+  if (process.env.FIRESTORE_EMULATOR_HOST === undefined) {
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+  }
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST === undefined) {
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+  }
+  process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'ada-test';
+  console.log('[API] Using local Firebase Emulators (Firestore: 8080, Auth: 9099)');
+} else {
+  // Clear any emulator host env vars to ensure we talk to live Firestore/Auth
+  delete process.env.FIRESTORE_EMULATOR_HOST;
+  delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+  console.log(`[API] Connecting to LIVE Firebase Project: ${process.env.FIREBASE_PROJECT_ID}`);
 }
-if (process.env.FIREBASE_AUTH_EMULATOR_HOST === undefined) {
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
-}
-process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'ada-test';
 
 import { serve } from '@hono/node-server';
 import app from './index.js';
