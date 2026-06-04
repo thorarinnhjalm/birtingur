@@ -13,10 +13,10 @@ export function registerGetStats(server: McpServer, apiKey: string) {
       inputSchema: Input.shape,
     },
     async ({ period }) => {
-      const r = await apiCall<{ stats: unknown }>(`/v1/publishers/me/stats?period=${period}`, {
+      const r = await apiCall<unknown>(`/v1/publishers/me/stats?period=${period}`, {
         apiKey,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r.stats) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
     },
   );
 }

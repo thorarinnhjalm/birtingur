@@ -29,12 +29,12 @@ export function registerCreateSlot(server: McpServer, apiKey: string) {
       inputSchema: Input.shape,
     },
     async (input) => {
-      const r = await apiCall<{ slot: unknown }>('/v1/publishers/me/slots', {
+      const r = await apiCall<unknown>('/v1/publishers/me/slots', {
         method: 'POST',
         body: input,
         apiKey,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r.slot) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
     },
   );
 }

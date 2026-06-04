@@ -22,12 +22,12 @@ export function registerUpdateSlot(server: McpServer, apiKey: string) {
       inputSchema: Input.shape,
     },
     async ({ slotId, patch }) => {
-      const r = await apiCall<{ slot: unknown }>(`/v1/publishers/me/slots/${slotId}`, {
+      const r = await apiCall<unknown>(`/v1/publishers/me/slots/${slotId}`, {
         method: 'PATCH',
         body: patch,
         apiKey,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r.slot) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
     },
   );
 }

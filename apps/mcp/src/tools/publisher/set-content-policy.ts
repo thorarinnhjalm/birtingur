@@ -17,12 +17,12 @@ export function registerSetContentPolicy(server: McpServer, apiKey: string) {
       inputSchema: Input.shape,
     },
     async (input) => {
-      const r = await apiCall<{ publisher: unknown }>('/v1/publishers/me', {
+      const r = await apiCall<unknown>('/v1/publishers/me', {
         method: 'PATCH',
         body: { contentPolicy: input },
         apiKey,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r.publisher) }] };
+      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
     },
   );
 }
