@@ -1,4 +1,4 @@
-import { generateMonthlyPayouts } from '../src/services/payouts';
+import { generateMonthlyPayouts } from '../dist/src/services/payouts.js';
 
 export const config = { runtime: 'nodejs' };
 

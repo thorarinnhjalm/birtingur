@@ -1,4 +1,4 @@
-import { drainAndAggregate } from '../src/services/stats-aggregator';
+import { drainAndAggregate } from '../dist/src/services/stats-aggregator.js';
 
 export const config = { runtime: 'nodejs' };
 

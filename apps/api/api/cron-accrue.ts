@@ -1,4 +1,4 @@
-import { drainAndAccrue } from '../src/services/accrual';
+import { drainAndAccrue } from '../dist/src/services/accrual.js';
 
 export const config = { runtime: 'nodejs' };
 
