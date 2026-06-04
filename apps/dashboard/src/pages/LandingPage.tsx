@@ -698,11 +698,9 @@ export default function LandingPage() {
                         equalizer
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white">Flatt CPM fyrir alla</h3>
+                    <h3 className="text-lg font-bold text-white">Gagnsætt og samræmt verðlag</h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu. Engin
-                      flókin uppboð, duldar þóknanir eða verðmismunun. Bæði stórir og smáir aðilar
-                      standa jafnfætis og útgefendur fá sömu sanngjörnu hlutdeildina.
+                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu fyrir almennar sýningar, en styðjum einnig **fasta tímabilsleigu** (t.d. fast verð fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
                     </p>
                   </div>
 
@@ -1023,12 +1021,11 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Sveigjanlegir verðmöguleikar
+                    Greiðsluleiðir að þínu vali
                   </h3>
                   <p className="text-sm text-slate-500 leading-relaxed">
-                    Þú ræður sjálfur verðlagningu fyrir hvert og eitt auglýsingapláss. Styður bæði
-                    dynamic CPM-boðkerfi og fast verð fyrir ákveðin tímabil (t.d. fast verð fyrir
-                    eina viku eða mánuð).
+                    Þú getur valið á milli þess að nota okkar flata 550 kr. CPM verð (greitt fyrir sýningar)
+                    eða leigt út plássið á föstu leiguverði yfir ákveðinn fjölda daga sem þú ákveður sjálfur.
                   </p>
                 </div>
               </div>
