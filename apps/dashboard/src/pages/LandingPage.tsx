@@ -670,6 +670,61 @@ export default function LandingPage() {
                 </div>
               </div>
             </section>
+
+            {/* MANIFESTO SECTION */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 sm:mt-24">
+              <div className="relative rounded-3xl bg-slate-900 text-white p-8 sm:p-12 md:p-16 border border-slate-800 shadow-2xl overflow-hidden">
+                <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-blue-500/10 blur-[100px] pointer-events-none -z-10" />
+                <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-violet-500/10 blur-[80px] pointer-events-none -z-10" />
+
+                <div className="max-w-3xl mx-auto text-center space-y-4 mb-12">
+                  <span className="text-xs font-bold uppercase tracking-wider text-blue-400 bg-blue-950/50 px-3 py-1 rounded-full border border-blue-900/50">
+                    Okkar stefna
+                  </span>
+                  <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                    Stefnuyfirlýsing Birtingar
+                  </h2>
+                  <p className="text-base text-slate-400 font-medium max-w-xl mx-auto">
+                    Við trúum því að hægt sé að reka árangursríka auglýsingamiðlun á íslenska vefnum án þess að fórna notendaupplifun eða persónuvernd.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Point 1 */}
+                  <div className="space-y-4 p-6 rounded-2xl bg-slate-850/40 border border-slate-800/80">
+                    <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-900/50 flex items-center justify-center text-blue-400">
+                      <span className="material-symbols-outlined text-2xl font-bold">equalizer</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Flatt CPM fyrir alla</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu. Engin flókin uppboð, duldar þóknanir eða verðmismunun. Bæði stórir og smáir aðilar standa jafnfætis og útgefendur fá sömu sanngjörnu hlutdeildina.
+                    </p>
+                  </div>
+
+                  {/* Point 2 */}
+                  <div className="space-y-4 p-6 rounded-2xl bg-slate-850/40 border border-slate-800/80">
+                    <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-900/50 flex items-center justify-center text-blue-400">
+                      <span className="material-symbols-outlined text-2xl font-bold">filter_1</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Eitt hólf, ein auglýsing</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Við bönnum síendurtekna hólfaflettingu (auto-refresh loop) og óreiðu. Í hverju auglýsingaplássi birtist aðeins <strong>ein gæðamikil auglýsing í senn</strong>. Lesendur fá rólegri vef og auglýsendur fá óskipta athygli.
+                    </p>
+                  </div>
+
+                  {/* Point 3 */}
+                  <div className="space-y-4 p-6 rounded-2xl bg-slate-850/40 border border-slate-800/80">
+                    <div className="w-12 h-12 rounded-xl bg-blue-950 border border-blue-900/50 flex items-center justify-center text-blue-400">
+                      <span className="material-symbols-outlined text-2xl font-bold">cookie</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-white">Engin sporing (Cookie-free)</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                      Engar njósnir. Birtingar byggja eingöngu á samhengi efnisins (contextual) og landfræði (geo), sem útilokar vafrakökur til sporingar. Það tryggir fullt GDPR lagalegt öryggi og lætur vefinn hlaðast mun hraðar.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         )}
         {/* TAB: FOR ADVERTISERS */}
@@ -736,12 +791,12 @@ export default function LandingPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-2">
-                    Gagnsætt inneignarveski & VSK reikningar
+                    Gagnsætt inneignarveski & VSK þjónustureikningar
                   </h3>
                   <p className="text-sm text-slate-500 leading-relaxed">
                     Þú leggur inn á reikninginn þinn með kreditkorti í gegnum örugga greiðslugátt
-                    Teya. Í kjölfar innborgunar færðu samstundis sendan löglegan sölureikning með
-                    24% virðisaukaskatti (VSK) í tölvupósti. Engin fólgin mánaðargjöld.
+                    Teya. Innlögnin er VSK-frjáls og bætist óskert við veskið. Birtingur reiknar og
+                    innheimtir 24% VSK eingöngu af 20% þjónustuþóknun okkar samfara birtingu auglýsinga.
                   </p>
                 </div>
               </div>
@@ -823,29 +878,39 @@ export default function LandingPage() {
                   </h3>
                   <p className="text-sm text-slate-600 leading-relaxed mb-6">
                     Inneignir eru keyptar fyrirfram með kreditkorti í gegnum örugga greiðslugátt
-                    **Teya**. Í kjölfar innborgunar er sjálfkrafa stofnaður rafrænn sölureikningur
-                    með 24% virðisaukaskatti (VSK) sem sendur er á skráð netfang.
+                    **Teya**. Innlögnin sjálf er VSK-frjáls innlögn á veltureikning og fer 100% óskert 
+                    í inneignarveskið þitt. Rafrænn VSK-reikningur er eingöngu gefinn út fyrir 
+                    umsýsluþóknun Birtings (20% af eyðslu) jafnóðum og auglýsingar eru sýndar.
                   </p>
 
                   {/* calculation example */}
                   <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs font-mono mb-4">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Inneign á reikning (Nettó):</span>
-                      <span className="text-slate-800">16.129 kr.</span>
+                      <span className="text-slate-500">Innlögn á veltureikning (VSK-frítt):</span>
+                      <span className="text-slate-800">20.000 kr.</span>
                     </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                      <span className="text-slate-500">Virðisaukaskattur (24% VSK):</span>
-                      <span className="text-slate-800">3.871 kr.</span>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Inneign í veski til ráðstöfunar:</span>
+                      <span className="text-blue-600 font-bold">20.000 kr.</span>
                     </div>
-                    <div className="flex justify-between pt-1 font-bold">
-                      <span className="text-slate-700">Greiðsla samtals (Brúttó):</span>
-                      <span className="text-blue-600">20.000 kr.</span>
+                    <div className="flex flex-col border-t border-slate-200 pt-2 gap-1">
+                      <span className="text-[10px] text-slate-400 font-sans font-semibold">
+                        Áætlaður VSK við birtingu (reiknað af 20% þóknun Birtings):
+                      </span>
+                      <div className="flex justify-between">
+                        <span className="text-slate-550">- Áætluð þóknun (20%):</span>
+                        <span className="text-slate-800">4.000 kr.</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-550">- Áætlaður VSK (24% af þóknun):</span>
+                        <span className="text-slate-800">960 kr.</span>
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 text-[10px] text-slate-500">
                     <span className="material-symbols-outlined text-xs">info</span>
-                    Útgefið af: Birtingur ehf. (Kt. 560126-1020) VSK nr: 148902
+                    Birtingur ehf. (Kt. 560126-1020) VSK nr: 148902
                   </div>
                 </div>
               </div>
@@ -1077,7 +1142,7 @@ export default function LandingPage() {
                 },
                 {
                   q: 'Hvernig borga ég fyrir herferðir og hver er lágmarksgreiðsla?',
-                  a: 'Greiðslur fara fram með kreditkorti í gegnum örugga greiðslugátt Teya. Þú getur keypt inneign fyrir þá upphæð sem þér hentar, en lágmarksupphæð hverrar innborgunar er 2.000 kr. (með VSK). Rafrænn VSK-reikningur er sendur á skráð netfang í kjölfar hverrar greiðslu.',
+                  a: 'Greiðslur fara fram með kreditkorti í gegnum örugga greiðslugátt Teya. Lágmarksupphæð hverrar innborgunar er 2.000 kr. Innlögnin sjálf er VSK-frí og bætist 100% við inneign þína. Við hverja innborgun færðu staðfestingarkvittun, og löglegan VSK-reikning eingöngu af 20% umsýsluþóknun okkar jafnóðum og herferðin er birt.',
                 },
                 {
                   q: 'Hvað tekur Birtingur háa þóknun af sölu?',
@@ -1171,9 +1236,10 @@ export default function LandingPage() {
                 <p>
                   **Innborgun og Wallet**: Birtingur notar fyrirframgreitt inneignarkerfi (Wallet).
                   Auglýsendur leggja inn inneign með kreditkorti í gegnum örugga greiðslugátt
-                  **Teya**. Lágmarksinnborgun er 2.000 kr. (brúttó, VSK innifalinn). Við hverja
-                  innborgun er sjálfkrafa stofnaður rafrænn sölureikningur með 24% virðisaukaskatti
-                  (VSK) sem sendur er á skráð netfang. Inneignir fyrnast ekki en eru almennt ekki
+                  **Teya**. Lágmarksinnborgun er 2.000 kr. Innlögnin er VSK-frjáls innlögn á veltureikning
+                  og bætist 100% við inneign þína. Við innborgun færðu senda kvittun fyrir innlögninni. 
+                  Lögbundinn sölureikningur með 24% virðisaukaskatti (VSK) er gefinn út fyrir 20% umsýsluþóknun 
+                  Birtings jafnóðum og herferðir eru birtar. Inneignir fyrnast ekki en eru almennt ekki
                   endurgreiddar nema herferðir séu stöðvaðar af hálfu kerfisins.
                 </p>
                 <p>

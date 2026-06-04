@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SlotCacheEntry } from '../src/lib/cache';
+import type { SlotCacheEntry } from '@ada/shared';
 import { createSignature } from '../src/lib/crypto';
 
 const mockSlot: SlotCacheEntry = {
@@ -50,7 +50,9 @@ import { recordVisitorImpression } from '../src/lib/visitor';
 import app from '../src/index';
 
 describe('GET /v1/click', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('redirects to clickUrl for valid slot and creative', async () => {
     const ts = Date.now();
@@ -87,7 +89,9 @@ describe('GET /v1/click', () => {
 });
 
 describe('GET /v1/impression', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns transparent pixel and processes impression for valid slot and creative', async () => {
     const ts = Date.now();
