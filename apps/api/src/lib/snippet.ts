@@ -18,5 +18,6 @@ export function generateSnippet(options: SnippetOptions): string {
   const widthAttr = options.width != null ? ` data-adplatform-width="${options.width}"` : '';
   const heightAttr = options.height != null ? ` data-adplatform-height="${options.height}"` : '';
 
-  return `<div data-adplatform-slot="${escapedSlotId}"${widthAttr}${heightAttr}></div>\n<script async src="https://cdn.birtingur.is/widget.js"></script>`;
+  const cdnBase = process.env.CDN_BASE_URL ?? 'https://cdn.birtingur.app';
+  return `<div data-adplatform-slot="${escapedSlotId}"${widthAttr}${heightAttr}></div>\n<script async src="${cdnBase}/widget.js"></script>`;
 }
