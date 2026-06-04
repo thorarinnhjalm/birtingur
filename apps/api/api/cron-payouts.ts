@@ -1,8 +1,8 @@
-import { generateMonthlyPayouts } from '../dist/src/services/payouts.js';
+import { generateMonthlyPayouts } from '../src/services/payouts';
 
 export const config = { runtime: 'nodejs' };
 
-export default async function handler(req) {
+export default async function handler(req: Request) {
   if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('forbidden', { status: 403 });
   }

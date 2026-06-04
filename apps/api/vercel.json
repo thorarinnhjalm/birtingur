@@ -3,10 +3,10 @@
   "devCommand": "tsc --watch",
   "framework": null,
   "functions": {
-    "api/index.js": { "maxDuration": 30 },
-    "api/cron-accrue.js": { "maxDuration": 60 },
-    "api/cron-aggregate.js": { "maxDuration": 60 },
-    "api/cron-payouts.js": { "maxDuration": 60 }
+    "api/index.ts": { "maxDuration": 30 },
+    "api/cron-accrue.ts": { "maxDuration": 60 },
+    "api/cron-aggregate.ts": { "maxDuration": 60 },
+    "api/cron-payouts.ts": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/cron-accrue", "schedule": "*/15 * * * *" },
