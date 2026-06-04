@@ -5,7 +5,7 @@ import type { Publisher, Slot } from '@ada/shared';
 export function usePublisher() {
   return useQuery({
     queryKey: ['publisher', 'me'],
-    queryFn: () => apiFetch<{ publisher: Publisher }>('/v1/publishers/me').then((r) => r.publisher),
+    queryFn: () => apiFetch<Publisher>('/v1/publishers/me'),
     retry: false, // Don't retry since 404 means onboarding is needed
   });
 }
@@ -26,7 +26,7 @@ export function useCreatePublisher() {
       integrationPreference?: 'widget' | 'mcp' | 'both';
       estimatedSlotsCount?: number;
     }) =>
-      apiFetch<{ publisher: Publisher }>('/v1/publishers', {
+      apiFetch<Publisher>('/v1/publishers', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
@@ -39,14 +39,14 @@ export function useCreatePublisher() {
 export function usePublisherSlots() {
   return useQuery({
     queryKey: ['publisher', 'slots'],
-    queryFn: () => apiFetch<{ slots: Slot[] }>('/v1/publishers/me/slots').then((r) => r.slots),
+    queryFn: () => apiFetch<Slot[]>('/v1/publishers/me/slots'),
   });
 }
 
 export function usePublisherSlot(id: string | undefined) {
   return useQuery({
     queryKey: ['publisher', 'slots', id],
-    queryFn: () => apiFetch<{ slot: Slot }>(`/v1/publishers/me/slots/${id}`).then((r) => r.slot),
+    queryFn: () => apiFetch<Slot>(`/v1/publishers/me/slots/${id}`),
     enabled: !!id,
   });
 }
@@ -67,7 +67,7 @@ export function useCreateSlot() {
       };
       autoApprove: boolean;
     }) =>
-      apiFetch<{ slot: Slot }>('/v1/publishers/me/slots', {
+      apiFetch<Slot>('/v1/publishers/me/slots', {
         method: 'POST',
         body: JSON.stringify(input),
       }),

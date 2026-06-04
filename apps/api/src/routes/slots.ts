@@ -44,6 +44,22 @@ slotsRouter.get('/', async (c) => {
   return c.json(slots);
 });
 
+slotsRouter.get('/:id', async (c) => {
+  const user = c.get('user');
+  const publisher = await getPublisherByOwnerEmail(user.email);
+  if (!publisher) {
+    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  }
+
+  const id = c.req.param('id');
+  const slot = await getSlot(id);
+  if (!slot || slot.publisherId !== publisher.id) {
+    throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
+  }
+
+  return c.json(slot);
+});
+
 slotsRouter.patch('/:id', async (c) => {
   const user = c.get('user');
   const publisher = await getPublisherByOwnerEmail(user.email);
