@@ -40,7 +40,7 @@ export default function TopUp() {
 
   // Under consignment model, the deposit itself is VAT-free.
   // VAT is calculated only on the 20% platform brokerage fee.
-  const platformFee = Math.round(amount * 0.20);
+  const platformFee = Math.round(amount * 0.2);
   const platformFeeVat = Math.round(platformFee * VAT_RATE);
 
   return (
@@ -140,8 +140,9 @@ export default function TopUp() {
             <span>{formatIsk(amount)}</span>
           </div>
           <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2">
-            * Samkvæmt lögum um umboðssölu er innlögnin sjálf VSK-frjáls innlögn á veltureikning. 
-            Virðisaukaskattur (24%) reiknast eingöngu af þjónustuþóknun Birtingar (20%) þegar auglýsingar eru sýndar.
+            * Samkvæmt lögum um umboðssölu er innlögnin sjálf VSK-frjáls innlögn á veltureikning.
+            Virðisaukaskattur (24%) reiknast eingöngu af þjónustuþóknun Birtingar (20%) þegar
+            auglýsingar eru sýndar.
           </p>
         </div>
 
