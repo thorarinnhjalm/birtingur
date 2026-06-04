@@ -72,3 +72,14 @@ export function useGeneratePayouts() {
     },
   });
 }
+
+// 6. Fetch admin diagnostics
+export function useAdminDiagnostics() {
+  return useQuery({
+    queryKey: ['admin', 'diagnostics'],
+    queryFn: () => apiFetch<any>('/v1/admin/diagnostics'),
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+}
+

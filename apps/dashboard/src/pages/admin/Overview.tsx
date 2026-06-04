@@ -33,6 +33,7 @@ import {
   useAdminSlots,
   useUpdateEntityStatus,
   useGeneratePayouts,
+  useAdminDiagnostics,
 } from '@/hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -770,6 +771,213 @@ function AdminSlotsList() {
   );
 }
 
+// 6. Admin Settings (Diagnostics, Allowed Categories, Platform Fees)
+function AdminSettings() {
+  const { data: diag, isLoading, isError, error, refetch, isFetching } = useAdminDiagnostics();
+
+  const categories = [
+    { name: 'Fréttir (news)', desc: 'Frétta- og upplýsingamiðlar' },
+    { name: 'Íþróttir (sports)', desc: 'Íþróttafréttir og afþreying' },
+    { name: 'Tækni (tech)', desc: 'Tæknisíður, tölvur og hugbúnaður' },
+    { name: 'Fjármál (finance)', desc: 'Fjármál, viðskipti og efnahagur' },
+    { name: 'Lífstíll (lifestyle)', desc: 'Matur, lífstíll, tíska og ferðalög' },
+    { name: 'Afþreying (entertainment)', desc: 'Leikir, bíó, tónlist og afþreying' },
+    { name: 'Veðmál (gambling)', desc: 'Veðmálasíður og spilavíti (háð takmörkunum)' },
+    { name: 'Annað (other)', desc: 'Aðrir almennir veflokkar' },
+  ];
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Kerfisstillingar</h1>
+        <p className="text-slate-500 text-sm font-medium mt-1">
+          Umsjón með almennum kerfisbreytum, vefflokkum og greiningu á tengingum bakenda.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Left Side: General settings */}
+        <div className="space-y-6">
+          <Card className="p-6">
+            <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">payments</span>
+              Þóknun og gjöld vettvangs
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                <span className="text-xs font-semibold text-slate-600">Þóknunarhlutfall (Platform Fee)</span>
+                <span className="text-sm font-bold text-slate-955">20%</span>
+              </div>
+              <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+                Platform þóknunin dregst sjálfkrafa af wallet-greiðslum auglýsenda við birtingu og rennur til Birtings. Þessi breyta er harðkóðuð í kerfiskjarnanum eins og er.
+              </p>
+            </div>
+          </Card>
+
+          <Card className="p-6">
+            <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">category</span>
+              Leyfilegir vefflokkar
+            </h3>
+            <p className="text-xs font-medium text-slate-500 mb-3">
+              Þessir flokkar eru notaðir af gervigreindinni og lykilorðasíunni við flokkun á nýjum vefjum.
+            </p>
+            <div className="grid gap-2">
+              {categories.map((c) => (
+                <div key={c.name} className="flex justify-between items-center p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700">
+                  <span>{c.name}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">{c.desc}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Side: Diagnostics */}
+        <div className="space-y-6">
+          <Card className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-lg">settings_suggest</span>
+                Tengiprófanir bakenda (Diagnostics)
+              </h3>
+              <Button
+                variant="primary"
+                onClick={() => refetch()}
+                disabled={isLoading || isFetching}
+                className="text-[10px] font-bold py-1 px-3 border border-transparent"
+              >
+                {isFetching ? 'Prófar...' : 'Prófa aftur'}
+              </Button>
+            </div>
+
+            {isLoading ? (
+              <div className="py-8 text-center text-xs font-medium text-slate-500">
+                Sæki greiningarskýrslu af bakenda...
+              </div>
+            ) : isError ? (
+              <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+                Gat ekki náð sambandi við greiningar-enda bakenda.
+                <p className="text-[10px] text-red-500 font-mono mt-2">{(error as any)?.message || '404/500/Connection error'}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 1. Firebase Env Configuration */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-700">Umhverfisbreytur (Vercel ENV)</h4>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-slate-600">
+                    <div className="p-2 rounded bg-slate-50 border border-slate-100 flex justify-between">
+                      <span>PROJECT_ID:</span>
+                      <span className="font-mono text-slate-900 font-bold">{diag?.env?.FIREBASE_PROJECT_ID || 'Vantar'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 border border-slate-100 flex justify-between">
+                      <span>DATABASE_ID:</span>
+                      <span className="font-mono text-slate-900 font-bold">{diag?.env?.FIREBASE_DATABASE_ID || '(default)'}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-50 border border-slate-100 flex justify-between col-span-2">
+                      <span>PRIVATE_KEY (Stærð):</span>
+                      <span className={`font-mono font-bold ${diag?.env?.FIREBASE_PRIVATE_KEY_EXISTS ? 'text-green-600' : 'text-red-600'}`}>
+                        {diag?.env?.FIREBASE_PRIVATE_KEY_EXISTS ? `Virkur (${diag.env.FIREBASE_PRIVATE_KEY_LENGTH} stafir)` : 'VANTAR'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Firebase Database status */}
+                <div className="border-t border-slate-100 pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-700">Firestore gagnagrunnur</span>
+                    {diag?.firestore?.status === 'ok' ? (
+                      <span className="text-[10px] font-bold text-green-600 px-2 py-0.5 rounded-full bg-green-50 border border-green-200">
+                        TENGT
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-red-600 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                        VILLA
+                      </span>
+                    )}
+                  </div>
+
+                  {diag?.firestore?.status === 'error' && (
+                    <div className="p-3 bg-red-50/50 border border-red-200 rounded text-[10px] font-mono text-red-600 overflow-x-auto max-h-32">
+                      <p className="font-bold mb-1">{diag.firestore.message}</p>
+                      <pre className="text-[9px] opacity-80 leading-tight">{diag.firestore.stack}</pre>
+                    </div>
+                  )}
+
+                  {diag?.firestore?.status === 'ok' && (
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      Tenging er virk. Fundust söfn (collections): <code className="font-mono bg-slate-100 px-1 rounded text-slate-700">{diag.firestore.collections?.join(', ')}</code>
+                    </p>
+                  )}
+                </div>
+
+                {/* 3. Slots Fetching Checks */}
+                <div className="border-t border-slate-100 pt-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-700">Slots fyrirspurnir (Raw query / Schema check)</span>
+                    {diag?.slotsQuery?.status === 'ok' && diag?.slotsWithConverter?.status === 'ok' ? (
+                      <span className="text-[10px] font-bold text-green-600 px-2 py-0.5 rounded-full bg-green-50 border border-green-200">
+                        Í LAGI
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-red-600 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                        BILUN
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Schema converter failure detail */}
+                  {diag?.slotsWithConverter?.status === 'error' && (
+                    <div className="p-3 bg-red-50/50 border border-red-200 rounded text-[10px] font-mono text-red-600 overflow-x-auto max-h-32">
+                      <p className="font-bold mb-1">Schema Parser Zod Error:</p>
+                      <p className="font-semibold mb-1 text-[9px]">{diag.slotsWithConverter.message}</p>
+                      <pre className="text-[9px] opacity-80 leading-tight">{diag.slotsWithConverter.stack}</pre>
+                    </div>
+                  )}
+
+                  {diag?.slotsQuery?.status === 'ok' && (
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      Hrátt gagnapróf: Sótti {diag.slotsQuery.count} pláss í gagnagrunni.
+                    </p>
+                  )}
+                </div>
+
+                {/* 4. Redis status */}
+                <div className="border-t border-slate-100 pt-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-700">Redis skyndiminni (Upstash Redis Cache)</span>
+                    {diag?.redis?.status === 'ok' ? (
+                      <span className="text-[10px] font-bold text-green-600 px-2 py-0.5 rounded-full bg-green-50 border border-green-200">
+                        SAMBAND
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-red-600 px-2 py-0.5 rounded-full bg-red-50 border border-red-200">
+                        ÓTENGT / VILLA
+                      </span>
+                    )}
+                  </div>
+                  {diag?.redis?.status === 'error' && (
+                    <div className="p-3 bg-red-50/50 border border-red-200 rounded text-[10px] font-mono text-red-600 overflow-x-auto">
+                      <p className="font-bold mb-1">{diag.redis.message}</p>
+                      <pre className="text-[9px] opacity-80 leading-tight">{diag.redis.stack}</pre>
+                    </div>
+                  )}
+                  {diag?.redis?.status === 'ok' && (
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      Tengt gegnum KV_REST_API_URL. Skyndiminni er virkt og svarar skipunum.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const sidebar = [
   { to: '/admin', label: 'Yfirlit', icon: 'dashboard' },
   { to: '/admin/review', label: 'Yfirferð', icon: 'shield' },
@@ -789,6 +997,7 @@ export default function AdminOverview() {
         <Route path="publishers" element={<AdminPublishersList />} />
         <Route path="advertisers" element={<AdminAdvertisersList />} />
         <Route path="slots" element={<AdminSlotsList />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Routes>
     </AppShell>
   );

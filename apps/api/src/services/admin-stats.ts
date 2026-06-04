@@ -18,10 +18,13 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
   let hasRealData = false;
 
   try {
-    // 1. Sum up impressions and clicks from campaign stats
+    // 1. Sum up impressions and clicks from campaign stats in parallel
     const campaignsSnap = await db.collection(COLLECTIONS.campaigns).get();
-    for (const doc of campaignsSnap.docs) {
-      const statsSnap = await db.collection(`${COLLECTIONS.stats}/campaigns/${doc.id}`).get();
+    const statsPromises = campaignsSnap.docs.map((doc) =>
+      db.collection(`${COLLECTIONS.stats}/campaigns/${doc.id}`).get(),
+    );
+    const statsSnapshots = await Promise.all(statsPromises);
+    for (const statsSnap of statsSnapshots) {
       for (const sDoc of statsSnap.docs) {
         hasRealData = true;
         const data = sDoc.data();
