@@ -4,7 +4,7 @@ Exposes the ADA display ad platform operations as MCP tools for AI agents.
 
 ## Endpoint
 
-`https://mcp.adplatform.is/mcp` (or local `http://localhost:3000/mcp` during development)
+`https://mcp.birtingur.app/mcp` (or local `http://localhost:3000/mcp` during development)
 
 All requests should be POST requests using the MCP Streamable HTTP transport.
 Authentication: Include an `Authorization: Bearer ak_xxxxx` header (where `ak_xxxxx` is a service-account API key obtained from your dashboard or via `POST /v1/api-keys`).
@@ -56,7 +56,7 @@ Add this to your `claude_desktop_config.json`:
         "Content-Type: application/json",
         "-d",
         "{{mcp_payload}}",
-        "https://mcp.adplatform.is/mcp"
+        "https://mcp.birtingur.app/mcp"
       ]
     }
   }
@@ -67,5 +67,5 @@ Add this to your `claude_desktop_config.json`:
 
 Use the custom HTTP connector with:
 
-- URL: `https://mcp.adplatform.is/mcp`
+- URL: `https://mcp.birtingur.app/mcp`
 - Headers: `Authorization: Bearer ak_xxxxxxxxxxxxxxxx`
