@@ -79,7 +79,9 @@ describe('GET /v1/click', () => {
       headers: { 'CF-IPCountry': 'IS' },
     });
     expect(res.status).toBe(302);
-    expect(res.headers.get('Location')).toBe('https://example/x');
+    expect(res.headers.get('Location')).toBe(
+      'https://example/x?utm_source=birtingur&utm_medium=display&utm_campaign=cmp_a&utm_content=slot_a',
+    );
     expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'click',

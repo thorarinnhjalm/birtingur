@@ -55,5 +55,26 @@ clickRoute.get('/', async (c) => {
     ts: Date.now(),
   });
 
-  return c.redirect(creative.clickUrl, 302);
+  // Automatically append UTM parameters for Google Analytics/Plausible tracking
+  let redirectUrl = creative.clickUrl;
+  try {
+    const urlObj = new URL(redirectUrl);
+    if (!urlObj.searchParams.has('utm_source')) {
+      urlObj.searchParams.set('utm_source', 'birtingur');
+    }
+    if (!urlObj.searchParams.has('utm_medium')) {
+      urlObj.searchParams.set('utm_medium', 'display');
+    }
+    if (!urlObj.searchParams.has('utm_campaign')) {
+      urlObj.searchParams.set('utm_campaign', creative.campaignId);
+    }
+    if (!urlObj.searchParams.has('utm_content')) {
+      urlObj.searchParams.set('utm_content', slotId);
+    }
+    redirectUrl = urlObj.toString();
+  } catch (err) {
+    // Fallback to original clickUrl if parsing fails
+  }
+
+  return c.redirect(redirectUrl, 302);
 });
