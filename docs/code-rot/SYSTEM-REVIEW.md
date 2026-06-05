@@ -25,15 +25,15 @@ network buying" breyting var innleidd 04.06 og fylgt eftir með fjölda hraðfix
 
 **Turborepo + pnpm monorepo, 7 workspaces.** `@ada/shared` er rótin sem allt annað byggir á.
 
-| Workspace | Hlutverk | Keyrsla |
-|-----------|----------|---------|
-| `packages/shared` | Sannleiksuppspretta: Zod-schema, týpur, Firestore-collections + converters, fastar (`constants.ts`), ISK/dagsetn.-format | tsc lib |
-| `apps/api` | Control-plane REST (Hono), `/v1/*` + cron-föll | Vercel Node functions |
-| `apps/serving` | Heit leið: ad/impression/click, Redis-cache, lág seinkun | Vercel (V2: Cloudflare) |
-| `apps/dashboard` | React 19 + Vite SPA, hlutverk: advertiser/publisher/admin | Vercel static + SPA-rewrite |
-| `apps/mcp` | **Publisher-only** AI-tengi (slot-stjórnun, snippet, policy, approvals, stats) | Vercel, talar við API yfir HTTP |
-| `packages/snippet` | `<script>` sem útgefendur embed-a (esbuild, size-budget) | CDN |
-| `packages/widgets` | Browser-widget artifacts (esbuild) | CDN |
+| Workspace          | Hlutverk                                                                                                                 | Keyrsla                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| `packages/shared`  | Sannleiksuppspretta: Zod-schema, týpur, Firestore-collections + converters, fastar (`constants.ts`), ISK/dagsetn.-format | tsc lib                         |
+| `apps/api`         | Control-plane REST (Hono), `/v1/*` + cron-föll                                                                           | Vercel Node functions           |
+| `apps/serving`     | Heit leið: ad/impression/click, Redis-cache, lág seinkun                                                                 | Vercel (V2: Cloudflare)         |
+| `apps/dashboard`   | React 19 + Vite SPA, hlutverk: advertiser/publisher/admin                                                                | Vercel static + SPA-rewrite     |
+| `apps/mcp`         | **Publisher-only** AI-tengi (slot-stjórnun, snippet, policy, approvals, stats)                                           | Vercel, talar við API yfir HTTP |
+| `packages/snippet` | `<script>` sem útgefendur embed-a (esbuild, size-budget)                                                                 | CDN                             |
+| `packages/widgets` | Browser-widget artifacts (esbuild)                                                                                       | CDN                             |
 
 **Deploy-topology:** hver `apps/*` er sér Vercel-verkefni. API rewrite-ar allt á `api/index`
 auk þriggja sjálfstæðra cron-falla. Vercel-function entrypoints (`apps/api/api/*.js`) eru
@@ -155,6 +155,7 @@ Demo-staða: virkni-brot raðast ofar en peninga/öryggi. Lagað nú þegar: **K
 **M2** (munaðarlaus slot-leit), **M3** (dauður cache-kóði) á `fix/code-rot-pass-1`.
 
 ### Enn opið — KRITÍSKT (rót margra bagga)
+
 - **K2 — Serving-cache án endurnýjunar.** Write-through only; enginn cron endurbyggir. 7-daga TTL
   (`CACHE_TTL_SECONDS`) er plástur sem frystir budget/eligibility. **Lausn:** cron sem endurbyggir
   virk slot reglulega + aðskilja TTL-fasta + lækka hot-cache TTL.
@@ -164,10 +165,11 @@ Demo-staða: virkni-brot raðast ofar en peninga/öryggi. Lagað nú þegar: **K
   halda `.min(1)`.
 - **K4 — Ósamræmt API-svar-snið** (wrapped `{x}` vs bert). Hver hook hardkóðar ágiskun; typecheck
   grípur ekki. Latent núna (allt í takt) en rót „undefined"-baga sögulega. **Lausn:** ein regla
-  (mæli með bert) yfir allar routes + hooks + próf. *Breið breyting — krefst `pnpm test:api`
-  (emulator+Java) til staðfestingar; gera sem eigin test-bakaða breytingu.*
+  (mæli með bert) yfir allar routes + hooks + próf. _Breið breyting — krefst `pnpm test:api`
+  (emulator+Java) til staðfestingar; gera sem eigin test-bakaða breytingu._
 
 ### Enn opið — MIKILVÆGT
+
 - **R1 (NÝTT) — Hálf-fjarlægt per-publisher approval-flæði.** `perPublisherApproval` er farið úr
   schema/createCampaign, EN enn lifa: `services/approvals.ts` (`listPublisherQueue`/`publisherReview`),
   `routes/publisher-approvals.ts` (mountað í `index.ts:44`), dashboard `publisher/ApprovalQueue.tsx`
@@ -182,6 +184,7 @@ Demo-staða: virkni-brot raðast ofar en peninga/öryggi. Lagað nú þegar: **K
 - **demo-mock-token** veitir admin-bypass — loka fyrir í prod.
 
 ### Enn opið — SNYRTILEGT
+
 - `LandingPage.tsx` 1.477 línur; `push-cache.ts` gerir of margt — brjóta upp.
 - Taxonomy doc-drift (spec með íslenskum slugs vs ASCII í kóða).
 - API-lyklar/widget-lyklar collection-nöfn ekki í `COLLECTIONS`.

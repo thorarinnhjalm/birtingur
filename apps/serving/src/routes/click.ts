@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { URL } from 'url';
 import { getSlotCache } from '../lib/cache.js';
 import { logEvent } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
@@ -72,7 +73,7 @@ clickRoute.get('/', async (c) => {
       urlObj.searchParams.set('utm_content', slotId);
     }
     redirectUrl = urlObj.toString();
-  } catch (err) {
+  } catch {
     // Fallback to original clickUrl if parsing fails
   }
 

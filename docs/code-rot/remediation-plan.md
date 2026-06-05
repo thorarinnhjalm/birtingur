@@ -58,6 +58,7 @@ This is the contract that lets Claude review exactly what was done.
 ### Task A1: Remove the `['taekni']` category default (both schemas)
 
 **Files:**
+
 - Modify: `packages/shared/src/schemas/publisher.ts` (PublisherSchema `categories`)
 - Modify: `packages/shared/src/schemas/campaign.ts` (TargetingSchema `categories`)
 - Test: `packages/shared/tests/publisher.test.ts`, `packages/shared/tests/campaign.test.ts`
@@ -65,13 +66,16 @@ This is the contract that lets Claude review exactly what was done.
 - [ ] **Step 1: Update the failing test** — assert that a missing `categories` now THROWS (no silent default).
 
 In `packages/shared/tests/publisher.test.ts` add:
+
 ```ts
 it('requires categories explicitly (no silent default)', () => {
   const { categories, ...without } = base;
   expect(() => PublisherSchema.parse(without)).toThrow();
 });
 ```
+
 In `packages/shared/tests/campaign.test.ts` add:
+
 ```ts
 it('requires targeting.categories explicitly (no silent default)', () => {
   expect(() => TargetingSchema.parse({})).toThrow();
@@ -86,10 +90,13 @@ Expected: FAIL — currently `.default(['taekni'])` makes these pass-through ins
 - [ ] **Step 3: Remove the default in both schemas**
 
 `publisher.ts` — change the `categories` field to:
+
 ```ts
   categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
 ```
+
 `campaign.ts` — change `TargetingSchema` to:
+
 ```ts
 export const TargetingSchema = z.object({
   categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
@@ -102,24 +109,28 @@ Run: `pnpm --filter @ada/shared test -- tests/publisher.test.ts tests/campaign.t
 Expected: PASS, build OK.
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add packages/shared/src/schemas/publisher.ts packages/shared/src/schemas/campaign.ts packages/shared/tests/
 git commit -m "fix(shared): require categories explicitly, drop silent taekni default (Task A1)"
 ```
+
 - [ ] **Step 6: Append report entry to IMPLEMENTATION-LOG.md.**
 
 > ⚠️ Removing the default means any Firestore doc lacking `categories` will now fail to parse on
 > read. Task A2 provides the backfill; **run A2's migration (or reseed) before deploying A1** so
 > existing publisher/campaign docs don't break. In demo, reseeding (`pnpm --filter @ada/api exec
-> tsx src/scripts/seed.ts` against the emulator/project) is sufficient.
+tsx src/scripts/seed.ts` against the emulator/project) is sufficient.
 
 ### Task A2: Backfill migration for legacy docs missing `categories`
 
 **Files:**
+
 - Create: `apps/api/src/scripts/migrate-categories.ts`
 - Test: manual (script run against emulator)
 
 - [ ] **Step 1: Write the migration script**
+
 ```ts
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
@@ -149,7 +160,10 @@ async function migrate() {
   }
   console.log(`Done. Publishers backfilled: ${pubFixed}. Invalid campaigns: ${cmpBad}.`);
 }
-migrate().catch((e) => { console.error(e); process.exit(1); });
+migrate().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
 ```
 
 - [ ] **Step 2: Run against the emulator** (or the target project with admin creds)
@@ -158,10 +172,12 @@ Run: `firebase --config firebase/firebase.json emulators:exec 'pnpm --filter @ad
 Expected: prints counts; no crash. (Demo: may print 0 if already seeded with categories.)
 
 - [ ] **Step 3: Commit**
+
 ```bash
 git add apps/api/src/scripts/migrate-categories.ts
 git commit -m "feat(api): add categories backfill migration for legacy docs (Task A2)"
 ```
+
 - [ ] **Step 4: Append report entry** (include the script's console output as evidence).
 
 ### Task A3: Remove the orphaned per-publisher approval flow
@@ -171,6 +187,7 @@ git commit -m "feat(api): add categories backfill migration for legacy docs (Tas
 dead flow end-to-end.
 
 **Files:**
+
 - Modify: `apps/api/src/services/approvals.ts` (remove `listPublisherQueue`, `publisherReview`; keep `listAdminQueue`, `adminReview`)
 - Modify: `apps/api/src/index.ts` (remove `publisherApprovalsRoutes` import + mount at line ~44)
 - Delete: `apps/api/src/routes/publisher-approvals.ts`
@@ -194,16 +211,19 @@ Run: `pnpm --filter @ada/shared build && pnpm --filter @ada/api typecheck && pnp
 Expected: all pass.
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add -A apps/api/src/services/approvals.ts apps/api/src/index.ts apps/dashboard/src/pages/publisher/
 git rm apps/api/src/routes/publisher-approvals.ts apps/dashboard/src/pages/publisher/ApprovalQueue.tsx
 git commit -m "refactor: remove orphaned per-publisher approval flow (Task A3)"
 ```
+
 - [ ] **Step 6: Append report entry.**
 
 ### Task A4: Purge `perPublisherApproval` from test fixtures
 
 **Files:**
+
 - Modify: `apps/api/tests/push-cache.test.ts`, `apps/api/tests/e2e.test.ts`, `apps/api/tests/approvals-admin.test.ts` (and any other file from the grep below)
 
 - [ ] **Step 1: Find every fixture using it**
@@ -212,9 +232,9 @@ Run: `grep -rln "perPublisherApproval" apps/api/tests`
 Expected: the files above.
 
 - [ ] **Step 2: Update fixtures** — remove the `perPublisherApproval` field from every campaign
-fixture and the local `Campaign` type definitions, and ensure each campaign fixture uses
-`targeting: { categories: ['...'] }` matching the publisher's categories under test. Remove any
-`slotIds` targeting that remains.
+      fixture and the local `Campaign` type definitions, and ensure each campaign fixture uses
+      `targeting: { categories: ['...'] }` matching the publisher's categories under test. Remove any
+      `slotIds` targeting that remains.
 
 - [ ] **Step 3: Run the affected suites (emulator)**
 
@@ -222,10 +242,12 @@ Run: `pnpm test:api -- tests/push-cache.test.ts tests/e2e.test.ts tests/approval
 Expected: PASS. Paste the pass/fail counts into the log.
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add apps/api/tests/
 git commit -m "test(api): drop perPublisherApproval, align fixtures with category schema (Task A4)"
 ```
+
 - [ ] **Step 5: Append report entry** (must include real emulator test output).
 
 ---
@@ -235,22 +257,25 @@ git commit -m "test(api): drop perPublisherApproval, align fixtures with categor
 ### Task B1: Split the cache TTL constants
 
 **Files:**
+
 - Modify: `packages/shared/src/constants.ts`
 - Modify: `apps/serving/src/lib/cache.ts` (no longer imports TTL — already removed in M3), `apps/api/src/lib/push-cache.ts` (uses the new names)
 
 - [ ] **Step 1:** In `constants.ts` replace the single `CACHE_TTL_SECONDS` with two purpose-named
-constants (keep a sane hot TTL, not 7 days):
+      constants (keep a sane hot TTL, not 7 days):
+
 ```ts
 /** Hot slot-cache eviction TTL (kept short; a refresh cron rebuilds active slots). */
 export const SLOT_CACHE_TTL_SECONDS = 15 * 60; // 15 min
 /** Budget gate counter TTL — must outlive a cache cycle comfortably. */
 export const BUDGET_COUNTER_TTL_SECONDS = 60 * 60; // 1h
 ```
+
 Keep `export const CACHE_TTL_SECONDS = SLOT_CACHE_TTL_SECONDS;` temporarily ONLY if other code
 still imports it; otherwise remove it and fix importers in this task.
 
 - [ ] **Step 2:** In `push-cache.ts` use `SLOT_CACHE_TTL_SECONDS` for `set(key, entry, {ex})` and
-`BUDGET_COUNTER_TTL_SECONDS` for the `budget:{id}` counter (replace the `CACHE_TTL_SECONDS * 5`).
+      `BUDGET_COUNTER_TTL_SECONDS` for the `budget:{id}` counter (replace the `CACHE_TTL_SECONDS * 5`).
 
 - [ ] **Step 3: Typecheck + build**
 
@@ -258,21 +283,25 @@ Run: `pnpm --filter @ada/shared build && pnpm --filter @ada/api typecheck && pnp
 Expected: pass. Grep `grep -rn "CACHE_TTL_SECONDS" apps packages --include=*.ts | grep -v /dist/` and confirm no stale references.
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add packages/shared/src/constants.ts apps/api/src/lib/push-cache.ts
 git commit -m "refactor: split slot-cache and budget-counter TTLs (Task B1)"
 ```
+
 - [ ] **Step 5: Append report entry.**
 
 ### Task B2: Add a cron that rebuilds all active slot caches
 
 **Files:**
+
 - Create: `apps/api/src/services/cache-refresh.ts` (function `refreshAllActiveSlotCaches()`)
 - Create: `apps/api/api/cron-refresh-cache.js` (Vercel entrypoint, mirrors the other cron `.js` files)
 - Modify: `apps/api/vercel.json` (add function + cron schedule + rewrite)
 - Test: `apps/api/tests/cache-refresh.test.ts`
 
 - [ ] **Step 1: Write the failing test**
+
 ```ts
 // Seed 2 active slots + 1 paused slot; clear their Redis keys; run refreshAllActiveSlotCaches();
 // assert the 2 active slots now have a `slot:{id}` cache entry and the paused one does too
@@ -288,34 +317,43 @@ it('rebuilds cache for every active slot', async () => {
 - [ ] **Step 2: Run to verify it fails** — `pnpm test:api -- tests/cache-refresh.test.ts` → FAIL (function undefined).
 
 - [ ] **Step 3: Implement the service**
+
 ```ts
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { pushSlotCache } from '../lib/push-cache.js';
 
 export async function refreshAllActiveSlotCaches(): Promise<number> {
-  const snap = await db.collection(COLLECTIONS.slots)
-    .where('status', '==', 'active').withConverter(slotConverter).get();
+  const snap = await db
+    .collection(COLLECTIONS.slots)
+    .where('status', '==', 'active')
+    .withConverter(slotConverter)
+    .get();
   let n = 0;
-  for (const doc of snap.docs) { await pushSlotCache(doc.id); n++; }
+  for (const doc of snap.docs) {
+    await pushSlotCache(doc.id);
+    n++;
+  }
   return n;
 }
 ```
 
 - [ ] **Step 4: Create the Vercel cron entrypoint** `apps/api/api/cron-refresh-cache.js` (mirror
-`cron-accrue.js`: same `CRON_SECRET` auth check, `export async function GET(req)`, import from
-`../dist/src/services/cache-refresh.js`, call `refreshAllActiveSlotCaches()`).
+      `cron-accrue.js`: same `CRON_SECRET` auth check, `export async function GET(req)`, import from
+      `../dist/src/services/cache-refresh.js`, call `refreshAllActiveSlotCaches()`).
 
 - [ ] **Step 5: Wire `vercel.json`** — add to `functions`, `crons` (e.g. `*/10 * * * *`), and
-`rewrites` exactly like the existing cron entries.
+      `rewrites` exactly like the existing cron entries.
 
 - [ ] **Step 6: Run test to verify it passes** — `pnpm test:api -- tests/cache-refresh.test.ts` → PASS.
 
 - [ ] **Step 7: Commit**
+
 ```bash
 git add apps/api/src/services/cache-refresh.ts apps/api/api/cron-refresh-cache.js apps/api/vercel.json apps/api/tests/cache-refresh.test.ts
 git commit -m "feat(api): cron to rebuild active slot caches; removes reliance on long TTL (Task B2)"
 ```
+
 - [ ] **Step 8: Append report entry** (real emulator test output required).
 
 ---
@@ -330,21 +368,23 @@ git commit -m "feat(api): cron to rebuild active slot caches; removes reliance o
 ### Task C1: Inventory the mismatch (no code change)
 
 - [ ] **Step 1:** Produce the authoritative list:
+
 ```bash
 grep -rn "c.json(" apps/api/src/routes | grep -v "error\|AppError"
 grep -rn "apiFetch<{" apps/dashboard/src/hooks
 ```
+
 - [ ] **Step 2:** In the log entry, record a table: endpoint → current shape → hooks consuming it.
-Mark each as `bare` or `wrapped`. This table is the checklist for C2.
+      Mark each as `bare` or `wrapped`. This table is the checklist for C2.
 
 ### Task C2: Convert wrapped endpoints + their hooks to bare, one resource at a time
 
-For EACH wrapped resource (campaigns, creatives, advertisers, wallet, admin/*), do this as its own
+For EACH wrapped resource (campaigns, creatives, advertisers, wallet, admin/\*), do this as its own
 commit:
 
 - [ ] **Step 1:** Change the route(s) to return bare payloads (`c.json(cmp)` not `c.json({campaign: cmp})`).
 - [ ] **Step 2:** Update the matching dashboard hook(s) to drop the `.then(r => r.x)` unwrap and the
-`<{ x: ... }>` generic (use `apiFetch<Campaign[]>(...)`).
+      `<{ x: ... }>` generic (use `apiFetch<Campaign[]>(...)`).
 - [ ] **Step 3:** Update the API tests that assert `body.<key>` to assert the bare shape.
 - [ ] **Step 4:** Run `pnpm test:api` (full) + `pnpm --filter @ada/dashboard typecheck`. Paste counts.
 - [ ] **Step 5:** Commit `refactor(api+dashboard): bare response envelope for <resource> (Task C2/<resource>)`.
@@ -362,6 +402,7 @@ commit:
 **Files:** Modify `apps/api/src/lib/redis.ts`, `apps/api/src/services/slots.ts`, `apps/api/src/services/campaigns.ts`
 
 - [ ] **Step 1:** Add to `apps/api/src/lib/redis.ts`:
+
 ```ts
 export function isRedisConfigured(): boolean {
   return Boolean(
@@ -370,25 +411,26 @@ export function isRedisConfigured(): boolean {
   );
 }
 ```
+
 - [ ] **Step 2:** Replace the inline `if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL)`
-checks in `slots.ts` (3 sites) and `campaigns.ts` (2 sites) with `if (isRedisConfigured())`.
+      checks in `slots.ts` (3 sites) and `campaigns.ts` (2 sites) with `if (isRedisConfigured())`.
 - [ ] **Step 3:** `pnpm --filter @ada/api typecheck` → pass. Commit `refactor(api): single isRedisConfigured() helper (Task D1)`.
 - [ ] **Step 4:** Append report entry.
 
 ### Task D2: Signing-secret fail-fast (M1) — DO NOT START until SIGNING_SECRET is set in Vercel
 
 - [ ] **Step 1:** Confirm with the operator that `SIGNING_SECRET` is configured in the serving
-Vercel project. If not, STOP and log `blocked` (re-adding fail-fast without the env breaks deploy).
+      Vercel project. If not, STOP and log `blocked` (re-adding fail-fast without the env breaks deploy).
 - [ ] **Step 2:** In `apps/serving/src/lib/crypto.ts` `resolveSecret()`, in the production branch
-`throw new Error('SIGNING_SECRET is required in production')` instead of returning the fallback.
+      `throw new Error('SIGNING_SECRET is required in production')` instead of returning the fallback.
 - [ ] **Step 3:** `pnpm --filter @ada/serving test` → pass. Commit `fix(serving): fail-fast on missing SIGNING_SECRET in prod (Task D2)`.
 - [ ] **Step 4:** Append report entry.
 
 ### Task D3: Gate `demo-mock-token` to non-production (admin bypass)
 
 - [ ] **Step 1:** In `apps/api/src/lib/auth.ts`, make the `demo-mock-token` branch a no-op when
-`process.env.NODE_ENV === 'production'` (return unauthorized). Add a test in
-`apps/api/tests/auth.test.ts` asserting the token is rejected when `NODE_ENV=production`.
+      `process.env.NODE_ENV === 'production'` (return unauthorized). Add a test in
+      `apps/api/tests/auth.test.ts` asserting the token is rejected when `NODE_ENV=production`.
 - [ ] **Step 2:** `pnpm test:api -- tests/auth.test.ts` → pass. Commit `fix(api): disable demo-mock-token in production (Task D3)`.
 - [ ] **Step 3:** Append report entry.
 

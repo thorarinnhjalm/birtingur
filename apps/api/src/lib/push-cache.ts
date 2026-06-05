@@ -8,7 +8,11 @@ import {
   creativeConverter,
   advertiserConverter,
 } from '@ada/shared/firestore';
-import { FREQUENCY_CAP_DEFAULT_PER_DAY, SLOT_CACHE_TTL_SECONDS, BUDGET_COUNTER_TTL_SECONDS } from '@ada/shared';
+import {
+  FREQUENCY_CAP_DEFAULT_PER_DAY,
+  SLOT_CACHE_TTL_SECONDS,
+  BUDGET_COUNTER_TTL_SECONDS,
+} from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
 
 const key = (slotId: string) => `slot:${slotId}`;

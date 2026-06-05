@@ -105,5 +105,3 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
     }
   }
 }
-
-

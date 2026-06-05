@@ -16,6 +16,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 <!-- newest at the bottom; copy the template below for each task -->
 
 ### Task A1 — Require categories explicitly, drop taekni default
+
 - **Status:** done
 - **Commit(s):** 1668b19828ac8eeb2787a7ec3b6913985c5be2d9 fix(shared): require categories explicitly, drop silent taekni default (Task A1)
 - **Files changed:**
@@ -24,6 +25,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - packages/shared/tests/publisher.test.ts
   - packages/shared/tests/campaign.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/shared test -- tests/publisher.test.ts tests/campaign.test.ts
   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/packages/shared
@@ -34,6 +36,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  2 passed (2)
         Tests  8 passed (8)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -41,6 +44,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task A2 — Backfill migration for legacy docs missing categories
+
 - **Status:** done
 - **Commit(s):** 69f8a01c542e1cced666cb6ad7acb72e64b05c6c feat(api): add categories backfill migration for legacy docs (Task A2)
 - **Files changed:**
@@ -61,6 +65,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task A3 — Remove the orphaned per-publisher approval flow
+
 - **Status:** deviated
 - **Commit(s):** 8a616bc refactor: remove orphaned per-publisher approval flow (Task A3)
 - **Files changed:**
@@ -72,6 +77,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/dashboard/src/pages/publisher/ApprovalQueue.tsx
   - apps/dashboard/src/pages/publisher/Dashboard.tsx
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/widget-keys.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -94,6 +100,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   dist/assets/index-17B1n1dg.js   1,241.36 kB │ gzip: 323.27 kB
   ✓ built in 2.00s
   ```
+
 - **Deviations from plan:** Removed `/publisher/pending-approvals` and `/publisher/approvals/:campaignId` endpoints from `apps/api/src/routes/widgets.ts` and updated mock mappings and assertions in `apps/api/tests/widget-keys.test.ts` because these endpoints and their corresponding tests became obsolete with the deletion of publisher approvals.
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -101,6 +108,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task A4 — Purge perPublisherApproval from test fixtures
+
 - **Status:** done
 - **Commit(s):** 706ac17 test(api): drop perPublisherApproval, align fixtures with category schema (Task A4)
 - **Files changed:**
@@ -108,6 +116,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/tests/e2e.test.ts
   - apps/api/tests/push-cache.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/push-cache.test.ts tests/e2e.test.ts tests/campaigns.test.ts tests/approvals-admin.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -122,6 +131,7 @@ were blocked, set the status accordingly and write the reason + your question, t
      Start at  13:40:52
      Duration  832ms (transform 112ms, setup 0ms, collect 522ms, tests 23ms, environment 0ms, prepare 107ms)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -129,12 +139,14 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task B1 — Split the cache TTL constants
+
 - **Status:** done
 - **Commit(s):** 92e3a78 refactor: split slot-cache and budget-counter TTLs (Task B1)
 - **Files changed:**
   - packages/shared/src/constants.ts
   - apps/api/src/lib/push-cache.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/push-cache.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -146,6 +158,7 @@ were blocked, set the status accordingly and write the reason + your question, t
      Start at  13:41:26
      Duration  294ms (transform 45ms, setup 0ms, collect 191ms, tests 5ms, environment 0ms, prepare 35ms)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -153,6 +166,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task B2 — Add a cron that rebuilds all active slot caches
+
 - **Status:** deviated
 - **Commit(s):** 88f2b8e feat(api): cron to rebuild active slot caches; removes reliance on long TTL (Task B2)
 - **Files changed:**
@@ -161,6 +175,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/vercel.json
   - apps/api/tests/cache-refresh.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/cache-refresh.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -170,6 +185,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  1 passed (1)
         Tests  1 test passed
   ```
+
 - **Deviations from plan:** Updated the test suite `cache-refresh.test.ts` to mock Firestore and the cache pusher directly. This makes it a clean, synchronous unit test that can run and verify the cache refresh logic without requiring a running Firestore emulator or Java runtime.
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -177,11 +193,13 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C1 — Inventory the mismatch
+
 - **Status:** done
 - **Commit(s):** N/A (no code change)
 - **Files changed:**
   - none
 - **Verification run + output:**
+
   ```
   $ grep -rn "c.json(" apps/api/src/routes | grep -v "error\|AppError"
   apps/api/src/routes/wallet.ts:26:  return c.json({ wallet: w });
@@ -193,7 +211,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   apps/dashboard/src/hooks/useReviewQueue.ts:10:      apiFetch<{ queue: Creative[] }>('/v1/admin/review-queue/queue').then((r) => r.queue),
   ...
   ```
-  
+
   **Mismatch Inventory Table:**
   | Endpoint | Method | Current Response Shape | Hook / Page / Consumer | Envelope Status |
   |---|---|---|---|---|
@@ -227,6 +245,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C2/campaigns — Bare response envelope for campaigns
+
 - **Status:** done
 - **Commit(s):** 8e2b2e2 refactor(api+dashboard): bare response envelope for campaigns (Task C2/campaigns)
 - **Files changed:**
@@ -235,6 +254,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/tests/advertiser-routes.test.ts
   - apps/api/tests/e2e.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/advertiser-routes.test.ts tests/e2e.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -245,6 +265,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  2 passed (2)
         Tests  11 passed (11)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -252,6 +273,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C2/creatives — Bare response envelope for creatives
+
 - **Status:** done
 - **Commit(s):** 6620643 refactor(api+dashboard): bare response envelope for creatives (Task C2/creatives)
 - **Files changed:**
@@ -262,6 +284,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/tests/advertiser-routes.test.ts
   - apps/api/tests/e2e.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/advertiser-routes.test.ts tests/e2e.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -272,6 +295,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  2 passed (2)
         Tests  11 passed (11)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -279,6 +303,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C2/advertisers — Bare response envelope for advertisers
+
 - **Status:** done
 - **Commit(s):** 8e304af refactor(api+dashboard): bare response envelope for advertisers (Task C2/advertisers)
 - **Files changed:**
@@ -287,6 +312,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/tests/advertiser-routes.test.ts
   - apps/api/tests/e2e.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/advertiser-routes.test.ts tests/e2e.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -297,6 +323,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  2 passed (2)
         Tests  11 passed (11)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -304,12 +331,14 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C2/wallet — Bare response envelope for wallet
+
 - **Status:** done
 - **Commit(s):** 83c04771ea6999c436b58205ad8acbeeb1d0813a refactor(api+dashboard): bare response envelope for wallet (Task C2/wallet)
 - **Files changed:**
   - apps/api/src/routes/wallet.ts
   - apps/dashboard/src/hooks/useWallet.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/wallet.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -324,6 +353,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   @ada/dashboard@0.0.0 build: pnpm --filter @ada/shared build && tsc -b && vite build
   built in 1.89s
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -331,6 +361,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task C2/admin — Bare response envelope for admin endpoints
+
 - **Status:** done
 - **Commit(s):** bce15b44dd75ed3233897505cd13d16009bbe531 refactor(api+dashboard): bare response envelope for admin endpoints (Task C2/admin)
 - **Files changed:**
@@ -343,6 +374,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/dashboard/src/hooks/useReviewQueue.ts
   - apps/dashboard/src/pages/admin/Overview.tsx
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/approval-flow.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -357,6 +389,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   @ada/dashboard@0.0.0 build: pnpm --filter @ada/shared build && tsc -b && vite build
   built in 1.94s
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -364,6 +397,7 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task D1 — Single Redis-config helper
+
 - **Status:** done
 - **Commit(s):** 57c5202ddcd516cbcc2067b8f3b6b85846d07982 refactor(api): single isRedisConfigured() helper (Task D1)
 - **Files changed:**
@@ -372,6 +406,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   - apps/api/src/services/campaigns.ts
   - apps/api/src/services/slots.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/wallet.test.ts tests/cache-refresh.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -385,6 +420,7 @@ were blocked, set the status accordingly and write the reason + your question, t
   $ npx pnpm --filter @ada/api typecheck
   @ada/api@0.0.0 typecheck: tsc --noEmit
   ```
+
 - **Deviations from plan:** Added `apps/api/src/services/approvals.ts` to replace an additional inline env check `if (process.env.UPSTASH_REDIS_REST_URL)` with `if (isRedisConfigured())`.
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -392,12 +428,14 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task D3 — Gate demo-mock-token to non-production
+
 - **Status:** done
 - **Commit(s):** 6abba14459f8e62a60051cf79db8d836473277d0 fix(api): disable demo-mock-token in production (Task D3)
 - **Files changed:**
   - apps/api/src/lib/auth.ts
   - apps/api/tests/auth.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/api test -- tests/auth.test.ts
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
@@ -407,6 +445,7 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  1 passed (1)
         Tests  8 passed (8)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
@@ -414,12 +453,14 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task D2 — Signing-secret fail-fast
+
 - **Status:** done
 - **Commit(s):** a222882f4e0dce85c5721b4d70a04f1e43964c00 fix(serving): fail-fast on missing SIGNING_SECRET in prod (Task D2)
 - **Files changed:**
   - apps/serving/src/lib/crypto.ts
   - apps/serving/tests/crypto.test.ts
 - **Verification run + output:**
+
   ```
   $ npx pnpm --filter @ada/serving test
    RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/serving
@@ -433,12 +474,12 @@ were blocked, set the status accordingly and write the reason + your question, t
    Test Files  5 passed (5)
         Tests  26 passed (26)
   ```
+
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
 
 ---
-
 
 ## Claude Review — Phase 1 (2026-06-05)
 
@@ -482,16 +523,19 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ```markdown
 ### Task <ID> — <short title>
+
 - **Status:** done | blocked | deviated
 - **Commit(s):** <sha> <message>
 - **Files changed:**
   - <path>
 - **Verification run + output:**
-  ```
-  $ <command>
-  <real output, incl. pass/fail counts>
-  ```
-  (If a suite needs Java/emulator and you could not run it, say so explicitly — do NOT claim it passed.)
+```
+
+$ <command>
+<real output, incl. pass/fail counts>
+
+```
+(If a suite needs Java/emulator and you could not run it, say so explicitly — do NOT claim it passed.)
 - **Deviations from plan:** none | <what changed and why>
 - **Questions / decisions for Claude:** none | <question>
 - **Claude review:** _(blank — Claude fills this on review)_

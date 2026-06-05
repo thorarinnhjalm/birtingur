@@ -3,7 +3,8 @@ import { db } from '../lib/firebase.js';
 import { pushSlotCache } from '../lib/push-cache.js';
 
 export async function refreshAllActiveSlotCaches(): Promise<number> {
-  const snap = await db.collection(COLLECTIONS.slots)
+  const snap = await db
+    .collection(COLLECTIONS.slots)
     .where('status', '==', 'active')
     .withConverter(slotConverter)
     .get();

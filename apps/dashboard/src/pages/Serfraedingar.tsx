@@ -3,17 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
-import { 
-  Sparkles, 
-  Target, 
-  Users, 
-  ShieldCheck, 
-  Eye, 
-  TrendingUp, 
+import {
+  Sparkles,
+  Target,
+  Users,
+  ShieldCheck,
+  Eye,
+  TrendingUp,
   ArrowRight,
   MessageSquare,
   ExternalLink,
-  Layers
+  Layers,
 } from 'lucide-react';
 
 export default function Serfraedingar() {
@@ -33,7 +33,7 @@ export default function Serfraedingar() {
 
     // Set page title dynamically
     const originalTitle = document.title;
-    document.title = "Hæ Auður og Eydís! | Birtingur";
+    document.title = 'Hæ Auður og Eydís! | Birtingur';
 
     return () => {
       if (metaRobots) {
@@ -84,13 +84,22 @@ export default function Serfraedingar() {
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 bg-white/80 border border-slate-200/80 px-2 py-1.5 rounded-full shadow-xs">
-            <Link to="/" className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80">
+            <Link
+              to="/"
+              className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+            >
               Yfirlit
             </Link>
-            <Link to="/?tab=advertisers" className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80">
+            <Link
+              to="/?tab=advertisers"
+              className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+            >
               Fyrir auglýsendur
             </Link>
-            <Link to="/?tab=publishers" className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80">
+            <Link
+              to="/?tab=publishers"
+              className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
+            >
               Fyrir útgefendur
             </Link>
           </nav>
@@ -129,7 +138,6 @@ export default function Serfraedingar() {
 
       {/* MAIN CONTAINER */}
       <main className="grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 space-y-16 relative">
-        
         {/* HERO SECTION */}
         <section className="space-y-6 text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 text-xs font-bold uppercase tracking-wider">
@@ -143,24 +151,27 @@ export default function Serfraedingar() {
             </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-semibold max-w-2xl mx-auto">
-            Skoðum hvers vegna hugmyndafræði Birtingar breytir leiknum fyrir íslenska markaðslandslagið. 
-            Hvernig getum við nýtt minni miðla með einbeittari fylgjendahópa til að ná betri árangri?
+            Skoðum hvers vegna hugmyndafræði Birtingar breytir leiknum fyrir íslenska
+            markaðslandslagið. Hvernig getum við nýtt minni miðla með einbeittari fylgjendahópa til
+            að ná betri árangri?
           </p>
         </section>
 
         {/* THE CORE MARKETING PHILOSOPHY */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          
           {/* Micro-audiences / Niche Media */}
           <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
               <Users size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Niche miðlar: Traust og einbeittir hópar</h3>
+            <h3 className="text-xl font-bold text-slate-950">
+              Niche miðlar: Traust og einbeittir hópar
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Íslenski markaðurinn hefur lengi verið einkennst af örfáum risastórum fréttamiðlum þar sem auglýsingar drukkna í suði. 
-              Birtingur safnar saman **sérhæfðum íslenskum vefjum, bloggum og áhugamálavefjum**. 
-              Þessir miðlar hafa kannski minni heildarumferð en risarnir, en **fylgjendahópurinn er gríðarlega einbeittur, tryggur og traustur**. 
+              Íslenski markaðurinn hefur lengi verið einkennst af örfáum risastórum fréttamiðlum þar
+              sem auglýsingar drukkna í suði. Birtingur safnar saman **sérhæfðum íslenskum vefjum,
+              bloggum og áhugamálavefjum**. Þessir miðlar hafa kannski minni heildarumferð en
+              risarnir, en **fylgjendahópurinn er gríðarlega einbeittur, tryggur og traustur**.
               Auglýsing þar hefur margfalt meira vægi og trúverðugleika.
             </p>
           </Card>
@@ -170,11 +181,15 @@ export default function Serfraedingar() {
             <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
               <Target size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Samhengismiðun: Rétt skilaboð á réttum stað</h3>
+            <h3 className="text-xl font-bold text-slate-950">
+              Samhengismiðun: Rétt skilaboð á réttum stað
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Nú þegar vafrakökur (cookies) eru að deyja og persónuverndarlög (GDPR) herða tökin á hefðbundinni vefsporun, er tími **samhengismiðunar (Contextual Targeting)** runninn upp. 
-              Birtingur miðar auglýsingum eftir samhengi: fjármálaauglýsing á fjármálablogg, hönnunarauglýsing á lífsstílsvef. 
-              Þetta grípur neytandann í réttu hugarástandi án þess að elta hann á röndum eða brjóta á friðhelgi hans.
+              Nú þegar vafrakökur (cookies) eru að deyja og persónuverndarlög (GDPR) herða tökin á
+              hefðbundinni vefsporun, er tími **samhengismiðunar (Contextual Targeting)** runninn
+              upp. Birtingur miðar auglýsingum eftir samhengi: fjármálaauglýsing á fjármálablogg,
+              hönnunarauglýsing á lífsstílsvef. Þetta grípur neytandann í réttu hugarástandi án þess
+              að elta hann á röndum eða brjóta á friðhelgi hans.
             </p>
           </Card>
 
@@ -183,11 +198,15 @@ export default function Serfraedingar() {
             <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-650">
               <Eye size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Óskipt athygli (Eitt hólf - Ein auglýsing)</h3>
+            <h3 className="text-xl font-bold text-slate-950">
+              Óskipt athygli (Eitt hólf - Ein auglýsing)
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Risavefirnir eru pakkaðir af blikkandi borðum, sjálfvirkum endurhleðslum (refresh loops) og truflunum. 
-              Birtingur bannar suð. Hvert auglýsingapláss sýnir **aðeins eina vandaða auglýsing í senn** og hún hleðst rólega. 
-              Þetta gefur vörumerkinu óskipta athygli lesandans meðan á lestri stendur, sem skilar sér í mun betra minni og hærra smellihlutfalli.
+              Risavefirnir eru pakkaðir af blikkandi borðum, sjálfvirkum endurhleðslum (refresh
+              loops) og truflunum. Birtingur bannar suð. Hvert auglýsingapláss sýnir **aðeins eina
+              vandaða auglýsing í senn** og hún hleðst rólega. Þetta gefur vörumerkinu óskipta
+              athygli lesandans meðan á lestri stendur, sem skilar sér í mun betra minni og hærra
+              smellihlutfalli.
             </p>
           </Card>
 
@@ -196,22 +215,27 @@ export default function Serfraedingar() {
             <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
               <ShieldCheck size={24} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">100% vörumerkjaöryggi og sjálfvirkni</h3>
+            <h3 className="text-xl font-bold text-slate-950">
+              100% vörumerkjaöryggi og sjálfvirkni
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Vettvangurinn er 100% sjálfvirkur en býður upp á fullkomið öryggi. Allar auglýsingamyndir eru sjálfkrafa skannaðar af Gemini AI 
-              upp á gæði og viðeigandi efni. Að auki fá útgefendur handvirka samþykkisbiðröð svo þeir stjórna algjörlega hvað birtist.
-              Fyrir vörumerki þýðir þetta að þau birtast eingöngu í gæðaumhverfi.
+              Vettvangurinn er 100% sjálfvirkur en býður upp á fullkomið öryggi. Allar
+              auglýsingamyndir eru sjálfkrafa skannaðar af Gemini AI upp á gæði og viðeigandi efni.
+              Að auki fá útgefendur handvirka samþykkisbiðröð svo þeir stjórna algjörlega hvað
+              birtist. Fyrir vörumerki þýðir þetta að þau birtast eingöngu í gæðaumhverfi.
             </p>
           </Card>
-
         </section>
 
         {/* COMPARISON TABLE */}
         <section className="bg-white border border-slate-200/85 rounded-3xl p-8 sm:p-12 space-y-8 shadow-xs">
           <div className="space-y-3 max-w-2xl">
-            <h3 className="text-2xl font-black text-slate-950">Samanburður: Risamiðlar vs. Birtingur</h3>
+            <h3 className="text-2xl font-black text-slate-950">
+              Samanburður: Risamiðlar vs. Birtingur
+            </h3>
             <p className="text-sm text-slate-605 leading-relaxed font-medium">
-              Skoðum hvernig upplifun og árangur breytist þegar herferðir eru fluttar yfir í markvissari birtingar.
+              Skoðum hvernig upplifun og árangur breytist þegar herferðir eru fluttar yfir í
+              markvissari birtingar.
             </p>
           </div>
 
@@ -228,27 +252,37 @@ export default function Serfraedingar() {
                 <tr>
                   <td className="py-4 pr-4 font-bold text-slate-900">Umgjörð / Suð</td>
                   <td className="py-4 px-4">Flókið og þétt (margar auglýsingar á skjá)</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">Einfalt og hreint (eitt pláss í senn)</td>
+                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
+                    Einfalt og hreint (eitt pláss í senn)
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-4 pr-4 font-bold text-slate-900">Traust fylgjenda</td>
                   <td className="py-4 px-4">Almennt (fréttalestur, hraði)</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">Mjög hátt (sérhæft efni og persónuleg tengsl)</td>
+                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
+                    Mjög hátt (sérhæft efni og persónuleg tengsl)
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-4 pr-4 font-bold text-slate-900">Persónuvernd (GDPR)</td>
                   <td className="py-4 px-4">Þriðja aðila vafrakökur og gagnasöfnun</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">100% kökulaust (samhengis- og lénsstýrt)</td>
+                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
+                    100% kökulaust (samhengis- og lénsstýrt)
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-4 pr-4 font-bold text-slate-900">Uppsetning herferðar</td>
                   <td className="py-4 px-4">Flókin tilboðsferli eða dýrir milliliðir</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">Sjálfvirk á 3 mínútum beint úr viðmótinu</td>
+                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
+                    Sjálfvirk á 3 mínútum beint úr viðmótinu
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-4 pr-4 font-bold text-slate-900">Sveigjanleiki í fjárhæðum</td>
                   <td className="py-4 px-4">Krefst oft mikils lágmarks-auglýsingafjár</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">Engin lágmörk (reiknað á CPM gengi)</td>
+                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
+                    Engin lágmörk (reiknað á CPM gengi)
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -264,10 +298,14 @@ export default function Serfraedingar() {
             <span className="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-white/10 px-3.5 py-1 rounded-full w-fit">
               Hvernig náum við árangri?
             </span>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">Prófið nýja nálgun í næstu herferð</h3>
+            <h3 className="text-2xl sm:text-3xl font-black text-white">
+              Prófið nýja nálgun í næstu herferð
+            </h3>
             <p className="text-sm sm:text-base text-indigo-200 leading-relaxed font-semibold max-w-3xl">
-              Við viljum bjóða ykkur að koma með einn af ykkar viðskiptavinum í prufu. Við getum miðað herferðina nákvæmlega við vefi sem hafa ykkar markhóp, 
-              fylgst með rauntíma tölfræði og borið saman árangurinn (smellihlutfall og virkni) við hefðbundna risamiðla.
+              Við viljum bjóða ykkur að koma með einn af ykkar viðskiptavinum í prufu. Við getum
+              miðað herferðina nákvæmlega við vefi sem hafa ykkar markhóp, fylgst með rauntíma
+              tölfræði og borið saman árangurinn (smellihlutfall og virkni) við hefðbundna
+              risamiðla.
             </p>
           </div>
 
@@ -292,7 +330,10 @@ export default function Serfraedingar() {
 
           <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
             <button
-              onClick={() => window.location.href = 'mailto:info@birtingur.app?subject=Kynning%20-%20Sérfræðingar'}
+              onClick={() =>
+                (window.location.href =
+                  'mailto:info@birtingur.app?subject=Kynning%20-%20Sérfræðingar')
+              }
               className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-950 font-extrabold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
             >
               <MessageSquare size={16} />
@@ -306,7 +347,6 @@ export default function Serfraedingar() {
             </Link>
           </div>
         </section>
-
       </main>
 
       {/* FOOTER */}
@@ -337,12 +377,18 @@ export default function Serfraedingar() {
               </h4>
               <ul className="space-y-2 text-xs font-semibold">
                 <li>
-                  <Link to="/?tab=advertisers" className="text-slate-500 hover:text-slate-850 transition">
+                  <Link
+                    to="/?tab=advertisers"
+                    className="text-slate-500 hover:text-slate-850 transition"
+                  >
                     Stofna herferð
                   </Link>
                 </li>
                 <li>
-                  <Link to="/?tab=advertisers" className="text-slate-500 hover:text-slate-850 transition">
+                  <Link
+                    to="/?tab=advertisers"
+                    className="text-slate-500 hover:text-slate-850 transition"
+                  >
                     Inneignir og greiðslur
                   </Link>
                 </li>
@@ -356,12 +402,18 @@ export default function Serfraedingar() {
               </h4>
               <ul className="space-y-2 text-xs font-semibold">
                 <li>
-                  <Link to="/?tab=publishers" className="text-slate-500 hover:text-slate-850 transition">
+                  <Link
+                    to="/?tab=publishers"
+                    className="text-slate-500 hover:text-slate-850 transition"
+                  >
                     Sækja kóða
                   </Link>
                 </li>
                 <li>
-                  <Link to="/?tab=publishers" className="text-slate-500 hover:text-slate-850 transition">
+                  <Link
+                    to="/?tab=publishers"
+                    className="text-slate-500 hover:text-slate-850 transition"
+                  >
                     Tekjuöflun
                   </Link>
                 </li>
@@ -376,7 +428,10 @@ export default function Serfraedingar() {
               <ul className="space-y-2 text-xs text-slate-500 font-semibold">
                 <li>
                   Hafa samband:{' '}
-                  <a href="mailto:info@birtingur.app" className="text-slate-550 hover:text-slate-850 transition">
+                  <a
+                    href="mailto:info@birtingur.app"
+                    className="text-slate-550 hover:text-slate-850 transition"
+                  >
                     info@birtingur.app
                   </a>
                 </li>

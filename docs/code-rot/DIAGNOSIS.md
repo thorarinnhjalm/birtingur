@@ -17,18 +17,20 @@ peninga/öryggis-atriði — en þau síðarnefndu eru tímasprengjur fyrir go-l
 ## KRITÍSKT
 
 ### K1. Dashboard Vercel-routing: ógild blanda af `routes` + `cleanUrls`
+
 **Hvar:** `apps/dashboard/vercel.json`
-**Vandamál:** Skráin notar *legacy* `routes`-fylkið (`{ handle: filesystem }` + catch-all á
+**Vandamál:** Skráin notar _legacy_ `routes`-fylkið (`{ handle: filesystem }` + catch-all á
 `/index.html`) OG `"cleanUrls": true` samtímis. Vercel leyfir ekki að blanda `routes`
 við `cleanUrls`/`rewrites`/`headers` — þegar `routes` er til staðar eru hin hunsuð eða
 deploy hagar sér ófyrirsjáanlega. Þetta er nær örugglega rótin að endurteknu
 „page-break/redirect on refresh" einkenninu og þremur aðskildum routing-fixum á tveimur
 dögum (`84fc877`, `0d194eb`, `981098e`).
-**Tillaga:** Velja *annað* sniðið — nútíma: sleppa `routes`, nota `cleanUrls` + `headers`
+**Tillaga:** Velja _annað_ sniðið — nútíma: sleppa `routes`, nota `cleanUrls` + `headers`
 (fyrir assets) + einn `rewrites` `{ "source": "/(.*)", "destination": "/index.html" }`.
 Þetta er staðlað SPA-fallback og hættir churn-inu.
 
 ### K2. Serving-cache hefur enga endurnýjun við „miss" — 7-daga TTL er plástur
+
 **Hvar:** `apps/serving/src/lib/cache.ts:7-9` (`getSlotCache` skilar `null` við miss);
 TTL-plásturinn í `packages/shared/src/constants.ts:27` (`CACHE_TTL_SECONDS = 7*24*60*60`,
 commit `71d9829`).
@@ -46,6 +48,7 @@ cron-endurýting allra virkra slot-a. Aðskilja síðan TTL-fastana tvo (hot-cac
 budget-teljari) og lækka hot-cache TTL aftur í mínútur.
 
 ### K3. `categories` defaultar á `['taekni']` — eyðileggur flokka-módelið fyrir eldri gögn
+
 **Hvar:** `packages/shared/src/schemas/publisher.ts:60-63` (commit `e657c7b`)
 **Vandamál:** `.min(1).default(['taekni'])` þýðir að sérhver publisher án `categories`
 (öll eldri gögn) er **þögult lesinn sem „tækni"**. Matarblogg verður tækni-vefur. Þar
@@ -59,6 +62,7 @@ fix global validation bug" — þ.e. plástur ofan á **vantandi gagna-migration
 sem alvöru-kröfu svo nýskráning verði að velja flokk.
 
 ### K4. Ósamræmt API-svar-snið (wrapped vs bert) — rót „undefined"-baga í dashboard
+
 **Hvar:** dashboard-hookar gera ráð fyrir **wrapped** svari: `useCampaigns.ts:14`
 (`{ campaigns }`), `useReviewQueue.ts:10` (`{ queue }`), `usePublisher.ts:83`
 (`{ slots }`) o.s.frv. — en flokka-vinnan breytti sumum endapunktum í **bert** svar
@@ -68,13 +72,14 @@ helmingur beru gildi, og hver hook hardkóðar sína ágiskun. Hvert misræmi sk
 þögult (typecheck grípur það ekki). Þetta er rótin að endurteknu „object unwrapping" fixunum
 (t.d. `ddfa141`).
 **Tillaga:** Velja eina reglu (mæli með **bert svar** + staðlað villu-snið) og samræma
-*alla* endapunkta + hook-a við hana. Þetta fjarlægir heilan flokk af framtíðar-bögum.
+_alla_ endapunkta + hook-a við hana. Þetta fjarlægir heilan flokk af framtíðar-bögum.
 
 ---
 
 ## MIKILVÆGT
 
 ### M1. Signing-secret fellur aftur í opinberan fasta í production (öryggis-regression)
+
 **Hvar:** `apps/serving/src/lib/crypto.ts:3-17` (commit `623d902`)
 **Vandamál:** Markvisst öryggisfix (krasha ef `SIGNING_SECRET` vantar) var bakkað — núna
 skilar fallinu **hardkóðuðum, opinberum** lykli í production með aðeins `console.error`.
@@ -86,6 +91,7 @@ slóðir). Tryggja `SIGNING_SECRET` í Vercel env. Ef krass-við-ræsingu olli d
 var það merki um vantandi env-breytu, ekki um að fixið væri rangt.
 
 ### M2. Munaðarlaus auglýsenda-slot-leit stangast á við flokka-módelið
+
 **Hvar:** `apps/api/src/index.ts:40` (`/v1/slots/search`), `apps/api/src/services/slot-search.ts`,
 `apps/api/src/routes/slots-search.ts`, `apps/dashboard/src/hooks/usePublisher.ts:79-85`
 (`useSearchSlots`, „for advertisers creating campaigns").
@@ -99,6 +105,7 @@ hook, route og service. (Ef á að halda „browse"-virkni, þá flokka-byggðri
 size/maxCpm.) **[ÞARF STAÐFESTINGU: má fjarlægja slot-search alveg?]**
 
 ### M3. Dauður tvítekinn cache-kóði í serving
+
 **Hvar:** `apps/serving/src/lib/cache.ts:11-17` (`pushSlotCache(entry)`, `invalidateSlot`)
 **Vandamál:** Hvorugt fall er kallað neins staðar í `apps/serving` (staðfest með grep).
 Þau tvítaka cache-ritun sem `apps/api/src/lib/push-cache.ts` á í raun — sem ruglar hver
@@ -107,6 +114,7 @@ size/maxCpm.) **[ÞARF STAÐFESTINGU: má fjarlægja slot-search alveg?]**
 cache-ritun eigi heima í `apps/api`.
 
 ### M4. Redis-env-breytur með tvöföldu nafni, dreift á ~8 staði
+
 **Hvar:** `apps/serving/src/lib/redis.ts:7-8`, `apps/api/src/lib/redis.ts:7-8`, og inline
 `if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL)` í
 `apps/api/src/services/slots.ts:53,116,176` og `campaigns.ts:70,122` (commit `4ddaf0f`).
@@ -121,6 +129,7 @@ staðar; staðla á eitt env-nafn og skjalfesta hitt sem alias.
 ## SNYRTILEGT
 
 ### S1. Taxonomy-ósamræmi milli spec og kóða
+
 **Hvar:** `docs/superpowers/specs/2026-06-04-category-network-buying-design.md:55-57`
 (`ferðalög`, `tíska_fegurð` með íslenskum stöfum) vs `packages/shared/src/constants.ts`
 (ASCII slugs `ferdalog`, `tiska_fegurd`).
@@ -128,12 +137,14 @@ staðar; staðla á eitt env-nafn og skjalfesta hitt sem alias.
 **Tillaga:** Uppfæra spec til að nota ASCII-slug + íslenskt label (eins og kóðinn gerir).
 
 ### S2. Skráanafna-ósamræmi
+
 **Hvar:** `apps/api/src/routes/slots-search.ts` (fleirtala) vs
 `apps/api/src/services/slot-search.ts` (eintala).
 **Vandamál:** Smávægilegt en ýtir undir leitar-/grep-villur. (Leysist ef M2 fjarlægir þau.)
 **Tillaga:** Samræma nafnavenju; eða fjarlægja með M2.
 
 ### S3. Of stórar/of-margt-gerandi skrár
+
 **Hvar:** `apps/dashboard/src/pages/LandingPage.tsx` (>1.400 línur, marg-tab markaðssíða í
 einni skrá); `apps/api/src/lib/push-cache.ts` (sækir, filterar, raðar, mapar, ritar cache
 og seedar budget-teljara í einu falli).
@@ -143,6 +154,7 @@ framtíðar-rots.
 `pushSlotCache` í `resolveEligibleCreatives` + `writeCache` + `seedBudgetCounters`.
 
 ### S4. Einn fasti fyrir tvo óskylda hluti
+
 **Hvar:** `packages/shared/src/constants.ts:27` `CACHE_TTL_SECONDS` notað bæði fyrir
 hot-cache eviction og (×5) budget-teljara TTL.
 **Vandamál:** Að stilla annað brenglar hitt (sjá K2).

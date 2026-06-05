@@ -5,8 +5,7 @@ import type { Advertiser } from '@ada/shared';
 export function useAdvertiser() {
   return useQuery({
     queryKey: ['advertiser', 'me'],
-    queryFn: () =>
-      apiFetch<Advertiser>('/v1/advertisers/me'),
+    queryFn: () => apiFetch<Advertiser>('/v1/advertisers/me'),
     retry: false, // Don't retry since 404 means we need onboarding
   });
 }

@@ -43,7 +43,6 @@ widgetsRouter.get('/publisher/stats', async (c) => {
   return c.json(stats);
 });
 
-
 // Campaign Stats Widget Endpoint
 widgetsRouter.get('/campaign/stats', async (c) => {
   const record = c.get('widgetKey');

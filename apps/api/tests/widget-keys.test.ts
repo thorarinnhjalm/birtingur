@@ -21,7 +21,6 @@ vi.mock('../src/services/publisher-stats.js', () => ({
   }),
 }));
 
-
 vi.mock('../src/services/campaign-stats.js', () => ({
   getCampaignStats: async (id: string) => ({
     impressions: 500,
@@ -135,7 +134,6 @@ describe('Widget Keys Auth & Endpoints', () => {
     const body = await res.json();
     expect(body.error).toBe('FORBIDDEN');
   });
-
 
   it('allows campaign stats access with campaign scoped key', async () => {
     const record = await issueWidgetKey('adv@example.is', 'campaign', 'camp_123');

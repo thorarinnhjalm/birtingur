@@ -28,8 +28,7 @@ export function useCampaign(id: string | undefined) {
 export function useCampaignStats(id: string | undefined) {
   return useQuery({
     queryKey: ['campaigns', id, 'stats'],
-    queryFn: () =>
-      apiFetch<CampaignStatsPoint[]>(`/v1/campaigns/${id}/stats`),
+    queryFn: () => apiFetch<CampaignStatsPoint[]>(`/v1/campaigns/${id}/stats`),
     enabled: !!id,
   });
 }
