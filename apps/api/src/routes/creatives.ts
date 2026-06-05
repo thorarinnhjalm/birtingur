@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives.js';
+import { getCreativeStats } from '../services/creative-stats.js';
 import { StubAutoScanner } from '../services/auto-scan/stub.js';
 import { AppError } from '../lib/errors.js';
 
@@ -29,6 +30,23 @@ creativesRouter.get('/', async (c) => {
   }
   const list = await listCreativesForAdvertiser(adv.id);
   return c.json(list);
+});
+
+creativesRouter.get('/:id/stats', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const cre = await getCreative(c.req.param('id'));
+  if (!cre) {
+    throw new AppError(404, 'Creative not found', 'NOT_FOUND');
+  }
+  if (cre.advertiserId !== adv.id) {
+    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+  }
+  const stats = await getCreativeStats(cre.id);
+  return c.json(stats);
 });
 
 creativesRouter.get('/:id', async (c) => {

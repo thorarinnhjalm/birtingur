@@ -120,5 +120,11 @@ describe('aggregateEvents', () => {
     expect(mockStatsDocs[slotPath]).toBeDefined();
     expect(mockStatsDocs[slotPath].impressions).toBe(2);
     expect(mockStatsDocs[slotPath].clicks).toBe(1);
+
+    // Check creative hourly stats
+    const crePath = `stats/creatives/cre_a/2026060214`;
+    expect(mockStatsDocs[crePath]).toBeDefined();
+    expect(mockStatsDocs[crePath].impressions).toBe(2);
+    expect(mockStatsDocs[crePath].clicks).toBe(1);
   });
 });

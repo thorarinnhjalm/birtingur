@@ -66,3 +66,19 @@ export function useCreative(id: string | undefined) {
     enabled: !!id,
   });
 }
+
+export interface CreativeStatsResponse {
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  hours: Array<{ hour: string; impressions: number; clicks: number }>;
+}
+
+export function useCreativeStats(id: string | undefined) {
+  return useQuery({
+    queryKey: ['creatives', id, 'stats'],
+    queryFn: () => apiFetch<CreativeStatsResponse>(`/v1/creatives/${id}/stats`),
+    enabled: !!id,
+  });
+}
+

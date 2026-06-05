@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCampaign, useCampaignStats, useCreative } from '@/hooks/useCampaigns';
+import { useCampaign, useCampaignStats, useCreative, useCreativeStats } from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -30,6 +30,7 @@ export default function CampaignDetail() {
   // Fetch corresponding creative details
   const creativeId = campaign?.creativeIds?.[0];
   const { data: creative } = useCreative(creativeId);
+  const { data: creativeStats } = useCreativeStats(creativeId);
 
   const [toggling, setToggling] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -338,7 +339,31 @@ export default function CampaignDetail() {
               )}
             </div>
 
-            <div className="text-xs text-left space-y-2 border-t border-slate-200 pt-3">
+            <div className="text-xs text-left space-y-3 border-t border-slate-200 pt-3">
+              {/* Creative-level stats */}
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-white border border-slate-200 rounded-lg p-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Birtingar</div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
+                    {creativeStats?.impressions?.toLocaleString('is-IS') ?? '—'}
+                  </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-lg p-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Smellir</div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
+                    {creativeStats?.clicks?.toLocaleString('is-IS') ?? '—'}
+                  </div>
+                </div>
+                <div className="bg-white border border-slate-200 rounded-lg p-2">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</div>
+                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
+                    {creativeStats?.ctr != null
+                      ? `${creativeStats.ctr.toFixed(1).replace('.', ',')}%`
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <span className="block text-slate-500 font-semibold">Tengill á vefsíðu:</span>
                 <a

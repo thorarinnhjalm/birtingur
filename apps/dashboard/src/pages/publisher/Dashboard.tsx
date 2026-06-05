@@ -330,7 +330,12 @@ function PublisherHome() {
                     <td className="px-8 py-5">
                       <div className="flex flex-col">
                         <span className="font-body-md font-bold text-on-surface">{s.name}</span>
-                        <span className="text-[12px] text-outline font-medium">mbl.is/forsida</span>
+                        <span className="text-[12px] text-outline font-medium">
+                          {publisher.domain}
+                          {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
+                            ? s.placement.pageMatcher
+                            : ''}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-5">

@@ -37,7 +37,7 @@ function dayKey(ts: number): string {
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
 
-  // Buckets: campaign-hour, publisher-day, publisher-slot-day
+  // Buckets: campaign-hour, publisher-day, publisher-slot-day, creative-hour
   interface Bucket {
     impressions: number;
     clicks: number;
@@ -46,6 +46,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   const campaignHour = new Map<string, Bucket>();
   const publisherDay = new Map<string, Bucket>();
   const publisherSlotDay = new Map<string, Bucket>();
+  const creativeHour = new Map<string, Bucket>();
 
   for (const ev of events) {
     if (ev.type === 'pageview') {
@@ -61,11 +62,17 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+      const cr = `${ev.creativeId}/${hourKey(ev.ts)}`;
 
       const cb = campaignHour.get(ch) ?? { impressions: 0, clicks: 0, pageviews: 0 };
       if (ev.type === 'impression') cb.impressions++;
       else cb.clicks++;
       campaignHour.set(ch, cb);
+
+      const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+      if (ev.type === 'impression') crb.impressions++;
+      else crb.clicks++;
+      creativeHour.set(cr, crb);
 
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
@@ -82,6 +89,18 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   for (const [key, b] of campaignHour) {
     const [campaignId, hk] = key.split('/');
     const ref = db.doc(`${COLLECTIONS.stats}/campaigns/${campaignId}/${hk}`);
+    batch.set(
+      ref,
+      {
+        impressions: FieldValue.increment(b.impressions),
+        clicks: FieldValue.increment(b.clicks),
+      },
+      { merge: true },
+    );
+  }
+  for (const [key, b] of creativeHour) {
+    const [creativeId, hk] = key.split('/');
+    const ref = db.doc(`${COLLECTIONS.stats}/creatives/${creativeId}/${hk}`);
     batch.set(
       ref,
       {
