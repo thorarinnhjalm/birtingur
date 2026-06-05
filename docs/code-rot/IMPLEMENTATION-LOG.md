@@ -176,6 +176,56 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task C1 — Inventory the mismatch
+- **Status:** done
+- **Commit(s):** N/A (no code change)
+- **Files changed:**
+  - none
+- **Verification run + output:**
+  ```
+  $ grep -rn "c.json(" apps/api/src/routes | grep -v "error\|AppError"
+  apps/api/src/routes/wallet.ts:26:  return c.json({ wallet: w });
+  apps/api/src/routes/wallet.ts:63:  return c.json({ checkoutUrl: session.url, sessionId: session.sessionId }, 201);
+  apps/api/src/routes/creatives.ts:21:  return c.json({ creative: cre }, 201);
+  apps/api/src/routes/creatives.ts:31:  return c.json({ creatives: list });
+  ...
+  $ grep -rn "apiFetch<{" apps/dashboard/src/hooks
+  apps/dashboard/src/hooks/useReviewQueue.ts:10:      apiFetch<{ queue: Creative[] }>('/v1/admin/review-queue/queue').then((r) => r.queue),
+  ...
+  ```
+  
+  **Mismatch Inventory Table:**
+  | Endpoint | Method | Current Response Shape | Hook / Page / Consumer | Envelope Status |
+  |---|---|---|---|---|
+  | `GET /v1/advertisers/me/wallet` | GET | `{ wallet: Wallet }` | `useWallet.ts` | **Wrapped** |
+  | `POST /v1/creatives` | POST | `{ creative: Creative }` | `CreativeLibrary.tsx`, `CampaignCreate.tsx` | **Wrapped** |
+  | `GET /v1/creatives` | GET | `{ creatives: Creative[] }` | `CreativeLibrary.tsx` | **Wrapped** |
+  | `GET /v1/creatives/:id` | GET | `{ creative: Creative }` | `useCampaigns.ts` | **Wrapped** |
+  | `GET /v1/admin/entities/publishers` | GET | `{ publishers: Publisher[] }` | `useAdmin.ts` | **Wrapped** |
+  | `GET /v1/admin/entities/advertisers` | GET | `{ advertisers: Advertiser[] }` | `useAdmin.ts` | **Wrapped** |
+  | `GET /v1/admin/entities/slots` | GET | `{ slots: Slot[] }` | `useAdmin.ts` | **Wrapped** |
+  | `POST /v1/admin/entities/publishers/:id/status` | POST | `{ publisher: Publisher }` | `useUpdateEntityStatus` | **Wrapped** |
+  | `POST /v1/admin/entities/advertisers/:id/status` | POST | `{ advertiser: Advertiser }` | `useUpdateEntityStatus` | **Wrapped** |
+  | `POST /v1/admin/entities/slots/:id/status` | POST | `{ slot: Slot }` | `useUpdateEntityStatus` | **Wrapped** |
+  | `GET /v1/admin/review-queue/queue` | GET | `{ queue: Creative[] }` | `useReviewQueue.ts` | **Wrapped** |
+  | `POST /v1/admin/review-queue/:id` | POST | `{ creative: Creative }` | `useReviewQueue.ts` | **Wrapped** |
+  | `GET /v1/admin/payouts/pending` | GET | `{ payouts: Payout[] }` | `useReviewQueue.ts` | **Wrapped** |
+  | `POST /v1/admin/payouts/:id/mark-completed` | POST | `{ payout: Payout }` | `useReviewQueue.ts` | **Wrapped** |
+  | `GET /v1/admin/stats` | GET | `{ stats: AdminStats }` | `Overview.tsx` | **Wrapped** |
+  | `POST /v1/campaigns` | POST | `{ campaign: Campaign }` | `useCampaigns.ts` | **Wrapped** |
+  | `GET /v1/campaigns` | GET | `{ campaigns: Campaign[] }` | `useCampaigns.ts` | **Wrapped** |
+  | `GET /v1/campaigns/:id` | GET | `{ campaign: Campaign }` | `useCampaigns.ts` | **Wrapped** |
+  | `POST /v1/campaigns/:id/status` | POST | `{ campaign: Campaign }` | `CampaignDetail.tsx` | **Wrapped** |
+  | `GET /v1/campaigns/:id/stats` | GET | `{ stats: CampaignStatsPoint[] }` | `useCampaigns.ts` | **Wrapped** |
+  | `POST /v1/advertisers` | POST | `{ advertiser: Advertiser }` | `useAdvertiser.ts` | **Wrapped** |
+  | `GET /v1/advertisers/me` | GET | `{ advertiser: Advertiser }` | `useAdvertiser.ts` | **Wrapped** |
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
