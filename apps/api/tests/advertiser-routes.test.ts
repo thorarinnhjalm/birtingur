@@ -346,8 +346,8 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.campaign.id).toMatch(/^cmp_[a-f0-9]{24}$/);
-      expect(body.campaign.status).toBe('active');
+      expect(body.id).toMatch(/^cmp_[a-f0-9]{24}$/);
+      expect(body.status).toBe('active');
     });
   });
 
@@ -446,8 +446,8 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.campaigns).toHaveLength(1);
-      expect(body.campaigns[0].id).toBe('cmp_123');
+      expect(body).toHaveLength(1);
+      expect(body[0].id).toBe('cmp_123');
     });
   });
 
@@ -479,7 +479,7 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.campaign.id).toBe('cmp_123');
+      expect(body.id).toBe('cmp_123');
     });
   });
 
@@ -518,7 +518,7 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.campaign.status).toBe('paused');
+      expect(body.status).toBe('paused');
     });
   });
 });

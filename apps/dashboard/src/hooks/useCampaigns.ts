@@ -11,7 +11,7 @@ export interface CampaignStatsPoint {
 export function useCampaigns(enabled = true) {
   return useQuery({
     queryKey: ['campaigns'],
-    queryFn: () => apiFetch<{ campaigns: Campaign[] }>('/v1/campaigns').then((r) => r.campaigns),
+    queryFn: () => apiFetch<Campaign[]>('/v1/campaigns'),
     enabled,
     retry: false,
   });
@@ -20,7 +20,7 @@ export function useCampaigns(enabled = true) {
 export function useCampaign(id: string | undefined) {
   return useQuery({
     queryKey: ['campaigns', id],
-    queryFn: () => apiFetch<{ campaign: Campaign }>(`/v1/campaigns/${id}`).then((r) => r.campaign),
+    queryFn: () => apiFetch<Campaign>(`/v1/campaigns/${id}`),
     enabled: !!id,
   });
 }
@@ -29,7 +29,7 @@ export function useCampaignStats(id: string | undefined) {
   return useQuery({
     queryKey: ['campaigns', id, 'stats'],
     queryFn: () =>
-      apiFetch<{ stats: CampaignStatsPoint[] }>(`/v1/campaigns/${id}/stats`).then((r) => r.stats),
+      apiFetch<CampaignStatsPoint[]>(`/v1/campaigns/${id}/stats`),
     enabled: !!id,
   });
 }
@@ -50,7 +50,7 @@ export function useCreateCampaign() {
         totalIsk: number;
       };
     }) =>
-      apiFetch<{ campaign: Campaign }>('/v1/campaigns', {
+      apiFetch<Campaign>('/v1/campaigns', {
         method: 'POST',
         body: JSON.stringify(input),
       }),

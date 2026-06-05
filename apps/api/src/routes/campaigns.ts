@@ -31,7 +31,7 @@ campaignsRouter.post('/', async (c) => {
   // Provision default campaign widget viewer key
   await getOrCreateWidgetKey(user.email, 'campaign', cmp.id);
 
-  return c.json({ campaign: cmp }, 201);
+  return c.json(cmp, 201);
 });
 
 campaignsRouter.get('/', async (c) => {
@@ -41,7 +41,7 @@ campaignsRouter.get('/', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const list = await listCampaignsForAdvertiser(adv.id);
-  return c.json({ campaigns: list });
+  return c.json(list);
 });
 
 campaignsRouter.get('/:id', async (c) => {
@@ -57,7 +57,7 @@ campaignsRouter.get('/:id', async (c) => {
   if (cmp.advertiserId !== adv.id) {
     throw new AppError(403, 'Forbidden', 'FORBIDDEN');
   }
-  return c.json({ campaign: cmp });
+  return c.json(cmp);
 });
 
 campaignsRouter.patch('/:id', async (c) => {
@@ -76,7 +76,7 @@ campaignsRouter.patch('/:id', async (c) => {
   }
   const body = await c.req.json();
   const cmp = await updateCampaign(id, body);
-  return c.json({ campaign: cmp });
+  return c.json(cmp);
 });
 
 campaignsRouter.get('/:id/stats', async (c) => {
@@ -94,7 +94,7 @@ campaignsRouter.get('/:id/stats', async (c) => {
     throw new AppError(403, 'Forbidden', 'FORBIDDEN');
   }
   const stats = await getCampaignStats(id);
-  return c.json({ stats });
+  return c.json(stats);
 });
 
 campaignsRouter.get('/:id/widget-key', async (c) => {

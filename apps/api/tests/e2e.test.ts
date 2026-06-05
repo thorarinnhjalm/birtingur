@@ -408,7 +408,7 @@ describe('End-to-End Smoke Test', () => {
       console.log('campaignRes failed:', campaignRes.status, await campaignRes.json());
     }
     expect(campaignRes.status).toBe(201);
-    const { campaign } = await campaignRes.json();
+    const campaign = await campaignRes.json();
     expect(campaign.status).toBe('active');
   });
 });
