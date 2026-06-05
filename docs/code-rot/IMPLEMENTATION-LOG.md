@@ -414,16 +414,27 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 ### Task D2 — Signing-secret fail-fast
-- **Status:** blocked
-- **Commit(s):** N/A
+- **Status:** done
+- **Commit(s):** a222882f4e0dce85c5721b4d70a04f1e43964c00 fix(serving): fail-fast on missing SIGNING_SECRET in prod (Task D2)
 - **Files changed:**
-  - none
+  - apps/serving/src/lib/crypto.ts
+  - apps/serving/tests/crypto.test.ts
 - **Verification run + output:**
   ```
-  N/A
+  $ npx pnpm --filter @ada/serving test
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/serving
+
+   ✓ tests/select.test.ts  (7 tests) 1ms
+   ✓ tests/visitor.test.ts  (5 tests) 2ms
+   ✓ tests/crypto.test.ts  (2 tests) 10ms
+   ✓ tests/ad-route.test.ts  (5 tests) 6ms
+   ✓ tests/click-impression.test.ts  (7 tests) 6ms
+
+   Test Files  5 passed (5)
+        Tests  26 passed (26)
   ```
-- **Deviations from plan:** Awaiting confirmation from the operator that SIGNING_SECRET is configured in the serving Vercel project before implementing fail-fast error throwing in production.
-- **Questions / decisions for Claude:** Confirm if SIGNING_SECRET has been set in the serving Vercel project env vars.
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
 - **Claude review:** _(left blank for Claude)_
 
 ---
