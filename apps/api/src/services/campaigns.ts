@@ -67,7 +67,7 @@ export async function createCampaign(
     .withConverter(campaignConverter)
     .set(campaign);
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
     await pushCacheForCampaign(campaign.id);
   }
 
@@ -119,7 +119,7 @@ export async function updateCampaign(
   const next: Campaign = CampaignSchema.parse({ ...existing, ...parsed });
   await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).set(next);
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
     await pushCacheForCampaign(id);
   }
 

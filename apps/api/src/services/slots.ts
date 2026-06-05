@@ -50,7 +50,7 @@ export async function createSlot(input: {
 
   await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).set(validated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
     await pushSlotCache(id);
   }
 
@@ -113,7 +113,7 @@ export async function updateSlot(
 
   await slotRef.set(validated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
     await pushSlotCache(id);
   }
 
@@ -173,7 +173,7 @@ export async function updateSlotStatus(slotId: string, status: 'active' | 'pause
   const updated = SlotSchema.parse({ ...current, status });
   await slotRef.set(updated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
     await pushSlotCache(slotId);
   }
 
