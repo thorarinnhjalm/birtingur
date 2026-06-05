@@ -8,7 +8,7 @@ import {
   creativeConverter,
   advertiserConverter,
 } from '@ada/shared/firestore';
-import { FREQUENCY_CAP_DEFAULT_PER_DAY, CACHE_TTL_SECONDS } from '@ada/shared';
+import { FREQUENCY_CAP_DEFAULT_PER_DAY, SLOT_CACHE_TTL_SECONDS, BUDGET_COUNTER_TTL_SECONDS } from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
 
 const key = (slotId: string) => `slot:${slotId}`;
@@ -57,7 +57,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       blockedCategories: publisher.contentPolicy.blockedCategories ?? [],
       refreshedAt: Date.now(),
     };
-    await redis.set(key(slotId), entry, { ex: CACHE_TTL_SECONDS });
+    await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });
     return;
   }
 
@@ -104,7 +104,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
 
   for (const campaign of eligibleCampaigns) {
     await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, {
-      ex: CACHE_TTL_SECONDS * 5,
+      ex: BUDGET_COUNTER_TTL_SECONDS,
     });
   }
 
@@ -209,7 +209,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     refreshedAt: Date.now(),
   };
 
-  await redis.set(key(slotId), entry, { ex: CACHE_TTL_SECONDS });
+  await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });
 }
 
 export async function pushCacheForCampaign(campaignId: string): Promise<void> {
@@ -222,7 +222,7 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
   const cmp = snap.data()!;
 
   const redis = getRedis();
-  await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: CACHE_TTL_SECONDS * 5 });
+  await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: BUDGET_COUNTER_TTL_SECONDS });
 
   // Find publishers in any of the campaign's categories
   const pubSnap = await db

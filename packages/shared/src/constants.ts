@@ -23,8 +23,10 @@ export type GeoRegion = (typeof GEO_REGIONS)[number];
 /** Default frequency cap per visitor per day */
 export const FREQUENCY_CAP_DEFAULT_PER_DAY = 3;
 
-/** Hot-path cache TTL in seconds (7 days to prevent slot eviction) */
-export const CACHE_TTL_SECONDS = 7 * 24 * 60 * 60;
+/** Hot slot-cache eviction TTL (kept short; a refresh cron rebuilds active slots). */
+export const SLOT_CACHE_TTL_SECONDS = 15 * 60; // 15 min
+/** Budget gate counter TTL — must outlive a cache cycle comfortably. */
+export const BUDGET_COUNTER_TTL_SECONDS = 60 * 60; // 1h
 
 /** Snippet timeout for ad request before failing silent */
 export const AD_REQUEST_TIMEOUT_MS = 2000;
