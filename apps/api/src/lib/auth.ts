@@ -33,7 +33,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   const token = authHeader.substring(7).trim();
 
   // Bypass validation for demo/local testing
-  if (token === 'demo-mock-token') {
+  if (token === 'demo-mock-token' && process.env.NODE_ENV !== 'production') {
     c.set('user', {
       uid: 'demo-user-id',
       email: 'demoa@birtingur.is',

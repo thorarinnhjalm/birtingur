@@ -98,6 +98,38 @@ describe('Authentication Middleware', () => {
       });
       expect(auth.verifyIdToken).toHaveBeenCalledWith('valid-token');
     });
+
+    it('accepts demo-mock-token in development', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      try {
+        const res = await app.request('/protected', {
+          headers: {
+            Authorization: 'Bearer demo-mock-token',
+          },
+        });
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.user.email).toBe('demoa@birtingur.is');
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+    });
+
+    it('rejects demo-mock-token in production', async () => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const res = await app.request('/protected', {
+          headers: {
+            Authorization: 'Bearer demo-mock-token',
+          },
+        });
+        expect(res.status).toBe(401);
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+    });
   });
 
   describe('requireAdmin', () => {
