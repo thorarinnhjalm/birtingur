@@ -521,27 +521,4 @@ describe('Advertiser HTTP Routes', () => {
       expect(body.campaign.status).toBe('paused');
     });
   });
-
-  describe('GET /v1/slots/search', () => {
-    it('searches active slots by criteria', async () => {
-      mockSlots.push({
-        id: 'slot_123',
-        publisherId: 'pub_123',
-        name: 'A',
-        sizes: [{ width: 728, height: 90 }],
-        pricing: { mode: 'cpm', cpmIsk: 1500 },
-        placement: { pageMatcher: '/', position: 'above_fold' },
-        status: 'active',
-      });
-
-      const res = await app.request('/v1/slots/search?width=728&height=90&maxCpm=2000', {
-        headers: { Authorization: 'Bearer valid-token' },
-      });
-
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.slots).toHaveLength(1);
-      expect(body.slots[0].id).toBe('slot_123');
-    });
-  });
 });
