@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { AlertCircle, Image as ImageIcon, Plus, Trash, ExternalLink, Upload } from 'lucide-react';
+import { AlertCircle, Image as ImageIcon, Plus, ExternalLink, Upload } from 'lucide-react';
 import type { Creative } from '@ada/shared';
+import { useBulkCreativeStats } from '@/hooks/useCampaigns';
 
 export default function CreativeLibrary() {
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { data: bulkStats } = useBulkCreativeStats();
 
   // Upload Form State
   const [clickUrl, setClickUrl] = useState('https://');
@@ -175,6 +177,35 @@ export default function CreativeLibrary() {
                       Víddir: {c.width} × {c.height} px
                     </p>
                     <p className="truncate">Smellur: {c.clickUrl}</p>
+                    {(() => {
+                      const cs = bulkStats?.[c.id];
+                      return cs ? (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1 mt-1">
+                          <span>
+                            Birtingar:{' '}
+                            <span className="text-slate-800">
+                              {cs.impressions.toLocaleString('is-IS')}
+                            </span>
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span>
+                            Smellir:{' '}
+                            <span className="text-slate-800">
+                              {cs.clicks.toLocaleString('is-IS')}
+                            </span>
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span>
+                            CTR:{' '}
+                            <span className="text-slate-800">
+                              {cs.ctr.toFixed(1).replace('.', ',')}%
+                            </span>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-400 italic mt-1">Engin tölfræði</div>
+                      );
+                    })()}
                     {c.reviewStatus === 'rejected' && c.reviewLog && c.reviewLog[0] && (
                       <p className="text-red-600 font-bold mt-1 text-[10px] bg-red-50 p-1.5 rounded">
                         Ástæða: {c.reviewLog[0].reason}

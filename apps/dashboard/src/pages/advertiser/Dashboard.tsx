@@ -10,7 +10,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { useWallet } from '@/hooks/useWallet';
-import { useCampaigns } from '@/hooks/useCampaigns';
+import { useCampaigns, useBulkCreativeStats } from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatCard } from '@/components/ui/StatCard';
@@ -59,6 +59,7 @@ function AdvertiserHome() {
     queryFn: () => apiFetch<StatsResponse>('/v1/advertisers/me/stats?timeframe=30'),
     enabled: !!advertiser,
   });
+  const { data: bulkCreativeStats } = useBulkCreativeStats(!!advertiser);
   const navigate = useNavigate();
 
   if (isAdvLoading || isWalletLoading || isCampaignsLoading) {
@@ -362,7 +363,13 @@ function AdvertiserHome() {
                     Notkun
                   </th>
                   <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-right font-semibold">
-                    Fjárhagsáætlun
+                    Birtingar
+                  </th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-right font-semibold">
+                    Smellir
+                  </th>
+                  <th className="px-8 py-4 text-label-sm text-outline uppercase tracking-wider text-right font-semibold">
+                    CTR
                   </th>
                   <th className="px-8 py-4"></th>
                 </tr>
@@ -439,7 +446,25 @@ function AdvertiserHome() {
                         </div>
                       </td>
                       <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
-                        {formatIsk(c.budget.totalIsk)}
+                        {(() => {
+                          const creId = c.creativeIds?.[0];
+                          const s = creId && bulkCreativeStats?.[creId];
+                          return s ? s.impressions.toLocaleString('is-IS') : '—';
+                        })()}
+                      </td>
+                      <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
+                        {(() => {
+                          const creId = c.creativeIds?.[0];
+                          const s = creId && bulkCreativeStats?.[creId];
+                          return s ? s.clicks.toLocaleString('is-IS') : '—';
+                        })()}
+                      </td>
+                      <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
+                        {(() => {
+                          const creId = c.creativeIds?.[0];
+                          const s = creId && bulkCreativeStats?.[creId];
+                          return s ? `${s.ctr.toFixed(1).replace('.', ',')}%` : '—';
+                        })()}
                       </td>
                       <td className="px-8 py-5 text-right">
                         <button className="p-2 text-outline hover:text-primary hover:bg-secondary-container rounded-full transition-all cursor-pointer">

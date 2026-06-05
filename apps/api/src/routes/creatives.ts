@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives.js';
-import { getCreativeStats } from '../services/creative-stats.js';
+import { getCreativeStats, getAllCreativeStatsForAdvertiser } from '../services/creative-stats.js';
 import { StubAutoScanner } from '../services/auto-scan/stub.js';
 import { AppError } from '../lib/errors.js';
 
@@ -10,6 +10,18 @@ const scanner = new StubAutoScanner();
 
 export const creativesRouter = new Hono<Env>();
 creativesRouter.use('*', requireAuth);
+
+// Bulk stats for all creatives belonging to the authenticated advertiser
+creativesRouter.get('/stats', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const hours = parseInt(c.req.query('hours') ?? '168', 10);
+  const stats = await getAllCreativeStatsForAdvertiser(adv.id, hours);
+  return c.json(stats);
+});
 
 creativesRouter.post('/', async (c) => {
   const user = c.get('user');

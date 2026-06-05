@@ -45,6 +45,14 @@ interface AdminStats {
   platformFeeIsk: number;
   p95LatencyMs: number;
   systemStatus: string;
+  topCreatives: Array<{
+    creativeId: string;
+    advertiserId: string;
+    imageUrl: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+  }>;
 }
 
 // 1. Admin Home (Overview metrics)
@@ -115,6 +123,64 @@ function Home() {
           </div>
         </Card>
       </div>
+
+      {/* Top 5 creatives */}
+      {stats?.topCreatives && stats.topCreatives.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-base font-bold text-slate-900 mb-4">Topp 5 auglýsingar (7 dagar)</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider">#</th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider">Borði</th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Birtingar
+                  </th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Smellir
+                  </th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    CTR
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {stats.topCreatives.map((tc, i) => (
+                  <tr key={tc.creativeId} className="hover:bg-slate-50">
+                    <td className="py-3 font-bold text-slate-400">{i + 1}</td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-3">
+                        {tc.imageUrl && (
+                          <img
+                            src={tc.imageUrl}
+                            alt=""
+                            className="w-10 h-8 rounded object-cover border border-slate-200 bg-white"
+                          />
+                        )}
+                        <span className="font-bold text-slate-700 font-mono text-[11px]">
+                          {tc.creativeId.length > 16
+                            ? tc.creativeId.slice(0, 16) + '…'
+                            : tc.creativeId}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {tc.impressions.toLocaleString('is-IS')}
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {tc.clicks.toLocaleString('is-IS')}
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {tc.ctr.toFixed(1).replace('.', ',')}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

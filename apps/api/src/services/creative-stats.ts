@@ -1,11 +1,16 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
+import { listCreativesForAdvertiser } from './creatives.js';
 
 export interface CreativeStatsResponse {
   impressions: number;
   clicks: number;
   ctr: number;
   hours: Array<{ hour: string; impressions: number; clicks: number }>;
+}
+
+export interface BulkCreativeStats {
+  [creativeId: string]: { impressions: number; clicks: number; ctr: number };
 }
 
 export async function getCreativeStats(
@@ -45,4 +50,29 @@ export async function getCreativeStats(
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
   return { impressions, clicks, ctr, hours: out };
+}
+
+/**
+ * Fetch stats for ALL creatives belonging to an advertiser in one batch.
+ * Returns a map of creativeId → { impressions, clicks, ctr }.
+ */
+export async function getAllCreativeStatsForAdvertiser(
+  advertiserId: string,
+  hours = 168,
+): Promise<BulkCreativeStats> {
+  const creatives = await listCreativesForAdvertiser(advertiserId);
+  const results: BulkCreativeStats = {};
+
+  await Promise.all(
+    creatives.map(async (cre) => {
+      const s = await getCreativeStats(cre.id, hours);
+      results[cre.id] = {
+        impressions: s.impressions,
+        clicks: s.clicks,
+        ctr: s.ctr,
+      };
+    }),
+  );
+
+  return results;
 }

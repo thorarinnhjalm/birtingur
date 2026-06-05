@@ -81,3 +81,15 @@ export function useCreativeStats(id: string | undefined) {
     enabled: !!id,
   });
 }
+
+export interface BulkCreativeStats {
+  [creativeId: string]: { impressions: number; clicks: number; ctr: number };
+}
+
+export function useBulkCreativeStats(enabled = true) {
+  return useQuery({
+    queryKey: ['creatives', 'bulk-stats'],
+    queryFn: () => apiFetch<BulkCreativeStats>('/v1/creatives/stats?hours=168'),
+    enabled,
+  });
+}

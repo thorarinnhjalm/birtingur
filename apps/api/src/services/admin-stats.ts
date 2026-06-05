@@ -1,5 +1,15 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
+import { getCreativeStats } from './creative-stats.js';
+
+export interface TopCreativeEntry {
+  creativeId: string;
+  advertiserId: string;
+  imageUrl: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+}
 
 export interface AdminStatsResponse {
   totalImpressions: number;
@@ -8,6 +18,30 @@ export interface AdminStatsResponse {
   platformFeeIsk: number;
   p95LatencyMs: number;
   systemStatus: string;
+  topCreatives: TopCreativeEntry[];
+}
+
+async function getTopCreativesAcrossSystem(limit = 5): Promise<TopCreativeEntry[]> {
+  const snap = await db.collection(COLLECTIONS.creatives).get();
+  const entries: TopCreativeEntry[] = [];
+
+  await Promise.all(
+    snap.docs.map(async (doc) => {
+      const data = doc.data();
+      const stats = await getCreativeStats(doc.id, 168); // 7 days
+      entries.push({
+        creativeId: doc.id,
+        advertiserId: data.advertiserId ?? '',
+        imageUrl: data.imageUrl ?? '',
+        impressions: stats.impressions,
+        clicks: stats.clicks,
+        ctr: stats.ctr,
+      });
+    }),
+  );
+
+  entries.sort((a, b) => b.impressions - a.impressions);
+  return entries.slice(0, limit);
 }
 
 export async function getAdminStats(): Promise<AdminStatsResponse> {
@@ -52,7 +86,15 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     console.error('Failed to fetch real admin stats:', err);
   }
 
-  // 3. Fallback to mock data if empty and running in dev/emulator
+  // 3. Get top creatives
+  let topCreatives: TopCreativeEntry[] = [];
+  try {
+    topCreatives = await getTopCreativesAcrossSystem();
+  } catch (err) {
+    console.error('Failed to fetch top creatives:', err);
+  }
+
+  // 4. Fallback to mock data if empty and running in dev/emulator
   const isDevOrEmulator =
     process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
@@ -63,6 +105,7 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
       platformFeeIsk: 270000, // 20% platform fee
       p95LatencyMs: 24,
       systemStatus: 'OK',
+      topCreatives,
     };
   }
 
@@ -73,5 +116,6 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     platformFeeIsk,
     p95LatencyMs: 24,
     systemStatus: 'OK',
+    topCreatives,
   };
 }
