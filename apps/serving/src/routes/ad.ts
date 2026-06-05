@@ -7,7 +7,7 @@ import {
   setCookieHeader,
   getVisitorImpressionsToday,
 } from '../lib/visitor.js';
-import { logEvent, getRemainingBudgets } from '../lib/analytics.js';
+import { getRemainingBudgets } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
@@ -96,18 +96,7 @@ adRoute.get('/', async (c) => {
     `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
     `&ts=${ts}&sig=${signature}`;
 
-  // Log impression event
-  void logEvent({
-    type: 'impression',
-    slotId,
-    publisherId: slot.publisherId,
-    creativeId: creative.creativeId,
-    campaignId: creative.campaignId,
-    advertiserId: '', // populated in batch aggregation
-    country,
-    visitorToken: token,
-    ts: Date.now(),
-  });
+  // Impression is counted when the pixel fires (impression.ts), not here.
 
   c.header('Set-Cookie', setCookieHeader(token));
   c.header('Cache-Control', 'private, no-store');

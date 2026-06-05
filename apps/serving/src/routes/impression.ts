@@ -83,6 +83,19 @@ impressionRoute.get('/', async (c) => {
     const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
 
     if (slot && creative) {
+      // Log the impression now — the pixel firing proves the ad was actually seen
+      void logEvent({
+        type: 'impression',
+        slotId,
+        publisherId: slot.publisherId,
+        creativeId,
+        campaignId: creative.campaignId,
+        advertiserId: '', // populated in batch aggregation
+        country: c.req.header('CF-IPCountry') ?? 'XX',
+        visitorToken: token,
+        ts: Date.now(),
+      });
+
       if (token) {
         void recordVisitorImpression(token, creativeId);
       }
