@@ -497,30 +497,27 @@ export default function AdvertiserDashboard() {
     );
   }
 
-  // Handle onboarding route separately to avoid AppShell wrapper formatting
+  if (!advertiser) {
+    return (
+      <Routes>
+        <Route path="onboarding" element={<AdvertiserOnboarding />} />
+        <Route path="*" element={<Navigate to="/advertiser/onboarding" replace />} />
+      </Routes>
+    );
+  }
+
   return (
-    <Routes>
-      <Route path="onboarding" element={<AdvertiserOnboarding />} />
-      <Route
-        path="*"
-        element={
-          !advertiser ? (
-            <Navigate to="/advertiser/onboarding" replace />
-          ) : (
-            <AppShell items={sidebarItems} title="Birtingur Auglýsandi">
-              <Routes>
-                <Route path="/" element={<AdvertiserHome />} />
-                <Route path="topup" element={<TopUp />} />
-                <Route path="campaigns" element={<CampaignList />} />
-                <Route path="campaigns/new" element={<CampaignCreate />} />
-                <Route path="campaigns/:id" element={<CampaignDetail />} />
-                <Route path="creatives" element={<CreativeLibrary />} />
-                <Route path="settings" element={<Settings />} />
-              </Routes>
-            </AppShell>
-          )
-        }
-      />
-    </Routes>
+    <AppShell items={sidebarItems} title="Birtingur Auglýsandi">
+      <Routes>
+        <Route path="/" element={<AdvertiserHome />} />
+        <Route path="topup" element={<TopUp />} />
+        <Route path="campaigns" element={<CampaignList />} />
+        <Route path="campaigns/new" element={<CampaignCreate />} />
+        <Route path="campaigns/:id" element={<CampaignDetail />} />
+        <Route path="creatives" element={<CreativeLibrary />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/advertiser" replace />} />
+      </Routes>
+    </AppShell>
   );
 }

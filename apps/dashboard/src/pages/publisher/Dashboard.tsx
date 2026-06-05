@@ -402,29 +402,27 @@ export default function PublisherDashboard() {
     );
   }
 
+  if (!publisher) {
+    return (
+      <Routes>
+        <Route path="onboarding" element={<PublisherOnboarding />} />
+        <Route path="*" element={<Navigate to="/publisher/onboarding" replace />} />
+      </Routes>
+    );
+  }
+
   return (
-    <Routes>
-      <Route path="onboarding" element={<PublisherOnboarding />} />
-      <Route
-        path="*"
-        element={
-          !publisher ? (
-            <Navigate to="/publisher/onboarding" replace />
-          ) : (
-            <AppShell items={sidebarItems} title="Birtingur Útgefandi">
-              <Routes>
-                <Route path="/" element={<PublisherHome />} />
-                <Route path="slots" element={<SlotList />} />
-                <Route path="slots/new" element={<SlotCreate />} />
-                <Route path="slots/:id" element={<SlotDetail />} />
-                <Route path="earnings" element={<Earnings />} />
-                <Route path="approvals" element={<ApprovalQueue />} />
-                <Route path="settings" element={<Settings />} />
-              </Routes>
-            </AppShell>
-          )
-        }
-      />
-    </Routes>
+    <AppShell items={sidebarItems} title="Birtingur Útgefandi">
+      <Routes>
+        <Route path="/" element={<PublisherHome />} />
+        <Route path="slots" element={<SlotList />} />
+        <Route path="slots/new" element={<SlotCreate />} />
+        <Route path="slots/:id" element={<SlotDetail />} />
+        <Route path="earnings" element={<Earnings />} />
+        <Route path="approvals" element={<ApprovalQueue />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/publisher" replace />} />
+      </Routes>
+    </AppShell>
   );
 }
