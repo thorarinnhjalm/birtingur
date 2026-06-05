@@ -391,6 +391,28 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task D3 — Gate demo-mock-token to non-production
+- **Status:** done
+- **Commit(s):** 6abba14459f8e62a60051cf79db8d836473277d0 fix(api): disable demo-mock-token in production (Task D3)
+- **Files changed:**
+  - apps/api/src/lib/auth.ts
+  - apps/api/tests/auth.test.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/auth.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/auth.test.ts  (8 tests) 5ms
+
+   Test Files  1 passed (1)
+        Tests  8 passed (8)
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
