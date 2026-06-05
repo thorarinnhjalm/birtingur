@@ -11,7 +11,7 @@ import { widgetsRouter } from '../src/routes/widgets.js';
 import { db } from '../src/lib/firebase.js';
 import { handleError } from '../src/lib/errors';
 
-// Mock getPublisherStats, listPublisherQueue, and getCampaignStats services
+// Mock getPublisherStats and getCampaignStats services
 vi.mock('../src/services/publisher-stats.js', () => ({
   getPublisherStats: async (id: string, timeframe: number) => ({
     impressions: 1000,
@@ -21,29 +21,6 @@ vi.mock('../src/services/publisher-stats.js', () => ({
   }),
 }));
 
-vi.mock('../src/services/approvals.js', () => ({
-  listPublisherQueue: async (id: string) => [
-    {
-      creative: {
-        id: 'creative_1',
-        imageUrl: 'img.jpg',
-        width: 300,
-        height: 250,
-        clickUrl: 'click.html',
-      },
-      campaign: {
-        id: 'camp_1',
-        name: 'Test Campaign',
-        advertiserId: 'adv_1',
-        budget: { mode: 'cpm_capped', totalIsk: 1000, remainingIsk: 1000 },
-      },
-    },
-  ],
-  publisherReview: async (id: string, opts: any) => ({
-    id: opts.campaignId,
-    status: opts.action === 'approve' ? 'active' : 'paused',
-  }),
-}));
 
 vi.mock('../src/services/campaign-stats.js', () => ({
   getCampaignStats: async (id: string) => ({
@@ -159,33 +136,6 @@ describe('Widget Keys Auth & Endpoints', () => {
     expect(body.error).toBe('FORBIDDEN');
   });
 
-  it('allows fetch and submission on pending approvals', async () => {
-    const record = await issueWidgetKey('pub@example.is', 'publisher', 'pub_123');
-
-    // 1. Fetch pending list
-    const resGet = await app.request('/v1/widgets/publisher/pending-approvals', {
-      headers: {
-        Authorization: `Bearer ${record.key}`,
-      },
-    });
-    expect(resGet.status).toBe(200);
-    const bodyGet = await resGet.json();
-    expect(bodyGet.items.length).toBe(1);
-    expect(bodyGet.items[0].campaignId).toBe('camp_1');
-
-    // 2. Submit approval
-    const resPost = await app.request('/v1/widgets/publisher/approvals/camp_1', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${record.key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ action: 'approve' }),
-    });
-    expect(resPost.status).toBe(200);
-    const bodyPost = await resPost.json();
-    expect(bodyPost.campaign.status).toBe('active');
-  });
 
   it('allows campaign stats access with campaign scoped key', async () => {
     const record = await issueWidgetKey('adv@example.is', 'campaign', 'camp_123');

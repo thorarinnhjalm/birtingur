@@ -25,7 +25,6 @@ import SlotCreate from './SlotCreate';
 import SlotList from './SlotList';
 import SlotDetail from './SlotDetail';
 import Earnings from './Earnings';
-import ApprovalQueue from './ApprovalQueue';
 import Settings from './Settings';
 import PublisherOnboarding from './Onboarding';
 
@@ -387,7 +386,6 @@ const sidebarItems = [
   { to: '/publisher', label: 'Yfirlit', icon: 'dashboard' },
   { to: '/publisher/slots', label: 'Auglýsingapláss', icon: 'grid_view' },
   { to: '/publisher/earnings', label: 'Tekjur', icon: 'payments' },
-  { to: '/publisher/approvals', label: 'Samþykktir', icon: 'check_circle' },
 ];
 
 export default function PublisherDashboard() {
@@ -426,7 +424,6 @@ export default function PublisherDashboard() {
         <Route path="slots/new" element={<SlotCreate />} />
         <Route path="slots/:id" element={<SlotDetail />} />
         <Route path="earnings" element={<Earnings />} />
-        <Route path="approvals" element={<ApprovalQueue />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/publisher" replace />} />
       </Routes>

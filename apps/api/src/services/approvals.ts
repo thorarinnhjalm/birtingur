@@ -105,22 +105,4 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
   }
 }
 
-export async function listPublisherQueue(
-  publisherId: string,
-): Promise<Array<{ creative: Creative; campaign: Campaign }>> {
-  return [];
-}
 
-const PublisherReviewSchema = z.object({
-  campaignId: z.string(),
-  action: z.enum(['approve', 'reject']),
-  reason: z.string().max(500).optional(),
-});
-export type PublisherReviewInput = z.infer<typeof PublisherReviewSchema>;
-
-export async function publisherReview(
-  publisherId: string,
-  input: PublisherReviewInput,
-): Promise<Campaign> {
-  throw new AppError(400, 'Publisher review is no longer supported', 'BAD_REQUEST');
-}
