@@ -12,7 +12,7 @@ adminEntitiesRoutes.use('/*', requireAuth, requireAdmin);
 
 adminEntitiesRoutes.get('/publishers', async (c) => {
   const snap = await db.collection(COLLECTIONS.publishers).withConverter(publisherConverter).get();
-  return c.json({ publishers: snap.docs.map((d) => d.data()) });
+  return c.json(snap.docs.map((d) => d.data()));
 });
 
 adminEntitiesRoutes.get('/advertisers', async (c) => {
@@ -20,12 +20,12 @@ adminEntitiesRoutes.get('/advertisers', async (c) => {
     .collection(COLLECTIONS.advertisers)
     .withConverter(advertiserConverter)
     .get();
-  return c.json({ advertisers: snap.docs.map((d) => d.data()) });
+  return c.json(snap.docs.map((d) => d.data()));
 });
 
 adminEntitiesRoutes.get('/slots', async (c) => {
   const slots = await listAllSlots();
-  return c.json({ slots });
+  return c.json(slots);
 });
 
 adminEntitiesRoutes.post('/publishers/:id/status', async (c) => {
@@ -35,7 +35,7 @@ adminEntitiesRoutes.post('/publishers/:id/status', async (c) => {
     return c.json({ error: 'Invalid status' }, 400);
   }
   const updated = await updatePublisherStatus(id, body.status);
-  return c.json({ publisher: updated });
+  return c.json(updated);
 });
 
 adminEntitiesRoutes.post('/advertisers/:id/status', async (c) => {
@@ -45,7 +45,7 @@ adminEntitiesRoutes.post('/advertisers/:id/status', async (c) => {
     return c.json({ error: 'Invalid status' }, 400);
   }
   const updated = await updateAdvertiserStatus(id, body.status);
-  return c.json({ advertiser: updated });
+  return c.json(updated);
 });
 
 adminEntitiesRoutes.post('/slots/:id/status', async (c) => {
@@ -55,5 +55,5 @@ adminEntitiesRoutes.post('/slots/:id/status', async (c) => {
     return c.json({ error: 'Invalid status' }, 400);
   }
   const updated = await updateSlotStatus(id, body.status);
-  return c.json({ slot: updated });
+  return c.json(updated);
 });

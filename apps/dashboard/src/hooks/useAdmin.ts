@@ -6,10 +6,7 @@ import type { Publisher, Advertiser, Slot } from '@ada/shared';
 export function useAdminPublishers() {
   return useQuery({
     queryKey: ['admin', 'publishers'],
-    queryFn: () =>
-      apiFetch<{ publishers: Publisher[] }>('/v1/admin/entities/publishers').then(
-        (r) => r.publishers,
-      ),
+    queryFn: () => apiFetch<Publisher[]>('/v1/admin/entities/publishers'),
   });
 }
 
@@ -17,10 +14,7 @@ export function useAdminPublishers() {
 export function useAdminAdvertisers() {
   return useQuery({
     queryKey: ['admin', 'advertisers'],
-    queryFn: () =>
-      apiFetch<{ advertisers: Advertiser[] }>('/v1/admin/entities/advertisers').then(
-        (r) => r.advertisers,
-      ),
+    queryFn: () => apiFetch<Advertiser[]>('/v1/admin/entities/advertisers'),
   });
 }
 
@@ -28,7 +22,7 @@ export function useAdminAdvertisers() {
 export function useAdminSlots() {
   return useQuery({
     queryKey: ['admin', 'slots'],
-    queryFn: () => apiFetch<{ slots: Slot[] }>('/v1/admin/entities/slots').then((r) => r.slots),
+    queryFn: () => apiFetch<Slot[]>('/v1/admin/entities/slots'),
   });
 }
 

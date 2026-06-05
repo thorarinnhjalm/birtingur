@@ -49,12 +49,10 @@ interface AdminStats {
 
 // 1. Admin Home (Overview metrics)
 function Home() {
-  const { data, isLoading } = useQuery<{ stats: AdminStats }>({
+  const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ['admin', 'stats'],
-    queryFn: () => apiFetch<{ stats: AdminStats }>('/v1/admin/stats'),
+    queryFn: () => apiFetch<AdminStats>('/v1/admin/stats'),
   });
-
-  const stats = data?.stats;
 
   return (
     <div className="space-y-8">

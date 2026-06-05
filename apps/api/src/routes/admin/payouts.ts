@@ -12,7 +12,7 @@ adminPayoutsRoutes.use('/*', requireAuth, requireAdmin);
 
 adminPayoutsRoutes.get('/pending', async (c) => {
   const items = await listPendingPayouts();
-  return c.json({ payouts: items });
+  return c.json(items);
 });
 
 adminPayoutsRoutes.post('/generate', async (c) => {
@@ -33,5 +33,5 @@ adminPayoutsRoutes.post('/:id/mark-completed', async (c) => {
   const id = c.req.param('id');
   const body = (await c.req.json()) as { bankReference: string };
   const updated = await markPayoutCompleted(id, body.bankReference);
-  return c.json({ payout: updated });
+  return c.json(updated);
 });

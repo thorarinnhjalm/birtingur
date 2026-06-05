@@ -17,7 +17,7 @@ adminRoutes.route('/entities', adminEntitiesRoutes);
 
 adminRoutes.get('/stats', async (c) => {
   const stats = await getAdminStats();
-  return c.json({ stats });
+  return c.json(stats);
 });
 
 adminRoutes.get('/diagnostics', async (c) => {

@@ -275,7 +275,7 @@ describe('E2E Approval Flow Routes', () => {
       }),
     });
     expect(creRes.status).toBe(201);
-    const { creative } = await creRes.json();
+    const creative = await creRes.json();
     expect(creative.reviewStatus).toBe('pending');
 
     // 3. Admin retrieves the review queue
@@ -286,8 +286,8 @@ describe('E2E Approval Flow Routes', () => {
       },
     });
     expect(queueRes.status).toBe(200);
-    const queueBody = await queueRes.json();
-    expect(queueBody.queue.map((c: any) => c.id)).toContain(creative.id);
+    const queue = await queueRes.json();
+    expect(queue.map((c: any) => c.id)).toContain(creative.id);
 
     // 4. Admin approves the creative
     const approveRes = await app.request(`/v1/admin/review-queue/${creative.id}`, {
@@ -302,7 +302,7 @@ describe('E2E Approval Flow Routes', () => {
     });
     expect(approveRes.status).toBe(200);
     const approvedCreative = await approveRes.json();
-    expect(approvedCreative.creative.reviewStatus).toBe('manual_approved');
-    expect(approvedCreative.creative.reviewLog.at(-1).action).toBe('approved');
+    expect(approvedCreative.reviewStatus).toBe('manual_approved');
+    expect(approvedCreative.reviewLog.at(-1).action).toBe('approved');
   });
 });
