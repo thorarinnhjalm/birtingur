@@ -1,17 +1,20 @@
 {
-  "cleanUrls": true,
-  "routes": [
+  "rewrites": [
+    { "source": "/vibers", "destination": "/index.html" },
+    { "source": "/((?!assets/|favicon.svg|favicon.ico).*)", "destination": "/index.html" }
+  ],
+  "headers": [
     {
-      "src": "/assets/(.*)",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" },
-      "continue": true
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
     },
     {
-      "src": "/vibers",
-      "headers": { "X-Robots-Tag": "noindex, nofollow" },
-      "continue": true
-    },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+      "source": "/vibers",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
   ]
 }
