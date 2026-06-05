@@ -363,6 +363,34 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task D1 — Single Redis-config helper
+- **Status:** done
+- **Commit(s):** 57c5202ddcd516cbcc2067b8f3b6b85846d07982 refactor(api): single isRedisConfigured() helper (Task D1)
+- **Files changed:**
+  - apps/api/src/lib/redis.ts
+  - apps/api/src/services/approvals.ts
+  - apps/api/src/services/campaigns.ts
+  - apps/api/src/services/slots.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/wallet.test.ts tests/cache-refresh.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/wallet.test.ts  (7 tests) 7ms
+   ✓ tests/cache-refresh.test.ts  (1 test) 1ms
+
+   Test Files  2 passed (2)
+        Tests  8 passed (8)
+
+  $ npx pnpm --filter @ada/api typecheck
+  @ada/api@0.0.0 typecheck: tsc --noEmit
+  ```
+- **Deviations from plan:** Added `apps/api/src/services/approvals.ts` to replace an additional inline env check `if (process.env.UPSTASH_REDIS_REST_URL)` with `if (isRedisConfigured())`.
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
