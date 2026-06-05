@@ -46,7 +46,6 @@ interface MockCampaign {
     remainingIsk: number;
   };
   status: string;
-  perPublisherApproval: Record<string, string>;
 }
 
 interface MockPublisher {

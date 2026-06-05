@@ -167,6 +167,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -192,6 +193,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: ['Gambling'] },
     };
 
@@ -200,13 +202,12 @@ describe('pushSlotCache helper', () => {
         id: 'camp_1',
         status: 'active',
         creativeIds: ['creative_approved', 'creative_blocked'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 1000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 
@@ -251,6 +252,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -259,13 +261,12 @@ describe('pushSlotCache helper', () => {
         id: 'camp_1',
         status: 'active',
         creativeIds: ['creative_right_size', 'creative_wrong_size'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 1000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 
@@ -307,6 +308,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -315,25 +317,23 @@ describe('pushSlotCache helper', () => {
         id: 'camp_no_budget',
         status: 'active',
         creativeIds: ['creative_approved'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 0, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
       {
         id: 'camp_expired',
         status: 'active',
         creativeIds: ['creative_approved'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 500, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 20000),
           endsAt: new Date(Date.now() - 1000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 
@@ -366,6 +366,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -375,26 +376,24 @@ describe('pushSlotCache helper', () => {
         advertiserId: 'adv_1',
         status: 'active',
         creativeIds: ['creative_cpm'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 5000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
       {
         id: 'camp_sponsor',
         advertiserId: 'adv_1',
         status: 'active',
         creativeIds: ['creative_sponsor'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 1000, mode: 'slot_purchased' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 
@@ -437,6 +436,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -446,26 +446,24 @@ describe('pushSlotCache helper', () => {
         advertiserId: 'adv_1',
         status: 'active',
         creativeIds: ['creative_low'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 1000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
       {
         id: 'camp_high_budget',
         advertiserId: 'adv_1',
         status: 'active',
         creativeIds: ['creative_high'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 9000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 
@@ -508,6 +506,7 @@ describe('pushSlotCache helper', () => {
     mockState.publisher = {
       id: 'pub_123',
       status: 'active',
+      categories: ['taekni'],
       contentPolicy: { blockedCategories: [] },
     };
 
@@ -517,13 +516,12 @@ describe('pushSlotCache helper', () => {
         advertiserId: 'adv_1',
         status: 'active',
         creativeIds: ['creative_first', 'creative_second'],
-        perPublisherApproval: { pub_123: 'approved' },
         budget: { remainingIsk: 5000, mode: 'cpm_capped' },
         schedule: {
           startsAt: new Date(Date.now() - 10000),
           endsAt: new Date(Date.now() + 10000),
         },
-        targeting: { slotIds: ['slot_123'] },
+        targeting: { categories: ['taekni'] },
       },
     ];
 

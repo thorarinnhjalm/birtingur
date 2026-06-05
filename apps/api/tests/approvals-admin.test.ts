@@ -35,7 +35,6 @@ interface MockCampaign {
   schedule: { startsAt: Date; endsAt: Date };
   budget: { mode: 'cpm_capped' | 'slot_purchased'; totalIsk: number; remainingIsk: number };
   status: string;
-  perPublisherApproval: Record<string, string>;
 }
 
 let mockCreatives: MockCreative[] = [];
