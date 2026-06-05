@@ -154,7 +154,7 @@ export default function Vibers() {
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
             Hæ Árni og Villi! 👋
-            <span className="block mt-3 bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="block mt-3 bg-linear-to-r from-blue-600 via-sky-600 to-indigo-600 bg-clip-text text-transparent">
               Sleppum tæknirúnkinu
             </span>
           </h1>
@@ -314,7 +314,7 @@ export default function Vibers() {
         </section>
 
         {/* AGENCY & PARTNERSHIP PROPOSAL */}
-        <section className="bg-gradient-to-br from-blue-600 to-indigo-750 text-white rounded-3xl p-8 sm:p-12 space-y-6 shadow-lg shadow-blue-500/10">
+        <section className="bg-linear-to-br from-blue-600 to-indigo-750 text-white rounded-3xl p-8 sm:p-12 space-y-6 shadow-lg shadow-blue-500/10">
           <div className="space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-blue-200 bg-white/10 px-3.5 py-1 rounded-full w-fit">
               Samstarf fyrir vefstofur

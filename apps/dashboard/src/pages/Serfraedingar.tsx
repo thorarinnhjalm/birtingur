@@ -138,7 +138,7 @@ export default function Serfraedingar() {
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
             Hæ Auður og Eydís! 👋
-            <span className="block mt-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-650 bg-clip-text text-transparent">
+            <span className="block mt-3 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-650 bg-clip-text text-transparent">
               Viðbót sem vantaði
             </span>
           </h1>
@@ -256,7 +256,7 @@ export default function Serfraedingar() {
         </section>
 
         {/* STATS & IMPACT FOR AGENCY PARTNERS */}
-        <section className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-8 sm:p-12 space-y-8 shadow-xl relative overflow-hidden">
+        <section className="bg-linear-to-br from-indigo-900 via-indigo-950 to-purple-950 text-white rounded-3xl p-8 sm:p-12 space-y-8 shadow-xl relative overflow-hidden">
           {/* Ambient light element inside the card */}
           <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-blue-500/10 blur-[90px] pointer-events-none -z-10" />
 
