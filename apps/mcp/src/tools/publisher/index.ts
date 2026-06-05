@@ -7,9 +7,6 @@ import { registerGetSnippet } from './get-snippet.js';
 import { registerGetReactComponent } from './get-react-component.js';
 import { registerGetStats } from './get-stats.js';
 import { registerSetContentPolicy } from './set-content-policy.js';
-import { registerPendingApprovals } from './pending-approvals.js';
-import { registerApproveCreative } from './approve-creative.js';
-import { registerRejectCreative } from './reject-creative.js';
 import { registerGetChangelog } from './get-changelog.js';
 
 export function registerPublisherTools(server: McpServer, apiKey: string) {
@@ -21,8 +18,5 @@ export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerGetReactComponent(server);
   registerGetStats(server, apiKey);
   registerSetContentPolicy(server, apiKey);
-  registerPendingApprovals(server, apiKey);
-  registerApproveCreative(server, apiKey);
-  registerRejectCreative(server, apiKey);
   registerGetChangelog(server);
 }

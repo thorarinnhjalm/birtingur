@@ -429,6 +429,44 @@ were blocked, set the status accordingly and write the reason + your question, t
 ---
 
 
+## Claude Review — Phase 1 (2026-06-05)
+
+Reviewed all entries against the plan + ran an independent verification pass
+(typecheck on all 5 packages = OK; shared + serving-mocked tests = green; could not
+run the api/serving emulator suites locally — no Java — so I relied on Gemini's pasted
+emulator output for those, which looks consistent).
+
+- **A1 (taekni default removed):** ✅ approved. Correct; shared tests green.
+- **A2 (migration):** ✅ approved. Output flagged 2 demo campaigns as INVALID
+  (`camp_demo_id`, `camp_pending_demo`) — current `seed.ts` already sets categories, so
+  **reseed the demo data** and they're fixed. Action: reseed.
+- **A3 (remove per-publisher approval):** ⚠️ approved WITH a fix. The deviation (also
+  removing `/v1/publishers/me/pending-approvals` + `/approvals/:id` from `widgets.ts`) was
+  correct — BUT it left **three orphaned MCP publisher tools** calling the deleted
+  endpoints (`pending-approvals`, `approve-creative`, `reject-creative`) → 404 at runtime.
+  typecheck doesn't catch it (HTTP forwarders). **Claude fixed this:** removed the three
+  tools + their registration in `apps/mcp/src/tools/publisher/index.ts`. mcp typecheck OK,
+  no dangling refs. (Same miss-class as the earlier MCP `create_campaign` gap — Gemini
+  should grep the MCP surface whenever an API endpoint is removed.)
+- **A4 (purge perPublisherApproval from fixtures):** ✅ approved. 19 api tests green.
+- **B1 (split TTL constants):** ✅ approved.
+- **B2 (cache-refresh cron):** ✅ approved. Deviation (mocking Firestore so the test runs
+  without Java) is reasonable for a unit test of the loop.
+- **C1/C2 (bare response envelope):** ✅ approved. Verified no route/hook mismatch remains;
+  the two still-wrapped responses (`/admin/payouts/generate` → `{created}`, wallet topup
+  → `{checkoutUrl,sessionId}`) are scalar results with matching hooks — fine to leave.
+- **D1 (isRedisConfigured):** ✅ approved.
+- **D3 (gate demo-mock-token in prod):** ✅ approved.
+- **D2 (signing-secret fail-fast):** ⏸️ correctly **blocked**. Cannot be verified from code —
+  needs operator confirmation that `SIGNING_SECRET` is set for **Production** in the serving
+  Vercel project, and a redeploy, BEFORE enabling fail-fast (otherwise serving crashes on
+  cold start). Do not unblock until confirmed.
+
+**Net:** Phase 1 is sound. One real regression found and fixed (orphaned MCP tools);
+two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET then finish D2.
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
