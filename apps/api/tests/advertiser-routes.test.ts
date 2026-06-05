@@ -279,8 +279,8 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.creative.id).toMatch(/^crt_[a-f0-9]{24}$/);
-      expect(body.creative.reviewStatus).toBe('auto_approved');
+      expect(body.id).toMatch(/^crt_[a-f0-9]{24}$/);
+      expect(body.reviewStatus).toBe('auto_approved');
     });
   });
 
@@ -380,8 +380,8 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.creatives).toHaveLength(1);
-      expect(body.creatives[0].id).toBe('crt_123');
+      expect(body).toHaveLength(1);
+      expect(body[0].id).toBe('crt_123');
     });
   });
 
@@ -414,7 +414,7 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.creative.id).toBe('crt_123');
+      expect(body.id).toBe('crt_123');
     });
   });
 

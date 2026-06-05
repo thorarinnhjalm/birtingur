@@ -88,7 +88,7 @@ export default function CampaignCreate() {
 
     setScanning(true);
     try {
-      const res = await apiFetch<{ creative: Creative }>('/v1/creatives', {
+      const res = await apiFetch<Creative>('/v1/creatives', {
         method: 'POST',
         body: JSON.stringify({
           imageUrl,
@@ -98,7 +98,7 @@ export default function CampaignCreate() {
           ocrTextHint: ocrTextHint || undefined,
         }),
       });
-      setCreative(res.creative);
+      setCreative(res);
       setStep(3);
     } catch (err: any) {
       setError(err.message || 'Ekki tókst að skanna eða skrá auglýsingaefnið.');

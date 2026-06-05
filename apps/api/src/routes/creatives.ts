@@ -18,7 +18,7 @@ creativesRouter.post('/', async (c) => {
   }
   const body = await c.req.json();
   const cre = await createCreative(adv.id, body, scanner);
-  return c.json({ creative: cre }, 201);
+  return c.json(cre, 201);
 });
 
 creativesRouter.get('/', async (c) => {
@@ -28,7 +28,7 @@ creativesRouter.get('/', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const list = await listCreativesForAdvertiser(adv.id);
-  return c.json({ creatives: list });
+  return c.json(list);
 });
 
 creativesRouter.get('/:id', async (c) => {
@@ -44,5 +44,5 @@ creativesRouter.get('/:id', async (c) => {
   if (cre.advertiserId !== adv.id) {
     throw new AppError(403, 'Forbidden', 'FORBIDDEN');
   }
-  return c.json({ creative: cre });
+  return c.json(cre);
 });

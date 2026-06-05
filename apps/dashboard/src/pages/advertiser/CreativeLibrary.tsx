@@ -30,7 +30,7 @@ export default function CreativeLibrary() {
     refetch,
   } = useQuery({
     queryKey: ['creatives'],
-    queryFn: () => apiFetch<{ creatives: Creative[] }>('/v1/creatives').then((r) => r.creatives),
+    queryFn: () => apiFetch<Creative[]>('/v1/creatives'),
   });
 
   // Create Creative Mutation
@@ -42,7 +42,7 @@ export default function CreativeLibrary() {
       clickUrl: string;
       ocrTextHint?: string;
     }) =>
-      apiFetch<{ creative: Creative }>('/v1/creatives', {
+      apiFetch<Creative>('/v1/creatives', {
         method: 'POST',
         body: JSON.stringify(input),
       }),

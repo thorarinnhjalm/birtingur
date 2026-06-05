@@ -381,7 +381,7 @@ describe('End-to-End Smoke Test', () => {
       }),
     });
     expect(creRes.status).toBe(201);
-    const { creative } = await creRes.json();
+    const creative = await creRes.json();
     expect(creative.reviewStatus).toBe('auto_approved');
 
     // 6. Create Campaign (active since slot does not require manual approval and creative is auto-approved)

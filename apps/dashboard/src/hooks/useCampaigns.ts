@@ -63,7 +63,7 @@ export function useCreateCampaign() {
 export function useCreative(id: string | undefined) {
   return useQuery({
     queryKey: ['creatives', id],
-    queryFn: () => apiFetch<{ creative: Creative }>(`/v1/creatives/${id}`).then((r) => r.creative),
+    queryFn: () => apiFetch<Creative>(`/v1/creatives/${id}`),
     enabled: !!id,
   });
 }
