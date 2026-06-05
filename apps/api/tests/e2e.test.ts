@@ -341,7 +341,7 @@ describe('End-to-End Smoke Test', () => {
       }),
     });
     expect(advRes.status).toBe(201);
-    const { advertiser } = await advRes.json();
+    const advertiser = await advRes.json();
 
     // 4. Top up via Webhook
     const webhookBody = JSON.stringify({

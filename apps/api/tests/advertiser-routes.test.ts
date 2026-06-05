@@ -214,8 +214,8 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.advertiser.companyName).toBe('Blóm og lauf');
-      expect(body.advertiser.walletBalanceIsk).toBe(0);
+      expect(body.companyName).toBe('Blóm og lauf');
+      expect(body.walletBalanceIsk).toBe(0);
     });
   });
 
@@ -238,7 +238,7 @@ describe('Advertiser HTTP Routes', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.advertiser.id).toBe('adv_123');
+      expect(body.id).toBe('adv_123');
     });
 
     it('returns 404 if profile is missing', async () => {

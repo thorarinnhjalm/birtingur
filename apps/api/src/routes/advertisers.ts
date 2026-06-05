@@ -11,7 +11,7 @@ advertisersRouter.post('/', async (c) => {
   const user = c.get('user');
   const body = await c.req.json();
   const adv = await createAdvertiser({ ownerEmail: user.email, ...body });
-  return c.json({ advertiser: adv }, 201);
+  return c.json(adv, 201);
 });
 
 advertisersRouter.get('/me', async (c) => {
@@ -20,7 +20,7 @@ advertisersRouter.get('/me', async (c) => {
   if (!adv) {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
-  return c.json({ advertiser: adv });
+  return c.json(adv);
 });
 
 advertisersRouter.get('/me/stats', async (c) => {

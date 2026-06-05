@@ -6,7 +6,7 @@ export function useAdvertiser() {
   return useQuery({
     queryKey: ['advertiser', 'me'],
     queryFn: () =>
-      apiFetch<{ advertiser: Advertiser }>('/v1/advertisers/me').then((r) => r.advertiser),
+      apiFetch<Advertiser>('/v1/advertisers/me'),
     retry: false, // Don't retry since 404 means we need onboarding
   });
 }
@@ -21,7 +21,7 @@ export function useCreateAdvertiser() {
       billingEmail: string;
       websiteUrl?: string;
     }) =>
-      apiFetch<{ advertiser: Advertiser }>('/v1/advertisers', {
+      apiFetch<Advertiser>('/v1/advertisers', {
         method: 'POST',
         body: JSON.stringify(input),
       }),
