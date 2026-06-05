@@ -330,6 +330,39 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task C2/admin — Bare response envelope for admin endpoints
+- **Status:** done
+- **Commit(s):** bce15b44dd75ed3233897505cd13d16009bbe531 refactor(api+dashboard): bare response envelope for admin endpoints (Task C2/admin)
+- **Files changed:**
+  - apps/api/src/routes/admin/entities.ts
+  - apps/api/src/routes/admin/index.ts
+  - apps/api/src/routes/admin/payouts.ts
+  - apps/api/src/routes/admin/review.ts
+  - apps/api/tests/approval-flow.test.ts
+  - apps/dashboard/src/hooks/useAdmin.ts
+  - apps/dashboard/src/hooks/useReviewQueue.ts
+  - apps/dashboard/src/pages/admin/Overview.tsx
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/approval-flow.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/approval-flow.test.ts  (1 test) 9ms
+
+   Test Files  1 passed (1)
+        Tests  1 passed (1)
+
+  $ npx pnpm --filter @ada/api typecheck && npx pnpm --filter @ada/dashboard build
+  @ada/api@0.0.0 typecheck: tsc --noEmit
+  @ada/dashboard@0.0.0 build: pnpm --filter @ada/shared build && tsc -b && vite build
+  built in 1.94s
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
