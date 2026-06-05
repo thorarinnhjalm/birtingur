@@ -60,6 +60,47 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task A3 — Remove the orphaned per-publisher approval flow
+- **Status:** deviated
+- **Commit(s):** 8a616bc refactor: remove orphaned per-publisher approval flow (Task A3)
+- **Files changed:**
+  - apps/api/src/index.ts
+  - apps/api/src/routes/publisher-approvals.ts
+  - apps/api/src/routes/widgets.ts
+  - apps/api/src/services/approvals.ts
+  - apps/api/tests/widget-keys.test.ts
+  - apps/dashboard/src/pages/publisher/ApprovalQueue.tsx
+  - apps/dashboard/src/pages/publisher/Dashboard.tsx
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/widget-keys.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/widget-keys.test.ts  (5 tests) 5ms
+
+   Test Files  1 passed (1)
+        Tests  5 passed (5)
+     Start at  13:39:53
+     Duration  135ms (transform 28ms, setup 0ms, collect 37ms, tests 5ms, environment 0ms, prepare 36ms)
+
+  $ npx pnpm --filter @ada/dashboard build
+  vite v5.4.21 building for production...
+  transforming...
+  ✓ 2455 modules transformed.
+  rendering chunks...
+  computing gzip size...
+  dist/index.html                     1.17 kB │ gzip:   0.63 kB
+  dist/assets/index-m3qM-rwp.css     80.65 kB │ gzip:  12.77 kB
+  dist/assets/index-17B1n1dg.js   1,241.36 kB │ gzip: 323.27 kB
+  ✓ built in 2.00s
+  ```
+- **Deviations from plan:** Removed `/publisher/pending-approvals` and `/publisher/approvals/:campaignId` endpoints from `apps/api/src/routes/widgets.ts` and updated mock mappings and assertions in `apps/api/tests/widget-keys.test.ts` because these endpoints and their corresponding tests became obsolete with the deletion of publisher approvals.
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
+
 ## Entry template (copy for each task)
 
 ```markdown
