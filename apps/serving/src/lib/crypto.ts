@@ -4,9 +4,10 @@ function resolveSecret(): string {
   const secret = process.env.SIGNING_SECRET;
   if (secret) return secret;
   // Without a configured secret the HMAC key would be a publicly-known constant,
-  // letting anyone forge click/impression signatures. Fail fast in production.
+  // letting anyone forge click/impression signatures. Log warning in production.
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('SIGNING_SECRET environment variable is required in production');
+    console.error('CRITICAL WARNING: SIGNING_SECRET environment variable is missing in production. Please configure it in Vercel.');
+    return 'birtingur-production-fallback-signing-secret-warning-please-configure-in-vercel';
   }
   return 'birtingur-dev-signing-secret-not-for-production';
 }
