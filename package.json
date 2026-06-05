@@ -11,6 +11,8 @@
     "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "verify": "pnpm format:check && pnpm typecheck && pnpm lint",
+    "prepare": "git config core.hooksPath .githooks || true",
     "emulator": "firebase --config firebase/firebase.json emulators:start",
     "test:rules": "firebase --config firebase/firebase.json emulators:exec --only firestore 'npx pnpm --filter @ada/firebase-tests test'",
     "test:api": "firebase --config firebase/firebase.json emulators:exec --only firestore 'npx pnpm --filter @ada/api test'"
