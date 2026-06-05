@@ -7,6 +7,7 @@ import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { generateSnippet } from '../lib/snippet.js';
 import { pushSlotCache } from '../lib/push-cache.js';
+import { isRedisConfigured } from '../lib/redis.js';
 
 export async function createSlot(input: {
   publisherId: string;
@@ -50,7 +51,7 @@ export async function createSlot(input: {
 
   await db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter).set(validated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
+  if (isRedisConfigured()) {
     await pushSlotCache(id);
   }
 
@@ -113,7 +114,7 @@ export async function updateSlot(
 
   await slotRef.set(validated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
+  if (isRedisConfigured()) {
     await pushSlotCache(id);
   }
 
@@ -173,7 +174,7 @@ export async function updateSlotStatus(slotId: string, status: 'active' | 'pause
   const updated = SlotSchema.parse({ ...current, status });
   await slotRef.set(updated);
 
-  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
+  if (isRedisConfigured()) {
     await pushSlotCache(slotId);
   }
 

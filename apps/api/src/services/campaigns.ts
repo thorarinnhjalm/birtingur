@@ -7,6 +7,7 @@ import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { getCreative } from './creatives.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
+import { isRedisConfigured } from '../lib/redis.js';
 
 const CreateCampaignInputSchema = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -67,7 +68,7 @@ export async function createCampaign(
     .withConverter(campaignConverter)
     .set(campaign);
 
-  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
+  if (isRedisConfigured()) {
     await pushCacheForCampaign(campaign.id);
   }
 
@@ -119,7 +120,7 @@ export async function updateCampaign(
   const next: Campaign = CampaignSchema.parse({ ...existing, ...parsed });
   await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).set(next);
 
-  if (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) {
+  if (isRedisConfigured()) {
     await pushCacheForCampaign(id);
   }
 

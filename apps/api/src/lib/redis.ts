@@ -13,6 +13,13 @@ export function getRedis(): Redis {
   return _redis;
 }
 
+export function isRedisConfigured(): boolean {
+  return Boolean(
+    (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL) &&
+    (process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN),
+  );
+}
+
 /** In-memory shim used by tests; replaces the real client via setRedis(). */
 export function setRedis(client: Redis) {
   _redis = client;

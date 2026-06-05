@@ -6,6 +6,7 @@ import { AppError } from '../lib/errors.js';
 import { updateCreativeReview, requireCreative } from './creatives.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { refundCampaign } from './wallet.js';
+import { isRedisConfigured } from '../lib/redis.js';
 
 export async function listAdminQueue(limit = 50): Promise<Creative[]> {
   const snap = await db
@@ -99,7 +100,7 @@ async function propagateCreativeChange(creativeId: string, approved: boolean): P
         .set(cmp);
     }
 
-    if (process.env.UPSTASH_REDIS_REST_URL) {
+    if (isRedisConfigured()) {
       await pushCacheForCampaign(cmp.id);
     }
   }
