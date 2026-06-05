@@ -100,6 +100,34 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task A4 — Purge perPublisherApproval from test fixtures
+- **Status:** done
+- **Commit(s):** 706ac17 test(api): drop perPublisherApproval, align fixtures with category schema (Task A4)
+- **Files changed:**
+  - apps/api/tests/approvals-admin.test.ts
+  - apps/api/tests/e2e.test.ts
+  - apps/api/tests/push-cache.test.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/push-cache.test.ts tests/e2e.test.ts tests/campaigns.test.ts tests/approvals-admin.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/push-cache.test.ts  (11 tests) 6ms
+   ✓ tests/e2e.test.ts  (1 test) 11ms
+   ✓ tests/approvals-admin.test.ts  (3 tests) 3ms
+   ✓ tests/campaigns.test.ts  (4 tests) 3ms
+
+   Test Files  4 passed (4)
+        Tests  19 passed (19)
+     Start at  13:40:52
+     Duration  832ms (transform 112ms, setup 0ms, collect 522ms, tests 23ms, environment 0ms, prepare 107ms)
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
