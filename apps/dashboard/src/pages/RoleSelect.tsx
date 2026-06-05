@@ -25,8 +25,10 @@ export default function RoleSelect() {
     const hasPublisher = !!publisherQuery.data;
 
     if (hasAdvertiser && !hasPublisher) {
+      localStorage.setItem('ada_last_role', 'advertiser');
       navigate('/advertiser', { replace: true });
     } else if (hasPublisher && !hasAdvertiser) {
+      localStorage.setItem('ada_last_role', 'publisher');
       navigate('/publisher', { replace: true });
     }
   }, [
@@ -49,6 +51,7 @@ export default function RoleSelect() {
   }
 
   const handleAdvertiserSelect = () => {
+    localStorage.setItem('ada_last_role', 'advertiser');
     // If advertiser profile already exists, go to home, else onboarding
     if (advertiserQuery.data) {
       navigate('/advertiser');
@@ -58,6 +61,7 @@ export default function RoleSelect() {
   };
 
   const handlePublisherSelect = () => {
+    localStorage.setItem('ada_last_role', 'publisher');
     // If publisher profile already exists, go to home, else onboarding
     if (publisherQuery.data) {
       navigate('/publisher');

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -391,6 +392,12 @@ const sidebarItems = [
 
 export default function PublisherDashboard() {
   const { data: publisher, isLoading } = usePublisher();
+
+  useEffect(() => {
+    if (publisher) {
+      localStorage.setItem('ada_last_role', 'publisher');
+    }
+  }, [publisher]);
 
   if (isLoading) {
     return (

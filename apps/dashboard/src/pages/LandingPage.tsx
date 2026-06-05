@@ -28,6 +28,17 @@ export default function LandingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleMinarSidur = () => {
+    const lastRole = localStorage.getItem('ada_last_role');
+    if (lastRole === 'advertiser') {
+      navigate('/advertiser');
+    } else if (lastRole === 'publisher') {
+      navigate('/publisher');
+    } else {
+      navigate('/role');
+    }
+  };
+
   // State for Sandbox Widget Demo
   const [sandboxSize, setSandboxSize] = useState<'300x250' | '728' | '970'>('300x250');
 
@@ -106,7 +117,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             {user ? (
               <button
-                onClick={() => navigate('/role')}
+                onClick={handleMinarSidur}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
               >
                 Mínar síður <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -173,7 +184,7 @@ export default function LandingPage() {
             <div className="pt-4 border-t border-slate-200/80 flex flex-col gap-3">
               {user ? (
                 <button
-                  onClick={() => navigate('/role')}
+                  onClick={handleMinarSidur}
                   className="w-full text-center py-3 rounded-xl bg-blue-600 font-bold text-white shadow-lg"
                 >
                   Mínar síður

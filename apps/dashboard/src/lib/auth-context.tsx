@@ -81,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     localStorage.removeItem('ada_mock_user');
+    localStorage.removeItem('ada_last_role');
     setUser(null);
     setAdmin(false);
     await fbSignOut(auth);

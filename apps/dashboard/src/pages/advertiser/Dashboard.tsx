@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import {
   Megaphone,
@@ -486,6 +487,12 @@ const sidebarItems = [
 
 export default function AdvertiserDashboard() {
   const { data: advertiser, isLoading } = useAdvertiser();
+
+  useEffect(() => {
+    if (advertiser) {
+      localStorage.setItem('ada_last_role', 'advertiser');
+    }
+  }, [advertiser]);
 
   if (isLoading) {
     return (

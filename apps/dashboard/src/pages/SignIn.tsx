@@ -15,12 +15,23 @@ export default function SignIn() {
   const navigate = useNavigate();
   const { signInDemo } = useAuth();
 
+  function handleSuccessRedirect() {
+    const lastRole = localStorage.getItem('ada_last_role');
+    if (lastRole === 'advertiser') {
+      navigate('/advertiser');
+    } else if (lastRole === 'publisher') {
+      navigate('/publisher');
+    } else {
+      navigate('/role');
+    }
+  }
+
   async function handleGoogle() {
     setError(null);
     setLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
-      navigate('/role');
+      handleSuccessRedirect();
     } catch (e: any) {
       setError(e.message || 'Innskráning með Google mistókst');
     } finally {
@@ -39,7 +50,7 @@ export default function SignIn() {
     ) {
       try {
         signInDemo('DemoA');
-        navigate('/role');
+        handleSuccessRedirect();
         return;
       } catch (err: any) {
         setError('Innskráning á prufuaðgang mistókst.');
@@ -51,7 +62,7 @@ export default function SignIn() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/role');
+      handleSuccessRedirect();
     } catch (err: any) {
       setError('Innskráning mistókst. Vinsamlegast athugaðu netfang og lykilorð.');
     } finally {
