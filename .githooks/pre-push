@@ -2,10 +2,11 @@
 # Pre-push quality gate — catches what CI would reject, before it leaves your machine.
 # Mirrors the CI checks: prettier format, typecheck, eslint.
 echo "▶ Pre-push checks: format:check + typecheck + lint ..."
-if ! pnpm verify; then
+if ! npx pnpm verify; then
   echo ""
-  echo "✗ Pre-push checks failed. Fix above (tip: 'pnpm format' fixes formatting), then push again."
+  echo "✗ Pre-push checks failed. Fix above (tip: 'npx pnpm format' fixes formatting), then push again."
   echo "  To bypass in an emergency: git push --no-verify"
   exit 1
 fi
 echo "✓ All quality checks passed."
+

@@ -343,19 +343,25 @@ export default function CampaignDetail() {
               {/* Creative-level stats */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Birtingar</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Birtingar
+                  </div>
                   <div className="text-lg font-extrabold text-slate-900 mt-0.5">
                     {creativeStats?.impressions?.toLocaleString('is-IS') ?? '—'}
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Smellir</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Smellir
+                  </div>
                   <div className="text-lg font-extrabold text-slate-900 mt-0.5">
                     {creativeStats?.clicks?.toLocaleString('is-IS') ?? '—'}
                   </div>
                 </div>
                 <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">CTR</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    CTR
+                  </div>
                   <div className="text-lg font-extrabold text-slate-900 mt-0.5">
                     {creativeStats?.ctr != null
                       ? `${creativeStats.ctr.toFixed(1).replace('.', ',')}%`
