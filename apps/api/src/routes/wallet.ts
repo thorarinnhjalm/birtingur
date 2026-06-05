@@ -23,7 +23,7 @@ walletRouter.get('/', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const w = await getWallet(adv.id);
-  return c.json({ wallet: w });
+  return c.json(w);
 });
 
 walletRouter.post('/topup', async (c) => {
