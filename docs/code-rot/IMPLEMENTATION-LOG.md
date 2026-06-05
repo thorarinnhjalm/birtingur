@@ -303,6 +303,33 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task C2/wallet — Bare response envelope for wallet
+- **Status:** done
+- **Commit(s):** 83c04771ea6999c436b58205ad8acbeeb1d0813a refactor(api+dashboard): bare response envelope for wallet (Task C2/wallet)
+- **Files changed:**
+  - apps/api/src/routes/wallet.ts
+  - apps/dashboard/src/hooks/useWallet.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/wallet.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/wallet.test.ts  (7 tests) 7ms
+
+   Test Files  1 passed (1)
+        Tests  7 passed (7)
+
+  $ npx pnpm --filter @ada/api typecheck && npx pnpm --filter @ada/dashboard build
+  @ada/api@0.0.0 typecheck: tsc --noEmit
+  @ada/dashboard@0.0.0 build: pnpm --filter @ada/shared build && tsc -b && vite build
+  built in 1.89s
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
