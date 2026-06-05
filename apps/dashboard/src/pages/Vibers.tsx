@@ -13,7 +13,8 @@ import {
   ShieldAlert,
   Cookie,
   ExternalLink,
-  MessageSquare
+  MessageSquare,
+  Cpu
 } from 'lucide-react';
 
 export default function Vibers() {
@@ -70,6 +71,8 @@ export default function Vibers() {
 
 <!-- 2. Async skriftan sem hleður og birtir borðann (hleðst í bakgrunni) -->
 <script async src="https://cdn.birtingur.is/v1/snippet.js"></script>`;
+
+  const mcpCommand = `claude mcp add birtingur curl -X POST -H "Authorization: Bearer ak_DÍNN_API_LYKILL" -H "Content-Type: application/json" -d "{{mcp_payload}}" https://mcp.birtingur.app/mcp`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
@@ -157,7 +160,7 @@ export default function Vibers() {
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-semibold max-w-2xl mx-auto">
             Gleymum Firestore söfnum og cron-jobbum í smástund. Talaðum um það sem skiptir ykkur og viðskiptavini ykkar raunverulegu máli: 
-            <span className="text-blue-650 block mt-1 font-bold">Af hverju ættuð þið að samþætta Birtingur í verkefnin ykkar?</span>
+            <span className="text-blue-655 block mt-1 font-black">Af hverju ættuð þið að samþætta Birtingur í verkefnin ykkar?</span>
           </p>
         </section>
 
@@ -190,7 +193,7 @@ export default function Vibers() {
 
           {/* Gæðastýring */}
           <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-650">
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
               <ShieldAlert size={24} />
             </div>
             <h3 className="text-xl font-bold text-slate-950">Viðskiptavinurinn hefur fullt eftirlit</h3>
@@ -252,8 +255,66 @@ export default function Vibers() {
           </div>
         </section>
 
+        {/* AI & MCP INTEGRATION SECTION */}
+        <section className="bg-white border border-slate-200/85 rounded-3xl p-8 sm:p-12 space-y-8 shadow-xs">
+          <div className="space-y-4 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-50 text-purple-650 border border-purple-200/60 text-xs font-bold uppercase tracking-wider">
+              <Cpu size={14} className="text-purple-600" />
+              Gervigreindarvænt (AI-Native)
+            </div>
+            <h3 className="text-2xl font-black text-slate-950">Láttu Claude eða Cursor sjá um vinnuna (MCP)</h3>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Ef þið notið <strong>Claude Code</strong>, <strong>Claude Desktop</strong>, eða ritla eins og <strong>Cursor</strong> og <strong>Windsurf</strong> við forritun, 
+              getið þið tengt Birting sem <strong>MCP þjón (Model Context Protocol)</strong>. Þá getur gervigreindin sjálf séð um umsýsluna fyrir ykkur!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-6 space-y-4 text-xs font-semibold text-slate-500 leading-relaxed">
+              <div className="flex gap-3">
+                <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-slate-900 block mb-0.5">Sjálfvirk kóðainnsetning</strong>
+                  Spyrjið Claude: <code className="text-xs bg-slate-100 text-purple-700 px-1 py-0.5 rounded font-mono font-bold">„Bættu við Birtingur plássi á þessa síðu“</code> og Claude sækir rétta slotId-ið og skrifar kóðann beint í skrána ykkar.
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <CheckCircle2 size={16} className="text-purple-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-slate-900 block mb-0.5">Spurningar og staða með spjalli</strong>
+                  Þið getið spurt Claude: <code className="text-xs bg-slate-100 text-purple-700 px-1 py-0.5 rounded font-mono font-bold">„Hversu mikið græddi vefsíða X í þessum mánuði?“</code> eða <code className="text-xs bg-slate-100 text-purple-700 px-1 py-0.5 rounded font-mono font-bold">„Stofnaðu nýtt slot fyrir footerinn“</code> og þjónninn svarar samstundis.
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 rounded-xl bg-slate-900 border border-slate-850 overflow-hidden w-full">
+              <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+                <span className="text-xs font-bold text-slate-400 font-mono">Tengja við Claude Code/Desktop</span>
+                <Button 
+                  variant="ghost" 
+                  id="btn_copy_mcp"
+                  onClick={() => handleCopy(mcpCommand, 'mcp')} 
+                  className="text-[10px] py-1 px-2.5 h-auto font-bold text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  {copiedCode === 'mcp' ? 'Afritað!' : 'Afrita stjórn'}
+                </Button>
+              </div>
+              <pre className="p-4 font-mono text-[10px] text-purple-400 overflow-x-auto bg-slate-900 leading-relaxed select-all">
+                <code>
+                  {`claude mcp add birtingur curl -X POST \\
+  -H "Authorization: Bearer ak_DÍNN_API_LYKILL" \\
+  -H "Content-Type: application/json" \\
+  -d "{{mcp_payload}}" \\
+  https://mcp.birtingur.app/mcp`}
+                </code>
+              </pre>
+            </div>
+          </div>
+        </section>
+
         {/* AGENCY & PARTNERSHIP PROPOSAL */}
-        <section className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-8 sm:p-12 space-y-6 shadow-lg shadow-blue-500/10">
+        <section className="bg-gradient-to-br from-blue-600 to-indigo-750 text-white rounded-3xl p-8 sm:p-12 space-y-6 shadow-lg shadow-blue-500/10">
           <div className="space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-blue-200 bg-white/10 px-3.5 py-1 rounded-full w-fit">
               Samstarf fyrir vefstofur
