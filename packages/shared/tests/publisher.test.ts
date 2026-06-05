@@ -22,4 +22,8 @@ describe('PublisherSchema.categories', () => {
   it('rejects unknown categories', () => {
     expect(() => PublisherSchema.parse({ ...base, categories: ['nope'] })).toThrow();
   });
+  it('requires categories explicitly (no silent default)', () => {
+    const { categories, ...without } = base;
+    expect(() => PublisherSchema.parse(without)).toThrow();
+  });
 });

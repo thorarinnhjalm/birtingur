@@ -10,6 +10,9 @@ describe('TargetingSchema', () => {
     const parsed = TargetingSchema.parse({ categories: ['matur'], slotIds: ['x'] } as any);
     expect((parsed as any).slotIds).toBeUndefined();
   });
+  it('requires targeting.categories explicitly (no silent default)', () => {
+    expect(() => TargetingSchema.parse({})).toThrow();
+  });
 });
 
 describe('CampaignSchema', () => {

@@ -59,8 +59,7 @@ export const PublisherSchema = z.object({
   vatNumber: z.string().optional(),
   categories: z
     .array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]]))
-    .min(1)
-    .default(['taekni']),
+    .min(1),
 });
 export type Publisher = z.infer<typeof PublisherSchema>;
 
