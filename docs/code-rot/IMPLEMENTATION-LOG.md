@@ -128,6 +128,30 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task B1 — Split the cache TTL constants
+- **Status:** done
+- **Commit(s):** 92e3a78 refactor: split slot-cache and budget-counter TTLs (Task B1)
+- **Files changed:**
+  - packages/shared/src/constants.ts
+  - apps/api/src/lib/push-cache.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/push-cache.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/push-cache.test.ts  (11 tests) 5ms
+
+   Test Files  1 passed (1)
+        Tests  11 passed (11)
+     Start at  13:41:26
+     Duration  294ms (transform 45ms, setup 0ms, collect 191ms, tests 5ms, environment 0ms, prepare 35ms)
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
