@@ -413,6 +413,21 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task D2 — Signing-secret fail-fast
+- **Status:** blocked
+- **Commit(s):** N/A
+- **Files changed:**
+  - none
+- **Verification run + output:**
+  ```
+  N/A
+  ```
+- **Deviations from plan:** Awaiting confirmation from the operator that SIGNING_SECRET is configured in the serving Vercel project before implementing fail-fast error throwing in production.
+- **Questions / decisions for Claude:** Confirm if SIGNING_SECRET has been set in the serving Vercel project env vars.
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
