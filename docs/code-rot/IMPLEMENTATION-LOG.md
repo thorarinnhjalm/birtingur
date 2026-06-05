@@ -251,6 +251,33 @@ were blocked, set the status accordingly and write the reason + your question, t
 
 ---
 
+### Task C2/creatives — Bare response envelope for creatives
+- **Status:** done
+- **Commit(s):** 6620643 refactor(api+dashboard): bare response envelope for creatives (Task C2/creatives)
+- **Files changed:**
+  - apps/api/src/routes/creatives.ts
+  - apps/dashboard/src/hooks/useCampaigns.ts
+  - apps/dashboard/src/pages/advertiser/CreativeLibrary.tsx
+  - apps/dashboard/src/pages/advertiser/CampaignCreate.tsx
+  - apps/api/tests/advertiser-routes.test.ts
+  - apps/api/tests/e2e.test.ts
+- **Verification run + output:**
+  ```
+  $ npx pnpm --filter @ada/api test -- tests/advertiser-routes.test.ts tests/e2e.test.ts
+   RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/advertiser-routes.test.ts  (10 tests) 12ms
+   ✓ tests/e2e.test.ts  (1 test) 8ms
+
+   Test Files  2 passed (2)
+        Tests  11 passed (11)
+  ```
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 
 ## Entry template (copy for each task)
 
