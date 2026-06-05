@@ -75,11 +75,3 @@ export function useCreateSlot() {
     },
   });
 }
-
-// Global slots list search for advertisers creating campaigns
-export function useSearchSlots() {
-  return useQuery({
-    queryKey: ['slots', 'search'],
-    queryFn: () => apiFetch<{ slots: Slot[] }>('/v1/slots/search').then((r) => r.slots),
-  });
-}
