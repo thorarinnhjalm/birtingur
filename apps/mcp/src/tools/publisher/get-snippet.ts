@@ -38,6 +38,24 @@ Færibreytur (Query parameters):
   - "none" (sjálfgefið): Engar viðvarandi vafrakökur, engin fylgni milli vefja.
   - "full": Leyfir fylgni til að framfylgja birtingartakmörkunum (frequency caps).
 
+--- PERSÓNUVERND (GDPR / CONSENT) SAMÞÆTTING ---
+Serving REST API styður samþættingu við GDPR kökuborða (CMP / Cookiebot o.fl.):
+* Ef notandi hefur ekki samþykkt markaðssetningarkökur, notaðu 'consent=none'.
+* Ef notandi hefur gefið samþykki sitt fyrir kökum, notaðu 'consent=full' til að leyfa birtingartakmarkanir (frequency capping) og hámarka virði plássins.
+
+--- API VILLU-SVÖR (ERROR RESPONSES) ---
+Ef Serving API skilar ekki 200 OK (t.d. 400 Bad Request, 500 Server Error) mun það skila JSON villu-svari á þessu formi:
+{
+  "error": "Lýsandi skýring á villunni",
+  "code": "SLOT_NOT_FOUND" // eða annar vél-læsilegur villukóði
+}
+Mælt er með að grípa þessar villur (catch block) og sýna annaðhvort tóm/gegnsætt fallback (transparent fallback) til að valda ekki Layout Shift (CLS), eða skrá þær í þróunarskrár.
+
+--- BREYTINGASKRÁ OG API ÚTGÁFUR (CHANGELOG) ---
+Birtingur API fylgir semí-semantískri útgáfunotkun (núverandi Serving API útgáfa: v1.1). Hægt er að kalla á 'get_changelog' tólið hvenær sem er til að fá ítarlega skrá yfir nýlegar uppfærslur (t.d. breytingu á fallback house ad hegðun, CORS og flokkunar-target).
+
+--- AD RESPONSE SHAPES ---
+
 Svaruppbygging þegar auglýsing er tiltæk (JSON):
 {
   "creativeId": "cre_abc123",

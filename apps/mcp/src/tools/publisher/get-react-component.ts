@@ -48,37 +48,107 @@ interface Props {
 }
 
 /**
+ * LEIÐBEININGAR UM VILLUMEÐHÖNDLUN (ERROR HANDLING GUIDELINES):
+ * 1. Component-inn reynir að lesa JSON villuskilaboð á borð við { error: "skilaboð", code: "..." } ef vefþjónn skilar ekki 200 OK.
+ * 2. Ef villa kemur upp er hún skráð í console logga (warning/error) til að auðvelda greiningu í þróun.
+ * 3. Í framleiðsluumhverfi (production) fellur component-inn plássið saman sjálfkrafa (renderar gagnsætt fallback)
+ *    til að tryggja að notendaupplifun skemmist ekki og engin ljót villuboð sjáist á síðunni.
+ */
+
+/**
  * Headless component fyrir Birtingur Serving REST API.
  * Kemur í veg fyrir Layout Shift (CLS) með því að taka frá pláss með tilgreindri hæð/breidd.
+ * Uppfærir sig sjálfkrafa byggt á TTL úr svari þegar auglýsingin er í viewport.
  */
 export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props) {
   const [ad, setAd] = useState<BirtingurResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const impressionFired = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const fetchAdRef = useRef<() => Promise<void>>();
 
+  // Fylgjast með því hvort plássið sé sýnilegt í viewport
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window) || !containerRef.current) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 } // Sýnilegt að einhverju leyti til að keyra TTL timer
+    );
+
+    observer.observe(containerRef.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  // Sækja auglýsingu úr API
   useEffect(() => {
     let cancelled = false;
-    async function fetchAd() {
+    const fetchAd = async () => {
       try {
+        setError(null);
+        // Ath: Hægt er að breyta consent=none í consent=full ef notandi hefur gefið vafrakökusamþykki (GDPR/CMP)
         const res = await fetch(
           \`\${SERVING_BASE}/v1/ad?slot=\${encodeURIComponent(slotId)}&consent=none\`,
           { cache: 'no-store' }
         );
-        if (!res.ok) throw new Error(\`Birtingur fetch villa: \${res.status}\`);
+        if (!res.ok) {
+          let errMsg = \`Birtingur fetch villa: \${res.status}\`;
+          try {
+            const errJson = await res.json();
+            if (errJson && typeof errJson === 'object' && 'error' in errJson) {
+              errMsg = \`\${errMsg} - \${errJson.error}\`;
+            }
+          } catch {}
+          throw new Error(errMsg);
+        }
         const data = (await res.json()) as BirtingurResponse;
-        if (!cancelled) setAd(data);
-      } catch (err) {
+        if (!cancelled) {
+          setAd(data);
+        }
+      } catch (err: any) {
         console.error('Birtingur fetch villa:', err);
+        if (!cancelled) {
+          setError(err.message || 'Óþekkt villa við að sækja auglýsingu');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
+    };
+
+    fetchAdRef.current = fetchAd;
     fetchAd();
+
     return () => {
       cancelled = true;
     };
   }, [slotId]);
+
+  // Sjálfvirk uppfærsla (Auto-Refresh) byggt á TTL úr svari, en AÐEINS þegar plássið er sýnilegt (isVisible)
+  useEffect(() => {
+    if (!isAd(ad) || !isVisible) return;
+
+    // ttl er í sekúndum í svarinu. Umbreytum í millisekúndur.
+    const ttlMs = ad.ttl * 1000;
+
+    const timer = setTimeout(() => {
+      if (fetchAdRef.current) {
+        fetchAdRef.current();
+      }
+    }, ttlMs);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [ad, isVisible]);
 
   // Áhorfsmæling (Impression Tracking) með stuðningi við Viewability (IntersectionObserver).
   // Mælt er með að telja áhorf aðeins þegar plássið er sýnilegt (t.d. 50% í 1 sek).
@@ -138,8 +208,11 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     );
   }
 
-  // Ef ekkert pláss fannst eða gagnsætt fallback (cre_fallback_transparent)
-  if (!isAd(ad) || ad.creativeId === 'cre_fallback_transparent') {
+  // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða gagnsætt fallback (cre_fallback_transparent)
+  if (error || !isAd(ad) || ad.creativeId === 'cre_fallback_transparent') {
+    if (error) {
+      console.warn('Birtingur load error, rendering transparent fallback:', error);
+    }
     return (
       <div
         ref={containerRef}

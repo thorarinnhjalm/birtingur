@@ -10,6 +10,7 @@ import { registerSetContentPolicy } from './set-content-policy.js';
 import { registerPendingApprovals } from './pending-approvals.js';
 import { registerApproveCreative } from './approve-creative.js';
 import { registerRejectCreative } from './reject-creative.js';
+import { registerGetChangelog } from './get-changelog.js';
 
 export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerRegister(server, apiKey);
@@ -23,4 +24,5 @@ export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerPendingApprovals(server, apiKey);
   registerApproveCreative(server, apiKey);
   registerRejectCreative(server, apiKey);
+  registerGetChangelog(server);
 }
