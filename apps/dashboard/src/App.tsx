@@ -6,6 +6,7 @@ import AdvertiserDashboard from '@/pages/advertiser/Dashboard';
 import PublisherDashboard from '@/pages/publisher/Dashboard';
 import AdminOverview from '@/pages/admin/Overview';
 import LandingPage from '@/pages/LandingPage';
+import Vibers from '@/pages/Vibers';
 import { LoadingState } from '@/components/ui/LoadingState';
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -82,6 +83,7 @@ export default function App() {
         }
       />
       <Route path="/" element={<LandingPage />} />
+      <Route path="/vibers" element={<Vibers />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
