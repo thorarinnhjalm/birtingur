@@ -5,17 +5,15 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
 import { 
   Sparkles, 
-  Terminal, 
-  Database, 
   Code2, 
   Coins, 
-  Lock, 
-  RefreshCw, 
   ArrowRight, 
   CheckCircle2, 
-  AlertCircle, 
-  Cpu, 
-  Zap
+  Zap,
+  ShieldAlert,
+  Cookie,
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 
 export default function Vibers() {
@@ -67,20 +65,11 @@ export default function Vibers() {
     }
   };
 
-  const snippetCode = `<!-- 1. Plássið þar sem borðinn á að birtast -->
+  const snippetCode = `<!-- 1. Plássið þar sem auglýsingin á að birtast -->
 <div data-adplatform-slot="slot_id_hér" style="min-height: 250px;"></div>
 
-<!-- 2. Async skriftan sem hleður og birtir borðann -->
+<!-- 2. Async skriftan sem hleður og birtir borðann (hleðst í bakgrunni) -->
 <script async src="https://cdn.birtingur.is/v1/snippet.js"></script>`;
-
-  const webComponentsCode = `<!-- Hlaða inn vefhlutum (Web Components) -->
-<script type="module" src="https://cdn.birtingur.is/v1/widgets.js"></script>
-
-<!-- Tölfræði fyrir útgefanda -->
-<adplatform-stats publisher-id="pub_123"></adplatform-stats>
-
-<!-- Samþykkisbiðröð útgefanda (Approval Queue) -->
-<adplatform-approval-queue publisher-id="pub_123"></adplatform-approval-queue>`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
@@ -88,7 +77,7 @@ export default function Vibers() {
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
       <div className="absolute top-1/3 right-10 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[100px] pointer-events-none -z-10" />
 
-      {/* HEADER - MATCHES LANDING PAGE */}
+      {/* HEADER */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/85 border-b border-slate-200/60 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo */}
@@ -101,7 +90,7 @@ export default function Vibers() {
                 Birtingur
               </span>
               <span className="hidden sm:inline text-xs font-semibold px-2.5 py-0.5 ml-2 rounded-full bg-red-50 text-red-600 border border-red-200/60">
-                Lokað / Vibers 🤫
+                Lokað / Væb 🤫
               </span>
             </div>
           </Link>
@@ -116,9 +105,6 @@ export default function Vibers() {
             </Link>
             <Link to="/?tab=publishers" className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80">
               Fyrir útgefendur
-            </Link>
-            <Link to="/?tab=faq" className="px-4 py-1.5 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100/80">
-              Spurningar (FAQ)
             </Link>
           </nav>
 
@@ -155,342 +141,150 @@ export default function Vibers() {
       </header>
 
       {/* MAIN CONTAINER */}
-      <main className="grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 space-y-20 relative">
+      <main className="grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 space-y-16 relative">
         
         {/* HERO SECTION */}
         <section className="space-y-6 text-center max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-xs font-bold uppercase tracking-wider">
             <Sparkles size={14} className="text-blue-600" />
-            Tæknilegt Yfirlit
+            Einfalt og áhrifaríkt fyrir vefhönnuði
           </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
             Hæ Árni og Villi! 👋
             <span className="block mt-3 bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 bg-clip-text text-transparent">
-              Velkomin í Birting
+              Sleppum tæknirúnkinu
             </span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-550 leading-relaxed font-medium max-w-2xl mx-auto">
-            Þessi síða er lokuð almenningi og vefskriðum. Hér er yfirgripsmikið tæknilegt yfirlit yfir innviði og fjármagnsflæði Birtingar 
-            (<span className="text-blue-600 font-semibold">birtingur.app</span>) og hvernig <strong>væb-coders</strong> geta notað kerfið.
+          <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-semibold max-w-2xl mx-auto">
+            Gleymum Firestore söfnum og cron-jobbum í smástund. Talaðum um það sem skiptir ykkur og viðskiptavini ykkar raunverulegu máli: 
+            <span className="text-blue-650 block mt-1 font-bold">Af hverju ættuð þið að samþætta Birtingur í verkefnin ykkar?</span>
           </p>
         </section>
 
-        {/* 3 CORE PILLARS OF BIRTINGUR */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-white border-slate-200/80 p-8 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-5">
-                <Database size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Innviðir & Firestore</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                Gagnagrunnurinn byggir á 8 megin söfnum (collections) í Firestore sem tengja útgefendur, auglýsendur, 
-                herferðir og tölfræði saman í eina heild án flókinna SQL tengsla.
-              </p>
-            </div>
-          </Card>
-
-          <Card className="bg-white border-slate-200/80 p-8 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 mb-5">
-                <Coins size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Wallet & Ledger</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                Veski auglýsenda notast við append-only færslur (Ledger). Engar gamlar færslur eru uppfærðar, sem tryggir 
-                fullkominn rekjanleika bókhalds og kemur í veg fyrir tvítalningu.
-              </p>
-            </div>
-          </Card>
-
-          <Card className="bg-white border-slate-200/80 p-8 flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 mb-5">
-                <Code2 size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Hönnun fyrir Væb-coders</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                Embed skrifta (snippet.js) sem hleðst í bakgrunni og er undir 1.5 KB að stærð. Hún fellur hljóðlega niður (fail-silent) 
-                ef eitthvað fer úrskeiðis án þess að breyta útliti síðunnar.
-              </p>
-            </div>
-          </Card>
-        </section>
-
-        {/* 1. SECTION: SYSTEM ARCHITECTURE */}
-        <section className="space-y-6 pt-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-              <Cpu size={18} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900">1. Kerfishönnun og Firestore Gagnaskipulag</h2>
-          </div>
+        {/* WHY USE US - 4 CORE BENEFITS FOR WEB CODERS */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 space-y-4 text-sm text-slate-600 leading-relaxed font-medium">
-              <p>
-                Birtingur er hannaður með einfaldleika og hraða í huga. Firestore er notað sem aðalgagnalind 
-                og samanstendur af eftirfarandi söfnum (Collections):
-              </p>
-              
-              <ul className="space-y-3 pt-2">
-                <li className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 shrink-0" />
-                  <div>
-                    <strong className="text-slate-900">publishers</strong> (Útgefendur): Lén, greiðsluupplýsingar og bannaðir flokkar auglýsinga.
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 shrink-0" />
-                  <div>
-                    <strong className="text-slate-900">slots</strong> (Auglýsingapláss): Pláss á vefjum, stærðir (t.d. 300x250) og verðstillingar (CPM).
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 shrink-0" />
-                  <div>
-                    <strong className="text-slate-900">advertisers</strong> (Auglýsendur): Fyrirtækjaupplýsingar, kennitölur og reikningshald.
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 shrink-0" />
-                  <div>
-                    <strong className="text-slate-900">creatives</strong> (Auglýsingamyndir): Slóðir á hlaðnar auglýsingamyndir. Fara í gegnum sjálfvirka Gemini AI skönnun á nsfw/ofbeldi áður en þær eru samþykktar.
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2 shrink-0" />
-                  <div>
-                    <strong className="text-slate-900">campaigns</strong> (Herferðir): Tengir saman auglýsanda, mynd, og ákveðið pláss og geymir fjárhagsáætlun.
-                  </div>
-                </li>
-              </ul>
+          {/* Tekjur */}
+          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+              <Coins size={24} />
             </div>
-            
-            <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl p-6 space-y-4 shadow-xs">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Gagnaflæðismynd</h4>
-              <div className="space-y-3 font-mono text-xs text-slate-700">
-                <div className="p-3 bg-slate-50 rounded border border-slate-200/60 flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Publishers ➔ Slots</span>
-                  <span className="text-slate-500 font-semibold">1:N tenging</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded border border-slate-200/60 flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Advertisers ➔ Campaigns</span>
-                  <span className="text-slate-500 font-semibold">1:N tenging</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded border border-slate-200/60 flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Campaigns ➔ Target Slot</span>
-                  <span className="text-slate-500 font-semibold">1:1 tenging</span>
-                </div>
-                <div className="p-3 bg-slate-50 rounded border border-slate-200/60 flex items-center justify-between">
-                  <span className="font-semibold text-slate-800">Campaigns ➔ Creatives</span>
-                  <span className="text-slate-500 font-semibold">1:1 tenging</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 2. SECTION: FINANCIAL FLOW & WALLET SYSTEM */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-              <Coins size={18} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900">2. Bókhald og Fjármagnsflæði (Ledger)</h2>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <Card className="bg-white border-slate-200/80 p-6 space-y-4 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Lock size={18} className="text-blue-600" />
-                Append-Only Ledger
-              </h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                Veski (wallet) auglýsanda er reiknað út sem **summa allra færslna** í <code className="text-indigo-650 bg-slate-100 px-1 py-0.5 rounded text-xs font-semibold">ledger</code> safninu. 
-                Þetta útilokar tapsáhættu og gefur 100% rekjanleika.
-              </p>
-              <ul className="text-xs text-slate-600 space-y-2 font-mono bg-slate-50 p-4 rounded-xl border border-slate-250/60">
-                <li className="flex justify-between border-b border-slate-200/80 pb-1.5">
-                  <span className="font-semibold">Kortagreiðsla (Teya Webhook):</span>
-                  <span className="text-green-600 font-bold">+50.000 kr (type: topup)</span>
-                </li>
-                <li className="flex justify-between border-b border-slate-200/80 pb-1.5">
-                  <span className="font-semibold">Auglýsingabirting (Accrual):</span>
-                  <span className="text-red-500 font-bold">-1.200 kr (type: accrual)</span>
-                </li>
-                <li className="flex justify-between pb-0.5">
-                  <span className="font-semibold">Endurgreiðsla vegna afbókunar:</span>
-                  <span className="text-green-600 font-bold">+450 kr (type: refund)</span>
-                </li>
-              </ul>
-            </Card>
-
-            <Card className="bg-white border-slate-200/80 p-6 space-y-4 shadow-sm">
-              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <RefreshCw size={18} className="text-indigo-600" />
-                Hraði & Caching (Redis og Cron)
-              </h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                Til að tryggja að ad-serving mótorinn (Vercel Edge functions) svari á undir <strong>15ms</strong>, safnast birtingar 
-                og smellir fyrst í <strong>Upstash Redis</strong> hraðminni í stað Firestore.
-              </p>
-              <div className="text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-250/60 leading-relaxed font-medium">
-                <span className="text-blue-600 font-bold">15 mínútna fresti (Accrual Cron):</span> Sækir birtingatölfræði úr Redis, 
-                reiknar eyðslu herferða <code className="text-xs text-indigo-600 font-mono">(impressions * CPM / 1000)</code> 
-                og skrifar neikvæða færslu í Firestore ledger.
-              </div>
-            </Card>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200/60 rounded-2xl p-6">
-            <h4 className="text-sm font-bold text-slate-900 mb-2">Greiðslur til útgefenda: 80/20 skiptingin</h4>
+            <h3 className="text-xl font-bold text-slate-950">Auka tekjur viðskiptavina (og ykkar!)</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Í lok hvers mánaðar keyrir <code className="text-xs text-indigo-650 bg-slate-100 px-1 py-0.5 rounded font-mono font-bold">cron-payouts</code>. 
-              Útgefandi fær greitt <strong>80% af heildarupphæðinni</strong> sem safnaðist beint inn á bankareikning, 
-              á meðan 20% ADA þóknun stendur eftir fyrir rekstri kerfisins hjá Birtingi.
+              Vefirnir sem þið smíðið fyrir viðskiptavini ykkar geta farið að skila þeim reglulegum tekjum af ónýttu auglýsingaplássi. 
+              <strong> Og fyrir ykkur:</strong> Við getum sett upp affiliate/samstarfsprósentu af veltunni sem rennur í gegnum plássin sem þið komið upp.
             </p>
+          </Card>
+
+          {/* Hraði / Lighthouse */}
+          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+              <Zap size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-950">100% fail-silent & eldsnöggt (Lighthouse)</h3>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Við vitum að þið viljið ekki hægja á vefnum sem þið voruð að fínstilla. Skriftan okkar er undir **1.5 KB** og hleðst async. 
+              Ef kerfið okkar myndi einhvern tíman liggja niðri, þá fellur hún hljóðlega niður (fail-silent) og felur plássið sjálfkrafa. Engin seinkun, engin SEO-refsing.
+            </p>
+          </Card>
+
+          {/* Gæðastýring */}
+          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-650">
+              <ShieldAlert size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-950">Viðskiptavinurinn hefur fullt eftirlit</h3>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Viðskiptavinir ykkar munu aldrei sjá óviðeigandi eða samkeppnis-auglýsingar á síðunni sinni. 
+              Kerfið býður upp á sjálfvirka Gemini AI skönnun og handvirka samþykkisbiðröð (Approval Queue). Útgefandinn á alltaf síðasta orðið.
+            </p>
+          </Card>
+
+          {/* GDPR / Cookie-free */}
+          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
+            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-650">
+              <Cookie size={24} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-950">Kökulaust og GDPR-vænt</h3>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Birtingur notar engar vafrakökur (cookies) til að elta notendur á milli vefja. Miðunin er samhengis- og landfræðileg. 
+              Þið þurfið ekki að uppfæra persónuverndarstefnur eða flækja kökuborðann (consent banner) hjá viðskiptavinum ykkar vegna þessa.
+            </p>
+          </Card>
+
+        </section>
+
+        {/* HOW EASY IS IT? */}
+        <section className="bg-white border border-slate-200/85 rounded-3xl p-8 sm:p-12 space-y-8 shadow-xs">
+          <div className="space-y-4 max-w-2xl">
+            <h3 className="text-2xl font-black text-slate-950">Uppsetning sem tekur bókstaflega 30 sekúndur</h3>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              Þið þurfið ekki að setja upp flókin NPM söfn eða API köll. Bara eitt einfalt `div` þar sem borðinn á að birtast 
+              og ein async skrifta sem keyrir í bakgrunni. Virkar í öllu: React, Next.js, Webflow, WordPress eða hreinu HTML.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-slate-900 border border-slate-850 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="w-3 h-3 rounded-full bg-yellow-500" />
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-xs font-bold text-slate-400 ml-2 font-mono">index.html</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                id="btn_copy_snippet"
+                onClick={() => handleCopy(snippetCode, 'snippet')} 
+                className="text-xs py-1.5 px-3 h-auto font-bold text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                {copiedCode === 'snippet' ? 'Afritað!' : 'Afrita kóða'}
+              </Button>
+            </div>
+            <pre className="p-5 font-mono text-xs text-slate-350 overflow-x-auto bg-slate-900 leading-relaxed">
+              <code>
+                <span className="text-slate-500">&lt;!-- 1. Plássið þar sem auglýsingin á að birtast --&gt;</span>{"\n"}
+                <span className="text-sky-400">&lt;div</span> <span className="text-amber-400">data-adplatform-slot</span>=<span className="text-emerald-400">"slot_id_hér"</span> <span className="text-amber-400">style</span>=<span className="text-emerald-400">"min-height: 250px;"</span><span className="text-sky-400">&gt;&lt;/div&gt;</span>{"\n\n"}
+                <span className="text-slate-500">&lt;!-- 2. Async skriftan sem hleður og birtir borðann --&gt;</span>{"\n"}
+                <span className="text-sky-400">&lt;script</span> <span className="text-amber-400">async</span> <span className="text-amber-400">src</span>=<span className="text-emerald-400">"https://cdn.birtingur.is/v1/snippet.js"</span><span className="text-sky-400">&gt;&lt;/script&gt;</span>
+              </code>
+            </pre>
           </div>
         </section>
 
-        {/* 3. SECTION: DEVELOPER GUIDE / VÆB-CODERS */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
-              <Code2 size={18} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900">3. Leiðarvísir fyrir Væb-Coders (Samþætting)</h2>
-          </div>
-
-          <div className="space-y-4 text-sm text-slate-600 leading-relaxed font-medium">
-            <p>
-              Samþætting Birtingar er hönnuð til að vera eins einföld og afkastamikil og mögulegt er fyrir vefforritara.
+        {/* AGENCY & PARTNERSHIP PROPOSAL */}
+        <section className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-8 sm:p-12 space-y-6 shadow-lg shadow-blue-500/10">
+          <div className="space-y-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-blue-200 bg-white/10 px-3.5 py-1 rounded-full w-fit">
+              Samstarf fyrir vefstofur
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black text-white">Stofnum til samstarfs!</h3>
+            <p className="text-sm sm:text-base text-blue-100 leading-relaxed font-semibold max-w-3xl">
+              Ef þið bannið auglýsingablokka á vefjum viðskiptavina ykkar eða viljið hjálpa þeim að breyta ónýttu plássi í greiðslur inn á bankareikning, 
+              þá er Birtingur fullkomið tól fyrir ykkur. Við sjáum um allt: innheimtu, Gemini AI skönnun, greiðslukerfi og tölfræði.
             </p>
           </div>
 
-          {/* CODE SNIPPET AND RESILIENCE DETAILS */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Snippet Block */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* HTML Snippet */}
-              <div className="rounded-xl bg-slate-900 border border-slate-850 overflow-hidden shadow-md">
-                <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <span className="w-3 h-3 rounded-full bg-green-500" />
-                    <span className="text-xs font-bold text-slate-400 ml-2 font-mono">embed-snippet.html</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    id="btn_copy_snippet"
-                    onClick={() => handleCopy(snippetCode, 'snippet')} 
-                    className="text-xs py-1.5 px-3 h-auto font-bold text-slate-400 hover:text-white hover:bg-slate-800"
-                  >
-                    {copiedCode === 'snippet' ? 'Afritað!' : 'Afrita kóða'}
-                  </Button>
-                </div>
-                <pre className="p-5 font-mono text-xs text-slate-300 overflow-x-auto bg-slate-900 leading-relaxed">
-                  <code>
-                    <span className="text-slate-500">&lt;!-- 1. Plássið þar sem borðinn á að birtast --&gt;</span>{"\n"}
-                    <span className="text-sky-400">&lt;div</span> <span className="text-amber-400">data-adplatform-slot</span>=<span className="text-emerald-400">"slot_id_hér"</span> <span className="text-amber-400">style</span>=<span className="text-emerald-400">"min-height: 250px;"</span><span className="text-sky-400">&gt;&lt;/div&gt;</span>{"\n\n"}
-                    <span className="text-slate-500">&lt;!-- 2. Async skriftan sem hleður og birtir borðann --&gt;</span>{"\n"}
-                    <span className="text-sky-400">&lt;script</span> <span className="text-amber-400">async</span> <span className="text-amber-400">src</span>=<span className="text-emerald-400">"https://cdn.birtingur.is/v1/snippet.js"</span><span className="text-sky-400">&gt;&lt;/script&gt;</span>
-                  </code>
-                </pre>
-              </div>
-
-              {/* Web Components */}
-              <div className="rounded-xl bg-slate-900 border border-slate-850 overflow-hidden shadow-md">
-                <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <span className="w-3 h-3 rounded-full bg-green-500" />
-                    <span className="text-xs font-bold text-slate-400 ml-2 font-mono">web-components.html</span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    id="btn_copy_wc"
-                    onClick={() => handleCopy(webComponentsCode, 'wc')} 
-                    className="text-xs py-1.5 px-3 h-auto font-bold text-slate-400 hover:text-white hover:bg-slate-800"
-                  >
-                    {copiedCode === 'wc' ? 'Afritað!' : 'Afrita kóða'}
-                  </Button>
-                </div>
-                <pre className="p-5 font-mono text-xs text-slate-300 overflow-x-auto bg-slate-900 leading-relaxed">
-                  <code>
-                    <span className="text-slate-500">&lt;!-- Hlaða inn vefhlutum (Web Components) --&gt;</span>{"\n"}
-                    <span className="text-sky-400">&lt;script</span> <span className="text-amber-400">type</span>=<span className="text-emerald-400">"module"</span> <span className="text-amber-400">src</span>=<span className="text-emerald-400">"https://cdn.birtingur.is/v1/widgets.js"</span><span className="text-sky-400">&gt;&lt;/script&gt;</span>{"\n\n"}
-                    <span className="text-slate-500">&lt;!-- Tölfræði fyrir útgefanda --&gt;</span>{"\n"}
-                    <span className="text-sky-400">&lt;adplatform-stats</span> <span className="text-amber-400">publisher-id</span>=<span className="text-emerald-400">"pub_123"</span><span className="text-sky-400">&gt;&lt;/adplatform-stats&gt;</span>{"\n\n"}
-                    <span className="text-slate-500">&lt;!-- Samþykkisbiðröð útgefanda --&gt;</span>{"\n"}
-                    <span className="text-sky-400">&lt;adplatform-approval-queue</span> <span className="text-amber-400">publisher-id</span>=<span className="text-emerald-400">"pub_123"</span><span className="text-sky-400">&gt;&lt;/adplatform-approval-queue&gt;</span>
-                  </code>
-                </pre>
-              </div>
-            </div>
-
-            {/* Performance and Resilience specs */}
-            <div className="lg:col-span-5 space-y-6">
-              <Card className="bg-white border-slate-200/80 p-6 space-y-5 shadow-sm">
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Zap size={18} className="text-amber-500 animate-pulse" />
-                  Hönnunarskilmálar (Resilience Specs)
-                </h3>
-                
-                <div className="space-y-4 text-xs font-semibold text-slate-500">
-                  <div className="flex gap-3">
-                    <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-slate-900 block mb-0.5">Lágmarks stærð (under 1.5 KB)</strong>
-                      Skriftan er þjöppuð með esbuild. Hún hleðst alveg í bakgrunni (async) og hefur engin áhrif á SEO eða PageSpeed einkunn.
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-slate-900 block mb-0.5">Fail-Silent hönnun</strong>
-                      Öll virkni er vafin inn í global try-catch blokk. Ef netið dettur út eða API-inn hægir á sér hrynur vefsíðan aldrei. Skriftan hættir keyrslu hljóðlega.
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-slate-900 block mb-0.5">Engin auð svæði (No Layout Shift)</strong>
-                      Ef engin auglýsing finnst eða villa kemur upp er target hólfið falið sjálfkrafa með <code className="text-xs bg-slate-100 text-indigo-750 px-1 py-0.5 rounded font-mono">display: none</code> svo það skilji ekki eftir stór hvít svæði á síðunni.
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-slate-900 block mb-0.5">CMP Consent Detection</strong>
-                      Skriftan athugar stöðu IAB CMP samþykkis vafra (<code className="text-xs bg-slate-100 text-indigo-750 px-1 py-0.5 rounded font-mono">window.__cmpConsent</code>) áður en mælipixlar eru sóttir eða keyrðir.
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Dev Note */}
-              <div className="p-4 rounded-xl bg-blue-50 border border-blue-200/50 text-xs text-blue-800 leading-relaxed font-semibold">
-                <div className="flex gap-2.5 items-start">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-blue-600" />
-                  <div>
-                    <strong>Tæknilegt atriði:</strong> Embed skriftunni er dreift frá Cloudflare R2 CDN með Wrangler CLI, sem lágmarkar viðbragðstíma á heimsvísu.
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+            <button
+              onClick={() => window.location.href = 'mailto:info@birtingur.app?subject=Samstarf%20-%20Væb%20Coders'}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-blue-700 font-extrabold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+            >
+              <MessageSquare size={16} />
+              Spjalla um samstarf (Affiliate)
+            </button>
+            <Link
+              to="/"
+              className="text-xs font-bold text-blue-100 hover:text-white transition flex items-center gap-1.5"
+            >
+              Kynna sér kerfið nánar <ExternalLink size={12} />
+            </Link>
           </div>
         </section>
 
       </main>
 
-      {/* FOOTER - MATCHES LANDING PAGE */}
+      {/* FOOTER */}
       <footer className="bg-white border-t border-slate-200/80 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
