@@ -4,6 +4,7 @@ import { registerListSlots } from './list-slots.js';
 import { registerCreateSlot } from './create-slot.js';
 import { registerUpdateSlot } from './update-slot.js';
 import { registerGetSnippet } from './get-snippet.js';
+import { registerGetReactComponent } from './get-react-component.js';
 import { registerGetStats } from './get-stats.js';
 import { registerSetContentPolicy } from './set-content-policy.js';
 import { registerPendingApprovals } from './pending-approvals.js';
@@ -16,6 +17,7 @@ export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerCreateSlot(server, apiKey);
   registerUpdateSlot(server, apiKey);
   registerGetSnippet(server, apiKey);
+  registerGetReactComponent(server);
   registerGetStats(server, apiKey);
   registerSetContentPolicy(server, apiKey);
   registerPendingApprovals(server, apiKey);

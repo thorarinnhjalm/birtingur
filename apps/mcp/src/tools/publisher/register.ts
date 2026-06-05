@@ -10,12 +10,21 @@ const Input = z.object({
     .array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]]))
     .min(1)
     .describe('Flokkar efnis á vefnum, t.d. ["taekni"]'),
-  payoutMethod: z.object({
-    type: z.literal('bank'),
-    iban: z.string(),
-    kennitala: z.string().regex(/^\d{10}$/),
-    accountName: z.string(),
-  }),
+  payoutMethod: z
+    .object({
+      type: z.literal('bank').describe('Tegund útborgunar (alltaf bank í V1)'),
+      iban: z
+        .string()
+        .describe(
+          '12-stafa íslenskt bankareikningsnúmer (t.d. "012315012345") eða alþjóðlegt IBAN númer. Bandstrik og bil eru sjálfkrafa hreinsuð.',
+        ),
+      kennitala: z
+        .string()
+        .regex(/^\d{10}$/)
+        .describe('10-stafa kennitala tengd bankareikningi án bandstriks (t.d. "1234567890")'),
+      accountName: z.string().describe('Nafn reikningshafa eins og það birtist í bankanum'),
+    })
+    .describe('Upplýsingar um bankareikning fyrir útborganir'),
 });
 
 export function registerRegister(server: McpServer, apiKey: string) {

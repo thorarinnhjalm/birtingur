@@ -2,7 +2,9 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { apiCall } from '../../lib/api-client.js';
 
-const Input = z.object({ slotId: z.string() });
+const Input = z.object({
+  slotId: z.string().describe('ID þess pláss sem á að sækja sniðmát fyrir'),
+});
 
 export function registerGetSnippet(server: McpServer, apiKey: string) {
   server.registerTool(
@@ -28,30 +30,45 @@ Ef þú ert að smíða React eða Next.js vefsíðu er mælt með að gera bein
 Keyrðu GET fyrirspurn á:
 https://serving.birtingur.app/v1/ad?slot=${slotId}&consent=none
 
-Svaruppbygging (JSON):
+Styður CORS fyrir alla uppruna (any origin).
+
+Færibreytur (Query parameters):
+* slot: ID plássins (t.d. ${slotId})
+* consent: persónuverndarsamþykki:
+  - "none" (sjálfgefið): Engar viðvarandi vafrakökur, engin fylgni milli vefja.
+  - "full": Leyfir fylgni til að framfylgja birtingartakmörkunum (frequency caps).
+
+Svaruppbygging þegar auglýsing er tiltæk (JSON):
 {
-  "creativeId": "cre_abc123",                    // Auðkenni auglýsingar. Ef gildið er "cre_fallback_transparent", er engin virk herferð í gangi og plássið á að fella saman eða sýna fallback UI (t.d. "Laust auglýsingapláss").
-  "imageUrl": "https://cdn.birtingur.app/...",    // Slóð á auglýsingamyndina
-  "clickUrl": "/v1/click?c=...",                 // Ath: Skeyttu "https://serving.birtingur.app" framan á og settu sem href á <a> taginu.
-  "width": 300,
-  "height": 250,
-  "impressionPixel": "/v1/impression?c=...",      // Ath: Skeyttu "https://serving.birtingur.app" framan á og hlaða ósýnilega í bakgrunni (t.d. <img src="..." style="display:none" />) til að telja áhorfið.
-  "ttl": 30
+  "creativeId": "cre_abc123",
+  "imageUrl": "https://cdn.birtingur.app/...",    // Slóð á auglýsingamynd
+  "clickUrl": "/v1/click?c=...",                 // Smelltenging. Ath: Ef hún byrjar á "/" þarf að skeyta "https://serving.birtingur.app" framan á.
+  "width": 980,
+  "height": 120,
+  "impressionPixel": "/v1/impression?c=...",      // Áhorfspixel. Skall sýndur ósýnilega (t.d. með Image() eða <img>) til að telja áhorfið. Skeytið "https://serving.birtingur.app" framan á ef hún byrjar á "/".
+  "ttl": 30                                       // Cache líftími í sekúndum. Sækja ætti nýja auglýsingu eftir þennan tíma.
 }
 
-Ef engin auglýsing er tiltæk skilar endapunkturinn:
+Svaruppbygging þegar engin virk herferð er tiltæk:
+Hér skilar kerfið sjálfvirkri húsaauglýsingar (house ad) fallback mynd sem er responsive SVG data-URL til að kynna Birting:
 {
-  "creativeId": "cre_fallback_transparent",
-  "imageUrl": "data:image/gif;base64,...",
-  "clickUrl": "#",
-  "width": 1,
-  "height": 1,
-  "impressionPixel": "/v1/impression?c=cre_fallback_transparent...",
+  "creativeId": "cre_fallback_birtingur",
+  "imageUrl": "data:image/svg+xml;utf8,...",
+  "clickUrl": "https://birtingur.app",
+  "width": 980,
+  "height": 120,
+  "impressionPixel": "/v1/impression?c=cre_fallback_birtingur...",
   "ttl": 60
 }
-Í því tilfelli er mælt með að hylja hólfið (display: none) eða birta sérsniðið "Laust auglýsingapláss" spjald.`;
+Athugið: Ef gildið á creativeId er "cre_fallback_birtingur" eða "cre_fallback_transparent", er það húsaauglýsing eða gagnsætt fallback. 
 
-      return { content: [{ type: 'text', text: responseText }] };
+Svaruppbygging ef plássið er ekki til í kerfinu:
+{
+  "empty": true
+}
+Í þessu tilfelli er plássið óþekkt. Mælt er með að fella saman plássið (display: none) eða halda stærð þess með tómum div til að koma í veg fyrir Layout Shift (CLS).`;
+
+      return { content: [{ type: 'text' as const, text: responseText }] };
     },
   );
 }
