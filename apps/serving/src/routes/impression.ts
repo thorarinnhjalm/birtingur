@@ -29,7 +29,10 @@ impressionRoute.get('/', async (c) => {
     });
   }
 
-  const isFallback = creativeId === 'cre_fallback_transparent' || typeParam === 'pageview';
+  const isFallback =
+    creativeId === 'cre_fallback_transparent' ||
+    creativeId === 'cre_fallback_birtingur' ||
+    typeParam === 'pageview';
 
   if (isFallback) {
     const slot = await getSlotCache(slotId);
@@ -38,8 +41,8 @@ impressionRoute.get('/', async (c) => {
         type: 'pageview',
         slotId,
         publisherId: slot.publisherId,
-        creativeId: 'cre_fallback_transparent',
-        campaignId: 'cmp_fallback_transparent',
+        creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
+        campaignId: 'cmp_fallback',
         advertiserId: '',
         country: c.req.header('CF-IPCountry') ?? 'XX',
         visitorToken: token,

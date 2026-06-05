@@ -74,15 +74,16 @@ adRoute.get('/', async (c) => {
   });
 
   if (!creative) {
+    const size = slot.sizes[0] || { width: 300, height: 250 };
     c.header('Set-Cookie', setCookieHeader(token));
     c.header('Cache-Control', 'private, no-store');
     return c.json({
-      creativeId: 'cre_fallback_transparent',
-      imageUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      clickUrl: '#',
-      width: 1,
-      height: 1,
-      impressionPixel: `/v1/impression?c=cre_fallback_transparent&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
+      creativeId: 'cre_fallback_birtingur',
+      imageUrl: generateHouseAdSvg(size.width, size.height),
+      clickUrl: 'https://birtingur.app',
+      width: size.width,
+      height: size.height,
+      impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
       ttl: 60,
     });
   }
@@ -121,3 +122,76 @@ adRoute.get('/', async (c) => {
     ttl: 30,
   });
 });
+
+function generateHouseAdSvg(width: number, height: number): string {
+  const isHorizontal = width > height * 1.5;
+  const isCompact = width < 200 || height < 80;
+
+  let content = '';
+
+  if (isCompact) {
+    content = `
+      <text x="50%" y="55%" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">Birtingur.app</text>
+    `;
+  } else if (isHorizontal) {
+    const fontSizeTitle = height >= 90 ? 18 : 13;
+    const fontSizeSub = height >= 90 ? 11 : 9;
+    const buttonW = height >= 90 ? 110 : 80;
+    const buttonH = height >= 90 ? 30 : 20;
+    const buttonX = width - buttonW - width * 0.05;
+    const buttonY = (height - buttonH) / 2;
+    const buttonTextY = height >= 90 ? 19 : 13;
+    const buttonTextSize = height >= 90 ? 10 : 8;
+
+    content = `
+      <g transform="translate(${width * 0.05}, ${height * 0.5})">
+        <text x="0" y="-2" fill="#ffffff" font-size="${fontSizeTitle}" font-weight="800">Birtingur.app</text>
+        <text x="0" y="${height >= 90 ? 16 : 12}" fill="#e0f2fe" font-size="${fontSizeSub}" font-weight="500">Auglýstu hér á 550 kr. CPM</text>
+      </g>
+      <g transform="translate(${buttonX}, ${buttonY})">
+        <rect width="${buttonW}" height="${buttonH}" rx="6" fill="#ffffff" filter="url(#shadow)"/>
+        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1e3a8a" font-size="${buttonTextSize}" font-weight="800">Auglýsa</text>
+      </g>
+    `;
+  } else {
+    // Vertical or square layout
+    const titleY = height * 0.28;
+    const descY1 = height * 0.46;
+    const descY2 = height * 0.56;
+    const buttonW = Math.min(width * 0.8, 140);
+    const buttonH = 34;
+    const buttonX = (width - buttonW) / 2;
+    const buttonY = height * 0.7;
+    const buttonTextY = 21;
+
+    content = `
+      <text x="50%" y="${titleY}" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="900">Birtingur.app</text>
+      <text x="50%" y="${descY1}" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="700">Auglýstu hér</text>
+      <text x="50%" y="${descY2}" text-anchor="middle" fill="#e0f2fe" font-size="10" font-weight="500">550 kr. CPM fastaverð</text>
+      
+      <g transform="translate(${buttonX}, ${buttonY})">
+        <rect width="${buttonW}" height="${buttonH}" rx="8" fill="#ffffff" filter="url(#shadow)"/>
+        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="800">Prófa núna</text>
+      </g>
+    `;
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1e3a8a" />
+        <stop offset="100%" stop-color="#0ea5e9" />
+      </linearGradient>
+      <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.15"/>
+      </filter>
+    </defs>
+    <style>
+      text { font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+    <rect width="100%" height="100%" fill="url(#grad)"/>
+    ${content}
+  </svg>`;
+
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}

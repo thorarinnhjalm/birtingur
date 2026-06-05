@@ -75,14 +75,15 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toContain('/v1/impression?');
   });
 
-  it('returns transparent fallback ad for slot with no matching creatives', async () => {
+  it('returns Birtingur house ad fallback for slot with no matching creatives', async () => {
     const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.creativeId).toBe('cre_fallback_transparent');
-    expect(body.imageUrl).toContain('data:image/gif;base64');
-    expect(body.width).toBe(1);
-    expect(body.height).toBe(1);
+    expect(body.creativeId).toBe('cre_fallback_birtingur');
+    expect(body.imageUrl).toContain('data:image/svg+xml');
+    expect(body.width).toBe(728);
+    expect(body.height).toBe(90);
+    expect(body.clickUrl).toBe('https://birtingur.app');
     expect(body.impressionPixel).toContain('type=pageview');
   });
 
@@ -103,6 +104,6 @@ describe('GET /v1/ad', () => {
     const res = await app.request('/v1/ad?slot=slot_a&consent=full');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.creativeId).toBe('cre_fallback_transparent');
+    expect(body.creativeId).toBe('cre_fallback_birtingur');
   });
 });

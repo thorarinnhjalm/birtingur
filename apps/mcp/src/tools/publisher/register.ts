@@ -1,10 +1,15 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { AD_CATEGORY_SLUGS } from '@ada/shared';
 import { apiCall } from '../../lib/api-client.js';
 
 const Input = z.object({
   domain: z.string().describe('Lén vefsins, t.d. "kjarninn.is"'),
   displayName: z.string().describe('Sýnilegt nafn útgefanda'),
+  categories: z
+    .array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]]))
+    .min(1)
+    .describe('Flokkar efnis á vefnum, t.d. ["taekni"]'),
   payoutMethod: z.object({
     type: z.literal('bank'),
     iban: z.string(),
