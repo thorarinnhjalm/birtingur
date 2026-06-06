@@ -645,6 +645,34 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ---
 
+### Task P3 — Gate ad serving on the daily allowance
+
+- **Status:** done
+- **Commit(s):** 274c3ef feat(serving): gate ad serving on daily pace limit (Task P3)
+- **Files changed:**
+  - apps/serving/src/lib/analytics.ts
+  - apps/serving/src/routes/ad.ts
+  - apps/serving/tests/ad-route.test.ts
+- **Verification run + output:**
+
+  ```
+  $ npx pnpm --filter @ada/serving test tests/ad-route.test.ts
+  RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/serving
+
+   ✓ tests/ad-route.test.ts  (9 tests) 9ms
+
+   Test Files  1 passed (1)
+        Tests  9 passed (9)
+     Start at  12:37:13
+     Duration  259ms (transform 49ms, setup 0ms, collect 84ms, tests 9ms, environment 0ms, prepare 42ms)
+  ```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
