@@ -17,4 +17,3 @@ categoriesRouter.get('/content', async (c) => {
 });
 
 export default categoriesRouter;
-

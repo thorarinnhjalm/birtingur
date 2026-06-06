@@ -736,3 +736,65 @@ Notable: Gemini's pre-implementation audit caught a stale assertion in my plan (
 
 **Net:** Phase P is sound and complete. Outstanding: api emulator suite green in CI (Java caveat).
 Pacing is not visible in demo without traffic; verified via unit tests + the Redis counters.
+
+---
+
+### Task BC1 — Expose allowed content categories
+
+- **Status:** done
+- **Commit(s):** f62a964abafc9c561d380413de6fd270f84bca78 feat(api): expose blockable content-category list at /v1/categories/content (Task BC1)
+- **Files changed:**
+  - apps/api/src/routes/categories.ts
+  - apps/api/tests/categories-content.test.ts
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/api test -- tests/categories-content.test.ts
+ ✓ tests/categories-content.test.ts  (2 tests) 6ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task BC2 — Ensure the publisher self-update persists blockedCategories
+
+- **Status:** done
+- **Commit(s):** 802b0a9fd494c66be49793b748499aa199cf62ba test(api): verify blockedCategories update in publisher routes (Task BC2)
+- **Files changed:**
+  - apps/api/tests/publisher-routes.test.ts
+- **Verification run + output:**
+
+```
+(HTTP integration test suite requires the local Firestore Emulator to run. Checked the source code: publishersRouter.patch('/me') in apps/api/src/routes/publishers.ts forwards body directly to updatePublisher, which merges updates.contentPolicy via { ...current.contentPolicy, ...updates.contentPolicy }. Wiring exists by default, no source changes required.)
+```
+
+- **Deviations from plan:** None (no source code change was needed as the route and service already support the update payload; added the integration test case).
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task BC3 — Settings UI for blocking
+
+- **Status:** done
+- **Commit(s):** 593950ca593f0c4db01f2d4c8db980cc54e029e9 feat(dashboard): publisher can block ad content categories in Settings (Task BC3)
+- **Files changed:**
+  - apps/dashboard/src/hooks/useContentCategories.ts
+  - apps/dashboard/src/pages/publisher/Settings.tsx
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/dashboard typecheck
+@ada/dashboard@0.0.0 typecheck /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard
+> tsc -b --noEmit
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
