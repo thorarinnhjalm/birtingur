@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { AD_CATEGORIES } from '@ada/shared';
 import type { Creative } from '@ada/shared';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 
 export default function CampaignCreate() {
   const navigate = useNavigate();
@@ -41,12 +43,13 @@ export default function CampaignCreate() {
 
   // Step 2: Creative
   const [clickUrl, setClickUrl] = useState('https://');
-  const [imageUrl, setImageUrl] = useState('https://picsum.photos/300/250');
+  const [imageUrl, setImageUrl] = useState('');
   const [ocrTextHint, setOcrTextHint] = useState('');
   const [imageWidth, setImageWidth] = useState(300);
   const [imageHeight, setImageHeight] = useState(250);
   const [creative, setCreative] = useState<Creative | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   // Step 3: Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -63,6 +66,9 @@ export default function CampaignCreate() {
     }
 
     setError(null);
+    setSelectedFile(file);
+    const objectUrl = window.URL.createObjectURL(file);
+    setImageUrl(objectUrl);
 
     // Create preview
     const reader = new FileReader();
@@ -71,8 +77,6 @@ export default function CampaignCreate() {
       img.onload = () => {
         setImageWidth(img.width);
         setImageHeight(img.height);
-        // In fully hosted offline environment we can use picsum or mock server images
-        setImageUrl(`https://picsum.photos/${img.width}/${img.height}`);
       };
       img.src = event.target?.result as string;
     };
@@ -87,12 +91,31 @@ export default function CampaignCreate() {
       return;
     }
 
+    if (!selectedFile) {
+      setError('Vinsamlegast veldu mynd til að hlaða upp');
+      return;
+    }
+
+    const advertiserId = walletQuery.data?.advertiserId;
+    if (!advertiserId) {
+      setError('Prófíll auglýsanda fannst ekki. Vinsamlegast reyndu aftur.');
+      return;
+    }
+
     setScanning(true);
     try {
+      // 1. Upload file to Firebase Storage
+      const fileExt = selectedFile.name.split('.').pop() || 'png';
+      const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const storageRef = ref(storage, `creatives/${advertiserId}/${filename}`);
+      const snapshot = await uploadBytes(storageRef, selectedFile);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+
+      // 2. Submit creative to API with the uploaded image's URL
       const res = await apiFetch<Creative>('/v1/creatives', {
         method: 'POST',
         body: JSON.stringify({
-          imageUrl,
+          imageUrl: downloadUrl,
           width: imageWidth,
           height: imageHeight,
           clickUrl,
@@ -102,7 +125,7 @@ export default function CampaignCreate() {
       setCreative(res);
       setStep(3);
     } catch (err: any) {
-      setError(err.message || 'Ekki tókst að skanna eða skrá auglýsingaefnið.');
+      setError(err.message || 'Ekki tókst að hlaða upp eða skrá auglýsingaefnið.');
     } finally {
       setScanning(false);
     }

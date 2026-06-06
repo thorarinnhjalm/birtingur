@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'mock-api-key',
@@ -14,3 +15,4 @@ const firebaseConfig = {
 export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(firebaseApp);
 export const googleProvider = new GoogleAuthProvider();
+export const storage = getStorage(firebaseApp);

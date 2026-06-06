@@ -10,20 +10,25 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { AlertCircle, Image as ImageIcon, Plus, ExternalLink, Upload } from 'lucide-react';
 import type { Creative } from '@ada/shared';
 import { useBulkCreativeStats } from '@/hooks/useCampaigns';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
+import { useAdvertiser } from '@/hooks/useAdvertiser';
 
 export default function CreativeLibrary() {
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: bulkStats } = useBulkCreativeStats();
+  const { data: advertiser } = useAdvertiser();
 
   // Upload Form State
   const [clickUrl, setClickUrl] = useState('https://');
-  const [imageUrl, setImageUrl] = useState('https://picsum.photos/300/250');
+  const [imageUrl, setImageUrl] = useState('');
   const [imageWidth, setImageWidth] = useState(300);
   const [imageHeight, setImageHeight] = useState(250);
   const [ocrTextHint, setOcrTextHint] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   // Fetch creatives
   const {
@@ -53,10 +58,11 @@ export default function CreativeLibrary() {
       setShowAddModal(false);
       // Reset form
       setClickUrl('https://');
-      setImageUrl('https://picsum.photos/300/250');
+      setImageUrl('');
       setImageWidth(300);
       setImageHeight(250);
       setOcrTextHint('');
+      setSelectedFile(null);
     },
   });
 
@@ -69,13 +75,16 @@ export default function CreativeLibrary() {
       return;
     }
 
+    setSelectedFile(file);
+    const objectUrl = window.URL.createObjectURL(file);
+    setImageUrl(objectUrl);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         setImageWidth(img.width);
         setImageHeight(img.height);
-        setImageUrl(`https://picsum.photos/${img.width}/${img.height}`);
       };
       img.src = event.target?.result as string;
     };
@@ -91,17 +100,35 @@ export default function CreativeLibrary() {
       return;
     }
 
+    if (!selectedFile) {
+      setError('Vinsamlegast veldu mynd til að hlaða upp');
+      return;
+    }
+
+    if (!advertiser) {
+      setError('Prófíll auglýsanda fannst ekki. Vinsamlegast reyndu aftur.');
+      return;
+    }
+
     setUploading(true);
     try {
+      // 1. Upload file to Firebase Storage
+      const fileExt = selectedFile.name.split('.').pop() || 'png';
+      const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const storageRef = ref(storage, `creatives/${advertiser.id}/${filename}`);
+      const snapshot = await uploadBytes(storageRef, selectedFile);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+
+      // 2. Submit creative to API with the uploaded image's URL
       await createCreativeMutation.mutateAsync({
-        imageUrl,
+        imageUrl: downloadUrl,
         width: imageWidth,
         height: imageHeight,
         clickUrl,
         ocrTextHint: ocrTextHint || undefined,
       });
     } catch (err: any) {
-      setError(err.message || 'Ekki tókst að búa til auglýsingu');
+      setError(err.message || 'Ekki tókst að hlaða upp eða skrá auglýsinguna.');
     } finally {
       setUploading(false);
     }
