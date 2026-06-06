@@ -364,7 +364,7 @@ describe('End-to-End Smoke Test', () => {
     expect(whRes.status).toBe(200);
 
     // Double check advertiser wallet reflection in mock
-    expect(mockAdvertisers[0].walletBalanceIsk).toBe(50000);
+    expect(mockAdvertisers[0]!.walletBalanceIsk).toBe(50000);
 
     // 5. Upload Creative (clean clickUrl -> auto-approved)
     const creRes = await app.request('/v1/creatives', {

@@ -49,9 +49,7 @@ vi.mock('../src/lib/firebase', () => ({
           withConverter: vi.fn(() => ({
             get: vi.fn(async () => {
               if (colName === 'creatives') {
-                const filtered = mockCreatives.filter(
-                  (c) => (c as Record<string, unknown>)[prop] === val,
-                );
+                const filtered = mockCreatives.filter((c) => (c as any)[prop] === val);
                 return {
                   docs: filtered.map((c) => ({
                     data: () => c,
@@ -89,8 +87,8 @@ describe('Creative Service', () => {
     );
     expect(c.reviewStatus).toBe('auto_approved');
     expect(c.reviewLog.length).toBeGreaterThan(0);
-    expect(c.reviewLog[0].by).toBe('auto');
-    expect(c.reviewLog[0].action).toBe('approved');
+    expect(c.reviewLog[0]!.by).toBe('auto');
+    expect(c.reviewLog[0]!.action).toBe('approved');
   });
 
   it('rejects creative with blocked terms', async () => {
@@ -106,7 +104,7 @@ describe('Creative Service', () => {
       new StubAutoScanner(),
     );
     expect(c.reviewStatus).toBe('rejected');
-    expect(c.reviewLog[0].action).toBe('rejected');
+    expect(c.reviewLog[0]!.action).toBe('rejected');
   });
 
   it('returns creatives for advertiser only', async () => {
@@ -122,6 +120,6 @@ describe('Creative Service', () => {
     );
     const list = await listCreativesForAdvertiser('adv_123');
     expect(list).toHaveLength(1);
-    expect(list[0].advertiserId).toBe('adv_123');
+    expect(list[0]!.advertiserId).toBe('adv_123');
   });
 });

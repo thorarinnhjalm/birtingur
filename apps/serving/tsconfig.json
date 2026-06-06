@@ -5,5 +5,5 @@
     "rootDir": ".",
     "module": "ESNext"
   },
-  "include": ["src/**/*", "api/**/*"]
+  "include": ["src/**/*", "api/**/*", "tests/**/*"]
 }

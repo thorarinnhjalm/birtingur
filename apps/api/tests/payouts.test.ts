@@ -177,7 +177,7 @@ describe('Monthly Payouts Service', () => {
       await creditPublisher(p.id, 'cmp_1', 10000);
 
       // Set the createdAt of the ledger entry to be within the window
-      mockLedger[0].createdAt = new Date(Date.now() - 86400_000 * 5); // 5 days ago
+      mockLedger[0]!.createdAt = new Date(Date.now() - 86400_000 * 5); // 5 days ago
 
       const periodStart = new Date(Date.now() - 86400_000 * 30);
       const periodEnd = new Date(Date.now() + 86400_000);
@@ -192,7 +192,7 @@ describe('Monthly Payouts Service', () => {
       const p = await seedPublisher();
       // 1000 gross → 800 net, under 5000 threshold
       await creditPublisher(p.id, 'cmp_2', 1000);
-      mockLedger[0].createdAt = new Date(Date.now() - 86400_000 * 5);
+      mockLedger[0]!.createdAt = new Date(Date.now() - 86400_000 * 5);
 
       const periodStart = new Date(Date.now() - 86400_000 * 30);
       const periodEnd = new Date(Date.now() + 86400_000);
@@ -205,7 +205,7 @@ describe('Monthly Payouts Service', () => {
     it('marks payout completed and appends payout ledger entry', async () => {
       const p = await seedPublisher();
       await creditPublisher(p.id, 'cmp_3', 20000);
-      mockLedger[0].createdAt = new Date(Date.now() - 86400_000 * 5);
+      mockLedger[0]!.createdAt = new Date(Date.now() - 86400_000 * 5);
 
       const periodStart = new Date(Date.now() - 86400_000 * 30);
       const periodEnd = new Date(Date.now() + 86400_000);

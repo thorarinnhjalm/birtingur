@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Define a unified mock data holder that Vitest will hoist since its name starts with "mock"
 interface MockState {
-  slot: Record<string, unknown> | null;
-  publisher: Record<string, unknown> | null;
-  slots: Record<string, unknown>[];
-  publishers: Record<string, unknown>[];
-  campaigns: Record<string, unknown>[];
-  creatives: Array<{ id: string; [key: string]: unknown }>;
+  slot: any;
+  publisher: any;
+  slots: any[];
+  publishers: any[];
+  campaigns: any[];
+  creatives: any[];
 }
 
 const mockState: MockState = {
@@ -54,7 +54,8 @@ vi.mock('../src/lib/firebase', () => ({
           })),
         })),
         where: vi.fn(() => {
-          const builder: any = {
+          let builder: any;
+          builder = {
             where: vi.fn(() => builder),
             withConverter: vi.fn(() => ({
               get: vi.fn(async () => {
@@ -235,7 +236,7 @@ describe('pushSlotCache helper', () => {
     await pushSlotCache('slot_123');
 
     expect(mockRedisSet).toHaveBeenCalled();
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].creativeId).toBe('creative_approved');
@@ -284,7 +285,7 @@ describe('pushSlotCache helper', () => {
     await pushSlotCache('slot_123');
 
     expect(mockRedisSet).toHaveBeenCalled();
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     const c = entry.activeCreatives.find((x: any) => x.campaignId === 'cmp_geo');
     expect(c.geoRegions).toEqual(['capital']);
@@ -340,7 +341,7 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].creativeId).toBe('creative_right_size');
@@ -399,7 +400,7 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(0);
   });
@@ -467,7 +468,7 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_sponsor');
@@ -537,7 +538,7 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_high_budget');
@@ -595,7 +596,7 @@ describe('pushSlotCache helper', () => {
 
     await pushSlotCache('slot_123');
 
-    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
     expect(entry.activeCreatives[0].campaignId).toBe('camp_multi_creatives');
@@ -695,7 +696,7 @@ describe('pushSlotCache helper', () => {
   it('includes a campaign whose category matches the slot publisher, and excludes a non-matching one', async () => {
     await seedCategoryFixture();
     await pushSlotCache('slot_food');
-    const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
+    const slotCall = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_food');
     expect(slotCall).toBeDefined();
     const entry = slotCall[1];
     const campaignIds = entry.activeCreatives.map((c: any) => c.campaignId);
@@ -707,7 +708,7 @@ describe('pushSlotCache helper', () => {
     await seedCategoryFixture();
     mockRedisSet.mockClear();
     await pushCacheForCampaign('cmp_food');
-    const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
+    const slotCall = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_food');
     expect(slotCall).toBeDefined();
   });
 
@@ -757,7 +758,7 @@ describe('pushSlotCache helper', () => {
     mockRedisSet.mockClear();
     await pushSlotCache('slot_pace');
 
-    const paceCall = mockRedisSet.mock.calls.find((c) => c[0] === 'pace_limit:cmp_pace');
+    const paceCall = mockRedisSet.mock.calls.find((c: any) => c[0] === 'pace_limit:cmp_pace');
     expect(paceCall).toBeDefined();
     expect(paceCall![1]).toBe(10000); // 50000 / 5 = 10000 ISK
   });
@@ -807,7 +808,7 @@ describe('pushSlotCache helper', () => {
     mockRedisSet.mockClear();
     await pushCacheForCampaign('cmp_pace');
 
-    const paceCall = mockRedisSet.mock.calls.find((c) => c[0] === 'pace_limit:cmp_pace');
+    const paceCall = mockRedisSet.mock.calls.find((c: any) => c[0] === 'pace_limit:cmp_pace');
     expect(paceCall).toBeDefined();
     expect(paceCall![1]).toBe(10000);
   });
