@@ -2,9 +2,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   useCampaign,
   useCampaignStats,
-  useCreative,
-  useCreativeStats,
   useUpdateCampaign,
+  useBulkCreativeStats,
 } from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -26,8 +25,9 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
-import { AD_CATEGORIES } from '@ada/shared';
+import { AD_CATEGORIES, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
+import { useQuery } from '@tanstack/react-query';
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
@@ -35,10 +35,24 @@ export default function CampaignDetail() {
   const { data: campaign, isLoading, isError, refetch } = useCampaign(id);
   const { data: stats, isLoading: isStatsLoading } = useCampaignStats(id);
 
-  // Fetch corresponding creative details
-  const creativeId = campaign?.creativeIds?.[0];
-  const { data: creative } = useCreative(creativeId);
-  const { data: creativeStats } = useCreativeStats(creativeId);
+  // Fetch advertiser creatives and bulk stats
+  const { data: advertiserCreatives } = useQuery({
+    queryKey: ['creatives'],
+    queryFn: () => apiFetch<Creative[]>('/v1/creatives'),
+  });
+  const { data: bulkStats } = useBulkCreativeStats();
+
+  const campaignCreatives =
+    advertiserCreatives?.filter((c) => campaign?.creativeIds?.includes(c.id)) || [];
+
+  const campaignCreativesStatuses = campaignCreatives.map((c) => c.reviewStatus);
+  const campaignCreativesHasRejected = campaignCreativesStatuses.includes('rejected');
+  const campaignCreativesHasPending = campaignCreativesStatuses.includes('pending');
+  const campaignCreativesAllApproved =
+    campaignCreatives.length > 0 &&
+    campaignCreatives.every(
+      (c) => c.reviewStatus === 'auto_approved' || c.reviewStatus === 'manual_approved',
+    );
 
   const updateCampaignMutation = useUpdateCampaign();
 
@@ -56,6 +70,7 @@ export default function CampaignDetail() {
   const [editStartsAt, setEditStartsAt] = useState('');
   const [editEndsAt, setEditEndsAt] = useState('');
   const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [editCreativeIds, setEditCreativeIds] = useState<string[]>([]);
   const [editRegion, setEditRegion] = useState<'all' | 'capital' | 'countryside'>('all');
   const [editTotalBudget, setEditTotalBudget] = useState(0);
   const [editError, setEditError] = useState<string | null>(null);
@@ -85,6 +100,7 @@ export default function CampaignDetail() {
           : '',
       );
       setEditCategories(campaign.targeting.categories || []);
+      setEditCreativeIds(campaign.creativeIds || []);
       const region = campaign.targeting.geoRegions?.[0] || 'all';
       setEditRegion(region as any);
       setEditTotalBudget(campaign.budget.totalIsk || 0);
@@ -151,6 +167,7 @@ export default function CampaignDetail() {
         patch: {
           name: editName || undefined,
           categories: editCategories,
+          creativeIds: editCreativeIds,
           geoRegions: editRegion === 'all' ? [] : [editRegion],
           schedule: {
             startsAt: new Date(editStartsAt).toISOString(),
@@ -307,21 +324,24 @@ export default function CampaignDetail() {
             Yfirferð auglýsingar
           </div>
           <div className="text-xl font-extrabold text-slate-900 mt-2">
-            {creative?.reviewStatus === 'auto_approved' ||
-            creative?.reviewStatus === 'manual_approved'
+            {campaignCreativesAllApproved
               ? 'Samþykkt'
-              : creative?.reviewStatus === 'pending'
+              : campaignCreativesHasPending
                 ? 'Í yfirferð'
-                : creative?.reviewStatus === 'rejected'
+                : campaignCreativesHasRejected
                   ? 'Hafnað'
-                  : 'Óþekkt'}
+                  : campaignCreatives.length === 0
+                    ? 'Engin auglýsing'
+                    : 'Óþekkt'}
           </div>
           <div className="mt-3 text-xs text-slate-500 font-medium">
-            {creative?.reviewStatus === 'pending'
-              ? 'Gervigreindin fann grunsamlegt efni. Bið eftir handvirkri yfirferð stjórnanda.'
-              : creative?.reviewStatus === 'rejected'
-                ? 'Auglýsingu var hafnað. Vinsamlegast skoðaðu reglur okkar og búðu til nýja.'
-                : 'Auglýsingin er virk og tilbúin í birtingar.'}
+            {campaignCreativesHasRejected
+              ? 'Einni eða fleiri auglýsingum var hafnað. Vinsamlegast skoðaðu reglur okkar eða skiptu þeim út.'
+              : campaignCreativesHasPending
+                ? 'Ein eða fleiri auglýsingar bíða yfirferðar.'
+                : campaignCreativesAllApproved
+                  ? 'Allar auglýsingar herferðarinnar eru virkar og tilbúnar í birtingar.'
+                  : 'Engar auglýsingar eru tengdar þessari herferð.'}
           </div>
         </Card>
       </div>
@@ -431,70 +451,101 @@ export default function CampaignDetail() {
           </div>
         </Card>
 
-        {/* Ad Preview */}
+        {/* Ad Previews */}
         <Card className="p-6 space-y-4">
-          <h3 className="text-base font-bold text-slate-900">Auglýsingalayout</h3>
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center space-y-3">
-            <div className="mx-auto border border-slate-300 shadow-sm rounded overflow-hidden max-h-56 flex items-center justify-center bg-white">
-              {creative?.imageUrl ? (
-                <img src={creative.imageUrl} alt="Auglýsing" className="object-contain max-h-48" />
-              ) : campaign.creativeIds && campaign.creativeIds[0] ? (
-                <img
-                  src={`https://picsum.photos/300/250`}
-                  alt="Auglýsing"
-                  className="object-contain max-h-48"
-                />
-              ) : (
-                <div className="h-32 flex items-center justify-center text-slate-400">
-                  Engin myndskrá
-                </div>
-              )}
-            </div>
-
-            <div className="text-xs text-left space-y-3 border-t border-slate-200 pt-3">
-              {/* Creative-level stats */}
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Birtingar
-                  </div>
-                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
-                    {creativeStats?.impressions?.toLocaleString('is-IS') ?? '—'}
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Smellir
-                  </div>
-                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
-                    {creativeStats?.clicks?.toLocaleString('is-IS') ?? '—'}
-                  </div>
-                </div>
-                <div className="bg-white border border-slate-200 rounded-lg p-2">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    CTR
-                  </div>
-                  <div className="text-lg font-extrabold text-slate-900 mt-0.5">
-                    {creativeStats?.ctr != null
-                      ? `${creativeStats.ctr.toFixed(1).replace('.', ',')}%`
-                      : '—'}
-                  </div>
-                </div>
+          <h3 className="text-base font-bold text-slate-900">
+            Auglýsingar ({campaignCreatives.length})
+          </h3>
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+            {campaignCreatives.length === 0 ? (
+              <div className="text-center py-6 text-xs text-slate-400 font-medium">
+                Engar auglýsingar tengdar.
               </div>
+            ) : (
+              campaignCreatives.map((creative) => {
+                const cStats = bulkStats?.[creative.id] || { impressions: 0, clicks: 0, ctr: 0 };
+                return (
+                  <div
+                    key={creative.id}
+                    className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-3 relative group"
+                  >
+                    <div className="mx-auto border border-slate-300 shadow-sm rounded overflow-hidden max-h-40 flex items-center justify-center bg-white">
+                      <img
+                        src={creative.imageUrl}
+                        alt="Auglýsing"
+                        className="object-contain max-h-36"
+                      />
+                    </div>
 
-              <div>
-                <span className="block text-slate-500 font-semibold">Tengill á vefsíðu:</span>
-                <a
-                  href={creative?.clickUrl || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary font-bold hover:underline inline-flex items-center gap-1 mt-0.5 truncate max-w-full"
-                >
-                  <span>{creative?.clickUrl || 'Engin slóð'}</span>
-                  <ExternalLink size={12} className="shrink-0" />
-                </a>
-              </div>
-            </div>
+                    <div className="text-[10px] text-slate-400 font-mono text-center">
+                      Stærð: {creative.width}x{creative.height} | Staða:{' '}
+                      <span
+                        className={`font-bold ${
+                          creative.reviewStatus.includes('approved')
+                            ? 'text-green-600'
+                            : creative.reviewStatus === 'pending'
+                              ? 'text-amber-500'
+                              : 'text-red-500'
+                        }`}
+                      >
+                        {creative.reviewStatus === 'auto_approved' ||
+                        creative.reviewStatus === 'manual_approved'
+                          ? 'Samþykkt'
+                          : creative.reviewStatus === 'pending'
+                            ? 'Í yfirferð'
+                            : 'Hafnað'}
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-2 border-t border-slate-200 pt-2">
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        <div className="bg-white border border-slate-100 rounded-md p-1.5">
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            Birtingar
+                          </div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {cStats.impressions?.toLocaleString('is-IS') ?? '0'}
+                          </div>
+                        </div>
+                        <div className="bg-white border border-slate-100 rounded-md p-1.5">
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            Smellir
+                          </div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {cStats.clicks?.toLocaleString('is-IS') ?? '0'}
+                          </div>
+                        </div>
+                        <div className="bg-white border border-slate-100 rounded-md p-1.5">
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            CTR
+                          </div>
+                          <div className="text-sm font-extrabold text-slate-800 mt-0.5">
+                            {cStats.ctr != null
+                              ? `${cStats.ctr.toFixed(2).replace('.', ',')}%`
+                              : '0,00%'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="block text-[10px] text-slate-500 font-semibold">
+                          Tengill á vefsíðu:
+                        </span>
+                        <a
+                          href={creative.clickUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary font-bold hover:underline inline-flex items-center gap-1 mt-0.5 truncate max-w-full text-[11px]"
+                        >
+                          <span className="truncate">{creative.clickUrl}</span>
+                          <ExternalLink size={10} className="shrink-0" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </Card>
       </div>
@@ -594,6 +645,90 @@ export default function CampaignDetail() {
                 </div>
               </div>
 
+              {/* Creative selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Tengdar auglýsingar *
+                </label>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Veldu eina eða fleiri auglýsingar úr safninu þínu til að birta í þessari herferð.
+                </p>
+                <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto p-1 border border-slate-100 rounded-lg font-sans">
+                  {advertiserCreatives?.map((c) => {
+                    const isSelected = editCreativeIds.includes(c.id);
+                    const isRejected = c.reviewStatus === 'rejected';
+
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => {
+                          if (isRejected) return;
+                          setEditCreativeIds((prev) =>
+                            prev.includes(c.id)
+                              ? prev.filter((id) => id !== c.id)
+                              : [...prev, c.id],
+                          );
+                        }}
+                        className={`p-2.5 rounded-lg border transition-all duration-150 flex flex-col justify-between select-none relative ${
+                          isRejected
+                            ? 'border-red-100 bg-red-50/10 opacity-60 cursor-not-allowed'
+                            : isSelected
+                              ? 'border-primary bg-blue-50/20 ring-1 ring-primary cursor-pointer'
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-10 bg-white border border-slate-200 rounded overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                            <img src={c.imageUrl} alt="" className="object-contain w-full h-full" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[10px] font-bold text-slate-800 truncate">
+                              {c.width}x{c.height}
+                            </div>
+                            <div className="text-[9px] text-slate-400 truncate">{c.clickUrl}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-between">
+                          <span
+                            className={`text-[9px] font-bold uppercase ${
+                              isRejected
+                                ? 'text-red-500'
+                                : c.reviewStatus === 'pending'
+                                  ? 'text-amber-500'
+                                  : 'text-green-600'
+                            }`}
+                          >
+                            {isRejected
+                              ? 'Hafnað'
+                              : c.reviewStatus === 'pending'
+                                ? 'Í yfirferð'
+                                : 'Samþykkt'}
+                          </span>
+
+                          {!isRejected && isSelected && (
+                            <div className="w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center">
+                              <Check size={10} className="stroke-[3]" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(!advertiserCreatives || advertiserCreatives.length === 0) && (
+                    <div className="col-span-2 text-center py-6 text-xs text-slate-400 font-medium font-sans">
+                      Engar auglýsingar fundust í safninu þínu. Búðu til auglýsingu fyrst.
+                    </div>
+                  )}
+                </div>
+                {editCreativeIds.length === 0 && (
+                  <p className="text-[10px] font-bold text-red-600 flex items-center gap-1 font-sans">
+                    <AlertCircle size={12} className="shrink-0" />
+                    <span>Verður að velja að minnsta kosti eina auglýsingu.</span>
+                  </p>
+                )}
+              </div>
+
               {/* Budget targeting */}
               <div className="space-y-1">
                 <Input
@@ -606,7 +741,7 @@ export default function CampaignDetail() {
                   required
                 />
                 {editTotalBudget < spent && (
-                  <p className="text-[11px] font-bold text-red-600 flex items-center gap-1 mt-1">
+                  <p className="text-[11px] font-bold text-red-600 flex items-center gap-1 mt-1 font-sans">
                     <AlertCircle size={12} className="shrink-0" />
                     <span>
                       Má ekki vera lægri en upphæðin sem hefur verið eytt ({formatIsk(spent)}).
@@ -616,7 +751,7 @@ export default function CampaignDetail() {
               </div>
 
               {editError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5">
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5 font-sans">
                   <AlertCircle size={14} className="shrink-0" />
                   <span>{editError}</span>
                 </div>
@@ -638,6 +773,7 @@ export default function CampaignDetail() {
                   disabled={
                     editTotalBudget < spent ||
                     editCategories.length === 0 ||
+                    editCreativeIds.length === 0 ||
                     !editName ||
                     !editStartsAt
                   }
