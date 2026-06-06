@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { COLLECTIONS } from '@ada/shared/firestore';
 
 let mockPublishers: any[] = [];
+let mockCampaigns: any[] = [];
 let mockStatsDocs: Record<string, any> = {};
 
 vi.mock('../src/lib/firebase', () => {
@@ -16,6 +17,13 @@ vi.mock('../src/lib/firebase', () => {
                   return {
                     docs: mockPublishers.map((p) => ({
                       data: () => p,
+                    })),
+                  };
+                }
+                if (colName === 'campaigns') {
+                  return {
+                    docs: mockCampaigns.map((c) => ({
+                      data: () => c,
                     })),
                   };
                 }
@@ -46,6 +54,7 @@ import { getCategoryInventory } from '../src/services/inventory';
 describe('Inventory Service', () => {
   beforeEach(() => {
     mockPublishers = [];
+    mockCampaigns = [];
     mockStatsDocs = {};
   });
 
@@ -70,5 +79,47 @@ describe('Inventory Service', () => {
     const matur = result.find((r) => r.category === 'matur');
     expect(matur).toBeDefined();
     expect(matur!.avgDailyImpressions).toBe(14000);
+  });
+
+  it('subtracts committed impressions from gross to give availableDailyImpressions', async () => {
+    // Fixture: publisher in ['matur'] with 7 daily stats docs of 11000 impressions each
+    //   → gross avgDailyImpressions = 11000.
+    mockPublishers.push({
+      id: 'pub_food',
+      status: 'active',
+      categories: ['matur'],
+    });
+
+    const now = new Date();
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dk = d.toISOString().split('T')[0]!.replace(/-/g, '');
+      const path = `${COLLECTIONS.stats}/publishers/pub_food/${dk}`;
+      mockStatsDocs[path] = { impressions: 11000 };
+    }
+
+    // Active cpm_capped campaign targeting ['matur'], remaining 27500 ISK, endsAt 5 days from now
+    //   → dailyBudget = round(27500/5) = 5500 → dailyImpressions = round(5500/550*1000) = 10000.
+    const endsAt = new Date(Date.now() + 5 * 86_400_000); // 5 days from now
+    mockCampaigns.push({
+      status: 'active',
+      budget: {
+        mode: 'cpm_capped',
+        remainingIsk: 27500,
+      },
+      schedule: {
+        endsAt,
+      },
+      targeting: {
+        categories: ['matur'],
+      },
+    });
+
+    const result = await getCategoryInventory();
+    const matur = result.find((r) => r.category === 'matur')!;
+    expect(matur.avgDailyImpressions).toBe(11000);
+    expect(matur.committedDailyImpressions).toBe(10000);
+    expect(matur.availableDailyImpressions).toBe(1000);
   });
 });

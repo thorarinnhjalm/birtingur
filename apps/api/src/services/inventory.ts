@@ -1,10 +1,12 @@
-import { COLLECTIONS, publisherConverter } from '@ada/shared/firestore';
-import { AD_CATEGORY_SLUGS } from '@ada/shared';
+import { COLLECTIONS, publisherConverter, campaignConverter } from '@ada/shared/firestore';
+import { AD_CATEGORY_SLUGS, FLAT_CPM_ISK } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 
 export interface CategoryInventory {
   category: string;
   avgDailyImpressions: number;
+  committedDailyImpressions: number;
+  availableDailyImpressions: number;
 }
 
 function lastNDateKeys(n: number): string[] {
@@ -41,8 +43,34 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
     }
   }
 
-  return AD_CATEGORY_SLUGS.map((category) => ({
-    category,
-    avgDailyImpressions: totalByCategory.get(category) ?? 0,
-  }));
+  // Committed: daily allowance of active cpm_capped campaigns, in impressions, per category.
+  const cmpSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('status', '==', 'active')
+    .withConverter(campaignConverter)
+    .get();
+  const committedByCategory = new Map<string, number>();
+  const now = Date.now();
+  const perImpression = Math.round(FLAT_CPM_ISK / 1000);
+  for (const doc of cmpSnap.docs) {
+    const cmp = doc.data();
+    if (cmp.budget.mode !== 'cpm_capped') continue;
+    const daysLeft = Math.max(1, Math.ceil((cmp.schedule.endsAt.getTime() - now) / 86_400_000));
+    const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
+    const dailyImpressions = Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
+    for (const cat of cmp.targeting.categories) {
+      committedByCategory.set(cat, (committedByCategory.get(cat) ?? 0) + dailyImpressions);
+    }
+  }
+
+  return AD_CATEGORY_SLUGS.map((category) => {
+    const gross = totalByCategory.get(category) ?? 0;
+    const committed = committedByCategory.get(category) ?? 0;
+    return {
+      category,
+      avgDailyImpressions: gross,
+      committedDailyImpressions: committed,
+      availableDailyImpressions: Math.max(0, gross - committed),
+    };
+  });
 }
