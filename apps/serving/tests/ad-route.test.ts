@@ -175,6 +175,18 @@ describe('Static script serving', () => {
     expect(res.headers.get('content-type')).toContain('application/javascript');
   });
 
+  it('returns v1/widget.js script', async () => {
+    const res = await app.request('/v1/widget.js');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('application/javascript');
+  });
+
+  it('returns widgets.js script', async () => {
+    const res = await app.request('/widgets.js');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('application/javascript');
+  });
+
   it('returns v1/widgets.js script', async () => {
     const res = await app.request('/v1/widgets.js');
     expect(res.status).toBe(200);

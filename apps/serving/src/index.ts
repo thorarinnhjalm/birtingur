@@ -41,6 +41,8 @@ const serveLocalFile = (relativePath: string) => {
 };
 
 app.get('/widget.js', serveLocalFile('public/widget.js'));
+app.get('/v1/widget.js', serveLocalFile('public/widget.js'));
+app.get('/widgets.js', serveLocalFile('public/v1/widgets.js'));
 app.get('/v1/widgets.js', serveLocalFile('public/v1/widgets.js'));
 
 app.route('/v1/ad', adRoute);
