@@ -59,7 +59,7 @@ export const CreativeSchema = z
         message: 'Click URL must use https://',
       }),
     reviewStatus: ReviewStatusSchema,
-    reviewLog: z.array(ReviewLogEntrySchema),
+    reviewLog: z.array(ReviewLogEntrySchema).default([]),
     autoScanResult: AutoScanResultSchema.optional(),
   })
   .refine((c) => c.reviewStatus !== 'rejected' || c.reviewLog.length > 0, {
