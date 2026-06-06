@@ -25,10 +25,16 @@ export function useCampaign(id: string | undefined) {
   });
 }
 
+export interface CampaignStatsResponse {
+  impressions: number;
+  clicks: number;
+  hours: Array<{ hour: string; impressions: number; clicks: number }>;
+}
+
 export function useCampaignStats(id: string | undefined) {
   return useQuery({
     queryKey: ['campaigns', id, 'stats'],
-    queryFn: () => apiFetch<CampaignStatsPoint[]>(`/v1/campaigns/${id}/stats`),
+    queryFn: () => apiFetch<CampaignStatsResponse>(`/v1/campaigns/${id}/stats`),
     enabled: !!id,
   });
 }

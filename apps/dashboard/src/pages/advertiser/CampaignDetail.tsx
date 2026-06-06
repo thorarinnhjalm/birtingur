@@ -174,8 +174,19 @@ export default function CampaignDetail() {
   const spent = campaign.budget.totalIsk - campaign.budget.remainingIsk;
   const pct = Math.min(100, Math.round((spent / campaign.budget.totalIsk) * 100)) || 0;
 
-  // Chart data formatting: if no stats returned from endpoint, use empty list
-  const chartData = stats || [];
+  // Chart data formatting: if no stats returned from endpoint, format the hourly data points
+  const chartData =
+    stats?.hours?.map((h) => {
+      const y = h.hour.substring(0, 4);
+      const m = h.hour.substring(4, 6);
+      const d = h.hour.substring(6, 8);
+      const hr = h.hour.substring(8, 10);
+      return {
+        date: `${y}-${m}-${d}T${hr}:00:00Z`,
+        impressions: h.impressions,
+        clicks: h.clicks,
+      };
+    }) || [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
