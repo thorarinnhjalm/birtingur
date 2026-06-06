@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import {
   Megaphone,
@@ -81,6 +81,53 @@ function AdvertiserHome() {
       ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
       : '0,00%';
 
+  // Compute percentage changes from stats.history (compare last 7 days vs previous 7 days)
+  const pctChanges = useMemo(() => {
+    if (!stats?.history || stats.history.length < 2)
+      return { impressions: null, clicks: null, ctr: null };
+    const half = Math.floor(stats.history.length / 2);
+    const recent = stats.history.slice(half);
+    const older = stats.history.slice(0, half);
+    const sumRecent = { imp: 0, clk: 0 };
+    const sumOlder = { imp: 0, clk: 0 };
+    for (const h of recent) {
+      sumRecent.imp += h.impressions;
+      sumRecent.clk += h.clicks;
+    }
+    for (const h of older) {
+      sumOlder.imp += h.impressions;
+      sumOlder.clk += h.clicks;
+    }
+    const pctImp = sumOlder.imp > 0 ? ((sumRecent.imp - sumOlder.imp) / sumOlder.imp) * 100 : null;
+    const pctClk = sumOlder.clk > 0 ? ((sumRecent.clk - sumOlder.clk) / sumOlder.clk) * 100 : null;
+    const ctrRecent = sumRecent.imp > 0 ? (sumRecent.clk / sumRecent.imp) * 100 : 0;
+    const ctrOlder = sumOlder.imp > 0 ? (sumOlder.clk / sumOlder.imp) * 100 : 0;
+    const pctCtr = ctrOlder > 0 ? ((ctrRecent - ctrOlder) / ctrOlder) * 100 : null;
+    return { impressions: pctImp, clicks: pctClk, ctr: pctCtr };
+  }, [stats]);
+
+  // Generate smart AI tips based on real stats
+  const aiTips = useMemo(() => {
+    const tips: string[] = [];
+    if (!stats || stats.impressions === 0) {
+      tips.push('Stofnaðu fyrstu herferðina og byrjaðu að ná til markhópsins þíns.');
+      return tips;
+    }
+    const ctrVal = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+    if (ctrVal < 0.5)
+      tips.push('CTR er undir 0,5%. Prófaðu áberandi litasamsetningu og skýrari CTA á borðanum.');
+    else if (ctrVal > 2)
+      tips.push('Frábært CTR! Íhugaðu að hækka fjárhagsáætlun til að ná til fleiri notenda.');
+    if (activeCampaigns.length === 0)
+      tips.push('Engin herferð er í gangi. Virkjaðu herferð til að byrja birtingar.');
+    if (pctChanges.impressions !== null && pctChanges.impressions < -10)
+      tips.push('Birtingar hafa minnkað. Athugaðu hvort auglýsingaplássin séu enn virk.');
+    if (wallet && wallet.balanceIsk < 5000)
+      tips.push('Innistæða er lág. Fylltu á til að tryggja órofnar birtingar.');
+    if (tips.length === 0) tips.push('Allt lítur vel út! Haltu áfram og fylgstu með árangri.');
+    return tips;
+  }, [stats, activeCampaigns, pctChanges, wallet]);
+
   return (
     <div className="space-y-gutter">
       {/* Welcome & Balance Section */}
@@ -96,7 +143,15 @@ function AdvertiserHome() {
           </div>
           <div className="relative z-10 flex items-center justify-between gap-4 mt-6">
             <p className="text-body-md max-w-sm opacity-90">
-              Innistæða þín dugar í um það bil 14 daga miðað við núverandi eyðslu.
+              {(() => {
+                if (!stats || !stats.history || stats.history.length === 0 || stats.spendIsk === 0)
+                  return 'Fylltu á veskið til að hefja birtingar.';
+                const dailyAvg = stats.spendIsk / stats.history.length;
+                const daysLeft =
+                  dailyAvg > 0 ? Math.round((wallet?.balanceIsk ?? 0) / dailyAvg) : 0;
+                if (daysLeft <= 0) return 'Innistæða er uppurin. Fylltu á til að halda áfram.';
+                return `Innistæða þín dugar í um það bil ${daysLeft} daga miðað við núverandi eyðslu.`;
+              })()}
             </p>
             <button
               onClick={() => navigate('/advertiser/topup')}
@@ -107,23 +162,24 @@ function AdvertiserHome() {
           </div>
         </div>
 
-        {/* Mini Promo/Status Card */}
+        {/* AI Smart Tips Card */}
         <div className="bg-tertiary-container text-on-tertiary-container rounded-xl p-8 flex flex-col justify-between relative overflow-hidden border border-outline-variant shadow-sm">
           <div className="relative z-10">
-            <span className="material-symbols-outlined text-tertiary-fixed-dim text-4xl mb-4">
+            <span className="material-symbols-outlined text-tertiary-fixed-dim text-4xl mb-3">
               auto_awesome
             </span>
-            <h3 className="text-headline-md mb-2 font-bold">Herferðar-aðstoð</h3>
-            <p className="text-body-md opacity-80">
-              Nýttu gervigreind til að fínstilla birtingar og lækka smellakostnað.
-            </p>
+            <h3 className="text-headline-md mb-3 font-bold">Snjallráð</h3>
+            <ul className="space-y-2">
+              {aiTips.map((tip, i) => (
+                <li key={i} className="text-body-sm opacity-85 flex items-start gap-2">
+                  <span className="material-symbols-outlined text-sm mt-0.5 shrink-0">
+                    lightbulb
+                  </span>
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <a
-            className="relative z-10 text-label-md flex items-center gap-2 hover:underline font-semibold mt-4"
-            href="#"
-          >
-            Skoða möguleika <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </a>
         </div>
       </div>
 
@@ -135,9 +191,17 @@ function AdvertiserHome() {
             <div className="p-3 bg-secondary-fixed rounded-lg text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <span className="material-symbols-outlined">visibility</span>
             </div>
-            <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
-              +12.4% <span className="material-symbols-outlined text-[12px]">trending_up</span>
-            </span>
+            {pctChanges.impressions !== null && (
+              <span
+                className={`${pctChanges.impressions >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1`}
+              >
+                {pctChanges.impressions >= 0 ? '+' : ''}
+                {pctChanges.impressions.toFixed(1).replace('.', ',')}%{' '}
+                <span className="material-symbols-outlined text-[12px]">
+                  {pctChanges.impressions >= 0 ? 'trending_up' : 'trending_down'}
+                </span>
+              </span>
+            )}
           </div>
           <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">
             Birtingar
@@ -154,9 +218,17 @@ function AdvertiserHome() {
             <div className="p-3 bg-secondary-fixed rounded-lg text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <span className="material-symbols-outlined">ads_click</span>
             </div>
-            <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
-              +8.1% <span className="material-symbols-outlined text-[12px]">trending_up</span>
-            </span>
+            {pctChanges.clicks !== null && (
+              <span
+                className={`${pctChanges.clicks >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1`}
+              >
+                {pctChanges.clicks >= 0 ? '+' : ''}
+                {pctChanges.clicks.toFixed(1).replace('.', ',')}%{' '}
+                <span className="material-symbols-outlined text-[12px]">
+                  {pctChanges.clicks >= 0 ? 'trending_up' : 'trending_down'}
+                </span>
+              </span>
+            )}
           </div>
           <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">Smellir</p>
           <p className="text-on-surface text-headline-md font-bold">{clicks}</p>
@@ -171,9 +243,17 @@ function AdvertiserHome() {
             <div className="p-3 bg-secondary-fixed rounded-lg text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
               <span className="material-symbols-outlined">leaderboard</span>
             </div>
-            <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1">
-              -1.2% <span className="material-symbols-outlined text-[12px]">trending_down</span>
-            </span>
+            {pctChanges.ctr !== null && (
+              <span
+                className={`${pctChanges.ctr >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1`}
+              >
+                {pctChanges.ctr >= 0 ? '+' : ''}
+                {pctChanges.ctr.toFixed(1).replace('.', ',')}%{' '}
+                <span className="material-symbols-outlined text-[12px]">
+                  {pctChanges.ctr >= 0 ? 'trending_up' : 'trending_down'}
+                </span>
+              </span>
+            )}
           </div>
           <p className="text-on-secondary-fixed-variant text-label-md mb-1 font-medium">
             Smellihlutfall (CTR)
@@ -397,8 +477,9 @@ function AdvertiserHome() {
                     statusDot = 'bg-slate-600';
                   }
 
-                  const thumbnail =
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAYtV8RJUi4lIJ473dz6RIg3rnxRRNprhM02JFfjvb9cDJO5GgdIlqo02s2V_UOnaQ1Ui24nQ4RqgPJpyYZslNfIOdRdwUXqJQUswqeKm6Vmdlkth8XJfRwCHtuoeZLxK_tcIT9e2TLu25yQkKJu8dyoTyWmkiW-S_I-ySk5dUvWJB-uajvoI1VjkKEHMEi05i7FJNFYo1732K_LKWaw-NTRk6dsCAZ4nMMSkZMoOuvg14yCh-Z5vgpziNtVXIYW0Vp49NfBSSQvWQ';
+                  // Get first creative image URL for thumbnail
+                  const creId = c.creativeIds?.[0];
+                  const creStats = creId && bulkCreativeStats?.[creId];
 
                   return (
                     <tr
@@ -408,17 +489,17 @@ function AdvertiserHome() {
                     >
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <img
-                            alt="Herferð"
-                            className="w-12 h-12 rounded-lg object-cover"
-                            src={thumbnail}
-                          />
-                          <div>
-                            <p className="text-label-md text-on-surface font-bold">
-                              Norðurljós - Hausttilboð
+                          <div className="w-12 h-12 rounded-lg bg-secondary-fixed flex items-center justify-center shrink-0 overflow-hidden">
+                            <span className="material-symbols-outlined text-primary text-xl">
+                              campaign
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-label-md text-on-surface font-bold truncate max-w-[220px]">
+                              {c.name || `Herferð ${c.id.substring(0, 8)}`}
                             </p>
-                            <p className="text-[11px] text-outline font-medium">
-                              Birtipláss · Vefurinn þinn
+                            <p className="text-[11px] text-outline font-medium truncate max-w-[220px]">
+                              {c.targeting.categories.join(', ') || 'Almennt'}
                             </p>
                           </div>
                         </div>
@@ -480,24 +561,15 @@ function AdvertiserHome() {
         )}
       </div>
 
-      {/* Footer Help Banner */}
-      <div className="bg-secondary-container rounded-xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 border border-outline-variant shadow-sm">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
-            <span className="material-symbols-outlined text-primary text-3xl">support_agent</span>
-          </div>
-          <div>
-            <h4 className="text-headline-md text-primary font-bold">
-              Þarftu aðstoð við uppsetningu?
-            </h4>
-            <p className="text-body-md text-on-secondary-container">
-              Sérfræðingar okkar geta hjálpað þér að ná betri árangri.
-            </p>
-          </div>
-        </div>
-        <button className="bg-primary text-on-primary px-8 py-3 rounded-lg font-bold text-label-md hover:opacity-90 transition-all shadow-md active:scale-95 shrink-0 cursor-pointer">
-          Bóka ráðgjöf
-        </button>
+      {/* Help link — non-intrusive */}
+      <div className="text-center py-4">
+        <a
+          href="mailto:hallo@birtingur.is"
+          className="text-secondary text-label-md font-semibold hover:text-primary transition-colors inline-flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined text-sm">mail</span>
+          Þarftu aðstoð? Sendu okkur línu á hallo@birtingur.is
+        </a>
       </div>
     </div>
   );

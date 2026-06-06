@@ -106,3 +106,13 @@ export async function markPayoutCompleted(
   });
   return updated;
 }
+
+export async function listPublisherPayouts(publisherId: string): Promise<Payout[]> {
+  const snap = await db
+    .collection(COLLECTIONS.payouts)
+    .where('publisherId', '==', publisherId)
+    .orderBy('periodStart', 'desc')
+    .withConverter(payoutConverter)
+    .get();
+  return snap.docs.map((d) => d.data());
+}

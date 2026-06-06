@@ -72,7 +72,9 @@ function PublisherHome() {
       {/* Header & Top CTA */}
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h2 className="text-display-lg text-primary font-bold mb-2">Góðan dag, Kristinn</h2>
+          <h2 className="text-display-lg text-primary font-bold mb-2">
+            Góðan dag, {publisher.displayName?.split(' ')[0] || 'útgefandi'}
+          </h2>
           <p className="text-secondary font-body-lg">
             Hér er yfirlit yfir árangur og tekjur í dag.
           </p>
@@ -123,10 +125,25 @@ function PublisherHome() {
             <h3 className="font-bold text-[64px] text-primary tracking-tighter leading-none my-4">
               {stats ? formatIsk(stats.spendIsk) : '0 kr.'}
             </h3>
-            <div className="mt-4 flex items-center gap-2 text-primary bg-secondary-fixed w-fit px-3 py-1 rounded-full text-label-sm font-semibold">
-              <span className="material-symbols-outlined text-[16px]">trending_up</span>
-              +12.4% frá síðasta mánuði
-            </div>
+            {(() => {
+              if (!stats?.history || stats.history.length < 2) return null;
+              const half = Math.floor(stats.history.length / 2);
+              const recent = stats.history.slice(half).reduce((s, h) => s + h.spendIsk, 0);
+              const older = stats.history.slice(0, half).reduce((s, h) => s + h.spendIsk, 0);
+              if (older === 0) return null;
+              const pct = ((recent - older) / older) * 100;
+              return (
+                <div
+                  className={`mt-4 flex items-center gap-2 ${pct >= 0 ? 'text-primary bg-secondary-fixed' : 'text-red-600 bg-red-50'} w-fit px-3 py-1 rounded-full text-label-sm font-semibold`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {pct >= 0 ? 'trending_up' : 'trending_down'}
+                  </span>
+                  {pct >= 0 ? '+' : ''}
+                  {pct.toFixed(1).replace('.', ',')}% frá síðasta tímabili
+                </div>
+              );
+            })()}
           </div>
           {/* Interactive Recharts Graph */}
           <div className="absolute bottom-0 left-0 right-0 h-32 opacity-90 z-0">
@@ -328,9 +345,11 @@ function PublisherHome() {
                     onClick={() => navigate(`/publisher/slots/${s.id}`)}
                   >
                     <td className="px-8 py-5">
-                      <div className="flex flex-col">
-                        <span className="font-body-md font-bold text-on-surface">{s.name}</span>
-                        <span className="text-[12px] text-outline font-medium">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-body-md font-bold text-on-surface truncate max-w-[200px]">
+                          {s.name}
+                        </span>
+                        <span className="text-[12px] text-outline font-medium truncate max-w-[200px]">
                           {publisher.domain}
                           {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
                             ? s.placement.pageMatcher
@@ -339,14 +358,18 @@ function PublisherHome() {
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold">
+                      <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold whitespace-nowrap">
                         {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')}
                       </span>
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
-                        <span className="text-body-md font-medium">Virk</span>
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
+                        ></span>
+                        <span className="text-body-md font-medium">
+                          {s.status === 'active' ? 'Virk' : 'Óvirk'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-5">

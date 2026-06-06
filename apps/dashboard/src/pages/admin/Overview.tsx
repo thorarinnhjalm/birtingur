@@ -62,6 +62,7 @@ function Home() {
     queryKey: ['admin', 'stats'],
     queryFn: () => apiFetch<AdminStats>('/v1/admin/stats'),
   });
+  const { data: diag } = useAdminDiagnostics();
 
   return (
     <div className="space-y-8">
@@ -97,16 +98,40 @@ function Home() {
           <h3 className="text-base font-bold text-slate-900 mb-4">Kerfisástand</h3>
           <div className="space-y-3 text-xs font-semibold text-slate-600">
             <div className="flex justify-between border-b border-slate-100 pb-2">
-              <span>Firebase Database:</span>
-              <span className="text-green-600 font-bold">Virk</span>
+              <span>Firestore Database:</span>
+              <span
+                className={`font-bold ${diag?.firestore?.status === 'ok' ? 'text-green-600' : diag?.firestore?.status === 'error' ? 'text-red-600' : 'text-slate-400'}`}
+              >
+                {diag?.firestore?.status === 'ok'
+                  ? 'Virk'
+                  : diag?.firestore?.status === 'error'
+                    ? 'Villa'
+                    : 'Atþga...'}
+              </span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
-              <span>Upstash Redis aggregation:</span>
-              <span className="text-green-600 font-bold">Tengt (0 í biðröð)</span>
+              <span>Redis skyndiminni:</span>
+              <span
+                className={`font-bold ${diag?.redis?.status === 'ok' ? 'text-green-600' : diag?.redis?.status === 'error' ? 'text-red-600' : 'text-slate-400'}`}
+              >
+                {diag?.redis?.status === 'ok'
+                  ? 'Tengt'
+                  : diag?.redis?.status === 'error'
+                    ? 'Ótengt'
+                    : 'Atþga...'}
+              </span>
             </div>
             <div className="flex justify-between">
-              <span>Teya Webhook Handler:</span>
-              <span className="text-green-600 font-bold">Í lagi</span>
+              <span>Slot Query Engine:</span>
+              <span
+                className={`font-bold ${diag?.slotsQuery?.status === 'ok' ? 'text-green-600' : diag?.slotsQuery?.status === 'error' ? 'text-red-600' : 'text-slate-400'}`}
+              >
+                {diag?.slotsQuery?.status === 'ok'
+                  ? 'Í lagi'
+                  : diag?.slotsQuery?.status === 'error'
+                    ? 'Bilun'
+                    : 'Atþga...'}
+              </span>
             </div>
           </div>
         </Card>
@@ -250,7 +275,9 @@ function AdminReviewQueue() {
               </div>
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-3">
-                  <h4 className="font-bold text-slate-900 text-sm">{c.id}</h4>
+                  <h4 className="font-bold text-slate-900 text-sm truncate max-w-[200px]">
+                    {c.id}
+                  </h4>
                   <Badge variant="pending">Bíður yfirferðar</Badge>
                 </div>
                 <div className="text-xs text-slate-500 font-semibold space-y-1">
@@ -264,7 +291,7 @@ function AdminReviewQueue() {
                       href={c.clickUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:underline font-bold"
+                      className="text-primary hover:underline font-bold truncate max-w-[250px] inline-block"
                     >
                       {c.clickUrl}
                     </a>
@@ -483,7 +510,9 @@ function AdminPayoutQueue() {
                       <div className="font-semibold text-slate-900">{p.publisherName}</div>
                       <div className="text-[10px] text-slate-400 font-mono">{p.publisherId}</div>
                     </td>
-                    <td className="py-3 font-mono">{p.iban || 'Vantar reikning'}</td>
+                    <td className="py-3 font-mono whitespace-nowrap">
+                      {p.iban || 'Vantar reikning'}
+                    </td>
                     <td className="py-3 font-mono">{p.kennitala || 'Vantar kennitölu'}</td>
                     <td className="py-3 font-semibold text-slate-600">
                       {new Date(p.periodStart).toLocaleDateString('is-IS', {

@@ -14,6 +14,7 @@ import {
   issueWidgetKey,
   revokeWidgetKey,
 } from '../services/widget-keys.js';
+import { listPublisherPayouts } from '../services/payouts.js';
 
 export const publishersRouter = new Hono<Env>();
 
@@ -146,4 +147,16 @@ publishersRouter.post('/me/widget-key/rotate', async (c) => {
 
   const newKey = await issueWidgetKey(user.email, 'publisher', publisher.id);
   return c.json({ key: newKey.key });
+});
+
+publishersRouter.get('/me/payouts', async (c) => {
+  const user = c.get('user');
+  const publisher = await getPublisherByOwnerEmail(user.email);
+
+  if (!publisher) {
+    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  }
+
+  const payouts = await listPublisherPayouts(publisher.id);
+  return c.json(payouts);
 });
