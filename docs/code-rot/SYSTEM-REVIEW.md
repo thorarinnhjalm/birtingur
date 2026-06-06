@@ -204,3 +204,31 @@ Demo-staða: virkni-brot raðast ofar en peninga/öryggi. Lagað nú þegar: **K
 **Aðferð:** hver eining = lítil, test-bökuð breyting, einn commit, keyra `pnpm test:api` /
 `pnpm --filter @ada/serving test` í umhverfi með Java áður en merge. Claude fer yfir report
 Gemini eftir hverja einingu.
+
+---
+
+## 10. Postmortem — serving skilaði `{empty:true}` (2026-06-06)
+
+Eftir K2-lagfæringuna (TTL 7 dagar → 15 mín + `cron-refresh-cache`) og kröfuna um `categories` (A1)
+fór serving að skila `{empty:true}` á öllum slot-um. Rótin var **ekki** pacing/targeting
+(`{empty:true}` = slot-cache vantar í Redis; gate-vandi skilar fallback-pixli, ekki empty), heldur
+keðja:
+
+1. A1 gerði `categories` skyldu (enginn default); **A2-migration keyrði bara á emulator, ekki live**
+   → lifandi publisher-skjöl vantuðu flokka.
+2. `publisherConverter` (`PublisherSchema.parse`, `.min(1)`) **kastar** við lestur á slíku skjali →
+   `pushSlotCache` kastar.
+3. `refreshAllActiveSlotCaches` hafði **enga per-slot villumeðhöndlun** → eitt gallað skjal felldi
+   alla cron-keyrsluna → cron 500 í hvert sinn (líka á Vercel Pro) → caches runnu út (15 mín) →
+   `{empty:true}` alls staðar.
+
+**Lagfært:** per-slot `try/catch` í `refreshAllActiveSlotCaches` (`467cd20`) + smartari live-backfill
+í `migrate-categories` (`7e89f3a`). **Aðgerð operatora eftir:** keyra migration á LIVE + redeploy api.
+
+**Lærdómar:**
+
+- Þegar strict schema er **hert**, verður migration/backfill að keyra á **live**, ekki bara emulator
+  — annars kastar converter á öllum óbreyttum skjölum og fellir lestur þvert á kerfið.
+- Cron/loops sem endurbyggja sameiginlegt ástand (cache) **verða að einangra per-item villur**.
+- Hot-cache TTL (15 mín) reiðir sig á að `cron-refresh-cache` keyri á 10 mín; ef cron feilar/keyrir
+  ekki nógu oft, vantar caches. Á Pro virkar það þegar cron feilar ekki.
