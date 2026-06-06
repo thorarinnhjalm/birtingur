@@ -54,7 +54,7 @@ vi.mock('../src/lib/firebase', () => ({
           })),
         })),
         where: vi.fn(() => {
-          const builder = {
+          const builder: any = {
             where: vi.fn(() => builder),
             withConverter: vi.fn(() => ({
               get: vi.fn(async () => {
@@ -698,7 +698,7 @@ describe('pushSlotCache helper', () => {
     const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
     expect(slotCall).toBeDefined();
     const entry = slotCall[1];
-    const campaignIds = entry.activeCreatives.map((c) => c.campaignId);
+    const campaignIds = entry.activeCreatives.map((c: any) => c.campaignId);
     expect(campaignIds).toContain('cmp_food');
     expect(campaignIds).not.toContain('cmp_travel');
   });

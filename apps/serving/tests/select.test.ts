@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { selectCreative } from '../src/lib/select';
-import type { CachedCreative, SlotCacheEntry } from '../src/lib/cache';
+import type { CachedCreative, SlotCacheEntry } from '@ada/shared';
 
 function makeCreative(over: Partial<CachedCreative> = {}): CachedCreative {
   return {
@@ -101,5 +101,38 @@ describe('selectCreative', () => {
     expect(
       selectCreative(slot, { country: 'IS', consent: 'full', visitorImpressionsToday: { c1: 3 } }),
     ).toBe(null);
+  });
+
+  it('respects geoRegions', () => {
+    const capitalOnly = makeCreative({ geoRegions: ['capital'] });
+    const countrysideOnly = makeCreative({ creativeId: 'c2', geoRegions: ['countryside'] });
+
+    // 1. Capital visitor selects only capitalOnly
+    let slot = makeSlot([capitalOnly, countrysideOnly]);
+    let got = selectCreative(slot, {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+      region: 'capital',
+    });
+    expect(got?.creativeId).toBe('c1');
+
+    // 2. Countryside visitor selects countrysideOnly
+    got = selectCreative(slot, {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+      region: 'countryside',
+    });
+    expect(got?.creativeId).toBe('c2');
+
+    // 3. Unknown visitor (fail-open) selects either/any
+    got = selectCreative(slot, {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+      region: 'unknown',
+    });
+    expect(got).not.toBeNull();
   });
 });

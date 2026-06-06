@@ -142,4 +142,28 @@ describe('GET /v1/ad', () => {
     const body = await res.json();
     expect(body.creativeId).toBe('cre_a');
   });
+
+  it('gates creatives by geoRegion derived from x-vercel-ip-city header', async () => {
+    // Modify active creative to target capital only
+    mockSlot.activeCreatives[0]!.geoRegions = ['capital'];
+
+    // 1. Reykjavik city header -> matches 'capital' -> serves the ad
+    let res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: { 'x-vercel-ip-city': 'Reykjavík' },
+    });
+    expect(res.status).toBe(200);
+    let body = await res.json();
+    expect(body.creativeId).toBe('cre_a');
+
+    // 2. Akureyri city header -> matches 'countryside' -> mismatch -> serves house ad fallback
+    res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: { 'x-vercel-ip-city': 'Akureyri' },
+    });
+    expect(res.status).toBe(200);
+    body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_birtingur');
+
+    // 3. Reset slot activeCreatives back to unrestricted (no geoRegions)
+    delete mockSlot.activeCreatives[0]!.geoRegions;
+  });
 });

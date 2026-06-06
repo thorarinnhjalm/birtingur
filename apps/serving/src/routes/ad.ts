@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { FLAT_CPM_ISK } from '@ada/shared';
 import { selectCreative } from '../lib/select.js';
+import { regionFromHeaders } from '../lib/geo.js';
 import {
   getOrCreateVisitorToken,
   setCookieHeader,
@@ -71,10 +72,15 @@ adRoute.get('/', async (c) => {
     }),
   };
 
+  const region = regionFromHeaders({
+    'x-vercel-ip-city': c.req.header('x-vercel-ip-city'),
+  });
+
   const creative = selectCreative(fundedSlot, {
     country,
     consent: consentParam,
     visitorImpressionsToday,
+    region,
   });
 
   if (!creative) {
