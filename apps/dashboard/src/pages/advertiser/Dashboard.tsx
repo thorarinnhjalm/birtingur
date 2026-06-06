@@ -477,10 +477,6 @@ function AdvertiserHome() {
                     statusDot = 'bg-slate-600';
                   }
 
-                  // Get first creative image URL for thumbnail
-                  const creId = c.creativeIds?.[0];
-                  const creStats = creId && bulkCreativeStats?.[creId];
-
                   return (
                     <tr
                       key={c.id}
