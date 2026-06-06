@@ -158,6 +158,21 @@ describe('Campaign Service', () => {
       expect((cmp as any).perPublisherApproval).toBeUndefined();
     });
 
+    it('creates a campaign with optional geoRegions targeting', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        geoRegions: ['capital'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20000 },
+      });
+      expect(cmp.targeting.geoRegions).toEqual(['capital']);
+    });
+
     it('creates campaign in pending_approval if creatives are not approved', async () => {
       const { adv, cre } = setupMockData();
       cre.reviewStatus = 'pending';

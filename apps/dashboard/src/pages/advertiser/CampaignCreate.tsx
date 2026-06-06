@@ -48,8 +48,9 @@ export default function CampaignCreate() {
   const [creative, setCreative] = useState<Creative | null>(null);
   const [scanning, setScanning] = useState(false);
 
-  // Step 3: Categories
+  // Step 3: Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<'all' | 'capital' | 'countryside'>('all');
 
   // Handle local image file load for sizing
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,6 +118,7 @@ export default function CampaignCreate() {
         name,
         creativeIds: [creative.id],
         categories: selectedCategories,
+        geoRegions: selectedRegion === 'all' ? undefined : [selectedRegion],
         schedule: {
           startsAt: new Date(startDate).toISOString(),
           endsAt: endDate
@@ -349,6 +351,46 @@ export default function CampaignCreate() {
               </div>
             )}
 
+            {/* Region Targeting Selector */}
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <h4 className="text-sm font-bold text-slate-900">Landshlutamarkun (Valfrjálst)</h4>
+              <p className="text-xs text-slate-500 font-medium">
+                Sýndu auglýsinguna aðeins notendum á ákveðnum landsvæðum. Sjálfgefið er allt landið.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <div
+                  onClick={() => setSelectedRegion('all')}
+                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
+                    selectedRegion === 'all'
+                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
+                  }`}
+                >
+                  Allt land
+                </div>
+                <div
+                  onClick={() => setSelectedRegion('capital')}
+                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
+                    selectedRegion === 'capital'
+                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
+                  }`}
+                >
+                  Höfuðborgarsvæðið
+                </div>
+                <div
+                  onClick={() => setSelectedRegion('countryside')}
+                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
+                    selectedRegion === 'countryside'
+                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
+                  }`}
+                >
+                  Landsbyggðin
+                </div>
+              </div>
+            </div>
+
             {/* Reach Forecast Panel */}
             {selectedCategories.length > 0 && !categoriesInventoryQuery.isLoading && (
               <div className="p-5 bg-linear-to-r from-blue-50/30 to-sky-50/30 border border-blue-100 rounded-xl space-y-4 shadow-sm">
@@ -463,6 +505,16 @@ export default function CampaignCreate() {
                   <span className="block text-slate-500 font-medium text-xs">Lokadagur:</span>
                   <span className="font-bold text-slate-950 text-sm">
                     {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 font-medium text-xs">Landshlutar:</span>
+                  <span className="font-bold text-slate-950 text-sm">
+                    {selectedRegion === 'all'
+                      ? 'Allt land'
+                      : selectedRegion === 'capital'
+                        ? 'Höfuðborgarsvæðið'
+                        : 'Landsbyggðin'}
                   </span>
                 </div>
               </div>

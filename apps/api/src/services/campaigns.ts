@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
-import { CampaignSchema, AD_CATEGORY_SLUGS } from '@ada/shared';
+import { CampaignSchema, AD_CATEGORY_SLUGS, GeoRegionSchema } from '@ada/shared';
 import type { Campaign, CampaignStatus } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
@@ -13,6 +13,7 @@ const CreateCampaignInputSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   creativeIds: z.array(z.string()).min(1),
   categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
+  geoRegions: z.array(GeoRegionSchema).optional(),
   schedule: z.object({
     startsAt: z.coerce.date(),
     endsAt: z.coerce.date(),
@@ -52,7 +53,10 @@ export async function createCampaign(
     id: generateId('cmp'),
     advertiserId,
     creativeIds: parsed.creativeIds,
-    targeting: { categories: parsed.categories },
+    targeting: {
+      categories: parsed.categories,
+      geoRegions: parsed.geoRegions,
+    },
     schedule: parsed.schedule,
     budget: {
       mode: parsed.budget.mode,

@@ -40,6 +40,7 @@ export function useCreateCampaign() {
       name: string;
       creativeIds: string[];
       categories: string[];
+      geoRegions?: string[];
       schedule: {
         startsAt: string;
         endsAt: string;
