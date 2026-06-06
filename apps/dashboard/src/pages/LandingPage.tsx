@@ -134,7 +134,7 @@ export default function LandingPage() {
                   onClick={() => navigate('/sign-in')}
                   className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
                 >
-                  Nýskráning
+                  Hefja auglýsingar
                 </button>
               </>
             )}
@@ -201,7 +201,7 @@ export default function LandingPage() {
                     onClick={() => navigate('/sign-in')}
                     className="w-full text-center py-3 rounded-xl bg-blue-600 font-bold text-white shadow-lg"
                   >
-                    Nýskráning
+                    Hefja auglýsingar
                   </button>
                 </>
               )}
@@ -246,14 +246,14 @@ export default function LandingPage() {
                       onClick={() => changeTab('advertisers')}
                       className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-base shadow-xl shadow-blue-500/10 hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Ég vil auglýsa (Kaupandi){' '}
+                      Kaupa auglýsingar (Auglýsandi){' '}
                       <span className="material-symbols-outlined">campaign</span>
                     </button>
                     <button
                       onClick={() => changeTab('publishers')}
                       className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-extrabold text-base transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Ég vil birta auglýsingar (Söluaðili){' '}
+                      Selja auglýsingapláss (Útgefandi){' '}
                       <span className="material-symbols-outlined text-lg">add_to_queue</span>
                     </button>
                   </div>
@@ -951,7 +951,7 @@ export default function LandingPage() {
                 onClick={() => navigate('/sign-in')}
                 className="px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-base shadow-xl shadow-blue-500/25 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                Stofna auglýsingu <span className="material-symbols-outlined">campaign</span>
+                Hefja herferð núna <span className="material-symbols-outlined">campaign</span>
               </button>
             </div>
           </div>
@@ -1141,7 +1141,7 @@ export default function LandingPage() {
                 onClick={() => navigate('/sign-in')}
                 className="px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-base shadow-xl shadow-blue-500/25 transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                Bæta við vefsíðu{' '}
+                Hefja sölu á auglýsingaplássi{' '}
                 <span className="material-symbols-outlined text-lg">add_to_queue</span>
               </button>
             </div>
