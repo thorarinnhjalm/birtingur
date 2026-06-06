@@ -888,3 +888,36 @@ Test Files  1 passed (1)
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task G3 — Derive visitor region and filter in serving
+
+- **Status:** done
+- **Commit(s):** c70735e43d7bc61440c44ed30647149ebddeaadf feat(serving): region targeting via Vercel geo headers, fail-open (Task G3)
+- **Files changed:**
+  - apps/api/tests/push-cache.test.ts
+  - apps/serving/src/lib/geo.ts
+  - apps/serving/tests/geo.test.ts
+  - apps/serving/src/lib/select.ts
+  - apps/serving/src/routes/ad.ts
+  - apps/serving/tests/ad-route.test.ts
+  - apps/serving/tests/select.test.ts
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/serving test
+✓ tests/crypto.test.ts  (2 tests) 21ms
+✓ tests/geo.test.ts  (3 tests) 1ms
+✓ tests/visitor.test.ts  (5 tests) 3ms
+✓ tests/select.test.ts  (8 tests) 2ms
+✓ tests/ad-route.test.ts  (8 tests) 6ms
+✓ tests/click-impression.test.ts  (8 tests) 7ms
+
+Test Files  6 passed (6)
+     Tests  34 passed (34)
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
