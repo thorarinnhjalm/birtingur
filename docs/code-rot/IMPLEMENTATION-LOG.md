@@ -617,6 +617,34 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ---
 
+### Task P2 — Track today's spend (pace_spent) on each impression
+
+- **Status:** done
+- **Commit(s):** 79afc02 feat(serving): track per-day pace_spent per campaign on impression (Task P2)
+- **Files changed:**
+  - apps/serving/src/lib/analytics.ts
+  - apps/serving/src/routes/impression.ts
+  - apps/serving/tests/click-impression.test.ts
+- **Verification run + output:**
+
+  ```
+  $ npx pnpm --filter @ada/serving test tests/click-impression.test.ts
+  RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/serving
+
+   ✓ tests/click-impression.test.ts  (8 tests) 8ms
+
+   Test Files  1 passed (1)
+        Tests  8 passed (8)
+     Start at  12:36:49
+     Duration  354ms (transform 60ms, setup 0ms, collect 102ms, tests 8ms, environment 0ms, prepare 47ms)
+  ```
+
+- **Deviations from plan:** Extended the Redis mock in `click-impression.test.ts` to include spies for `incrby` and `expire`, and used `importOriginal` to partially mock the `analytics` module so the real `incrementPaceSpent` function's Redis interaction is tested directly.
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
