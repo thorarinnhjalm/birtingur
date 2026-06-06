@@ -519,6 +519,33 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ---
 
+### Task E1 — getSlotStats service (read per-slot daily stats)
+
+- **Status:** deviated
+- **Commit(s):** da20d44 feat(api): getSlotStats reads per-slot daily aggregates (Task E1)
+- **Files changed:**
+  - apps/api/src/services/slot-stats.ts
+  - apps/api/tests/slot-stats.test.ts
+- **Verification run + output:**
+
+  ```
+  $ npx pnpm --filter @ada/api test tests/slot-stats.test.ts
+  RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/slot-stats.test.ts  (1 test) 2ms
+
+   Test Files  1 passed (1)
+        Tests  1 passed (1)
+     Start at  12:08:34
+     Duration  295ms (transform 32ms, setup 0ms, collect 211ms, tests 2ms, environment 0ms, prepare 28ms)
+  ```
+
+- **Deviations from plan:** Mocked Firestore in `slot-stats.test.ts` instead of using the emulator directly so that the unit test can run reliably without requiring a Java runtime environment.
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
