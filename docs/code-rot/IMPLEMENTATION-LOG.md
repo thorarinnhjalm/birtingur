@@ -821,3 +821,24 @@ Test Files  1 passed (1)
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task FC2 — Show available impressions in the buy flow
+
+- **Status:** done
+- **Commit(s):** f2c40503a649a9ca11ed966715d1d168c657fc98 feat(dashboard): show available (not gross) impressions in buy-flow forecast (Task FC2)
+- **Files changed:**
+  - apps/dashboard/src/hooks/useCategoryInventory.ts
+  - apps/dashboard/src/pages/advertiser/CampaignCreate.tsx
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/dashboard typecheck
+@ada/dashboard@0.0.0 typecheck /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard
+> tsc -b --noEmit
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
