@@ -34,6 +34,7 @@ import {
   useUpdateEntityStatus,
   useGeneratePayouts,
   useAdminDiagnostics,
+  useAdminTopUpAdvertiser,
 } from '@/hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -651,6 +652,30 @@ function AdminAdvertisersList() {
   const updateStatus = useUpdateEntityStatus();
   const [error, setError] = useState<string | null>(null);
 
+  const [topUpAdvertiser, setTopUpAdvertiser] = useState<{ id: string; name: string } | null>(null);
+  const [amountStr, setAmountStr] = useState('');
+  const topUpMutation = useAdminTopUpAdvertiser();
+  const [topUpError, setTopUpError] = useState<string | null>(null);
+
+  const handleTopUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topUpAdvertiser) return;
+    setTopUpError(null);
+    const amount = parseInt(amountStr, 10);
+    if (isNaN(amount) || amount <= 0) {
+      setTopUpError('Upphæð verður að vera jákvæð tala.');
+      return;
+    }
+    try {
+      await topUpMutation.mutateAsync({ advertiserId: topUpAdvertiser.id, amountIsk: amount });
+      setTopUpAdvertiser(null);
+      setAmountStr('');
+      refetch();
+    } catch (err: any) {
+      setTopUpError(err.message || 'Ekki tókst að bæta við inneign.');
+    }
+  };
+
   const handleToggleStatus = async (advertiserId: string, currentStatus: string) => {
     setError(null);
     const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
@@ -718,14 +743,23 @@ function AdminAdvertisersList() {
                       </Badge>
                     </td>
                     <td className="py-3 text-right">
-                      <Button
-                        variant={a.status === 'active' ? 'danger' : 'primary'}
-                        onClick={() => handleToggleStatus(a.id, a.status)}
-                        loading={updateStatus.isPending}
-                        className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
-                      >
-                        {a.status === 'active' ? 'Frysta' : 'Virkja'}
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setTopUpAdvertiser({ id: a.id, name: a.companyName })}
+                          className="text-[10px] font-bold py-1.5 px-3 border border-slate-200 hover:bg-slate-50 cursor-pointer"
+                        >
+                          Bæta við inneign
+                        </Button>
+                        <Button
+                          variant={a.status === 'active' ? 'danger' : 'primary'}
+                          onClick={() => handleToggleStatus(a.id, a.status)}
+                          loading={updateStatus.isPending}
+                          className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
+                        >
+                          {a.status === 'active' ? 'Frysta' : 'Virkja'}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -733,6 +767,52 @@ function AdminAdvertisersList() {
             </table>
           </div>
         </Card>
+      )}
+
+      {/* Top-up Modal */}
+      {topUpAdvertiser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full bg-white p-6 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+              Bæta við inneign
+            </h3>
+            <div className="text-xs text-slate-600 font-semibold mb-2">
+              Auglýsandi: <span className="text-slate-900 font-bold">{topUpAdvertiser.name}</span>
+            </div>
+            <form onSubmit={handleTopUpSubmit} className="space-y-4">
+              <Input
+                type="number"
+                label="Upphæð (kr.) *"
+                placeholder="Dæmi: 50000"
+                value={amountStr}
+                onChange={(e) => setAmountStr(e.target.value)}
+                required
+                min={1}
+              />
+              {topUpError && (
+                <div className="text-xs font-semibold text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                  {topUpError}
+                </div>
+              )}
+              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setTopUpAdvertiser(null);
+                    setAmountStr('');
+                    setTopUpError(null);
+                  }}
+                >
+                  Hætta við
+                </Button>
+                <Button type="submit" loading={topUpMutation.isPending}>
+                  Staðfesta inneign
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
       )}
     </div>
   );

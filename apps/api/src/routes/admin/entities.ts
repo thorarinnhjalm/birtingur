@@ -6,6 +6,7 @@ import { COLLECTIONS, publisherConverter, advertiserConverter } from '@ada/share
 import { updatePublisherStatus } from '../../services/publishers.js';
 import { updateAdvertiserStatus } from '../../services/advertisers.js';
 import { listAllSlots, updateSlotStatus } from '../../services/slots.js';
+import { topUp } from '../../services/wallet.js';
 
 export const adminEntitiesRoutes = new Hono<Env>();
 adminEntitiesRoutes.use('/*', requireAuth, requireAdmin);
@@ -46,6 +47,17 @@ adminEntitiesRoutes.post('/advertisers/:id/status', async (c) => {
   }
   const updated = await updateAdvertiserStatus(id, body.status);
   return c.json(updated);
+});
+
+adminEntitiesRoutes.post('/advertisers/:id/topup', async (c) => {
+  const id = c.req.param('id');
+  const body = (await c.req.json()) as { amountIsk: number };
+  if (typeof body.amountIsk !== 'number' || body.amountIsk <= 0) {
+    return c.json({ error: 'amountIsk must be a positive number' }, 400);
+  }
+  const txnId = `admin_grant_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  await topUp(id, body.amountIsk, txnId);
+  return c.json({ success: true, txnId });
 });
 
 adminEntitiesRoutes.post('/slots/:id/status', async (c) => {

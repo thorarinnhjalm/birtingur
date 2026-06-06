@@ -76,3 +76,18 @@ export function useAdminDiagnostics() {
     refetchOnWindowFocus: false,
   });
 }
+
+// 7. Mutation to top up advertiser wallet balance
+export function useAdminTopUpAdvertiser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ advertiserId, amountIsk }: { advertiserId: string; amountIsk: number }) =>
+      apiFetch<any>(`/v1/admin/entities/advertisers/${advertiserId}/topup`, {
+        method: 'POST',
+        body: JSON.stringify({ amountIsk }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'advertisers'] });
+    },
+  });
+}
