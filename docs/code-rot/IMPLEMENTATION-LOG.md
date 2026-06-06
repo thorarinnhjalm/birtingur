@@ -921,3 +921,31 @@ Test Files  6 passed (6)
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task G4 — Region selector in the buy flow
+
+- **Status:** done
+- **Commit(s):** 71f96fc feat(dashboard): optional capital/countryside region selector in buy flow (Task G4)
+- **Files changed:**
+  - apps/api/src/services/campaigns.ts
+  - apps/api/tests/campaigns.test.ts
+  - apps/dashboard/src/hooks/useCampaigns.ts
+  - apps/dashboard/src/pages/advertiser/CampaignCreate.tsx
+- **Verification run + output:**
+
+```
+$ npx pnpm verify
+Prettier checking: OK
+tsc typecheck: OK
+eslint linting: OK
+
+$ npx pnpm --filter @ada/api exec vitest run tests/campaigns.test.ts
+ ✓ tests/campaigns.test.ts  (5 tests) 4ms
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
+
