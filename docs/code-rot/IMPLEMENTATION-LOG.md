@@ -798,3 +798,26 @@ $ npx pnpm --filter @ada/dashboard typecheck
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task FC1 — Compute committed + available in the inventory service
+
+- **Status:** done
+- **Commit(s):** e028df8473f80da6f9383033d92383b9ba679f16 feat(api): inventory forecast returns committed + available impressions (Task FC1)
+- **Files changed:**
+  - apps/api/src/services/inventory.ts
+  - apps/api/tests/inventory.test.ts
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/api test -- tests/inventory.test.ts
+✓ tests/inventory.test.ts  (2 tests) 1ms
+
+Test Files  1 passed (1)
+     Tests  2 passed (2)
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
