@@ -7,6 +7,18 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { apiFetch } from '@/lib/api';
 import { Check, Copy, RefreshCw, Trash2, Key, Plus } from 'lucide-react';
 import { AD_CATEGORIES } from '@ada/shared';
+import { useContentCategories } from '@/hooks/useContentCategories';
+
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  news: 'Fréttir (news)',
+  sports: 'Íþróttir (sports)',
+  tech: 'Tækni (tech)',
+  finance: 'Fjármál (finance)',
+  lifestyle: 'Lífstíll (lifestyle)',
+  entertainment: 'Afþreying (entertainment)',
+  gambling: 'Veðmál (gambling)',
+  other: 'Annað (other)',
+};
 
 export default function Settings() {
   const { data: publisher, isLoading, refetch } = usePublisher();
@@ -18,6 +30,8 @@ export default function Settings() {
   const [accountHolder, setAccountHolder] = useState('');
   const [vatNumber, setVatNumber] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [blockedCategories, setBlockedCategories] = useState<string[]>([]);
+  const { data: contentCategories } = useContentCategories();
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -72,6 +86,7 @@ export default function Settings() {
       setAccountHolder(publisher.payoutMethod?.accountName || '');
       setVatNumber(publisher.vatNumber || '');
       setSelectedCategories(publisher.categories || []);
+      setBlockedCategories(publisher.contentPolicy?.blockedCategories || []);
       fetchWidgetKey();
       fetchApiKeys();
     }
@@ -163,6 +178,10 @@ export default function Settings() {
         domain,
         vatNumber: vatNumber.trim() || undefined,
         categories: selectedCategories,
+        contentPolicy: {
+          ...publisher?.contentPolicy,
+          blockedCategories,
+        },
       };
 
       if (hasAllBankDetails) {
@@ -247,6 +266,41 @@ export default function Settings() {
                     }`}
                   >
                     {cat.label}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-slate-100">
+            <label className="block text-sm font-bold text-slate-800">
+              Útiloka auglýsingaflokka (Block content categories)
+            </label>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Veldu þá flokka af auglýsingum sem þú vilt EKKI sýna á vefsíðunni þinni (t.d.
+              gambling).
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+              {contentCategories?.map((catSlug) => {
+                const isBlocked = blockedCategories.includes(catSlug);
+                const catLabel = CATEGORY_LABEL_MAP[catSlug] || catSlug;
+                return (
+                  <div
+                    key={catSlug}
+                    onClick={() => {
+                      if (isBlocked) {
+                        setBlockedCategories(blockedCategories.filter((s) => s !== catSlug));
+                      } else {
+                        setBlockedCategories([...blockedCategories, catSlug]);
+                      }
+                    }}
+                    className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
+                      isBlocked
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/10'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {catLabel}
                   </div>
                 );
               })}
