@@ -555,11 +555,33 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
   - apps/api/tests/slot-routes.test.ts
 - **Verification run + output:**
 
-  *(Test suite requires Java runtime / Firestore Emulator to run HTTP integration tests, could not be verified locally. Clean typecheck verified:)*
+  _(Test suite requires Java runtime / Firestore Emulator to run HTTP integration tests, could not be verified locally. Clean typecheck verified:)_
+
   ```
   $ npx pnpm --filter @ada/api typecheck
   @ada/api@0.0.0 typecheck /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
   > tsc --noEmit
+  ```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
+### Task E3 — Show per-slot stats on the slot detail page
+
+- **Status:** done
+- **Commit(s):** f9d77d7 feat(dashboard): show per-slot stats on SlotDetail (Task E3)
+- **Files changed:**
+  - apps/dashboard/src/hooks/useSlotStats.ts
+  - apps/dashboard/src/pages/publisher/SlotDetail.tsx
+- **Verification run + output:**
+
+  ```
+  $ npx pnpm --filter @ada/dashboard typecheck
+  @ada/dashboard@0.0.0 typecheck /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard
+  > tsc -b --noEmit
   ```
 
 - **Deviations from plan:** none
