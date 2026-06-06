@@ -15,6 +15,7 @@ export const GeoRegionSchema = z.enum(GEO_REGIONS);
 
 export const TargetingSchema = z.object({
   categories: z.array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]])).min(1),
+  geoRegions: z.array(GeoRegionSchema).optional(),
 });
 export type Targeting = z.infer<typeof TargetingSchema>;
 

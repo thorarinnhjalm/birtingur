@@ -13,6 +13,15 @@ describe('TargetingSchema', () => {
   it('requires targeting.categories explicitly (no silent default)', () => {
     expect(() => TargetingSchema.parse({})).toThrow();
   });
+  it('accepts optional geoRegions on targeting', () => {
+    const t = TargetingSchema.parse({ categories: ['matur'], geoRegions: ['capital'] });
+    expect(t.geoRegions).toEqual(['capital']);
+    // still valid without geoRegions
+    expect(TargetingSchema.parse({ categories: ['matur'] }).geoRegions).toBeUndefined();
+  });
+  it('rejects an invalid region', () => {
+    expect(() => TargetingSchema.parse({ categories: ['matur'], geoRegions: ['mars'] })).toThrow();
+  });
 });
 
 describe('CampaignSchema', () => {
