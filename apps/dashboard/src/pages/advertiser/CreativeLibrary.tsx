@@ -22,6 +22,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 
+// Force redeploy to trigger Vercel build after lockfile fix
 export default function CreativeLibrary() {
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
