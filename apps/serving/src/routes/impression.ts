@@ -3,6 +3,8 @@ import { getSlotCache } from '../lib/cache.js';
 import { recordVisitorImpression } from '../lib/visitor.js';
 import { decrementBudget, logEvent, incrementPaceSpent } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
+import { getClientIp } from '../lib/ip.js';
+import { checkAndIncrementRateLimit } from '../lib/fraud.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -83,27 +85,39 @@ impressionRoute.get('/', async (c) => {
     const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
 
     if (slot && creative) {
-      // Log the impression now — the pixel firing proves the ad was actually seen
-      void logEvent({
-        type: 'impression',
-        slotId,
-        publisherId: slot.publisherId,
-        creativeId,
-        campaignId: creative.campaignId,
-        advertiserId: '', // populated in batch aggregation
-        country: c.req.header('CF-IPCountry') ?? 'XX',
-        visitorToken: token,
-        ts: Date.now(),
+      const ip = getClientIp({
+        'x-real-ip': c.req.header('x-real-ip'),
+        'x-forwarded-for': c.req.header('x-forwarded-for'),
       });
+      const isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'impression');
 
-      if (token) {
-        void recordVisitorImpression(token, creativeId);
-      }
-      // CPM price models charge per 1000 impressions
-      if (slot.pricing.mode === 'cpm') {
-        const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
-        void decrementBudget(creative.campaignId, costIsk);
-        void incrementPaceSpent(creative.campaignId, costIsk);
+      if (isAllowed) {
+        // Log the impression now — the pixel firing proves the ad was actually seen
+        void logEvent({
+          type: 'impression',
+          slotId,
+          publisherId: slot.publisherId,
+          creativeId,
+          campaignId: creative.campaignId,
+          advertiserId: '', // populated in batch aggregation
+          country: c.req.header('CF-IPCountry') ?? 'XX',
+          visitorToken: token,
+          ts: Date.now(),
+        });
+
+        if (token) {
+          void recordVisitorImpression(token, creativeId);
+        }
+        // CPM price models charge per 1000 impressions
+        if (slot.pricing.mode === 'cpm') {
+          const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
+          void decrementBudget(creative.campaignId, costIsk);
+          void incrementPaceSpent(creative.campaignId, costIsk);
+        }
+      } else {
+        console.warn(
+          `Impression rate limit exceeded for campaign ${creative.campaignId} from IP ${ip}`,
+        );
       }
     }
   }

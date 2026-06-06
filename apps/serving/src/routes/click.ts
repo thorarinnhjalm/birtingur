@@ -3,6 +3,8 @@ import { URL } from 'url';
 import { getSlotCache } from '../lib/cache.js';
 import { logEvent } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
+import { getClientIp } from '../lib/ip.js';
+import { isClickDeduplicated, checkAndIncrementRateLimit } from '../lib/fraud.js';
 
 export const clickRoute = new Hono();
 
@@ -43,18 +45,35 @@ clickRoute.get('/', async (c) => {
     return c.text('Not Found', 404);
   }
 
-  // Log click event (fire-and-forget best effort)
-  void logEvent({
-    type: 'click',
-    slotId,
-    publisherId: slot.publisherId,
-    creativeId,
-    campaignId: creative.campaignId,
-    advertiserId: '', // populated in batch aggregation
-    country: c.req.header('CF-IPCountry') ?? 'XX',
-    visitorToken: token,
-    ts: Date.now(),
+  const ip = getClientIp({
+    'x-real-ip': c.req.header('x-real-ip'),
+    'x-forwarded-for': c.req.header('x-forwarded-for'),
   });
+
+  const isDuplicated = await isClickDeduplicated(creativeId, ip);
+  let isAllowed = false;
+  if (!isDuplicated) {
+    isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'click');
+  }
+
+  if (!isDuplicated && isAllowed) {
+    // Log click event (fire-and-forget best effort)
+    void logEvent({
+      type: 'click',
+      slotId,
+      publisherId: slot.publisherId,
+      creativeId,
+      campaignId: creative.campaignId,
+      advertiserId: '', // populated in batch aggregation
+      country: c.req.header('CF-IPCountry') ?? 'XX',
+      visitorToken: token,
+      ts: Date.now(),
+    });
+  } else {
+    console.warn(
+      `Click rate limited/deduplicated for creative ${creativeId} from IP ${ip} (isDuplicated=${isDuplicated}, isAllowed=${isAllowed})`,
+    );
+  }
 
   // Automatically append UTM parameters for Google Analytics/Plausible tracking
   let redirectUrl = creative.clickUrl;

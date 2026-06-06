@@ -5,6 +5,13 @@ import { createSignature } from '../src/lib/crypto';
 const mockSeenKeys = new Set<string>();
 const mockIncrby = vi.fn(async () => 1);
 const mockExpire = vi.fn(async () => true);
+const mockIncrStore = new Map<string, number>();
+const mockIncr = vi.fn(async (key: string) => {
+  const current = mockIncrStore.get(key) ?? 0;
+  const next = current + 1;
+  mockIncrStore.set(key, next);
+  return next;
+});
 
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
@@ -19,6 +26,7 @@ vi.mock('../src/lib/redis', () => ({
       return 'OK';
     }),
     incrby: mockIncrby,
+    incr: mockIncr,
     expire: mockExpire,
   }),
 }));
@@ -78,6 +86,7 @@ describe('GET /v1/click', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSeenKeys.clear();
+    mockIncrStore.clear();
   });
 
   it('redirects to clickUrl for valid slot and creative', async () => {
@@ -124,12 +133,51 @@ describe('GET /v1/click', () => {
     expect(first.status).toBe(302);
     expect(second.status).toBe(409); // replay rejected
   });
+
+  it('deduplicates clicks within 30 seconds from same IP', async () => {
+    const ts1 = Date.now();
+    const sig1 = createSignature('cre_a', 'slot_a', 'tok1', ts1);
+    const res1 = await app.request(`/v1/click?s=slot_a&c=cre_a&t=tok1&ts=${ts1}&sig=${sig1}`, {
+      headers: { 'x-real-ip': '1.2.3.4' },
+    });
+    expect(res1.status).toBe(302);
+
+    const ts2 = Date.now();
+    const sig2 = createSignature('cre_a', 'slot_a', 'tok2', ts2);
+    const res2 = await app.request(`/v1/click?s=slot_a&c=cre_a&t=tok2&ts=${ts2}&sig=${sig2}`, {
+      headers: { 'x-real-ip': '1.2.3.4' },
+    });
+    expect(res2.status).toBe(302);
+
+    expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'click',
+        visitorToken: 'tok1',
+      }),
+    );
+  });
+
+  it('drops logging for clicks exceeding the hourly rate limit but still redirects', async () => {
+    for (let i = 1; i <= 4; i++) {
+      mockSeenKeys.clear(); // clear deduplication lock
+      const ts = Date.now() - 1000 - i;
+      const sig = createSignature('cre_a', 'slot_a', `tok_${i}`, ts);
+      const res = await app.request(`/v1/click?s=slot_a&c=cre_a&t=tok_${i}&ts=${ts}&sig=${sig}`, {
+        headers: { 'x-real-ip': '1.2.3.4' },
+      });
+      expect(res.status).toBe(302);
+    }
+
+    expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe('GET /v1/impression', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSeenKeys.clear();
+    mockIncrStore.clear();
   });
 
   it('returns transparent pixel and processes impression for valid slot and creative', async () => {
@@ -178,5 +226,23 @@ describe('GET /v1/impression', () => {
     const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
     expect(mockIncrby).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 1); // 1000 CPM / 1000 = 1 ISK
     expect(mockExpire).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 2 * 86400);
+  });
+
+  it('drops logging and budget/pacing increments for impressions exceeding the hourly limit but returns 200 pixel', async () => {
+    for (let i = 1; i <= 31; i++) {
+      const ts = Date.now() - 1000 - i;
+      const sig = createSignature('cre_a', 'slot_a', `tok_${i}`, ts);
+      const res = await app.request(
+        `/v1/impression?s=slot_a&c=cre_a&t=tok_${i}&ts=${ts}&sig=${sig}`,
+        {
+          headers: { 'x-real-ip': '1.2.3.4' },
+        },
+      );
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toBe('image/gif');
+    }
+
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledTimes(30);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(30);
   });
 });
