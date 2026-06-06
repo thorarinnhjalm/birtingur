@@ -865,3 +865,26 @@ Test Files  11 passed (11)
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task G2 — Carry geoRegions into the slot cache
+
+- **Status:** done
+- **Commit(s):** 08778da9299e05bb1a0e05f835a76eaf5d4e385c feat(api): carry campaign geoRegions into slot cache (Task G2)
+- **Files changed:**
+  - apps/api/src/lib/push-cache.ts
+  - apps/api/tests/push-cache.test.ts
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/api test -- tests/push-cache.test.ts
+✓ tests/push-cache.test.ts  (14 tests) 6ms
+
+Test Files  1 passed (1)
+     Tests  14 passed (14)
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
