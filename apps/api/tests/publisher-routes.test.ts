@@ -190,5 +190,42 @@ describe('Publisher HTTP Routes', () => {
       expect(body.displayName).toBe('Updated Publisher Name');
       expect(body.domain).toBe('updated-publisher.is');
     });
+
+    it('persists contentPolicy.blockedCategories on publisher self-update', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+
+      // Seed db first
+      await app.request('/v1/publishers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          domain: 'publisher.is',
+          displayName: 'My Publisher Website',
+          payoutMethod: samplePayout,
+          contentPolicy: samplePolicy,
+          categories: ['taekni'],
+        }),
+      });
+
+      const res = await app.request('/v1/publishers/me', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          contentPolicy: {
+            blockedCategories: ['gambling', 'sports'],
+          },
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.contentPolicy.blockedCategories).toEqual(['gambling', 'sports']);
+    });
   });
 });
