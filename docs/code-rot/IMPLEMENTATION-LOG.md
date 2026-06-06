@@ -948,4 +948,3 @@ $ npx pnpm --filter @ada/api exec vitest run tests/campaigns.test.ts
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
-
