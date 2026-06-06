@@ -217,6 +217,12 @@ importers:
         specifier: ^4.4.0
         version: 4.12.23
     devDependencies:
+      '@ada/snippet':
+        specifier: workspace:*
+        version: link:../../packages/snippet
+      '@ada/widgets':
+        specifier: workspace:*
+        version: link:../../packages/widgets
       '@types/node':
         specifier: ^20.12.0
         version: 20.19.41
