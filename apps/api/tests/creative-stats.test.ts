@@ -11,6 +11,22 @@ vi.mock('../src/lib/firebase', () => ({
         data: () => mockStatsDocs[path],
       })),
     })),
+    collection: vi.fn((colPath: string) => ({
+      get: vi.fn(async () => {
+        const docs = Object.keys(mockStatsDocs)
+          .filter((key) => key.startsWith(colPath + '/'))
+          .map((key) => {
+            const id = key.substring(colPath.length + 1);
+            return {
+              id,
+              data: () => mockStatsDocs[key],
+            };
+          });
+        return {
+          docs,
+        };
+      }),
+    })),
   },
   auth: {},
   storage: {},
