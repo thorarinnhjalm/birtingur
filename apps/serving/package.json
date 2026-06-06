@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @ada/shared build && tsc && mkdir -p public/v1 && cp ../../packages/snippet/dist/snippet.js public/widget.js && cp ../../packages/widgets/dist/widgets.js public/v1/widgets.js",
+    "build": "pnpm --filter @ada/shared build && pnpm --filter @ada/snippet build && pnpm --filter @ada/widgets build && tsc && mkdir -p public/v1 && cp ../../packages/snippet/dist/snippet.js public/widget.js && cp ../../packages/widgets/dist/widgets.js public/v1/widgets.js",
     "dev": "tsx watch src/dev.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
