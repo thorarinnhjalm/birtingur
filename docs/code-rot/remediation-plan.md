@@ -1,5 +1,12 @@
 # Code-Rot Remediation Implementation Plan
 
+> ## ✅ COMPLETED 2026-06-05 — DO NOT RE-IMPLEMENT
+>
+> All tasks (A1–D3) in this plan are **done, reviewed, and merged to `main`** (see
+> `IMPLEMENTATION-LOG.md` for per-task report + Claude's review). The unchecked `- [ ]`
+> boxes below are historical — this file is a record, **not** a to-do list. Do not hand
+> this file to an agent as work to perform. New work lives in separate plan files.
+
 > **For agentic workers (Gemini):** Implement this plan task-by-task, **in order**. After
 > EACH task you MUST append a report entry to `IMPLEMENTATION-LOG.md` (see the Report-Back
 > Protocol below) before moving on. Steps use checkbox (`- [ ]`) syntax — tick them as you go.
