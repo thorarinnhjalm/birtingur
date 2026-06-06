@@ -148,7 +148,7 @@ it('does not serve a creative whose campaign hit its daily pace limit', async ()
     headers: { 'CF-IPCountry': 'IS' },
   });
   const body = await res.json();
-  expect(body.creativeId).toBe('cre_fallback_transparent');
+  expect(body.creativeId).toBe('cre_fallback_birtingur');
 });
 
 it('serves when under the daily pace limit', async () => {
@@ -157,7 +157,7 @@ it('serves when under the daily pace limit', async () => {
     headers: { 'CF-IPCountry': 'IS' },
   });
   const body = await res.json();
-  expect(body.creativeId).not.toBe('cre_fallback_transparent');
+  expect(body.creativeId).not.toBe('cre_fallback_birtingur');
 });
 ```
 
