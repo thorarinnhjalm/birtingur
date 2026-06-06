@@ -546,6 +546,28 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ---
 
+### Task E2 — GET /v1/publishers/me/slots/:id/stats endpoint
+
+- **Status:** done
+- **Commit(s):** 3bf97b8 feat(api): per-slot stats endpoint with ownership check (Task E2)
+- **Files changed:**
+  - apps/api/src/routes/slots.ts
+  - apps/api/tests/slot-routes.test.ts
+- **Verification run + output:**
+
+  *(Test suite requires Java runtime / Firestore Emulator to run HTTP integration tests, could not be verified locally. Clean typecheck verified:)*
+  ```
+  $ npx pnpm --filter @ada/api typecheck
+  @ada/api@0.0.0 typecheck /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+  > tsc --noEmit
+  ```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
