@@ -241,6 +241,55 @@ describe('pushSlotCache helper', () => {
     expect(entry.activeCreatives[0].creativeId).toBe('creative_approved');
   });
 
+  it('passes campaign targeting.geoRegions into the cached creative', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    mockState.campaigns = [
+      {
+        id: 'cmp_geo',
+        status: 'active',
+        creativeIds: ['creative_approved'],
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { categories: ['taekni'], geoRegions: ['capital'] },
+      },
+    ];
+
+    mockState.creatives = [
+      {
+        id: 'creative_approved',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/1.png',
+        clickUrl: 'https://ex.com/1',
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    expect(mockRedisSet).toHaveBeenCalled();
+    const entry = mockRedisSet.mock.calls.find((c) => c[0].startsWith('slot:'))?.[1];
+    expect(entry).toBeDefined();
+    const c = entry.activeCreatives.find((x: any) => x.campaignId === 'cmp_geo');
+    expect(c.geoRegions).toEqual(['capital']);
+  });
+
   it('filters out creatives matching incorrect sizes', async () => {
     mockState.slot = {
       id: 'slot_123',

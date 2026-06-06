@@ -205,7 +205,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
         height: creative.height,
         weight: 1, // Default weight is 1
         geoCountries: [],
-        geoRegions: [],
+        geoRegions: campaign.targeting.geoRegions ?? [],
         frequencyCapPerDay: FREQUENCY_CAP_DEFAULT_PER_DAY,
         budgetExhausted: campaign.budget.remainingIsk <= 0,
         validFrom: campaign.schedule.startsAt.getTime(),
