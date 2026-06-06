@@ -8,6 +8,7 @@ import {
   updateSlot,
   getSnippetForSlot,
 } from '../services/slots.js';
+import { getSlotStats } from '../services/slot-stats.js';
 import { AppError } from '../lib/errors.js';
 
 export const slotsRouter = new Hono<Env>();
@@ -42,6 +43,22 @@ slotsRouter.get('/', async (c) => {
 
   const slots = await listSlotsForPublisher(publisher.id);
   return c.json(slots);
+});
+
+slotsRouter.get('/:id/stats', async (c) => {
+  const user = c.get('user');
+  const publisher = await getPublisherByOwnerEmail(user.email);
+  if (!publisher) {
+    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  }
+  const id = c.req.param('id');
+  const slot = await getSlot(id);
+  if (!slot || slot.publisherId !== publisher.id) {
+    throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
+  }
+  const timeframe = c.req.query('timeframe') === '30' ? 30 : 7;
+  const stats = await getSlotStats(publisher.id, id, timeframe);
+  return c.json(stats);
 });
 
 slotsRouter.get('/:id', async (c) => {

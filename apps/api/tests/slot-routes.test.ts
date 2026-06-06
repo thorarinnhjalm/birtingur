@@ -268,4 +268,46 @@ describe('Slot HTTP Routes', () => {
       expect(body.snippet).toContain('data-adplatform-height="90"');
     });
   });
+
+  describe('GET /v1/publishers/me/slots/:id/stats', () => {
+    it('returns per-slot stats (bare) for the owning publisher', async () => {
+      await createPublisherProfile();
+
+      // Create a slot
+      const createRes = await app.request('/v1/publishers/me/slots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          name: 'Stat Slot',
+          sizes: sampleSizes,
+          pricing: samplePricing,
+          placement: samplePlacement,
+        }),
+      });
+      const createdSlot = await createRes.json();
+
+      const res = await app.request(`/v1/publishers/me/slots/${createdSlot.id}/stats?timeframe=7`, {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toHaveProperty('impressions');
+      expect(body).toHaveProperty('clicks');
+      expect(body).toHaveProperty('spendIsk');
+      expect(body).toHaveProperty('pageviews');
+      expect(body).toHaveProperty('history');
+    });
+
+    it('returns 404 for a slot the caller does not own', async () => {
+      await createPublisherProfile();
+
+      const res = await app.request('/v1/publishers/me/slots/slot_other/stats', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(404);
+    });
+  });
 });
