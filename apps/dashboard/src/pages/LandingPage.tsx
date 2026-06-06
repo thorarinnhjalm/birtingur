@@ -56,10 +56,10 @@ export default function LandingPage() {
   const [pubFillRate, setPubFillRate] = useState<number>(50);
 
   // Calculations
-  // Advertiser estimate: 350 kr. CPM (per 1,000 views)
-  const advertiserImpressions = Math.round((advBudget / 350) * 1000);
-  // Publisher estimate: 280 kr. net CPM (350 kr. - 20% platform fee = 280 kr.)
-  const publisherRevenue = Math.round((pubPageviews * (pubFillRate / 100) * 280) / 1000);
+  // Advertiser estimate: 550 kr. CPM (per 1,000 views)
+  const advertiserImpressions = Math.round((advBudget / 550) * 1000);
+  // Publisher estimate: 440 kr. net CPM (550 kr. - 20% platform fee = 440 kr.)
+  const publisherRevenue = Math.round((pubPageviews * (pubFillRate / 100) * 440) / 1000);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
@@ -474,7 +474,7 @@ export default function LandingPage() {
                           flettingar á vaxandi íslensku samstarfsneti
                         </span>
                         <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-500 leading-relaxed">
-                          Miðað við 350 kr. meðal-CPM. Þú greiðir aðeins fyrir raunverulegar
+                          Miðað við 550 kr. meðal-CPM. Þú greiðir aðeins fyrir raunverulegar
                           birtingar.
                         </div>
                       </div>
@@ -490,7 +490,7 @@ export default function LandingPage() {
                           greitt út beint á þinn bankareikning
                         </span>
                         <div className="pt-2 border-t border-slate-200 text-[10px] text-slate-500 leading-relaxed">
-                          Miðað við 280 kr. nettó-CPM til þín (eftir 20% flatgreidda þóknun kerfis).
+                          Miðað við 440 kr. nettó-CPM til þín (eftir 20% flatgreidda þóknun kerfis).
                           Greiðslur sendar 1. virka dag.
                         </div>
                       </div>
