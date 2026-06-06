@@ -44,6 +44,8 @@ vi.mock('../src/lib/visitor', () => ({
 }));
 
 let mockBudgets: Record<string, number> = {};
+let mockPaceLimits: Record<string, number> = {};
+let mockPaceSpent: Record<string, number> = {};
 
 vi.mock('../src/lib/analytics', () => ({
   logEvent: vi.fn(),
@@ -52,6 +54,16 @@ vi.mock('../src/lib/analytics', () => ({
     const out: Record<string, number> = {};
     campaignIds.forEach((id) => {
       out[id] = mockBudgets[id] ?? Number.POSITIVE_INFINITY;
+    });
+    return out;
+  }),
+  getPaceState: vi.fn(async (campaignIds: string[]) => {
+    const out: Record<string, { limit: number; spent: number }> = {};
+    campaignIds.forEach((id) => {
+      out[id] = {
+        limit: mockPaceLimits[id] ?? Number.POSITIVE_INFINITY,
+        spent: mockPaceSpent[id] ?? 0,
+      };
     });
     return out;
   }),
@@ -105,5 +117,29 @@ describe('GET /v1/ad', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.creativeId).toBe('cre_fallback_birtingur');
+  });
+
+  it('does not serve a creative whose campaign hit its daily pace limit', async () => {
+    mockBudgets['cmp_a'] = 999999;
+    mockPaceLimits['cmp_a'] = 100;
+    mockPaceSpent['cmp_a'] = 100;
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: { 'CF-IPCountry': 'IS' },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_birtingur');
+  });
+
+  it('serves when under the daily pace limit', async () => {
+    mockBudgets['cmp_a'] = 999999;
+    mockPaceLimits['cmp_a'] = 100;
+    mockPaceSpent['cmp_a'] = 10;
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: { 'CF-IPCountry': 'IS' },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_a');
   });
 });

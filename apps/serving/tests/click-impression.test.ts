@@ -62,7 +62,7 @@ vi.mock('../src/lib/visitor', () => ({
 }));
 
 vi.mock('../src/lib/analytics', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../src/lib/analytics')>();
+  const original = await importOriginal<any>();
   return {
     ...original,
     logEvent: vi.fn(),
@@ -70,7 +70,7 @@ vi.mock('../src/lib/analytics', async (importOriginal) => {
   };
 });
 
-import { logEvent, decrementBudget, incrementPaceSpent } from '../src/lib/analytics';
+import { logEvent, decrementBudget } from '../src/lib/analytics';
 import { recordVisitorImpression } from '../src/lib/visitor';
 import app from '../src/index';
 

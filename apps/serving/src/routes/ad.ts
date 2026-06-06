@@ -7,7 +7,7 @@ import {
   setCookieHeader,
   getVisitorImpressionsToday,
 } from '../lib/visitor.js';
-import { getRemainingBudgets } from '../lib/analytics.js';
+import { getRemainingBudgets, getPaceState } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
@@ -60,11 +60,15 @@ adRoute.get('/', async (c) => {
 
   const campaignIds = Array.from(new Set(slot.activeCreatives.map((ac) => ac.campaignId)));
   const budgets = await getRemainingBudgets(campaignIds);
+  const pace = await getPaceState(campaignIds);
   const fundedSlot = {
     ...slot,
-    activeCreatives: slot.activeCreatives.filter(
-      (ac) => (budgets[ac.campaignId] ?? Number.POSITIVE_INFINITY) > 0,
-    ),
+    activeCreatives: slot.activeCreatives.filter((ac) => {
+      const funded = (budgets[ac.campaignId] ?? Number.POSITIVE_INFINITY) > 0;
+      const p = pace[ac.campaignId];
+      const underPace = !p || p.spent < p.limit; // fail-open if unset
+      return funded && underPace;
+    }),
   };
 
   const creative = selectCreative(fundedSlot, {

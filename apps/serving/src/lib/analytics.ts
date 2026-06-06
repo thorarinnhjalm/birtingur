@@ -52,3 +52,22 @@ export async function incrementPaceSpent(campaignId: string, costIsk: number): P
   await redis.incrby(key, costIsk);
   await redis.expire(key, 2 * 86400);
 }
+
+export async function getPaceState(
+  campaignIds: string[],
+): Promise<Record<string, { limit: number; spent: number }>> {
+  const out: Record<string, { limit: number; spent: number }> = {};
+  if (campaignIds.length === 0) return out;
+  const redis = getRedis();
+  const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const limits = await redis.mget<(number | null)[]>(
+    ...campaignIds.map((id) => `pace_limit:${id}`),
+  );
+  const spents = await redis.mget<(number | null)[]>(
+    ...campaignIds.map((id) => `pace_spent:${id}:${dayKey}`),
+  );
+  campaignIds.forEach((id, i) => {
+    out[id] = { limit: limits[i] ?? Number.POSITIVE_INFINITY, spent: spents[i] ?? 0 };
+  });
+  return out;
+}
