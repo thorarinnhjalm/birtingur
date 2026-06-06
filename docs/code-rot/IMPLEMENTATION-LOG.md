@@ -590,6 +590,33 @@ two follow-ups for the operator: reseed demo data (A2), confirm SIGNING_SECRET t
 
 ---
 
+### Task P1 — Seed the daily allowance pace_limit in push-cache
+
+- **Status:** done
+- **Commit(s):** f9705b6 feat(api): seed daily pace_limit alongside budget counter (Task P1)
+- **Files changed:**
+  - apps/api/src/lib/push-cache.ts
+  - apps/api/tests/push-cache.test.ts
+- **Verification run + output:**
+
+  ```
+  $ npx pnpm --filter @ada/api test tests/push-cache.test.ts
+  RUN  v1.6.1 /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/api
+
+   ✓ tests/push-cache.test.ts  (13 tests) 5ms
+
+   Test Files  1 passed (1)
+        Tests  13 passed (13)
+     Start at  12:36:01
+     Duration  347ms (transform 72ms, setup 1ms, collect 233ms, tests 5ms, environment 0ms, prepare 51ms)
+  ```
+
+- **Deviations from plan:** Mocked Firestore in new test cases inside `push-cache.test.ts` to verify the pace limit math directly through mocked Redis calls without requiring a Java runtime environment.
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(left blank for Claude)_
+
+---
+
 ## Entry template (copy for each task)
 
 ```markdown
