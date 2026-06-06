@@ -106,7 +106,7 @@ function Home() {
                   ? 'Virk'
                   : diag?.firestore?.status === 'error'
                     ? 'Villa'
-                    : 'Atþga...'}
+                    : 'Athuga...'}
               </span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
@@ -118,7 +118,7 @@ function Home() {
                   ? 'Tengt'
                   : diag?.redis?.status === 'error'
                     ? 'Ótengt'
-                    : 'Atþga...'}
+                    : 'Athuga...'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -130,7 +130,7 @@ function Home() {
                   ? 'Í lagi'
                   : diag?.slotsQuery?.status === 'error'
                     ? 'Bilun'
-                    : 'Atþga...'}
+                    : 'Athuga...'}
               </span>
             </div>
           </div>

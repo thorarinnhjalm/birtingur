@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreatePublisher } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
@@ -61,6 +61,61 @@ export default function PublisherOnboarding() {
   const [showPayoutPanel, setShowPayoutPanel] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+
+  // Restore persisted form state on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('pub_onboarding');
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.step) setStep(s.step);
+        if (s.domain) setDomain(s.domain);
+        if (s.displayName) setDisplayName(s.displayName);
+        if (s.description) setDescription(s.description);
+        if (s.selectedCategories?.length) setSelectedCategories(s.selectedCategories);
+        if (s.confidence !== undefined) setConfidence(s.confidence);
+        if (s.integrationPreference) setIntegrationPreference(s.integrationPreference);
+        if (s.estimatedSlotsCount) setEstimatedSlotsCount(s.estimatedSlotsCount);
+        if (s.kennitala) setKennitala(s.kennitala);
+        if (s.iban) setIban(s.iban);
+        if (s.accountHolder) setAccountHolder(s.accountHolder);
+      }
+    } catch {
+      // Ignore corrupt sessionStorage data
+    }
+  }, []);
+
+  // Persist form state on changes
+  useEffect(() => {
+    sessionStorage.setItem(
+      'pub_onboarding',
+      JSON.stringify({
+        step,
+        domain,
+        displayName,
+        description,
+        selectedCategories,
+        confidence,
+        integrationPreference,
+        estimatedSlotsCount,
+        kennitala,
+        iban,
+        accountHolder,
+      }),
+    );
+  }, [
+    step,
+    domain,
+    displayName,
+    description,
+    selectedCategories,
+    confidence,
+    integrationPreference,
+    estimatedSlotsCount,
+    kennitala,
+    iban,
+    accountHolder,
+  ]);
 
   // Step 1: Scrape & Classify
   const handleStartScrape = async (e: React.FormEvent) => {
@@ -144,6 +199,7 @@ export default function PublisherOnboarding() {
         integrationPreference,
         estimatedSlotsCount,
       });
+      sessionStorage.removeItem('pub_onboarding');
       navigate('/publisher');
     } catch (err: any) {
       setError(err.message || 'Ekki tókst að stofna útgefandaaðgang. Reyndu aftur.');
@@ -210,13 +266,34 @@ export default function PublisherOnboarding() {
                   </span>
                 </div>
               ) : (
-                <Button
-                  type="submit"
-                  className="w-full py-4 text-base font-bold rounded-xl shadow-lg shadow-primary/10 flex items-center justify-center gap-2"
-                >
-                  Greina vefsíðu
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    className="w-full py-4 text-base font-bold rounded-xl shadow-lg shadow-primary/10 flex items-center justify-center gap-2"
+                  >
+                    Greina vefsíðu
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      const cleanDomain = domain
+                        .replace(/^(https?:\/\/)?(www\.)?/i, '')
+                        .replace(/\/$/, '')
+                        .toLowerCase();
+                      setDomain(cleanDomain || domain);
+                      setDisplayName(cleanDomain.split('.')[0] || cleanDomain || '');
+                      setSelectedCategories(['afthreying_menning']);
+                      setConfidence(null);
+                      setStep(2);
+                    }}
+                    className="w-full text-slate-500 hover:text-slate-700 text-sm font-semibold py-2"
+                  >
+                    Sleppa greiningu og fylla út handvirkt
+                  </Button>
+                </div>
               )}
             </form>
           </div>
@@ -538,7 +615,7 @@ export default function PublisherOnboarding() {
               <Button
                 type="submit"
                 loading={createPublisher.isPending}
-                className="px-6 font-bold shadow-lg shadow-primary/10 animate-pulse"
+                className="px-6 font-bold shadow-lg shadow-primary/10"
               >
                 Ljúka skráningu
               </Button>

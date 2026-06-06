@@ -168,7 +168,7 @@ export function Sidebar({
                 href="mailto:hjalp@birtingur.is?subject=Aðstoð varðandi Birting"
                 className="inline-flex items-center justify-center gap-2 bg-primary hover:opacity-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-primary/10 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-sm animate-pulse">mail</span>
+                <span className="material-symbols-outlined text-sm">mail</span>
                 Senda tölvupóst
               </a>
             </div>

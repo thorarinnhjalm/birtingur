@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import {
   LayoutGrid,
   Grid3x3,
@@ -205,7 +206,9 @@ function PublisherHome() {
             </div>
             <p className="text-on-tertiary/70 font-medium mb-1">Næsta útgreiðsla</p>
             <h4 className="font-bold text-headline-lg">
-              {stats ? formatIsk(Math.round(stats.spendIsk * 0.8)) : '0 kr.'}
+              {stats
+                ? formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))
+                : '0 kr.'}
             </h4>
             <p className="text-on-tertiary/50 text-[12px] mt-2">Áætlað 1. næsta mánaðar</p>
           </div>
@@ -330,7 +333,7 @@ function PublisherHome() {
                     Staða
                   </th>
                   <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
-                    Árangur
+                    Birtingar
                   </th>
                   <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Tekjur
@@ -372,14 +375,10 @@ function PublisherHome() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-end gap-1 h-6 w-24">
-                        <div className="w-2 bg-primary/20 group-hover:bg-primary transition-all h-3"></div>
-                        <div className="w-2 bg-primary/20 group-hover:bg-primary transition-all h-5"></div>
-                        <div className="w-2 bg-primary/20 group-hover:bg-primary transition-all h-4"></div>
-                        <div className="w-2 bg-primary/20 group-hover:bg-primary transition-all h-6"></div>
-                        <div className="w-2 bg-primary/20 group-hover:bg-primary transition-all h-4"></div>
-                      </div>
+                    <td className="px-8 py-5 text-center">
+                      <span className="text-body-md text-on-surface font-semibold">
+                        {s.status === 'active' ? '—' : '—'}
+                      </span>
                     </td>
                     <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
                       {formatIsk(

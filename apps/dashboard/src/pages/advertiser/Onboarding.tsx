@@ -49,6 +49,52 @@ export default function AdvertiserOnboarding() {
     }
   }, [user]);
 
+  // Restore persisted form state on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('adv_onboarding');
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.step) setStep(s.step);
+        if (s.websiteUrl) setWebsiteUrl(s.websiteUrl);
+        if (s.companyName) setCompanyName(s.companyName);
+        if (s.kennitala) setKennitala(s.kennitala);
+        if (s.vatNumber) setVatNumber(s.vatNumber);
+        if (s.scrapedCategory) setScrapedCategory(s.scrapedCategory);
+        if (s.scrapedConfidence !== undefined) setScrapedConfidence(s.scrapedConfidence);
+        if (s.scrapedDescription) setScrapedDescription(s.scrapedDescription);
+      }
+    } catch {
+      // Ignore corrupt sessionStorage data
+    }
+  }, []);
+
+  // Persist form state on changes
+  useEffect(() => {
+    sessionStorage.setItem(
+      'adv_onboarding',
+      JSON.stringify({
+        step,
+        websiteUrl,
+        companyName,
+        kennitala,
+        vatNumber,
+        scrapedCategory,
+        scrapedConfidence,
+        scrapedDescription,
+      }),
+    );
+  }, [
+    step,
+    websiteUrl,
+    companyName,
+    kennitala,
+    vatNumber,
+    scrapedCategory,
+    scrapedConfidence,
+    scrapedDescription,
+  ]);
+
   // Step 1: Scrape & Analyze Domain
   const handleStartScrape = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +164,7 @@ export default function AdvertiserOnboarding() {
         websiteUrl: websiteUrl.trim() ? websiteUrl : undefined,
       });
       // Redirect to advertiser dashboard
+      sessionStorage.removeItem('adv_onboarding');
       navigate('/advertiser');
     } catch (err: any) {
       setError(err.message || 'Ekki tókst að stofna aðgang. Vinsamlegast reyna aftur.');
