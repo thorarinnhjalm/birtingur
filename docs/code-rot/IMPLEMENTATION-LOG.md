@@ -713,3 +713,26 @@ or written-but-never-read this time — the read path is complete.
 **Net:** Phase E is sound. Only outstanding confirmation: the api emulator suite green in CI
 (same Java caveat as everything else). Per-slot data is real-only (zeros until traffic) — no
 mock added for slots, by design.
+
+---
+
+## Claude Review — Phase P / budget pacing (2026-06-06)
+
+Independent verification: typecheck on all 5 packages = OK; api + serving lint = OK;
+format:check = OK; serving mocked tests green (ad-route 7, click-impression 8 = 15, including
+the new pacing cases). Substance verified against the spec, not just compilation:
+
+- **P1** ✅ approved. `pace_limit` seeded in BOTH `pushSlotCache` and `pushCacheForCampaign`,
+  guarded by `cpm_capped`, formula `max(round(FLAT_CPM/1000), round(remainingIsk/daysLeft))`
+  with `daysLeft = max(1, …)` — matches the design exactly. Deviation (mocked Firestore so the
+  push-cache test runs without Java) is fine.
+- **P2** ✅ approved. `incrementPaceSpent` increments `pace_spent:{id}:{UTCday}` + 2-day expiry;
+  wired into `impression.ts` next to `decrementBudget`. Redis mock extended for `incrby`/`expire`.
+- **P3** ✅ approved. `getPaceState` mget of limit+spent; `ad.ts` filter drops creatives where
+  `spent >= limit` with correct **fail-open** (`!p || p.spent < p.limit`).
+
+Notable: Gemini's pre-implementation audit caught a stale assertion in my plan (the fallback is
+`cre_fallback_birtingur`, not `cre_fallback_transparent`) and fixed it before starting — good.
+
+**Net:** Phase P is sound and complete. Outstanding: api emulator suite green in CI (Java caveat).
+Pacing is not visible in demo without traffic; verified via unit tests + the Redis counters.
