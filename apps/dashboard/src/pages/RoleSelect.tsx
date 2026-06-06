@@ -23,14 +23,23 @@ export default function RoleSelect() {
 
     const hasAdvertiser = !!advertiserQuery.data;
     const hasPublisher = !!publisherQuery.data;
+    const lastRole = localStorage.getItem('ada_last_role');
 
-    if (hasAdvertiser && !hasPublisher) {
+    // Prefer the remembered role when the user actually has that profile — this is
+    // what sends a dual-role user (e.g. the demo account, which owns both an
+    // advertiser and a publisher) straight to their last dashboard instead of the chooser.
+    if (lastRole === 'advertiser' && hasAdvertiser) {
+      navigate('/advertiser', { replace: true });
+    } else if (lastRole === 'publisher' && hasPublisher) {
+      navigate('/publisher', { replace: true });
+    } else if (hasAdvertiser && !hasPublisher) {
       localStorage.setItem('ada_last_role', 'advertiser');
       navigate('/advertiser', { replace: true });
     } else if (hasPublisher && !hasAdvertiser) {
       localStorage.setItem('ada_last_role', 'publisher');
       navigate('/publisher', { replace: true });
     }
+    // Dual-role with no remembered choice (or no profile at all) → show the chooser.
   }, [
     advertiserQuery.data,
     advertiserQuery.isPending,
