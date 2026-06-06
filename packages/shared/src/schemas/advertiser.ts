@@ -58,6 +58,7 @@ export const CreativeSchema = z
       .refine((u) => u.startsWith('https://'), {
         message: 'Click URL must use https://',
       }),
+    ocrTextHint: z.string().optional(),
     reviewStatus: ReviewStatusSchema,
     reviewLog: z.array(ReviewLogEntrySchema).default([]),
     autoScanResult: AutoScanResultSchema.optional(),

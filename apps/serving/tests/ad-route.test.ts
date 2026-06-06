@@ -167,3 +167,17 @@ describe('GET /v1/ad', () => {
     delete mockSlot.activeCreatives[0]!.geoRegions;
   });
 });
+
+describe('Static script serving', () => {
+  it('returns widget.js script', async () => {
+    const res = await app.request('/widget.js');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('application/javascript');
+  });
+
+  it('returns v1/widgets.js script', async () => {
+    const res = await app.request('/v1/widgets.js');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('application/javascript');
+  });
+});

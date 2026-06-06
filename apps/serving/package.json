@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter @ada/shared build && tsc",
+    "build": "pnpm --filter @ada/shared build && tsc && mkdir -p public/v1 && cp ../../packages/snippet/dist/snippet.js public/widget.js && cp ../../packages/widgets/dist/widgets.js public/v1/widgets.js",
     "dev": "tsx watch src/dev.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -17,6 +17,8 @@
     "hono": "^4.4.0"
   },
   "devDependencies": {
+    "@ada/snippet": "workspace:*",
+    "@ada/widgets": "workspace:*",
     "@types/node": "^20.12.0",
     "typescript": "^5.4.0",
     "vitest": "^1.5.0"

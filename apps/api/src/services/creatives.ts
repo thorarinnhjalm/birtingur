@@ -55,6 +55,7 @@ export async function createCreative(
     width: parsed.width,
     height: parsed.height,
     clickUrl: parsed.clickUrl,
+    ocrTextHint: parsed.ocrTextHint,
     reviewStatus,
     reviewLog: [
       {
@@ -117,4 +118,108 @@ export async function updateCreativeReview(
   });
   await db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter).set(next);
   return next;
+}
+
+const UpdateCreativeInputSchema = z.object({
+  clickUrl: z
+    .string()
+    .url()
+    .refine((u) => u.startsWith('https://')),
+  ocrTextHint: z.string().optional(),
+});
+export type UpdateCreativeInput = z.infer<typeof UpdateCreativeInputSchema>;
+
+export async function updateCreative(
+  id: string,
+  advertiserId: string,
+  input: UpdateCreativeInput,
+  scanner: AutoScanner,
+): Promise<Creative> {
+  const parsed = UpdateCreativeInputSchema.parse(input);
+  const existing = await requireCreative(id);
+
+  if (existing.advertiserId !== advertiserId) {
+    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+  }
+
+  const scan = await scanner.scan({
+    imageUrl: existing.imageUrl,
+    clickUrl: parsed.clickUrl,
+    ocrTextHint: parsed.ocrTextHint,
+  });
+
+  let reviewStatus: ReviewStatus;
+  if (scan.outcome === 'auto_approved') {
+    reviewStatus = 'auto_approved';
+  } else if (scan.outcome === 'auto_rejected') {
+    reviewStatus = 'rejected';
+  } else {
+    reviewStatus = 'pending';
+  }
+
+  const now = new Date();
+  const action =
+    reviewStatus === 'auto_approved'
+      ? ('approved' as const)
+      : reviewStatus === 'rejected'
+        ? ('rejected' as const)
+        : ('flagged' as const);
+
+  const updated: Creative = CreativeSchema.parse({
+    ...existing,
+    clickUrl: parsed.clickUrl,
+    ocrTextHint: parsed.ocrTextHint,
+    reviewStatus,
+    reviewLog: [
+      ...existing.reviewLog,
+      {
+        at: now,
+        by: 'auto',
+        action,
+        reason:
+          scan.scanResult.blockedTerms.length > 0
+            ? `Edit auto-scan: Blocked terms: ${scan.scanResult.blockedTerms.join(', ')}`
+            : 'Edit auto-scan re-run',
+      },
+    ],
+    autoScanResult: scan.scanResult,
+  });
+
+  await db.collection(COLLECTIONS.creatives).doc(id).withConverter(creativeConverter).set(updated);
+
+  // Propagate to active campaigns
+  const { propagateCreativeChange } = await import('./approvals.js');
+  await propagateCreativeChange(id, reviewStatus === 'auto_approved');
+
+  return updated;
+}
+
+export async function deleteCreative(id: string, advertiserId: string): Promise<void> {
+  const existing = await requireCreative(id);
+
+  if (existing.advertiserId !== advertiserId) {
+    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+  }
+
+  // Check if used by campaigns that are active, paused, or pending_approval
+  const campaignsSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('creativeIds', 'array-contains', id)
+    .get();
+
+  const inUse = campaignsSnap.docs.some((doc) => {
+    const status = doc.data().status;
+    return ['active', 'pending_approval', 'paused'].includes(status);
+  });
+
+  if (inUse) {
+    throw new AppError(
+      400,
+      'Ekki er hægt að eyða auglýsingu sem er í notkun í virkri herferð, herferð í yfirferð eða í pásu.',
+      'BAD_REQUEST',
+    );
+  }
+
+  // Delete from Firestore
+  await db.collection(COLLECTIONS.creatives).doc(id).delete();
 }

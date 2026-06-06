@@ -1,7 +1,13 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
-import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives.js';
+import {
+  createCreative,
+  getCreative,
+  listCreativesForAdvertiser,
+  updateCreative,
+  deleteCreative,
+} from '../services/creatives.js';
 import { getCreativeStats, getAllCreativeStatsForAdvertiser } from '../services/creative-stats.js';
 import { GeminiAutoScanner } from '../services/auto-scan/gemini.js';
 import { AppError } from '../lib/errors.js';
@@ -75,4 +81,27 @@ creativesRouter.get('/:id', async (c) => {
     throw new AppError(403, 'Forbidden', 'FORBIDDEN');
   }
   return c.json(cre);
+});
+
+creativesRouter.patch('/:id', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const updated = await updateCreative(id, adv.id, body, scanner);
+  return c.json(updated);
+});
+
+creativesRouter.delete('/:id', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const id = c.req.param('id');
+  await deleteCreative(id, adv.id);
+  return c.json({ success: true }, 200);
 });

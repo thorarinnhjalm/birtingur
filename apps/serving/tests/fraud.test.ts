@@ -64,8 +64,10 @@ describe('Fraud Prevention Logic', () => {
   });
 
   describe('checkAndIncrementRateLimit', () => {
+    const getHourKey = () => new Date().toISOString().slice(0, 13).replace(/[-T]/g, '');
+
     it('returns true for impressions under the threshold of 30', async () => {
-      mockRedisStore['rate_limit:impression:cmp1:1.2.3.4:2026060615'] = 29;
+      mockRedisStore[`rate_limit:impression:cmp1:1.2.3.4:${getHourKey()}`] = 29;
       const allowed = await checkAndIncrementRateLimit('cmp1', '1.2.3.4', 'impression');
       expect(allowed).toBe(true);
       expect(mockRedisClient.incr).toHaveBeenCalled();
@@ -73,19 +75,19 @@ describe('Fraud Prevention Logic', () => {
     });
 
     it('returns false for impressions over the threshold of 30', async () => {
-      mockRedisStore['rate_limit:impression:cmp1:1.2.3.4:2026060615'] = 30;
+      mockRedisStore[`rate_limit:impression:cmp1:1.2.3.4:${getHourKey()}`] = 30;
       const allowed = await checkAndIncrementRateLimit('cmp1', '1.2.3.4', 'impression');
       expect(allowed).toBe(false);
     });
 
     it('returns true for clicks under the threshold of 3', async () => {
-      mockRedisStore['rate_limit:click:cmp1:1.2.3.4:2026060615'] = 2;
+      mockRedisStore[`rate_limit:click:cmp1:1.2.3.4:${getHourKey()}`] = 2;
       const allowed = await checkAndIncrementRateLimit('cmp1', '1.2.3.4', 'click');
       expect(allowed).toBe(true);
     });
 
     it('returns false for clicks over the threshold of 3', async () => {
-      mockRedisStore['rate_limit:click:cmp1:1.2.3.4:2026060615'] = 3;
+      mockRedisStore[`rate_limit:click:cmp1:1.2.3.4:${getHourKey()}`] = 3;
       const allowed = await checkAndIncrementRateLimit('cmp1', '1.2.3.4', 'click');
       expect(allowed).toBe(false);
     });

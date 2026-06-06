@@ -64,7 +64,10 @@ async function allCreativesAutoApproved(ids: string[]): Promise<boolean> {
   return true;
 }
 
-async function propagateCreativeChange(creativeId: string, approved: boolean): Promise<void> {
+export async function propagateCreativeChange(
+  creativeId: string,
+  approved: boolean,
+): Promise<void> {
   const snap = await db
     .collection(COLLECTIONS.campaigns)
     .where('creativeIds', 'array-contains', creativeId)

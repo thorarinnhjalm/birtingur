@@ -1,0 +1,7 @@
+# Ignore built files
+**/dist/**
+**/public/*.js
+**/public/**/*.js
+**/public/**/*.html
+node_modules
+.turbo
