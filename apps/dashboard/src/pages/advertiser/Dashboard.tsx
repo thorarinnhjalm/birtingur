@@ -54,24 +54,6 @@ function AdvertiserHome() {
   const { data: bulkCreativeStats } = useBulkCreativeStats(!!advertiser);
   const navigate = useNavigate();
 
-  if (isAdvLoading || isWalletLoading || isCampaignsLoading) {
-    return <LoadingState />;
-  }
-
-  if (!advertiser) {
-    return <Navigate to="/advertiser/onboarding" replace />;
-  }
-
-  // Calculate sum metrics from campaigns for display
-
-  // Dynamic stats mapping
-  const impressions = stats ? stats.impressions.toLocaleString('is-IS') : '0';
-  const clicks = stats ? stats.clicks.toLocaleString('is-IS') : '0';
-  const ctr =
-    stats && stats.impressions > 0
-      ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
-      : '0,00%';
-
   // Compute percentage changes from stats.history (compare last 7 days vs previous 7 days)
   const pctChanges = useMemo(() => {
     if (!stats?.history || stats.history.length < 2)
@@ -103,7 +85,27 @@ function AdvertiserHome() {
     queryFn: () => apiFetch<{ tips: string[] }>('/v1/advertisers/me/ai-tips'),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: 1,
+    enabled: !!advertiser,
   });
+
+  if (isAdvLoading || isWalletLoading || isCampaignsLoading) {
+    return <LoadingState />;
+  }
+
+  if (!advertiser) {
+    return <Navigate to="/advertiser/onboarding" replace />;
+  }
+
+  // Calculate sum metrics from campaigns for display
+
+  // Dynamic stats mapping
+  const impressions = stats ? stats.impressions.toLocaleString('is-IS') : '0';
+  const clicks = stats ? stats.clicks.toLocaleString('is-IS') : '0';
+  const ctr =
+    stats && stats.impressions > 0
+      ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+      : '0,00%';
+
   const aiTips = aiTipsData?.tips ?? ['Snjallráð hlaðast...'];
 
   return (
