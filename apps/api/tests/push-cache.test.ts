@@ -661,4 +661,105 @@ describe('pushSlotCache helper', () => {
     const slotCall = mockRedisSet.mock.calls.find((c) => c[0] === 'slot:slot_food');
     expect(slotCall).toBeDefined();
   });
+
+  it('seeds pace_limit = round(remainingIsk / daysLeft) for active cpm_capped campaigns', async () => {
+    mockState.slot = {
+      id: 'slot_pace',
+      publisherId: 'pub_pace',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_pace',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    const endsAt = new Date();
+    endsAt.setDate(endsAt.getDate() + 5); // 5 days left
+
+    mockState.campaigns = [
+      {
+        id: 'cmp_pace',
+        status: 'active',
+        creativeIds: ['cre_pace'],
+        budget: { remainingIsk: 50000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: endsAt,
+        },
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+
+    mockState.creatives = [
+      {
+        id: 'cre_pace',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/pace.png',
+        clickUrl: 'https://ex.com/pace',
+      },
+    ];
+
+    mockRedisSet.mockClear();
+    await pushSlotCache('slot_pace');
+
+    const paceCall = mockRedisSet.mock.calls.find((c) => c[0] === 'pace_limit:cmp_pace');
+    expect(paceCall).toBeDefined();
+    expect(paceCall![1]).toBe(10000); // 50000 / 5 = 10000 ISK
+  });
+
+  it('seeds pace_limit in pushCacheForCampaign as well', async () => {
+    mockState.publisher = {
+      id: 'pub_pace',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+    mockState.slot = {
+      id: 'slot_pace',
+      publisherId: 'pub_pace',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.slots = [mockState.slot];
+
+    const endsAt = new Date();
+    endsAt.setDate(endsAt.getDate() + 5);
+
+    const campaign = {
+      id: 'cmp_pace',
+      status: 'active',
+      creativeIds: ['cre_pace'],
+      budget: { remainingIsk: 50000, mode: 'cpm_capped' },
+      schedule: {
+        startsAt: new Date(Date.now() - 10000),
+        endsAt: endsAt,
+      },
+      targeting: { categories: ['taekni'] },
+    };
+    mockState.campaigns = [campaign];
+    mockState.creatives = [
+      {
+        id: 'cre_pace',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/pace.png',
+        clickUrl: 'https://ex.com/pace',
+      },
+    ];
+
+    mockRedisSet.mockClear();
+    await pushCacheForCampaign('cmp_pace');
+
+    const paceCall = mockRedisSet.mock.calls.find((c) => c[0] === 'pace_limit:cmp_pace');
+    expect(paceCall).toBeDefined();
+    expect(paceCall![1]).toBe(10000);
+  });
 });

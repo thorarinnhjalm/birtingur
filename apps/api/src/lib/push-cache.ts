@@ -12,6 +12,7 @@ import {
   FREQUENCY_CAP_DEFAULT_PER_DAY,
   SLOT_CACHE_TTL_SECONDS,
   BUDGET_COUNTER_TTL_SECONDS,
+  FLAT_CPM_ISK,
 } from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
 
@@ -110,6 +111,20 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     await redis.set(`budget:${campaign.id}`, campaign.budget.remainingIsk, {
       ex: BUDGET_COUNTER_TTL_SECONDS,
     });
+    if (campaign.budget.mode === 'cpm_capped') {
+      const daysLeft = Math.max(
+        1,
+        Math.ceil((campaign.schedule.endsAt.getTime() - Date.now()) / 86_400_000),
+      );
+      const perImpression = Math.round(FLAT_CPM_ISK / 1000);
+      const paceLimit = Math.max(
+        perImpression,
+        Math.round(campaign.budget.remainingIsk / daysLeft),
+      );
+      await redis.set(`pace_limit:${campaign.id}`, paceLimit, {
+        ex: BUDGET_COUNTER_TTL_SECONDS,
+      });
+    }
   }
 
   // 5. Gather unique creative IDs from the campaigns
@@ -227,6 +242,17 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
 
   const redis = getRedis();
   await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: BUDGET_COUNTER_TTL_SECONDS });
+  if (cmp.budget.mode === 'cpm_capped') {
+    const daysLeft = Math.max(
+      1,
+      Math.ceil((cmp.schedule.endsAt.getTime() - Date.now()) / 86_400_000),
+    );
+    const perImpression = Math.round(FLAT_CPM_ISK / 1000);
+    const paceLimit = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
+    await redis.set(`pace_limit:${cmp.id}`, paceLimit, {
+      ex: BUDGET_COUNTER_TTL_SECONDS,
+    });
+  }
 
   // Find publishers in any of the campaign's categories
   const pubSnap = await db
