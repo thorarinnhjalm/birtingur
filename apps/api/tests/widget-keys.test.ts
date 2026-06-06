@@ -1,19 +1,12 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import {
-  issueWidgetKey,
-  verifyWidgetKey,
-  revokeWidgetKey,
-  getWidgetKeyByTargetId,
-  getOrCreateWidgetKey,
-} from '../src/services/widget-keys.js';
+import { issueWidgetKey, verifyWidgetKey, revokeWidgetKey } from '../src/services/widget-keys.js';
 import { widgetsRouter } from '../src/routes/widgets.js';
-import { db } from '../src/lib/firebase.js';
 import { handleError } from '../src/lib/errors';
 
 // Mock getPublisherStats and getCampaignStats services
 vi.mock('../src/services/publisher-stats.js', () => ({
-  getPublisherStats: async (id: string, timeframe: number) => ({
+  getPublisherStats: async (_id: string, _timeframe: number) => ({
     impressions: 1000,
     clicks: 10,
     spendIsk: 280,
@@ -22,7 +15,7 @@ vi.mock('../src/services/publisher-stats.js', () => ({
 }));
 
 vi.mock('../src/services/campaign-stats.js', () => ({
-  getCampaignStats: async (id: string) => ({
+  getCampaignStats: async (_id: string) => ({
     impressions: 500,
     clicks: 5,
     hours: [],
@@ -33,7 +26,7 @@ vi.mock('../src/lib/firebase.js', () => {
   const store: Record<string, any> = {};
   return {
     db: {
-      collection: (col: string) => ({
+      collection: (_col: string) => ({
         doc: (id: string) => ({
           set: async (val: any) => {
             store[id] = val;

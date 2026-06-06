@@ -1,21 +1,11 @@
 import { useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
-import {
-  LayoutGrid,
-  Grid3x3,
-  Banknote,
-  CheckCircle,
-  Settings as SettingsIcon,
-  AlertTriangle,
-} from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { Card } from '@/components/ui/Card';
-import { StatCard } from '@/components/ui/StatCard';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { Badge } from '@/components/ui/Badge';
 import { usePublisher, usePublisherSlots } from '@/hooks/usePublisher';
 import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';

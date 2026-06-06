@@ -1,17 +1,6 @@
 import { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
-import {
-  LayoutGrid,
-  ShieldCheck,
-  Banknote,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Building2,
-  Users,
-  Calendar,
-  Settings as SettingsIcon,
-} from 'lucide-react';
+import { Routes, Route } from 'react-router-dom';
+import { Banknote, CheckCircle, XCircle, Calendar } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';

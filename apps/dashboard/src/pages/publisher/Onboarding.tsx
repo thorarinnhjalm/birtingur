@@ -145,7 +145,7 @@ export default function PublisherOnboarding() {
       setSelectedCategories([mapped]);
       setConfidence(data.confidence || null);
       setStep(2);
-    } catch (err: any) {
+    } catch {
       // Allow passing to step 2 even if scraping fails, using fallbacks
       setDomain(cleanDomain);
       setDisplayName(cleanDomain.split('.')[0] || cleanDomain);
@@ -201,8 +201,10 @@ export default function PublisherOnboarding() {
       });
       sessionStorage.removeItem('pub_onboarding');
       navigate('/publisher');
-    } catch (err: any) {
-      setError(err.message || 'Ekki tókst að stofna útgefandaaðgang. Reyndu aftur.');
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : 'Ekki tókst að stofna útgefandaaðgang. Reyndu aftur.';
+      setError(msg);
     }
   };
 

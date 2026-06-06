@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
 import {
   Sparkles,
-  Code2,
   Coins,
   ArrowRight,
   CheckCircle2,

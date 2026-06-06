@@ -3,10 +3,10 @@ import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { createCreative, getCreative, listCreativesForAdvertiser } from '../services/creatives.js';
 import { getCreativeStats, getAllCreativeStatsForAdvertiser } from '../services/creative-stats.js';
-import { StubAutoScanner } from '../services/auto-scan/stub.js';
+import { GeminiAutoScanner } from '../services/auto-scan/gemini.js';
 import { AppError } from '../lib/errors.js';
 
-const scanner = new StubAutoScanner();
+const scanner = new GeminiAutoScanner();
 
 export const creativesRouter = new Hono<Env>();
 creativesRouter.use('*', requireAuth);

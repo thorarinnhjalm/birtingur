@@ -258,7 +258,7 @@ describe('E2E Approval Flow Routes', () => {
       }),
     });
     expect(advRes.status).toBe(201);
-    const advertiser = await advRes.json();
+    await advRes.json();
 
     // 2. Upload creative that AutoScan flags (bit.ly URL in StubAutoScanner)
     const creRes = await app.request('/v1/creatives', {

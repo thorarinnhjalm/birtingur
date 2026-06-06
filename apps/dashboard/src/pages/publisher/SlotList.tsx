@@ -10,7 +10,7 @@ import { Grid3x3, Plus, ArrowRight } from 'lucide-react';
 
 export default function SlotList() {
   const navigate = useNavigate();
-  const { data: slots, isLoading, refetch } = usePublisherSlots();
+  const { data: slots, isLoading } = usePublisherSlots();
 
   if (isLoading) return <LoadingState />;
 

@@ -11,7 +11,7 @@ import { AD_CATEGORIES } from '@ada/shared';
 
 export default function CampaignList() {
   const navigate = useNavigate();
-  const { data: campaigns, isLoading, refetch } = useCampaigns();
+  const { data: campaigns, isLoading } = useCampaigns();
 
   if (isLoading) return <LoadingState />;
 

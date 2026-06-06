@@ -31,11 +31,7 @@ export default function CreativeLibrary() {
   const [selectedFile, setSelectedFile] = useState<any>(null);
 
   // Fetch creatives
-  const {
-    data: creatives,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data: creatives, isLoading } = useQuery({
     queryKey: ['creatives'],
     queryFn: () => apiFetch<Creative[]>('/v1/creatives'),
   });

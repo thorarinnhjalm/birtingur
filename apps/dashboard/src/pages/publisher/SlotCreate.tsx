@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { IAB_STANDARD_SIZES, FLAT_CPM_ISK } from '@ada/shared';
-import { ShieldCheck, Plus, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 export default function SlotCreate() {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ export default function SlotCreate() {
 
   const [name, setName] = useState('');
   const [selectedSizes, setSelectedSizes] = useState<Array<{ width: number; height: number }>>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, _setCategories] = useState<string[]>([]);
   const [autoApprove, setAutoApprove] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,10 +30,6 @@ export default function SlotCreate() {
         return [...prev, size];
       }
     });
-  };
-
-  const handleCategoryToggle = (cat: string) => {
-    setCategories((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,8 +80,9 @@ export default function SlotCreate() {
         autoApprove,
       });
       navigate('/publisher/slots');
-    } catch (err: any) {
-      setError(err.message || 'Ekki tókst að búa til auglýsingapláss.');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Ekki tókst að búa til auglýsingapláss.';
+      setError(msg);
     }
   };
 

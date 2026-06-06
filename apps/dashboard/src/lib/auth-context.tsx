@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAdmin(mockUser.admin);
         setLoading(false);
         return;
-      } catch (e) {
+      } catch {
         localStorage.removeItem('ada_mock_user');
       }
     }

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
 import {
   Sparkles,
@@ -9,11 +8,9 @@ import {
   Users,
   ShieldCheck,
   Eye,
-  TrendingUp,
   ArrowRight,
   MessageSquare,
   ExternalLink,
-  Layers,
 } from 'lucide-react';
 
 export default function Serfraedingar() {

@@ -39,7 +39,6 @@ export default function CampaignCreate() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [totalBudget, setTotalBudget] = useState(20000);
-  const [budgetMode, setBudgetMode] = useState<'cpm_capped' | 'slot_purchased'>('cpm_capped');
 
   // Step 2: Creative
   const [clickUrl, setClickUrl] = useState('https://');

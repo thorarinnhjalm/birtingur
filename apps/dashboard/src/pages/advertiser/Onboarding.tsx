@@ -6,19 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
-import {
-  Globe,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle2,
-  Sparkles,
-  Loader2,
-  Building2,
-  Mail,
-  FileText,
-  Copy,
-  Check,
-} from 'lucide-react';
+import { Globe, ArrowRight, ArrowLeft, Sparkles, Loader2, Copy, Check } from 'lucide-react';
 
 export default function AdvertiserOnboarding() {
   const createAdvertiser = useCreateAdvertiser();
@@ -125,7 +113,7 @@ export default function AdvertiserOnboarding() {
       setScrapedConfidence(data.confidence || null);
       setScrapedDescription(data.description || '');
       setStep(2);
-    } catch (err: any) {
+    } catch {
       // Allow proceeding to step 2 with fallbacks even if scraping fails
       const fallbackUrl = websiteUrl.match(/^https?:\/\//i) ? websiteUrl : `https://${websiteUrl}`;
       setWebsiteUrl(fallbackUrl);
@@ -166,8 +154,10 @@ export default function AdvertiserOnboarding() {
       // Redirect to advertiser dashboard
       sessionStorage.removeItem('adv_onboarding');
       navigate('/advertiser');
-    } catch (err: any) {
-      setError(err.message || 'Ekki tókst að stofna aðgang. Vinsamlegast reyna aftur.');
+    } catch (e: unknown) {
+      const msg =
+        e instanceof Error ? e.message : 'Ekki tókst að stofna aðgang. Vinsamlegast reyna aftur.';
+      setError(msg);
     }
   };
 

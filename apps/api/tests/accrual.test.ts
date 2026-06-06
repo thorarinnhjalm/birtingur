@@ -157,7 +157,6 @@ vi.mock('../src/lib/push-cache', () => ({
 }));
 
 import { drainAndAccrue } from '../src/services/accrual';
-import { getCampaign } from '../src/services/campaigns';
 
 async function seedWalletCampaignSlot({
   balanceIsk,

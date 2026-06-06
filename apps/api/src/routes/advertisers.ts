@@ -2,7 +2,10 @@ import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { createAdvertiser, getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { getAdvertiserStats } from '../services/advertiser-stats.js';
+import { getAiTips } from '../services/ai-advisor.js';
+import { getWallet } from '../services/wallet.js';
 import { AppError } from '../lib/errors.js';
+import { listCampaignsForAdvertiser } from '../services/campaigns.js';
 
 export const advertisersRouter = new Hono<Env>();
 advertisersRouter.use('*', requireAuth);
@@ -33,4 +36,29 @@ advertisersRouter.get('/me/stats', async (c) => {
   const timeframe = queryTimeframe === '30' ? 30 : 7;
   const stats = await getAdvertiserStats(adv.id, timeframe);
   return c.json(stats);
+});
+
+advertisersRouter.get('/me/ai-tips', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const [stats, wallet, campaigns] = await Promise.all([
+    getAdvertiserStats(adv.id, 7),
+    getWallet(adv.id),
+    listCampaignsForAdvertiser(adv.id),
+  ]);
+  const ctr = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+  const activeCampaigns = campaigns.filter((camp) => camp.status === 'active').length;
+  const tips = await getAiTips({
+    impressions: stats.impressions,
+    clicks: stats.clicks,
+    ctr,
+    spendIsk: stats.spendIsk,
+    balanceIsk: wallet?.balanceIsk ?? 0,
+    activeCampaigns,
+    totalCampaigns: campaigns.length,
+  });
+  return c.json({ tips });
 });

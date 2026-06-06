@@ -52,7 +52,7 @@ export default function SignIn() {
         signInDemo('DemoA');
         handleSuccessRedirect();
         return;
-      } catch (err: any) {
+      } catch {
         setError('Innskráning á prufuaðgang mistókst.');
         return;
       } finally {
@@ -63,7 +63,7 @@ export default function SignIn() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       handleSuccessRedirect();
-    } catch (err: any) {
+    } catch {
       setError('Innskráning mistókst. Vinsamlegast athugaðu netfang og lykilorð.');
     } finally {
       setLoading(false);

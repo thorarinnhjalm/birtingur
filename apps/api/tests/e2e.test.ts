@@ -302,7 +302,7 @@ describe('End-to-End Smoke Test', () => {
       }),
     });
     expect(pubRes.status).toBe(201);
-    const publisher = await pubRes.json();
+    await pubRes.json();
 
     // 2. Create Slot
     const slotRes = await app.request('/v1/publishers/me/slots', {
@@ -325,7 +325,7 @@ describe('End-to-End Smoke Test', () => {
       }),
     });
     expect(slotRes.status).toBe(201);
-    const slot = await slotRes.json();
+    await slotRes.json();
 
     // 3. Create Advertiser
     const advRes = await app.request('/v1/advertisers', {

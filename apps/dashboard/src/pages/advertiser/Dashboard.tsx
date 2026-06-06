@@ -1,22 +1,14 @@
 import { useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import {
-  Megaphone,
-  Wallet,
-  Image as ImageIcon,
-  Settings as SettingsIcon,
-  LayoutGrid,
-} from 'lucide-react';
+import { Megaphone } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { useWallet } from '@/hooks/useWallet';
 import { useCampaigns, useBulkCreativeStats } from '@/hooks/useCampaigns';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { StatCard } from '@/components/ui/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -71,7 +63,6 @@ function AdvertiserHome() {
   }
 
   // Calculate sum metrics from campaigns for display
-  const activeCampaigns = campaigns?.filter((c) => c.status === 'active') || [];
 
   // Dynamic stats mapping
   const impressions = stats ? stats.impressions.toLocaleString('is-IS') : '0';
@@ -106,27 +97,14 @@ function AdvertiserHome() {
     return { impressions: pctImp, clicks: pctClk, ctr: pctCtr };
   }, [stats]);
 
-  // Generate smart AI tips based on real stats
-  const aiTips = useMemo(() => {
-    const tips: string[] = [];
-    if (!stats || stats.impressions === 0) {
-      tips.push('Stofnaðu fyrstu herferðina og byrjaðu að ná til markhópsins þíns.');
-      return tips;
-    }
-    const ctrVal = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
-    if (ctrVal < 0.5)
-      tips.push('CTR er undir 0,5%. Prófaðu áberandi litasamsetningu og skýrari CTA á borðanum.');
-    else if (ctrVal > 2)
-      tips.push('Frábært CTR! Íhugaðu að hækka fjárhagsáætlun til að ná til fleiri notenda.');
-    if (activeCampaigns.length === 0)
-      tips.push('Engin herferð er í gangi. Virkjaðu herferð til að byrja birtingar.');
-    if (pctChanges.impressions !== null && pctChanges.impressions < -10)
-      tips.push('Birtingar hafa minnkað. Athugaðu hvort auglýsingaplássin séu enn virk.');
-    if (wallet && wallet.balanceIsk < 5000)
-      tips.push('Innistæða er lág. Fylltu á til að tryggja órofnar birtingar.');
-    if (tips.length === 0) tips.push('Allt lítur vel út! Haltu áfram og fylgstu með árangri.');
-    return tips;
-  }, [stats, activeCampaigns, pctChanges, wallet]);
+  // Fetch AI tips from Gemini-powered API
+  const { data: aiTipsData } = useQuery({
+    queryKey: ['ai-tips'],
+    queryFn: () => apiFetch<{ tips: string[] }>('/v1/advertisers/me/ai-tips'),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: 1,
+  });
+  const aiTips = aiTipsData?.tips ?? ['Snjallráð hlaðast...'];
 
   return (
     <div className="space-y-gutter">
