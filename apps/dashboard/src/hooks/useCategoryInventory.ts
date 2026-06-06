@@ -4,6 +4,8 @@ import { apiFetch } from '@/lib/api';
 export interface CategoryInventory {
   category: string;
   avgDailyImpressions: number;
+  committedDailyImpressions: number;
+  availableDailyImpressions: number;
 }
 
 export function useCategoryInventory() {

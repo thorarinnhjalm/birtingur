@@ -318,7 +318,7 @@ export default function CampaignCreate() {
                   const forecast = categoriesInventoryQuery.data?.find(
                     (f) => f.category === cat.slug,
                   );
-                  const avgDaily = forecast?.avgDailyImpressions ?? 0;
+                  const availableDaily = forecast?.availableDailyImpressions ?? 0;
 
                   return (
                     <div
@@ -341,7 +341,7 @@ export default function CampaignCreate() {
                         {isSelected && <Check size={14} className="text-primary animate-scaleIn" />}
                       </div>
                       <span className="text-[10px] text-slate-500 font-semibold mt-3">
-                        Daglegt áætlað: {avgDaily.toLocaleString('is-IS')} áhorf
+                        ≈ {availableDaily.toLocaleString('is-IS')} lausar birtingar/dag
                       </span>
                     </div>
                   );
@@ -367,7 +367,7 @@ export default function CampaignCreate() {
                           const forecast = categoriesInventoryQuery.data?.find(
                             (f) => f.category === slug,
                           );
-                          return sum + (forecast?.avgDailyImpressions ?? 0);
+                          return sum + (forecast?.availableDailyImpressions ?? 0);
                         }, 0)
                         .toLocaleString('is-IS')}
                     </span>
@@ -398,7 +398,7 @@ export default function CampaignCreate() {
                           const forecast = categoriesInventoryQuery.data?.find(
                             (f) => f.category === slug,
                           );
-                          return sum + (forecast?.avgDailyImpressions ?? 0);
+                          return sum + (forecast?.availableDailyImpressions ?? 0);
                         }, 0);
                         const totalCamp = Math.round((totalBudget / 550) * 1000);
                         return totalDaily > 0
