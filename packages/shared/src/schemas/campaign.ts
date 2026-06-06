@@ -41,6 +41,7 @@ export type CampaignStatus = z.infer<typeof CampaignStatusSchema>;
 
 export const CampaignSchema = z.object({
   id: z.string().min(1),
+  name: z.string().min(1).max(120).optional(),
   advertiserId: z.string().min(1),
   creativeIds: z.array(z.string().min(1)).min(1),
   targeting: TargetingSchema,

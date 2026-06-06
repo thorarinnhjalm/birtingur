@@ -1,5 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCampaign, useCampaignStats, useCreative, useCreativeStats } from '@/hooks/useCampaigns';
+import {
+  useCampaign,
+  useCampaignStats,
+  useCreative,
+  useCreativeStats,
+  useUpdateCampaign,
+} from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -16,10 +22,12 @@ import {
   ExternalLink,
   Check,
   Copy,
+  X,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
 import { AD_CATEGORIES } from '@ada/shared';
+import { Input } from '@/components/ui/Input';
 
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +40,8 @@ export default function CampaignDetail() {
   const { data: creative } = useCreative(creativeId);
   const { data: creativeStats } = useCreativeStats(creativeId);
 
+  const updateCampaignMutation = useUpdateCampaign();
+
   const [toggling, setToggling] = useState(false);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
@@ -39,6 +49,17 @@ export default function CampaignDetail() {
   const [loadingKey, setLoadingKey] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedStats, setCopiedStats] = useState(false);
+
+  // Edit Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editStartsAt, setEditStartsAt] = useState('');
+  const [editEndsAt, setEditEndsAt] = useState('');
+  const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [editRegion, setEditRegion] = useState<'all' | 'capital' | 'countryside'>('all');
+  const [editTotalBudget, setEditTotalBudget] = useState(0);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -49,6 +70,27 @@ export default function CampaignDetail() {
         .finally(() => setLoadingKey(false));
     }
   }, [id]);
+
+  useEffect(() => {
+    if (campaign && isEditModalOpen) {
+      setEditName(campaign.name || '');
+      setEditStartsAt(
+        campaign.schedule.startsAt
+          ? new Date(campaign.schedule.startsAt).toISOString().split('T')[0] || ''
+          : '',
+      );
+      setEditEndsAt(
+        campaign.schedule.endsAt
+          ? new Date(campaign.schedule.endsAt).toISOString().split('T')[0] || ''
+          : '',
+      );
+      setEditCategories(campaign.targeting.categories || []);
+      const region = campaign.targeting.geoRegions?.[0] || 'all';
+      setEditRegion(region as any);
+      setEditTotalBudget(campaign.budget.totalIsk || 0);
+      setEditError(null);
+    }
+  }, [campaign, isEditModalOpen]);
 
   if (isLoading) return <LoadingState />;
   if (isError || !campaign) {
@@ -66,15 +108,66 @@ export default function CampaignDetail() {
     setToggleError(null);
     const nextStatus = campaign.status === 'active' ? 'paused' : 'active';
     try {
-      await apiFetch(`/v1/campaigns/${campaign.id}/status`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: nextStatus }),
+      await updateCampaignMutation.mutateAsync({
+        id: campaign.id,
+        patch: { status: nextStatus },
       });
-      refetch();
     } catch (err: any) {
       setToggleError(err.message || 'Ekki tókst að breyta stöðu herferðar.');
     } finally {
       setToggling(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdating(true);
+    setEditError(null);
+
+    if (editEndsAt && editStartsAt && new Date(editEndsAt) <= new Date(editStartsAt)) {
+      setEditError('Lokadagur verður að vera eftir upphafsdag.');
+      setUpdating(false);
+      return;
+    }
+
+    if (editCategories.length === 0) {
+      setEditError('Vinsamlegast veldu að minnsta kosti einn flokk.');
+      setUpdating(false);
+      return;
+    }
+
+    const spent = campaign.budget.totalIsk - campaign.budget.remainingIsk;
+    if (editTotalBudget < spent) {
+      setEditError(
+        `Fjárhagsáætlun má ekki vera lægri en upphæðin sem hefur þegar verið eytt (${formatIsk(spent)}).`,
+      );
+      setUpdating(false);
+      return;
+    }
+
+    try {
+      await updateCampaignMutation.mutateAsync({
+        id: campaign.id,
+        patch: {
+          name: editName || undefined,
+          categories: editCategories,
+          geoRegions: editRegion === 'all' ? [] : [editRegion],
+          schedule: {
+            startsAt: new Date(editStartsAt).toISOString(),
+            endsAt: editEndsAt
+              ? new Date(editEndsAt).toISOString()
+              : new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+          },
+          budget: {
+            totalIsk: editTotalBudget,
+          },
+        },
+      });
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      setEditError(err.message || 'Ekki tókst að uppfæra herferð.');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -97,8 +190,8 @@ export default function CampaignDetail() {
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">
-                Herferð: {campaign.id.substring(0, 8)}
+              <h1 className="text-2xl font-bold text-slate-900 font-sans">
+                {campaign.name || `Herferð: ${campaign.id.substring(0, 8)}`}
               </h1>
               <Badge
                 variant={
@@ -123,6 +216,14 @@ export default function CampaignDetail() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setIsEditModalOpen(true)}
+            className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+          >
+            Breyta herferð
+          </Button>
+
           {campaign.status !== 'pending_approval' && (
             <Button
               variant={campaign.status === 'active' ? 'secondary' : 'primary'}
@@ -386,6 +487,158 @@ export default function CampaignDetail() {
           </div>
         </Card>
       </div>
+
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="max-w-xl w-full bg-white shadow-2xl overflow-hidden p-6 space-y-5 my-8">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">
+                Breyta herferð: {campaign.name || campaign.id.substring(0, 8)}
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-5">
+              <Input
+                label="Heiti herferðar *"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                required
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Byrjar þann *"
+                  type="date"
+                  value={editStartsAt}
+                  onChange={(e) => setEditStartsAt(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Endar þann"
+                  type="date"
+                  value={editEndsAt}
+                  onChange={(e) => setEditEndsAt(e.target.value)}
+                />
+              </div>
+
+              {/* Categories targeting */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Veldu efnisflokka *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {AD_CATEGORIES.map((cat) => {
+                    const isSelected = editCategories.includes(cat.slug);
+                    return (
+                      <div
+                        key={cat.slug}
+                        onClick={() => {
+                          setEditCategories((prev) =>
+                            prev.includes(cat.slug)
+                              ? prev.filter((s) => s !== cat.slug)
+                              : [...prev, cat.slug],
+                          );
+                        }}
+                        className={`p-2.5 rounded-lg border cursor-pointer transition-all duration-150 flex items-center justify-between select-none ${
+                          isSelected
+                            ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-slate-800 text-[11px]">{cat.label}</span>
+                        {isSelected && <Check size={12} className="text-primary" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Region Targeting */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 block">Landshlutamarkun</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'all', label: 'Allt land' },
+                    { key: 'capital', label: 'Höfuðborgarsvæðið' },
+                    { key: 'countryside', label: 'Landsbyggðin' },
+                  ].map((region) => (
+                    <div
+                      key={region.key}
+                      onClick={() => setEditRegion(region.key as any)}
+                      className={`p-2.5 rounded-lg border cursor-pointer text-center select-none transition-all duration-150 ${
+                        editRegion === region.key
+                          ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
+                      }`}
+                    >
+                      {region.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Budget targeting */}
+              <div className="space-y-1">
+                <Input
+                  label="Fjárhagsáætlun (ISK) *"
+                  type="number"
+                  min="5000"
+                  step="5000"
+                  value={editTotalBudget}
+                  onChange={(e) => setEditTotalBudget(Number(e.target.value) || 0)}
+                  required
+                />
+                {editTotalBudget < spent && (
+                  <p className="text-[11px] font-bold text-red-600 flex items-center gap-1 mt-1">
+                    <AlertCircle size={12} className="shrink-0" />
+                    <span>
+                      Má ekki vera lægri en upphæðin sem hefur verið eytt ({formatIsk(spent)}).
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {editError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={updating}
+                  className="text-xs"
+                >
+                  Hætta við
+                </Button>
+                <Button
+                  type="submit"
+                  loading={updating}
+                  disabled={
+                    editTotalBudget < spent ||
+                    editCategories.length === 0 ||
+                    !editName ||
+                    !editStartsAt
+                  }
+                  className="text-xs font-bold"
+                >
+                  Vista breytingar
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

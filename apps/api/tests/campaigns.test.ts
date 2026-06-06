@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createCampaign, listCampaignsForAdvertiser } from '../src/services/campaigns';
+import {
+  createCampaign,
+  listCampaignsForAdvertiser,
+  updateCampaign,
+} from '../src/services/campaigns';
 
 interface MockAdvertiser {
   id: string;
@@ -218,6 +222,110 @@ describe('Campaign Service', () => {
       });
       const list = await listCampaignsForAdvertiser(adv.id);
       expect(list).toHaveLength(1);
+    });
+  });
+
+  describe('updateCampaign', () => {
+    it('successfully updates campaign details', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        name: 'Initial Name',
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20000 },
+      });
+
+      const nextStartsAt = new Date(Date.now() + 5000);
+      const nextEndsAt = new Date(Date.now() + 90000_000);
+
+      const updated = await updateCampaign(cmp.id, {
+        name: 'Updated Name',
+        categories: ['taekni'],
+        geoRegions: ['capital'],
+        schedule: {
+          startsAt: nextStartsAt,
+          endsAt: nextEndsAt,
+        },
+        budget: {
+          totalIsk: 30000,
+        },
+      });
+
+      expect(updated.name).toBe('Updated Name');
+      expect(updated.targeting.categories).toEqual(['taekni']);
+      expect(updated.targeting.geoRegions).toEqual(['capital']);
+      expect(updated.schedule.startsAt.getTime()).toBe(nextStartsAt.getTime());
+      expect(updated.schedule.endsAt.getTime()).toBe(nextEndsAt.getTime());
+      expect(updated.budget.totalIsk).toBe(30000);
+      expect(updated.budget.remainingIsk).toBe(30000);
+    });
+
+    it('rejects budget update below spent amount', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20000 },
+      });
+
+      // Simulate spent amount by manually setting remainingIsk lower
+      const dbCmp = mockCampaigns.find((c) => c.id === cmp.id);
+      if (dbCmp) {
+        dbCmp.budget.remainingIsk = 5000; // Spent is 15000 ISK
+      }
+
+      // Updating budget to 16000 should succeed
+      const updatedOk = await updateCampaign(cmp.id, {
+        budget: { totalIsk: 16000 },
+      });
+      expect(updatedOk.budget.remainingIsk).toBe(1000); // 16000 - 15000 = 1000
+
+      // Updating budget to 14000 should fail (spent is 15000)
+      await expect(
+        updateCampaign(cmp.id, {
+          budget: { totalIsk: 14000 },
+        }),
+      ).rejects.toThrow('Budget cannot be reduced below spent amount of 15000 ISK');
+    });
+
+    it('rejects update if creative is owned by another advertiser', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20000 },
+      });
+
+      // Add another advertiser's creative
+      const otherCre: MockCreative = {
+        id: 'cre_other',
+        advertiserId: 'adv_other',
+        imageUrl: 'https://x/other.png',
+        width: 728,
+        height: 90,
+        clickUrl: 'https://x.is',
+        reviewStatus: 'auto_approved',
+        reviewLog: [],
+      };
+      mockCreatives.push(otherCre);
+
+      await expect(
+        updateCampaign(cmp.id, {
+          creativeIds: [otherCre.id],
+        }),
+      ).rejects.toThrow('Creative cre_other is not owned by advertiser');
     });
   });
 });

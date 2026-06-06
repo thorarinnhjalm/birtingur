@@ -60,6 +60,40 @@ export function useCreateCampaign() {
   });
 }
 
+export function useUpdateCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: {
+        name?: string;
+        creativeIds?: string[];
+        categories?: string[];
+        geoRegions?: string[];
+        schedule?: {
+          startsAt: string;
+          endsAt: string;
+        };
+        budget?: {
+          totalIsk: number;
+        };
+        status?: 'active' | 'paused';
+      };
+    }) =>
+      apiFetch<Campaign>(`/v1/campaigns/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+      qc.invalidateQueries({ queryKey: ['campaigns', variables.id] });
+    },
+  });
+}
+
 export function useCreative(id: string | undefined) {
   return useQuery({
     queryKey: ['creatives', id],

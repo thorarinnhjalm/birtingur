@@ -67,7 +67,9 @@ export default function CampaignList() {
             >
               <div className="space-y-2 flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-bold text-slate-900 truncate">Herferð {c.id}</h3>
+                  <h3 className="text-lg font-bold text-slate-900 truncate">
+                    {c.name || `Herferð ${c.id.substring(0, 8)}`}
+                  </h3>
                   <Badge
                     variant={
                       c.status === 'active'

@@ -51,6 +51,7 @@ export async function createCampaign(
 
   const campaign: Campaign = CampaignSchema.parse({
     id: generateId('cmp'),
+    name: parsed.name,
     advertiserId,
     creativeIds: parsed.creativeIds,
     targeting: {
@@ -109,6 +110,24 @@ export async function listCampaignsForAdvertiser(advertiserId: string): Promise<
 }
 
 const UpdateCampaignSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  creativeIds: z.array(z.string()).min(1).optional(),
+  categories: z
+    .array(z.enum(AD_CATEGORY_SLUGS as [string, ...string[]]))
+    .min(1)
+    .optional(),
+  geoRegions: z.array(GeoRegionSchema).optional(),
+  schedule: z
+    .object({
+      startsAt: z.coerce.date(),
+      endsAt: z.coerce.date(),
+    })
+    .optional(),
+  budget: z
+    .object({
+      totalIsk: z.number().int().positive(),
+    })
+    .optional(),
   status: z.enum(['active', 'paused']).optional(),
 });
 
@@ -121,7 +140,57 @@ export async function updateCampaign(
     throw new AppError(404, `Campaign ${id} not found`, 'NOT_FOUND');
   }
   const parsed = UpdateCampaignSchema.parse(patch);
-  const next: Campaign = CampaignSchema.parse({ ...existing, ...parsed });
+
+  // Validate creatives if updated
+  if (parsed.creativeIds) {
+    for (const cid of parsed.creativeIds) {
+      const c = await getCreative(cid);
+      if (!c) {
+        throw new AppError(400, `Creative ${cid} not found`, 'BAD_REQUEST');
+      }
+      if (c.advertiserId !== existing.advertiserId) {
+        throw new AppError(400, `Creative ${cid} is not owned by advertiser`, 'BAD_REQUEST');
+      }
+      if (c.reviewStatus === 'rejected') {
+        throw new AppError(400, `Creative ${cid} is rejected`, 'BAD_REQUEST');
+      }
+    }
+  }
+
+  // Validate budget if updated
+  let newBudget = existing.budget;
+  if (parsed.budget) {
+    const spent = existing.budget.totalIsk - existing.budget.remainingIsk;
+    if (parsed.budget.totalIsk < spent) {
+      throw new AppError(
+        400,
+        `Budget cannot be reduced below spent amount of ${spent} ISK`,
+        'BAD_REQUEST',
+      );
+    }
+    newBudget = {
+      mode: existing.budget.mode,
+      totalIsk: parsed.budget.totalIsk,
+      remainingIsk: parsed.budget.totalIsk - spent,
+    };
+  }
+
+  const targeting = {
+    categories: parsed.categories ?? existing.targeting.categories,
+    geoRegions: parsed.geoRegions !== undefined ? parsed.geoRegions : existing.targeting.geoRegions,
+  };
+
+  const next: Campaign = CampaignSchema.parse({
+    id: existing.id,
+    name: parsed.name !== undefined ? parsed.name : existing.name,
+    advertiserId: existing.advertiserId,
+    creativeIds: parsed.creativeIds ?? existing.creativeIds,
+    targeting,
+    schedule: parsed.schedule ?? existing.schedule,
+    budget: newBudget,
+    status: parsed.status ?? existing.status,
+  });
+
   await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).set(next);
 
   if (isRedisConfigured()) {
