@@ -933,7 +933,170 @@ function AdminSlotsList() {
   );
 }
 
-// 6. Admin Settings (Diagnostics, Allowed Categories, Platform Fees)
+// 6. Admin Support Messages
+interface SupportMessage {
+  id: string;
+  senderEmail: string;
+  senderName?: string;
+  role: 'advertiser' | 'publisher' | 'unknown';
+  subject: string;
+  body: string;
+  status: 'unread' | 'read' | 'resolved';
+  createdAt: string;
+}
+
+function AdminSupportMessages() {
+  const {
+    data: messages,
+    isLoading,
+    refetch,
+  } = useQuery<SupportMessage[]>({
+    queryKey: ['admin-support-messages'],
+    queryFn: () => apiFetch<SupportMessage[]>('/v1/support/messages'),
+  });
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleStatusChange = async (id: string, status: 'read' | 'resolved') => {
+    await apiFetch(`/v1/support/messages/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+    refetch();
+  };
+
+  if (isLoading) return <LoadingState />;
+
+  const unread = messages?.filter((m) => m.status === 'unread') || [];
+  const rest = messages?.filter((m) => m.status !== 'unread') || [];
+  const sorted = [...unread, ...rest];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Skilaboð frá notendum</h2>
+          <p className="text-sm text-slate-500 font-medium mt-0.5">
+            {unread.length > 0 ? `${unread.length} ólesin skilaboð` : 'Engin ólesin skilaboð'}
+          </p>
+        </div>
+        <Badge variant={unread.length > 0 ? 'pending' : 'success'}>{unread.length} ólesin</Badge>
+      </div>
+
+      {sorted.length === 0 ? (
+        <EmptyState
+          icon="mail"
+          title="Engin skilaboð"
+          description="Engin skilaboð hafa borist enn."
+        />
+      ) : (
+        <div className="space-y-3">
+          {sorted.map((msg) => {
+            const isExpanded = expandedId === msg.id;
+            const roleLabel =
+              msg.role === 'advertiser'
+                ? 'Auglýsandi'
+                : msg.role === 'publisher'
+                  ? 'Útgefandi'
+                  : 'Óþekkt';
+            const dateStr = new Date(msg.createdAt).toLocaleDateString('is-IS', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            });
+
+            return (
+              <Card
+                key={msg.id}
+                className={`p-4 transition-all cursor-pointer ${
+                  msg.status === 'unread'
+                    ? 'border-l-4 border-l-amber-400 bg-amber-50/30'
+                    : msg.status === 'resolved'
+                      ? 'opacity-60'
+                      : ''
+                }`}
+                onClick={() => {
+                  setExpandedId(isExpanded ? null : msg.id);
+                  if (msg.status === 'unread') {
+                    handleStatusChange(msg.id, 'read');
+                  }
+                }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-sm text-slate-900 truncate">
+                        {msg.subject}
+                      </span>
+                      <Badge
+                        variant={
+                          msg.status === 'unread'
+                            ? 'pending'
+                            : msg.status === 'resolved'
+                              ? 'success'
+                              : 'neutral'
+                        }
+                      >
+                        {msg.status === 'unread'
+                          ? 'Ólesið'
+                          : msg.status === 'read'
+                            ? 'Lesið'
+                            : 'Leyst'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {msg.senderEmail} · {roleLabel} · {dateStr}
+                    </p>
+                  </div>
+                  <span className="material-symbols-outlined text-slate-400 text-lg">
+                    {isExpanded ? 'expand_less' : 'expand_more'}
+                  </span>
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                      {msg.body}
+                    </p>
+                    <div className="mt-4 flex gap-2">
+                      {msg.status !== 'resolved' && (
+                        <Button
+                          className="text-sm py-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(msg.id, 'resolved');
+                          }}
+                        >
+                          <CheckCircle size={14} className="mr-1.5" />
+                          Merkja leyst
+                        </Button>
+                      )}
+                      {msg.status === 'resolved' && (
+                        <Button
+                          className="text-sm py-2"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(msg.id, 'read');
+                          }}
+                        >
+                          Opna aftur
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 7. Admin Settings (Diagnostics, Allowed Categories, Platform Fees)
 function AdminSettings() {
   const { data: diag, isLoading, isError, error, refetch, isFetching } = useAdminDiagnostics();
 
@@ -1179,6 +1342,7 @@ const sidebar = [
   { to: '/admin', label: 'Yfirlit', icon: 'dashboard' },
   { to: '/admin/review', label: 'Yfirferð', icon: 'shield' },
   { to: '/admin/payouts', label: 'Útborganir', icon: 'payments' },
+  { to: '/admin/messages', label: 'Skilaboð', icon: 'mail' },
   { to: '/admin/publishers', label: 'Útgefendur', icon: 'web' },
   { to: '/admin/advertisers', label: 'Auglýsendur', icon: 'business' },
   { to: '/admin/slots', label: 'Auglýsingapláss', icon: 'grid_view' },
@@ -1191,6 +1355,7 @@ export default function AdminOverview() {
         <Route path="/" element={<Home />} />
         <Route path="review" element={<AdminReviewQueue />} />
         <Route path="payouts" element={<AdminPayoutQueue />} />
+        <Route path="messages" element={<AdminSupportMessages />} />
         <Route path="publishers" element={<AdminPublishersList />} />
         <Route path="advertisers" element={<AdminAdvertisersList />} />
         <Route path="slots" element={<AdminSlotsList />} />
