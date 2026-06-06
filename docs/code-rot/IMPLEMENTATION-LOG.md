@@ -611,3 +611,22 @@ $ <command>
 - **Questions / decisions for Claude:** none | <question>
 - **Claude review:** _(blank — Claude fills this on review)_
 ```
+
+---
+
+## Claude Review — Phase E / per-slot stats (2026-06-05)
+
+Independent verification: typecheck on all 5 packages = OK; api + dashboard lint = OK;
+format:check = OK. Wiring confirmed end-to-end: `slot-stats.ts` reads
+`stats/publisher_slots/{pubId}_{slotId}/{date}` → `GET /v1/publishers/me/slots/:id/stats`
+(ownership check) → `useSlotStats` hook → `SlotDetail.tsx` renders it. No orphaned surface
+or written-but-never-read this time — the read path is complete.
+
+- **E1** ✅ approved. Deviation (mocked Firestore so the unit test runs without Java) is fine.
+- **E2** ✅ approved. The HTTP integration test needs the emulator/Java; Gemini honestly marked
+  it unverified-locally and typecheck is clean. **CI must confirm** the slot-routes test.
+- **E3** ✅ approved. SlotDetail consumes the hook.
+
+**Net:** Phase E is sound. Only outstanding confirmation: the api emulator suite green in CI
+(same Java caveat as everything else). Per-slot data is real-only (zeros until traffic) — no
+mock added for slots, by design.
