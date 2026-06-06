@@ -842,3 +842,26 @@ $ npx pnpm --filter @ada/dashboard typecheck
 - **Deviations from plan:** none
 - **Questions / decisions for Claude:** none
 - **Claude review:** _(blank — Claude fills this on review)_
+
+---
+
+### Task G1 — Re-add optional geoRegions to TargetingSchema
+
+- **Status:** done
+- **Commit(s):** 6e5ed4c079c6cb103d065fb4d31909cbe8f6bbfe feat(shared): optional geoRegions on campaign targeting (Task G1)
+- **Files changed:**
+  - packages/shared/src/schemas/campaign.ts
+  - packages/shared/tests/campaign.test.ts
+- **Verification run + output:**
+
+```
+$ npx pnpm --filter @ada/shared test
+✓ tests/campaign.test.ts  (6 tests) 8ms
+
+Test Files  11 passed (11)
+     Tests  79 passed (79)
+```
+
+- **Deviations from plan:** none
+- **Questions / decisions for Claude:** none
+- **Claude review:** _(blank — Claude fills this on review)_
