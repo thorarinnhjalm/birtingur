@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { recordVisitorImpression } from '../lib/visitor.js';
-import { decrementBudget, logEvent } from '../lib/analytics.js';
+import { decrementBudget, logEvent, incrementPaceSpent } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
 
 // Transparent 1x1 GIF tracking pixel
@@ -103,6 +103,7 @@ impressionRoute.get('/', async (c) => {
       if (slot.pricing.mode === 'cpm') {
         const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
         void decrementBudget(creative.campaignId, costIsk);
+        void incrementPaceSpent(creative.campaignId, costIsk);
       }
     }
   }

@@ -3,6 +3,8 @@ import type { SlotCacheEntry } from '@ada/shared';
 import { createSignature } from '../src/lib/crypto';
 
 const mockSeenKeys = new Set<string>();
+const mockIncrby = vi.fn(async () => 1);
+const mockExpire = vi.fn(async () => true);
 
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
@@ -16,6 +18,8 @@ vi.mock('../src/lib/redis', () => ({
       }
       return 'OK';
     }),
+    incrby: mockIncrby,
+    expire: mockExpire,
   }),
 }));
 
@@ -57,12 +61,16 @@ vi.mock('../src/lib/visitor', () => ({
   recordVisitorImpression: vi.fn(),
 }));
 
-vi.mock('../src/lib/analytics', () => ({
-  logEvent: vi.fn(),
-  decrementBudget: vi.fn(async () => 100),
-}));
+vi.mock('../src/lib/analytics', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../src/lib/analytics')>();
+  return {
+    ...original,
+    logEvent: vi.fn(),
+    decrementBudget: vi.fn(async () => 100),
+  };
+});
 
-import { logEvent, decrementBudget } from '../src/lib/analytics';
+import { logEvent, decrementBudget, incrementPaceSpent } from '../src/lib/analytics';
 import { recordVisitorImpression } from '../src/lib/visitor';
 import app from '../src/index';
 
@@ -155,5 +163,20 @@ describe('GET /v1/impression', () => {
     // The first one records the impression and decrements the budget, the second one does not (silently ignored)
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledTimes(1);
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledTimes(1);
+  });
+
+  it('increments pace_spent for the campaign on a charged impression', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+
+    mockIncrby.mockClear();
+    mockExpire.mockClear();
+
+    const res = await app.request(`/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
+    expect(res.status).toBe(200);
+
+    const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    expect(mockIncrby).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 1); // 1000 CPM / 1000 = 1 ISK
+    expect(mockExpire).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 2 * 86400);
   });
 });

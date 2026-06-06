@@ -44,3 +44,11 @@ export async function getRemainingBudgets(campaignIds: string[]): Promise<Record
   });
   return out;
 }
+
+export async function incrementPaceSpent(campaignId: string, costIsk: number): Promise<void> {
+  const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD (UTC = Iceland)
+  const key = `pace_spent:${campaignId}:${dayKey}`;
+  const redis = getRedis();
+  await redis.incrby(key, costIsk);
+  await redis.expire(key, 2 * 86400);
+}
