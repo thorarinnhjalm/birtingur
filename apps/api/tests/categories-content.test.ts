@@ -38,6 +38,6 @@ describe('GET /v1/categories/content', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
-    expect(body).toContain('gambling');
+    expect(body).toContain('taekni');
   });
 });
