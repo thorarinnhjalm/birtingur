@@ -13,7 +13,7 @@ const COMPONENT_CODE = `'use client';
 import { useEffect, useRef, useState } from 'react';
 
 const SERVING_BASE = 'https://serving.birtingur.app';
-const FALLBACK_CREATIVES = ['cre_fallback_transparent', 'cre_fallback_birtingur', 'cre_nocache'];
+const FALLBACK_CREATIVES = new Set(['cre_fallback_transparent', 'cre_fallback_birtingur', 'cre_nocache']);
 
 interface BirtingurAd {
   creativeId: string;
@@ -49,6 +49,8 @@ interface Props {
  * 2. Ef villa kemur upp er hún skráð í console logga (warning/error) til að auðvelda greiningu í þróun.
  * 3. Í framleiðsluumhverfi (production) fellur component-inn plássið saman sjálfkrafa (renderar gagnsætt fallback)
  *    til að tryggja að notendaupplifun skemmist ekki og engin ljót villuboð sjáist á síðunni.
+ * 4. Frá v1.2: Jafnvel þegar slot er ekki í cache skilar serving tracking pixel sem skráir pageview,
+ *    þannig að tólfrá útgefandans sýnir rétta umferð.
  */
 
 /**
@@ -64,7 +66,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   const impressionFired = useRef<string | null>(null);
   const pageviewFired = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const fetchAdRef = useRef<() => Promise<void>>();
+  const fetchAdRef = useRef<(() => Promise<void>) | null>(null);
 
   // Fylgjast með því hvort plássið sé sýnilegt í viewport
   useEffect(() => {
@@ -136,7 +138,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     // ttl er í sekúndum í svarinu. Umbreytum í millisekúndur.
     const ttlMs = ad.ttl * 1000;
 
-    const timer = setTimeout(() => {
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
       if (fetchAdRef.current) {
         fetchAdRef.current();
       }
@@ -164,7 +166,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     };
 
     if (typeof window !== 'undefined' && 'IntersectionObserver' in window && containerRef.current) {
-      let timer: NodeJS.Timeout;
+      let timer: ReturnType<typeof setTimeout>;
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
@@ -196,7 +198,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   // Without this, visits to pages with uncached slots are invisible to stats.
   useEffect(() => {
     if (!ad || pageviewFired.current) return;
-    if ('empty' in ad && ad.impressionPixel && !pageviewFired.current) {
+    if ('empty' in ad && ad.impressionPixel) {
       pageviewFired.current = true;
       const url = ad.impressionPixel.startsWith('http')
         ? ad.impressionPixel
@@ -210,7 +212,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     return (
       <div
         style={{ width, height }}
-        className=\`bg-gray-100 animate-pulse rounded-lg border border-gray-200 flex items-center justify-center \${className}\`
+        className={\`bg-gray-100 animate-pulse rounded-lg border border-gray-200 flex items-center justify-center \${className}\`}
       >
         <span className="text-[10px] text-gray-300 uppercase tracking-widest font-bold">
           Sæki Auglýsingu
@@ -219,8 +221,8 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     );
   }
 
-  // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða gagnsætt fallback (cre_fallback_transparent)
-  if (error || !isAd(ad) || ad.creativeId === 'cre_fallback_transparent') {
+  // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða fallback creative
+  if (error || !isAd(ad) || FALLBACK_CREATIVES.has(ad.creativeId)) {
     if (error) {
       console.warn('Birtingur load error, rendering transparent fallback:', error);
     }
@@ -247,7 +249,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     : \`\${SERVING_BASE}\${ad.clickUrl}\`;
 
   return (
-    <div ref={containerRef} style={{ width, height }} className=\`relative overflow-hidden rounded-xl border border-gray-200 shadow-sm hover:shadow bg-gray-50 ad-slot \${className}\`>
+    <div ref={containerRef} style={{ width, height }} className={\`relative overflow-hidden rounded-xl border border-gray-200 shadow-sm hover:shadow bg-gray-50 ad-slot \${className}\`}>
       <a
         href={clickUrl}
         target="_blank"
@@ -285,10 +287,9 @@ bakaðu það beint inn (eða lestu úr hardkóðuðu korti):
 
 <BirtingurAdSlot slotId="${slotId}" width={${width}} height={${height}} />
 
-MIKILVÆGT: EKKI sækja slotId úr env-breytu eða runtime-config sem gæti verið undefined í
-framleiðslu-build (t.d. NEXT_PUBLIC_* sem vantar í deploy). Ef slotId er undefined verður
-beiðnin /v1/ad?slot=undefined og kerfið skilar réttilega {empty:true} — ekkert birtist og
-engin áhorf/pageview skráist. Þetta er algengasta orsök þess að "ekkert sést" í framleiðslu.`;
+RÁÐ: Bakaðu slotId beint inn sem streng eins og sýnt er hér að ofan, eða lestu úr
+hardkóðuðu korti (t.d. birtingurSlots.ts). Forðist env-breytur (NEXT_PUBLIC_*) sem
+gætu verið undefined í deploy — þá skilar API-ið {empty:true} fyrir óþekkt pláss.`;
 }
 
 export function registerGetReactComponent(server: McpServer, apiKey: string) {
