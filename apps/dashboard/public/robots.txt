@@ -4,5 +4,7 @@ Disallow: /publisher/
 Disallow: /admin/
 Disallow: /role/
 Disallow: /sign-in
+Disallow: /vibers
+Disallow: /serfraedingar
 
 Sitemap: https://birtingur.app/sitemap.xml
