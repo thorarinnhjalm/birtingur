@@ -13,7 +13,9 @@ const COMPONENT_CODE = `'use client';
 import { useEffect, useRef, useState } from 'react';
 
 const SERVING_BASE = 'https://serving.birtingur.app';
-const FALLBACK_CREATIVES = new Set(['cre_fallback_transparent', 'cre_fallback_birtingur', 'cre_nocache']);
+// Creatives that should render as transparent (hidden) — house ads are NOT in this set
+// because they should display their CTA ("Auglýstu hér á 550 kr. CPM").
+const HIDDEN_FALLBACKS = new Set(['cre_fallback_transparent', 'cre_nocache']);
 
 interface BirtingurAd {
   creativeId: string;
@@ -221,8 +223,9 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     );
   }
 
-  // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða fallback creative
-  if (error || !isAd(ad) || FALLBACK_CREATIVES.has(ad.creativeId)) {
+  // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða ósýnilegt fallback.
+  // ATH: cre_fallback_birtingur (house ad) er EKKI í þessu setti — hann birtist sem CTA.
+  if (error || !isAd(ad) || HIDDEN_FALLBACKS.has(ad.creativeId)) {
     if (error) {
       console.warn('Birtingur load error, rendering transparent fallback:', error);
     }
