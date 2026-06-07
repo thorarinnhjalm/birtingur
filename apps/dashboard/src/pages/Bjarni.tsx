@@ -5,7 +5,6 @@ import { useAuth } from '@/lib/auth-context';
 import {
   Sparkles,
   Target,
-  Users,
   ShieldCheck,
   Eye,
   ArrowRight,
