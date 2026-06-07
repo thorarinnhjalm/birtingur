@@ -536,17 +536,6 @@ function AdvertiserHome() {
           </div>
         )}
       </div>
-
-      {/* Help link — non-intrusive */}
-      <div className="text-center py-4">
-        <a
-          href="mailto:hallo@birtingur.is"
-          className="text-secondary text-label-md font-semibold hover:text-primary transition-colors inline-flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-sm">mail</span>
-          Þarftu aðstoð? Sendu okkur línu á hallo@birtingur.is
-        </a>
-      </div>
     </div>
   );
 }
