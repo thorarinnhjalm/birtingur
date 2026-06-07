@@ -1,211 +1,311 @@
-import { db } from '../lib/firebase.js';
+import { AD_CATEGORY_SLUGS } from '@ada/shared';
 
-const DEFAULT_CATEGORIES = [
-  'news',
-  'sports',
-  'tech',
-  'finance',
-  'lifestyle',
-  'entertainment',
-  'gambling',
-  'other',
-];
-
-interface ClassificationResult {
-  category: string;
+export interface ClassificationResult {
+  categories: string[];
+  category?: string; // Backward compatibility fallback (categories[0])
   confidence: number;
   title: string;
   description: string;
   keywords: string;
 }
 
-/**
- * Fetch the allowed content categories from Firestore configuration metadata.
- */
 export async function getAllowedCategories(): Promise<string[]> {
-  try {
-    const docSnap = await db.doc('config/metadata').get();
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      if (Array.isArray(data?.categories) && data.categories.length > 0) {
-        return data.categories.map((c) => String(c).toLowerCase());
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to fetch categories from Firestore config, using defaults:', error);
-  }
-  return DEFAULT_CATEGORIES;
+  return AD_CATEGORY_SLUGS as string[];
 }
+
+interface LocalRule {
+  slug: string;
+  keywords: string[];
+}
+
+const LOCAL_RULES: LocalRule[] = [
+  {
+    slug: 'matur',
+    keywords: [
+      'matur',
+      'uppskriftir',
+      'uppskrift',
+      'elda',
+      'bakstur',
+      'eldamennska',
+      'recipe',
+      'food',
+      'cooking',
+      'recipes',
+      'baking',
+      'veitingastaðir',
+      'veitingastadur',
+      'kaffihús',
+      'kaffihus',
+      'matseðill',
+    ],
+  },
+  {
+    slug: 'ferdalog',
+    keywords: [
+      'ferðalög',
+      'ferdalog',
+      'ferðast',
+      'flug',
+      'hótel',
+      'travel',
+      'hotel',
+      'flight',
+      'tourism',
+      'ferðaþjónusta',
+      'tjaldsvæði',
+      'camping',
+      'vacation',
+    ],
+  },
+  {
+    slug: 'tiska_fegurd',
+    keywords: [
+      'tíska',
+      'tiska',
+      'snyrtivörur',
+      'makeup',
+      'fashion',
+      'snyrting',
+      'hár',
+      'har',
+      'föt',
+      'fot',
+      'klæðnaður',
+      'fegurð',
+      'beauty',
+      'cosmetics',
+    ],
+  },
+  {
+    slug: 'taekni',
+    keywords: [
+      'tækni',
+      'taekni',
+      'tölvur',
+      'tolvur',
+      'símar',
+      'simar',
+      'hugbúnaður',
+      'hugbunadur',
+      'vefhönnun',
+      'vefhonnun',
+      'forritun',
+      'tech',
+      'technology',
+      'computers',
+      'software',
+      'coding',
+      'forrit',
+      'vefur',
+      'app',
+    ],
+  },
+  {
+    slug: 'heilsa_likamsraekt',
+    keywords: [
+      'heilsa',
+      'líkamsrækt',
+      'likamsraekt',
+      'fitness',
+      'heilsurækt',
+      'líkamsræktarstöð',
+      'ræktin',
+      'raktin',
+      'heilbrigði',
+      'health',
+      'workout',
+      'gym',
+    ],
+  },
+  {
+    slug: 'fjarmal_vidskipti',
+    keywords: [
+      'fjármál',
+      'fjarmal',
+      'viðskipti',
+      'vidskipti',
+      'hlutabréf',
+      'hlutabref',
+      'banki',
+      'krónan',
+      'kronan',
+      'vísitala',
+      'visitala',
+      'aurar',
+      'peningar',
+      'finance',
+      'business',
+      'economy',
+      'stocks',
+      'verðbréf',
+      'afkoma',
+    ],
+  },
+  {
+    slug: 'ithrottir',
+    keywords: [
+      'íþróttir',
+      'fótbolti',
+      'fotbolti',
+      'handbolti',
+      'körfubolti',
+      'korfubolti',
+      'skák',
+      'skak',
+      'golf',
+      'knattspyrna',
+      'mót',
+      'sports',
+      'football',
+      'soccer',
+      'basketball',
+      'deildin',
+    ],
+  },
+  {
+    slug: 'born_foreldrar',
+    keywords: [
+      'börn',
+      'foreldrar',
+      'krakkar',
+      'leikskóli',
+      'skóli',
+      'barn',
+      'kids',
+      'children',
+      'parenting',
+      'uppeldi',
+      'fjölskylda',
+      'barnavörur',
+    ],
+  },
+  {
+    slug: 'bilar',
+    keywords: [
+      'bílar',
+      'bíll',
+      'bill',
+      'bifreið',
+      'bifreiðar',
+      'tæki',
+      'mótor',
+      'cars',
+      'car',
+      'auto',
+      'ökutæki',
+      'dekk',
+      'verkstæði',
+    ],
+  },
+  {
+    slug: 'heimili_honnun',
+    keywords: [
+      'heimili',
+      'hönnun',
+      'honnun',
+      'innbú',
+      'húsgögn',
+      'husgogn',
+      'home',
+      'design',
+      'arkitektúr',
+      'garður',
+      'gardur',
+      'skreytingar',
+      'fasteignir',
+      'fasteign',
+    ],
+  },
+  {
+    slug: 'afthreying_menning',
+    keywords: [
+      'afþreying',
+      'afpreying',
+      'leikir',
+      'tölvuleikir',
+      'tolvuleikir',
+      'bíó',
+      'bio',
+      'kvikmyndir',
+      'tónlist',
+      'tonlist',
+      'skemmtun',
+      'entertainment',
+      'gaming',
+      'movies',
+      'music',
+      'menning',
+      'listir',
+      'bækur',
+      'baekur',
+      'leikhús',
+      'leikhus',
+      'fréttir',
+      'frettir',
+      'blað',
+      'blad',
+      'tíðindi',
+      'tidindi',
+      'dagblað',
+      'dagblad',
+      'news',
+      'daily',
+      'journal',
+      'stundin',
+      'heimildin',
+    ],
+  },
+  {
+    slug: 'dyr_gaeludyr',
+    keywords: [
+      'dýr',
+      'gæludyr',
+      'hundur',
+      'hundar',
+      'köttur',
+      'kettir',
+      'hestur',
+      'hestar',
+      'dýralæknir',
+      'dyralaeknir',
+      'pets',
+      'dogs',
+      'cats',
+      'animals',
+    ],
+  },
+];
 
 /**
  * Simple local keyword matcher for Icelandic and English terms to classify a website.
  */
-function classifyLocal(
-  text: string,
-  allowedCategories: string[],
-): { category: string; confidence: number } {
+function classifyLocal(text: string): { categories: string[]; confidence: number } {
   const normalized = text.toLowerCase();
+  const hits: Array<{ slug: string; count: number }> = [];
 
-  const rules: Array<{ category: string; keywords: string[] }> = [
-    {
-      category: 'sports',
-      keywords: [
-        'íþróttir',
-        'fótbolti',
-        'fotbolti',
-        'handbolti',
-        'körfubolti',
-        'korfubolti',
-        'skák',
-        'skak',
-        'golf',
-        'knattspyrna',
-        'mót',
-        'sports',
-        'football',
-        'soccer',
-        'basketball',
-      ],
-    },
-    {
-      category: 'finance',
-      keywords: [
-        'fjármál',
-        'fjarmal',
-        'viðskipti',
-        'vidskipti',
-        'hlutabréf',
-        'hlutabref',
-        'banki',
-        'krónan',
-        'kronan',
-        'vísitala',
-        'visitala',
-        'aurar',
-        'peningar',
-        'finance',
-        'business',
-        'economy',
-        'stocks',
-      ],
-    },
-    {
-      category: 'tech',
-      keywords: [
-        'tækni',
-        'taekni',
-        'tölvur',
-        'tolvur',
-        'símar',
-        'simar',
-        'hugbúnaður',
-        'hugbunadur',
-        'vefhönnun',
-        'vefhonnun',
-        'forritun',
-        'tech',
-        'technology',
-        'computers',
-        'software',
-        'coding',
-      ],
-    },
-    {
-      category: 'lifestyle',
-      keywords: [
-        'lífstíll',
-        'lifstill',
-        'matur',
-        'uppskriftir',
-        'tíska',
-        'tiska',
-        'ferðalög',
-        'ferdalog',
-        'heimili',
-        'hönnun',
-        'honnun',
-        'lifestyle',
-        'fashion',
-        'cooking',
-        'recipes',
-        'travel',
-      ],
-    },
-    {
-      category: 'entertainment',
-      keywords: [
-        'afþreying',
-        'afpreying',
-        'leikir',
-        'tölvuleikir',
-        'tolvuleikir',
-        'bíó',
-        'bio',
-        'kvikmyndir',
-        'tónlist',
-        'tonlist',
-        'skemmtun',
-        'entertainment',
-        'gaming',
-        'movies',
-        'music',
-      ],
-    },
-    {
-      category: 'gambling',
-      keywords: [
-        'veðmál',
-        'vedmal',
-        'casino',
-        'póker',
-        'poker',
-        'veðja',
-        'vedja',
-        'fjárhættuspil',
-        'fjarhaettuspil',
-        'gambling',
-        'betting',
-      ],
-    },
-    {
-      category: 'news',
-      keywords: [
-        'fréttir',
-        'frettir',
-        'blað',
-        'blad',
-        'tíðindi',
-        'tidindi',
-        'dagblað',
-        'dagblad',
-        'news',
-        'daily',
-        'journal',
-        'stundin',
-        'heimildin',
-      ],
-    },
-  ];
-
-  for (const rule of rules) {
-    if (allowedCategories.includes(rule.category)) {
-      const matchCount = rule.keywords.filter((kw) => normalized.includes(kw)).length;
-      if (matchCount > 0) {
-        return {
-          category: rule.category,
-          confidence: Math.min(0.5 + matchCount * 0.1, 0.9),
-        };
-      }
+  for (const rule of LOCAL_RULES) {
+    const matchCount = rule.keywords.filter((kw) => normalized.includes(kw)).length;
+    if (matchCount > 0) {
+      hits.push({ slug: rule.slug, count: matchCount });
     }
   }
 
-  const fallbackCategory = allowedCategories.includes('other')
-    ? 'other'
-    : allowedCategories[0] || 'other';
-  return {
-    category: fallbackCategory,
-    confidence: 0.4,
-  };
+  hits.sort((a, b) => b.count - a.count);
+
+  if (hits.length === 0) {
+    return {
+      categories: ['afthreying_menning'],
+      confidence: 0.4,
+    };
+  }
+
+  const topHits = hits.slice(0, 3);
+  const categories = topHits.map((h) => h.slug);
+  const maxCount = topHits[0]?.count ?? 0;
+  const confidence = Math.min(0.5 + maxCount * 0.1, 0.9);
+
+  return { categories, confidence };
 }
 
 /**
@@ -215,7 +315,6 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
   const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/i, '').toLowerCase();
   let html = '';
 
-  // Try https first, then http
   const urls = [`https://${cleanDomain}`, `http://${cleanDomain}`];
   for (const url of urls) {
     try {
@@ -231,17 +330,15 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
         break;
       }
     } catch {
-      // Continue to next URL fallback
+      // Continue
     }
   }
 
-  // If scraping failed completely, return blank details with local fallback classification of domain string
   let title = '';
   let description = '';
   let keywords = '';
 
   if (html) {
-    // Regex parsing to prevent dependencies
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
     title = titleMatch?.[1] ? titleMatch[1].trim() : '';
 
@@ -257,14 +354,14 @@ export async function scrapeAndClassifyDomain(domain: string): Promise<Classific
     keywords = kwMatch?.[1] ? kwMatch[1].trim() : '';
   }
 
-  const allowedCategories = await getAllowedCategories();
   const searchString = `${cleanDomain} ${title} ${description} ${keywords}`;
-
   const geminiKey = process.env.GEMINI_API_KEY;
 
   if (geminiKey && html) {
     try {
-      const prompt = `Analyze this website metadata and categorize it into exactly one of these allowed categories: ${allowedCategories.join(', ')}.
+      const prompt = `Analyze this website metadata and categorize it into 1 to 3 of these allowed categories: ${AD_CATEGORY_SLUGS.join(
+        ', ',
+      )}. Choose only categories that are highly relevant to the website's main content. Do not list irrelevant categories.
 
 Website Details:
 Domain: ${cleanDomain}
@@ -272,7 +369,7 @@ Title: ${title}
 Description: ${description}
 Keywords: ${keywords}
 
-Respond with a JSON object containing 'category' (the selected category) and 'confidence' (a float between 0.0 and 1.0 representing your confidence).`;
+Respond with a JSON object containing 'categories' (an array of 1 to 3 selected category slug strings) and 'confidence' (a float between 0.0 and 1.0 representing your confidence).`;
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -288,16 +385,20 @@ Respond with a JSON object containing 'category' (the selected category) and 'co
               responseSchema: {
                 type: 'OBJECT',
                 properties: {
-                  category: {
-                    type: 'STRING',
-                    description: 'Select the best category from the allowed categories list.',
+                  categories: {
+                    type: 'ARRAY',
+                    items: {
+                      type: 'STRING',
+                    },
+                    description:
+                      'List of 1 to 3 best matching categories from the allowed categories list.',
                   },
                   confidence: {
                     type: 'NUMBER',
                     description: 'Confidence score between 0.0 and 1.0.',
                   },
                 },
-                required: ['category', 'confidence'],
+                required: ['categories', 'confidence'],
               },
             },
           }),
@@ -309,10 +410,15 @@ Respond with a JSON object containing 'category' (the selected category) and 'co
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
           const parsed = JSON.parse(text);
-          const category = String(parsed.category).toLowerCase();
-          if (allowedCategories.includes(category)) {
+          const rawCategories = Array.isArray(parsed.categories) ? parsed.categories : [];
+          const matchedCategories = rawCategories
+            .map((c: any) => String(c).toLowerCase().trim())
+            .filter((c: string) => AD_CATEGORY_SLUGS.includes(c));
+
+          if (matchedCategories.length > 0) {
             return {
-              category,
+              categories: matchedCategories,
+              category: matchedCategories[0],
               confidence: Number(parsed.confidence) || 0.8,
               title,
               description,
@@ -326,10 +432,10 @@ Respond with a JSON object containing 'category' (the selected category) and 'co
     }
   }
 
-  // Fallback to rules-based classifier
-  const classification = classifyLocal(searchString, allowedCategories);
+  const classification = classifyLocal(searchString);
   return {
-    category: classification.category,
+    categories: classification.categories,
+    category: classification.categories[0],
     confidence: classification.confidence,
     title,
     description,

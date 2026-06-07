@@ -35,7 +35,8 @@ async function migrate() {
       const domain = typeof data.domain === 'string' ? data.domain : '';
       if (domain) {
         try {
-          const { category } = await scrapeAndClassifyDomain(domain);
+          const { categories } = await scrapeAndClassifyDomain(domain);
+          const category = categories?.[0] || 'other';
           adCategory = toAdCategory(category);
         } catch (err) {
           console.warn(`Publisher ${doc.id} (${domain}): classify failed, using fallback:`, err);

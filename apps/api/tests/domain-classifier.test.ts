@@ -41,11 +41,12 @@ describe('Domain Classifier Service', () => {
 
     expect(result.title).toContain('Fótbolti.net');
     expect(result.description).toContain('Nýjustu fréttir og úrslit');
-    expect(result.category).toBe('sports');
+    expect(result.categories).toContain('ithrottir');
+    expect(result.category).toBe('ithrottir');
     expect(result.confidence).toBeGreaterThanOrEqual(0.6);
   });
 
-  it('falls back to "other" with lower confidence if no matches are found', async () => {
+  it('falls back to "afthreying_menning" with lower confidence if no matches are found', async () => {
     const mockHtml = `
       <html>
         <head>
@@ -61,7 +62,8 @@ describe('Domain Classifier Service', () => {
     } as any);
 
     const result = await scrapeAndClassifyDomain('mysterious-site.is');
-    expect(result.category).toBe('other');
+    expect(result.categories).toContain('afthreying_menning');
+    expect(result.category).toBe('afthreying_menning');
     expect(result.confidence).toBeLessThanOrEqual(0.5);
   });
 });

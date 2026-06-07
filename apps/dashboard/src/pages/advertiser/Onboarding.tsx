@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
 import { Globe, ArrowRight, ArrowLeft, Sparkles, Loader2, Copy, Check } from 'lucide-react';
+import { AD_CATEGORIES } from '@ada/shared';
 
 export default function AdvertiserOnboarding() {
   const createAdvertiser = useCreateAdvertiser();
@@ -25,7 +26,7 @@ export default function AdvertiserOnboarding() {
   const [error, setError] = useState<string | null>(null);
 
   // Scraped metadata states
-  const [scrapedCategory, setScrapedCategory] = useState<string>('other');
+  const [scrapedCategories, setScrapedCategories] = useState<string[]>([]);
   const [scrapedConfidence, setScrapedConfidence] = useState<number | null>(null);
   const [scrapedDescription, setScrapedDescription] = useState<string>('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -48,7 +49,8 @@ export default function AdvertiserOnboarding() {
         if (s.companyName) setCompanyName(s.companyName);
         if (s.kennitala) setKennitala(s.kennitala);
         if (s.vatNumber) setVatNumber(s.vatNumber);
-        if (s.scrapedCategory) setScrapedCategory(s.scrapedCategory);
+        if (s.scrapedCategories) setScrapedCategories(s.scrapedCategories);
+        else if (s.scrapedCategory) setScrapedCategories([s.scrapedCategory]);
         if (s.scrapedConfidence !== undefined) setScrapedConfidence(s.scrapedConfidence);
         if (s.scrapedDescription) setScrapedDescription(s.scrapedDescription);
       }
@@ -67,7 +69,7 @@ export default function AdvertiserOnboarding() {
         companyName,
         kennitala,
         vatNumber,
-        scrapedCategory,
+        scrapedCategories,
         scrapedConfidence,
         scrapedDescription,
       }),
@@ -78,7 +80,7 @@ export default function AdvertiserOnboarding() {
     companyName,
     kennitala,
     vatNumber,
-    scrapedCategory,
+    scrapedCategories,
     scrapedConfidence,
     scrapedDescription,
   ]);
@@ -109,7 +111,7 @@ export default function AdvertiserOnboarding() {
 
       // Pre-fill form fields based on scraped data
       setCompanyName(data.title || cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1));
-      setScrapedCategory(data.category || 'other');
+      setScrapedCategories(data.categories || []);
       setScrapedConfidence(data.confidence || null);
       setScrapedDescription(data.description || '');
       setStep(2);
@@ -118,7 +120,7 @@ export default function AdvertiserOnboarding() {
       const fallbackUrl = websiteUrl.match(/^https?:\/\//i) ? websiteUrl : `https://${websiteUrl}`;
       setWebsiteUrl(fallbackUrl);
       setCompanyName(cleanDomain.split('.')[0] || cleanDomain);
-      setScrapedCategory('other');
+      setScrapedCategories(['afthreying_menning']);
       setScrapedConfidence(null);
       setScrapedDescription('');
       setStep(2);
@@ -163,25 +165,8 @@ export default function AdvertiserOnboarding() {
 
   // Translate category into friendly Icelandic
   const translateCategory = (cat: string): string => {
-    switch (cat) {
-      case 'news':
-        return 'Fréttir / Fjölmiðlar';
-      case 'sports':
-        return 'Íþróttir';
-      case 'tech':
-        return 'Tækni / Leikir';
-      case 'finance':
-        return 'Viðskipti / Fjármál';
-      case 'lifestyle':
-        return 'Lífsstíll / Blogg';
-      case 'entertainment':
-        return 'Afþreying / Skemmtun';
-      case 'gambling':
-        return 'Fjárhættuspil / Veðmál';
-      case 'other':
-      default:
-        return 'Almennt / Annað';
-    }
+    const found = AD_CATEGORIES.find((c) => c.slug === cat);
+    return found ? found.label : 'Almennt / Annað';
   };
 
   // Generate ad copy suggestions based on scraped title/description
@@ -201,7 +186,7 @@ export default function AdvertiserOnboarding() {
       {
         headline: `Gæðaþjónusta hjá ${name}`,
         description: `Kynntu þér úrvalið á ${cleanDomain || 'vefnum okkar'}! Traust þjónusta í flokknum ${translateCategory(
-          scrapedCategory,
+          scrapedCategories[0] || 'afthreying_menning',
         )}.`,
       },
       {
@@ -325,9 +310,11 @@ export default function AdvertiserOnboarding() {
                     Sjálfvirk vefgreining gervigreindar
                   </h4>
                   <p className="text-xs text-indigo-600 mt-0.5 leading-relaxed">
-                    Vefsíðan þín var flokkuð sem **{translateCategory(scrapedCategory)}** með{' '}
-                    {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til að mæla
-                    með bestu birtingarstöðunum fyrir auglýsingar þínar.
+                    Vefsíðan þín var flokkuð sem **
+                    {scrapedCategories.map((cat) => translateCategory(cat)).join(', ') ||
+                      'Almennt / Annað'}
+                    ** með {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til
+                    að mæla með bestu birtingarstöðunum fyrir auglýsingar þínar.
                   </p>
                 </div>
               </div>

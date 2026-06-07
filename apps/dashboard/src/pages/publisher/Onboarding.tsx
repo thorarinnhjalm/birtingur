@@ -20,19 +20,6 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const mapCategory = (cat: string): string => {
-  const map: Record<string, string> = {
-    news: 'afthreying_menning',
-    lifestyle: 'tiska_fegurd',
-    tech: 'taekni',
-    sports: 'ithrottir',
-    finance: 'fjarmal_vidskipti',
-    entertainment: 'afthreying_menning',
-    other: 'afthreying_menning',
-  };
-  return map[cat] || cat;
-};
-
 export default function PublisherOnboarding() {
   const createPublisher = useCreatePublisher();
   const navigate = useNavigate();
@@ -141,8 +128,7 @@ export default function PublisherOnboarding() {
       setDomain(cleanDomain);
       setDisplayName(data.title || cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1));
       setDescription(data.description || '');
-      const mapped = mapCategory(data.category || 'other');
-      setSelectedCategories([mapped]);
+      setSelectedCategories(data.categories || []);
       setConfidence(data.confidence || null);
       setStep(2);
     } catch {
