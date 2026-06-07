@@ -14,9 +14,23 @@ export function registerGetChangelog(server: McpServer) {
     },
     async () => {
       const changelog = `--- BIRTINGUR API VERSION & CHANGELOG ---
-Núverandi útgáfa Serving API: v1.1
+Núverandi útgáfa Serving API: v1.2
 
 ÚTGÁFUSAGA & DEPLOY BREYTINGAR:
+
+[2026-06-07] API v1.2 - Zero-Stats Lagfæring & IAB Viewability
+* Lagfæring á {empty:true} svörum:
+  Þegar pláss finnst ekki í Redis cache skilar API-ið nú impressionPixel slóð MBV svari: { "empty": true, "impressionPixel": "/v1/impression?c=cre_nocache&s=SLOT_ID&type=pageview" }. Áður var svari skilað án impression pixel — flettingar á óskráðum plássum töldust aldrei og voru ósýnilegar í tölfræðinni. Útgefendur sem nota JS snippet (widget.js) fá þessa lagfærslu sjálfkrafa. Útgefendur með MCP React component þurfa að sækja uppfærðan component í gegnum get_react_component.
+* Nýtt cre_nocache fallback creative:
+  Nýtt creativeId "cre_nocache" er nú notað sem auðkenni fyrir flettingar sem koma frá plássum sem eru ekki í cache. Þetta ID er sjálfkrafa meðhöndlað sem pageview í impression route-inum.
+* Impression route áreiðanleiki:
+  Impression route (/v1/impression) er nú varin gegn Redis-villum — tracking pixel skilar sér alltaf (200 OK image/gif) jafnvel ef Redis er tímabundið niðri. Áður gat Redis villa valdið 500 villu sem missti áhorfið og olli villu í vafra útgefanda.
+* Stale-slot impressions:
+  Ef pláss-cache rennur út á milli þess að auglýsing er sótt og áhorf skráð (innan 1 klst. glugga), skráist áhorfið nú sem best-effort impression í stað þess að glatast. Viðvörun birtist í logum.
+* IAB Viewability í JS snippet:
+  widget.js snippet-ið notar nú IntersectionObserver (50% sýnilegt í 1 sek) til að mæla áhorf samkvæmt IAB staðli. Áður var áhorf skráð strax við render án sýnileikaskilyrðis.
+* React component (MCP) uppfært:
+  BirtingurAdSlot component sem get_react_component skilar styður nú "cre_nocache" í FALLBACK_CREATIVES og fýrir pageview pixel fyrir empty svor.
 
 [2026-06-05] API v1.1 - Uppfærsla á Fallback og CORS
 * Bætt við Dynamic SVG House Ad Fallback: 
