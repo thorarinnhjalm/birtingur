@@ -34,6 +34,8 @@ adminRoutes.get('/diagnostics', async (c) => {
     FIREBASE_PRIVATE_KEY_LENGTH: process.env.FIREBASE_PRIVATE_KEY?.length ?? 0,
     UPSTASH_REDIS_REST_URL_EXISTS: !!process.env.UPSTASH_REDIS_REST_URL,
     KV_REST_API_URL_EXISTS: !!process.env.KV_REST_API_URL,
+    CRON_SECRET_EXISTS: !!process.env.CRON_SECRET,
+    CRON_SECRET_LENGTH: process.env.CRON_SECRET?.length ?? 0,
   };
 
   // 2. Test Firestore connection
@@ -82,17 +84,68 @@ adminRoutes.get('/diagnostics', async (c) => {
     };
   }
 
-  // 5. Test Redis connection
+  // 5. Test Redis connection + queue depths
   try {
     const { getRedis } = await import('../../lib/redis.js');
+    const { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL, EVENT_QUEUE_LEGACY } =
+      await import('@ada/shared');
     const redis = getRedis();
     await redis.ping();
-    diagnosticResult.redis = { status: 'ok' };
+
+    // Queue depths — this is THE critical diagnostic:
+    // If events pile up in stats queue, cron-aggregate isn't running/draining.
+    // If stats queue is 0, either serving isn't writing or cron just drained it.
+    const [statsLen, accrualLen, legacyLen] = await Promise.all([
+      redis.llen(EVENT_QUEUE_STATS),
+      redis.llen(EVENT_QUEUE_ACCRUAL),
+      redis.llen(EVENT_QUEUE_LEGACY),
+    ]);
+
+    // Peek at the most recent event (if any) in the stats queue
+    let latestEvent: any = null;
+    if (statsLen > 0) {
+      const raw = await redis.lindex(EVENT_QUEUE_STATS, 0);
+      if (raw) {
+        try {
+          latestEvent = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch {
+          latestEvent = raw;
+        }
+      }
+    }
+
+    diagnosticResult.redis = {
+      status: 'ok',
+      queues: {
+        'events:stats': statsLen,
+        'events:accrual': accrualLen,
+        'events:queue (legacy)': legacyLen,
+      },
+      latestEventInStatsQueue: latestEvent,
+    };
   } catch (err: any) {
     diagnosticResult.redis = {
       status: 'error',
       message: err.message,
       stack: err.stack,
+    };
+  }
+
+  // 6. Check Firestore stats path for a known publisher
+  try {
+    const today = new Date().toISOString().split('T')[0]!.replace(/-/g, '');
+    const testPublisherId = 'pub_95af8e6a4b0a8a3530ddeede'; // pizzadeig.is
+    const ref = db.doc(`stats/publishers/${testPublisherId}/${today}`);
+    const snap = await ref.get();
+    diagnosticResult.firestoreStats = {
+      path: ref.path,
+      exists: snap.exists,
+      data: snap.data() ?? null,
+    };
+  } catch (err: any) {
+    diagnosticResult.firestoreStats = {
+      status: 'error',
+      message: err.message,
     };
   }
 
