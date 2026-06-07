@@ -15,13 +15,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Birtingur — Auglýstu á íslenskum vefjum | birtingur.app</title>
     <meta name="description" content="Birtingur (birtingur.app) er sjálfvirkur, einfaldur og persónuverndarvænn auglýsingavettvangur sem tengir saman íslenska útgefendur og auglýsendur án milliliða." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://birtingur.app/" />
+    <meta property="og:title" content="Birtingur — Auglýstu á íslenskum vefjum" />
+    <meta property="og:description" content="Birtingur er sjálfvirkur, einfaldur og persónuverndarvænn auglýsingavettvangur sem tengir saman íslenska útgefendur og auglýsendur án milliliða." />
+    <meta property="og:image" content="https://birtingur.app/logo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://birtingur.app/" />
+    <meta property="twitter:title" content="Birtingur — Auglýstu á íslenskum vefjum" />
+    <meta property="twitter:description" content="Birtingur er sjálfvirkur, einfaldur og persónuverndarvænn auglýsingavettvangur sem tengir saman íslenska útgefendur og auglýsendur án milliliða." />
+    <meta property="twitter:image" content="https://birtingur.app/logo.png" />
+
+    <!-- Structured Data for Search Engines & LLMs -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Birtingur",
+        "url": "https://birtingur.app",
+        "logo": "https://birtingur.app/logo.png",
+        "description": "Sjálfvirkur, einfaldur og persónuverndarvænn auglýsingavettvangur fyrir íslenska vefi.",
+        "sameAs": [
+          "https://github.com/thorarinnhjalm/birtingur"
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
   </head>
   <body class="bg-slate-50 text-slate-900 min-h-screen">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback static content for non-JS scrapers (LLMs & search engine bots) -->
+      <header style="display:none">
+        <h1>Birtingur — Auglýstu á íslenskum vefjum</h1>
+        <p>Birtingur (birtingur.app) er sjálfvirkur, einfaldur og persónuverndarvænn auglýsingavettvangur sem tengir saman íslenska útgefendur og auglýsendur án milliliða.</p>
+      </header>
+      <main style="display:none">
+        <h2>Fyrir auglýsendur</h2>
+        <p>Stofnaðu herferð á 3 mínútum. Veldu flokka og landshluta. Engin lágmarksgjöld. Kökulaus og örugg auglýsingamiðlun.</p>
+        <h2>Fyrir útgefendur</h2>
+        <p>Breyttu ónýttu plássi í tekjur. Eldsnögg samþætting með einni async skriftu. Fullkomin stjórn á því hvaða auglýsingar birtast.</p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
