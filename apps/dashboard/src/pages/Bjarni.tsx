@@ -169,14 +169,15 @@ export default function Bjarni() {
           </div>
           <div className="text-sm text-slate-600 leading-relaxed font-medium space-y-4 max-w-3xl">
             <p>
-              Íslenski auglýsingamarkaðurinn er ríktur af örfáum risastórum fréttamiðlum og dýrum
-              milliliðum. Smærri útgefendur — blogg, nisjumiðlar, fagvefir — hafa enga programmatic
+              Íslenski auglýsingamarkaðurinn einkennist af örfáum risastórum fréttamiðlum og dýrum
+              milliliðum. Smærri útgefendur — blogg, nisjumiðlar, fagvefir — hafa enga forritanlega
               leið til að afla tekna af umferðinni sinni.
             </p>
             <p>
-              Birtingur leysir þetta með <strong>sjálfvirku ad serving kerfi</strong> sem safnar
-              niche-vefjum saman á einn stað. Auglýsendur búa til herferð á 3 mín, velja flokka,
-              hlaða upp creative og kerfið parar sjálfkrafa. Engir símar, engir sölumenn.
+              Birtingur leysir þetta með <strong>sjálfvirku auglýsingakerfi</strong> sem safnar
+              sérhæfðum vefjum saman á einn stað. Auglýsendur búa til herferð á 3 mínútum, velja
+              flokka, hlaða upp auglýsingamynd og kerfið parar sjálfkrafa. Engir símar, engir
+              sölumenn.
             </p>
           </div>
 
@@ -243,8 +244,9 @@ export default function Bjarni() {
               </div>
               <h3 className="text-xl font-bold text-slate-950">2. Contextual matching</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                Serving engine parar herferð við flokkana á vefsíðunni — engir cookies, engin PII.
-                IAB viewability (50% / 1s IntersectionObserver). Impression pixel fýrar á 200 OK.
+                Vélin parar herferð við efnisflokka vefsíðunnar — engar vafrakökur, engin
+                persónugreinanleg gögn. IAB viewability (50% sýnilegt í 1 sek). Birtingarpixel
+                skráir á 200 OK.
               </p>
             </Card>
 
@@ -323,8 +325,8 @@ export default function Bjarni() {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-950">Niche media network</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Net af sérhæfðum íslenskum vefjum — blogg, áhugamálasíður, fagvefir. Tryggir
-              lesendahópar sem treysta efninu. Auglýsing þar hefur margfalt meiri slagkraft en á
+              Net af sérhæfðum íslenskum vefjum — blogg, áhugamálasíður, fagvefir. Tryggur
+              lesendahópur sem treystir efninu. Auglýsing þar hefur margfalt meiri slagkraft en á
               yfirfylltum fréttamiðli.
             </p>
           </Card>
@@ -337,9 +339,9 @@ export default function Bjarni() {
               Eitt pláss, óskipt athygli
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Á stóru fréttamiðlunum eru 8–12 auglýsingar á skjá. Hjá okkur er{' '}
-              <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili truflandi.
-              Vörumerkið fær óskipta athygli lesandans.
+              Á stóru fréttamiðlunum eru 8–12 auglýsingar á hverri síðu. Hjá okkur er{' '}
+              <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili á sama skjá.
+              Vörumerkið þitt fær óskipta athygli lesandans.
             </p>
           </Card>
 
@@ -349,8 +351,8 @@ export default function Bjarni() {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-950">Cookie-laust frá grunni</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Enginn tracker, engin fingerprinting, engin PII. Samhengismiðun — ekki vefsporun.
-              GDPR-compliant by design. Enginn consent-pop-up þarf.
+              Enginn rekjari, engin fingrafarsgreining, engin persónuleg gögn. Samhengismiðun — ekki
+              vefsporun. Uppfyllir GDPR frá grunni. Ekkert samþykkisglugga þarf.
             </p>
           </Card>
 
@@ -362,8 +364,8 @@ export default function Bjarni() {
               AI-powered review pipeline
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Allar auglýsingamyndir eru sjálfkrafa skannaðar af Gemini Vision. Brand safety og
-              efnisflokkun á millisekúndum. Útgefendur hafa alltaf lokaorðið í samþykkisbiðröð.
+              Allar auglýsingamyndir eru sjálfkrafa skannaðar af Gemini Vision. Vörumerkjaöryggi og
+              efnisflokkun á millisekúndum. Útgefendur hafa alltaf lokaorðið í samþykkisferli.
             </p>
           </Card>
         </section>
