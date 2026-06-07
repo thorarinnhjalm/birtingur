@@ -151,9 +151,8 @@ export default function Bjarni() {
             </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-semibold max-w-2xl mx-auto">
-            Ég er auglýsingavettvangur sem tengir saman íslenska sérhæfða vefmiðla og vörumerki sem
-            vilja ná til rétta fólksins. Má ég kynna mig stuttlega — frá einum tæknimanni til
-            annars?
+            Ég er programmatic ad serving vettvangur — REST API, edge-deployed, cookie-laus
+            samhengismiðun. Má ég kynna mig stuttlega — frá einum tæknimanni til annars?
           </p>
         </section>
 
@@ -164,21 +163,49 @@ export default function Bjarni() {
               Hvað er Birtingur?
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-950">
-              Einfalt kerfi — sterk hugmynd
+              Ad serving platform — byggt á Íslandi
             </h2>
           </div>
           <div className="text-sm text-slate-600 leading-relaxed font-medium space-y-4 max-w-3xl">
             <p>
-              Íslenski auglýsingamarkaðurinn er einkennist af örfáum risastórum fréttamiðlum.
-              Auglýsingar drukkna í suði, og smærri útgefendur — blogg, nisjumiðlar, áhugamálavefi —
-              hafa enga leið til að afla tekna af umferðinni sinni.
+              Íslenski auglýsingamarkaðurinn er ríktur af örfáum risastórum fréttamiðlum og dýrum
+              milliliðum. Smærri útgefendur — blogg, nisjumiðlar, fagvefir — hafa enga programmatic
+              leið til að afla tekna af umferðinni sinni.
             </p>
             <p>
-              Birtingur safnar þessum vefjum saman á einn stað og býður auglýsendum{' '}
-              <strong>sjálfvirka leið</strong> til að birta á þeim öllum. Engin símasamtöl, engir
-              milliliðir, engin tilboðsferli. Stofna herferð á 3 mínútum — horfðu á rauntíma
-              tölfræðina.
+              Birtingur leysir þetta með <strong>sjálfvirku ad serving kerfi</strong> sem safnar
+              niche-vefjum saman á einn stað. Auglýsendur búa til herferð á 3 mín, velja flokka,
+              hlaða upp creative og kerfið parar sjálfkrafa. Engir símar, engir sölumenn.
             </p>
+          </div>
+
+          {/* Tech architecture summary */}
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200/80 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Stack / Arkitektúr
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium text-slate-700">
+              <div className="space-y-1">
+                <div className="font-bold text-slate-900">Serving</div>
+                <div>Hono + Cloudflare Workers</div>
+                <div className="text-slate-500">&lt;15ms p99</div>
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-slate-900">API</div>
+                <div>Vercel Serverless + Firestore</div>
+                <div className="text-slate-500">REST, JWT auth</div>
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-slate-900">Cache / Queue</div>
+                <div>Upstash Redis</div>
+                <div className="text-slate-500">Event aggregation</div>
+              </div>
+              <div className="space-y-1">
+                <div className="font-bold text-slate-900">Samþætting</div>
+                <div>MCP Server + React SDK</div>
+                <div className="text-slate-500">Claude-native onboarding</div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -200,8 +227,12 @@ export default function Bjarni() {
               </div>
               <h3 className="text-xl font-bold text-slate-950">1. Útgefandi setur kóða</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                Einföld React/HTML snippet á vefsíðuna. Einn API call, &lt;15ms svartími, engin
-                cookie-dependency, enginn DOM clutter. MCP-þjónn gefur útgefandanum tilbúinn kóða.
+                React component eða &lt;script&gt; snippet. Einn{' '}
+                <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono text-blue-700">
+                  GET /v1/ad?slot=xxx
+                </code>{' '}
+                call. MCP-þjónn (Model Context Protocol) gefur Claude útgefandans tilbúinn kóða —
+                zero manual setup.
               </p>
             </Card>
 
@@ -209,10 +240,10 @@ export default function Bjarni() {
               <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
                 <Eye size={24} />
               </div>
-              <h3 className="text-xl font-bold text-slate-950">2. Sjálfvirk pörun</h3>
+              <h3 className="text-xl font-bold text-slate-950">2. Contextual matching</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                Serving engine-ið velur bestu auglýsinguna eftir flokkum vefsins. IAB viewability:
-                50% sýnilegt í 1 sek. Eitt pláss, ein auglýsing — óskipt athygli.
+                Serving engine parar herferð við flokkana á vefsíðunni — engir cookies, engin PII.
+                IAB viewability (50% / 1s IntersectionObserver). Impression pixel fýrar á 200 OK.
               </p>
             </Card>
 
@@ -220,12 +251,66 @@ export default function Bjarni() {
               <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
                 <BarChart3 size={24} />
               </div>
-              <h3 className="text-xl font-bold text-slate-950">3. Mæling og uppgjör</h3>
+              <h3 className="text-xl font-bold text-slate-950">3. Aggregation pipeline</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                Impressions, smellir og CPM reiknast sjálfkrafa. Auglýsendur sjá allt í rauntíma.
-                Útgefendur fá 80% af tekjum. Allt gagnsætt og sjálfvirkt.
+                Events → Redis queue → cron aggregate → Firestore stats. CPM reiknaður sjálfkrafa.
+                80/20 revenue split. Rauntíma dashboard fyrir báða aðila.
               </p>
             </Card>
+          </div>
+
+          {/* API call example */}
+          <div className="bg-slate-900 rounded-2xl p-6 shadow-lg overflow-x-auto">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-3 h-3 rounded-full bg-red-500/80" />
+              <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+              <span className="ml-2 text-xs text-slate-500 font-mono">serving.birtingur.app</span>
+            </div>
+            <pre className="text-xs sm:text-sm font-mono leading-relaxed">
+              <code>
+                <span className="text-slate-500">{'>'} </span>
+                <span className="text-emerald-400">GET</span>
+                <span className="text-white/80"> /v1/ad?slot=slot_d9e8f5&amp;consent=none</span>
+                {`\n`}
+                <span className="text-slate-500">{'<'} </span>
+                <span className="text-emerald-400">200 OK</span>
+                <span className="text-slate-500"> 12ms</span>
+                {`\n`}
+                <span className="text-white/60">{'{'}</span>
+                {`\n`}
+                <span className="text-white/60">{'  '}</span>
+                <span className="text-amber-300">"creativeId"</span>
+                <span className="text-white/60">: </span>
+                <span className="text-emerald-300">"crt_fad69f58..."</span>
+                <span className="text-white/60">,</span>
+                {`\n`}
+                <span className="text-white/60">{'  '}</span>
+                <span className="text-amber-300">"imageUrl"</span>
+                <span className="text-white/60">: </span>
+                <span className="text-emerald-300">"https://cdn.birtingur.app/..."</span>
+                <span className="text-white/60">,</span>
+                {`\n`}
+                <span className="text-white/60">{'  '}</span>
+                <span className="text-amber-300">"clickUrl"</span>
+                <span className="text-white/60">: </span>
+                <span className="text-emerald-300">"/v1/click?c=crt_fad69f58&amp;..."</span>
+                <span className="text-white/60">,</span>
+                {`\n`}
+                <span className="text-white/60">{'  '}</span>
+                <span className="text-amber-300">"impressionPixel"</span>
+                <span className="text-white/60">: </span>
+                <span className="text-emerald-300">"/v1/impression?c=crt_fad69f58&amp;..."</span>
+                <span className="text-white/60">,</span>
+                {`\n`}
+                <span className="text-white/60">{'  '}</span>
+                <span className="text-amber-300">"ttl"</span>
+                <span className="text-white/60">: </span>
+                <span className="text-blue-300">30</span>
+                {`\n`}
+                <span className="text-white/60">{'}'}</span>
+              </code>
+            </pre>
           </div>
         </section>
 
