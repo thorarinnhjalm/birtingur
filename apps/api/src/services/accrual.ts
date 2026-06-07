@@ -3,7 +3,7 @@ import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { chargeCampaign, creditPublisher } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
 interface QueuedEvent {
   type: 'impression' | 'click';
@@ -27,7 +27,7 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
   const events: QueuedEvent[] = [];
 
   for (let i = 0; i < batchSize; i++) {
-    const raw = await redis.rpop<string>('events:queue');
+    const raw = await redis.rpop<string>(EVENT_QUEUE_ACCRUAL);
     if (!raw) break;
     try {
       events.push(JSON.parse(raw) as QueuedEvent);

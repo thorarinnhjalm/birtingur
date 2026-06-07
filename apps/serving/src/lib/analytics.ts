@@ -1,4 +1,5 @@
 import { getRedis } from './redis.js';
+import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
 export interface AdEvent {
   type: 'impression' | 'click' | 'pageview';
@@ -12,14 +13,20 @@ export interface AdEvent {
   ts: number;
 }
 
-const QUEUE = 'events:queue';
-
 /**
- * Push event to a Redis list; aggregation cron consumes the list and writes
- * Firestore hourly stats and ledger entries in batches.
+ * Fan out each event to independent Redis lists. Stats aggregation and CPM accrual are
+ * separate consumers with different cadences; sharing one list let whichever cron popped
+ * first cannibalize the other's events (pageviews were dropped, impressions never reached
+ * stats). Every event goes to the stats queue; only impressions go to the accrual queue
+ * (accrual bills impressions only).
  */
 export async function logEvent(ev: AdEvent): Promise<void> {
-  await getRedis().lpush(QUEUE, JSON.stringify(ev));
+  const redis = getRedis();
+  const payload = JSON.stringify(ev);
+  await redis.lpush(EVENT_QUEUE_STATS, payload);
+  if (ev.type === 'impression') {
+    await redis.lpush(EVENT_QUEUE_ACCRUAL, payload);
+  }
 }
 
 /**

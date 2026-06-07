@@ -36,6 +36,18 @@ export const SLOT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 /** Budget gate counter TTL — must outlive a cache cycle comfortably. */
 export const BUDGET_COUNTER_TTL_SECONDS = 60 * 60; // 1h
 
+/**
+ * Event queues. Stats aggregation and CPM accrual are independent consumers, so they MUST
+ * read from separate Redis lists — a single shared list let whichever cron popped first
+ * cannibalize the other's events (accrual discarded pageviews/clicks, and impressions it
+ * popped never reached stats). logEvent fans out: every event -> stats queue; impressions
+ * also -> accrual queue. EVENT_QUEUE_LEGACY is the old shared list, drained once by the
+ * stats aggregator so events queued before this split aren't lost.
+ */
+export const EVENT_QUEUE_STATS = 'events:stats';
+export const EVENT_QUEUE_ACCRUAL = 'events:accrual';
+export const EVENT_QUEUE_LEGACY = 'events:queue';
+
 /** Snippet timeout for ad request before failing silent */
 export const AD_REQUEST_TIMEOUT_MS = 2000;
 

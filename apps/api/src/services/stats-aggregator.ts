@@ -1,4 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
+import { EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -141,14 +142,20 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
 }
 
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {
+  const redis = getRedis();
   const events: QueuedEvent[] = [];
-  for (let i = 0; i < batchSize; i++) {
-    const raw = await getRedis().rpop<string>('events:queue');
-    if (!raw) break;
-    try {
-      events.push(JSON.parse(raw) as QueuedEvent);
-    } catch {
-      /* skip */
+  // Drain the stats queue, then the legacy shared queue (so events enqueued before the
+  // stats/accrual split aren't lost). Accrual no longer touches the legacy queue, so there
+  // is no contention here.
+  for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
+    while (events.length < batchSize) {
+      const raw = await redis.rpop<string>(queue);
+      if (!raw) break;
+      try {
+        events.push(JSON.parse(raw) as QueuedEvent);
+      } catch {
+        /* skip */
+      }
     }
   }
   await aggregateEvents(events);
