@@ -15,7 +15,7 @@ export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerCreateSlot(server, apiKey);
   registerUpdateSlot(server, apiKey);
   registerGetSnippet(server, apiKey);
-  registerGetReactComponent(server);
+  registerGetReactComponent(server, apiKey);
   registerGetStats(server, apiKey);
   registerSetContentPolicy(server, apiKey);
   registerGetChangelog(server);

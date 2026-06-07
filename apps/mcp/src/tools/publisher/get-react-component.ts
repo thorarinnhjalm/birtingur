@@ -1,19 +1,14 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { apiCall } from '../../lib/api-client.js';
 
-const Input = z.object({});
+const Input = z.object({
+  slotId: z.string().describe('ID auglýsingaplássins sem á að baka inn í tilbúna notkunardæmið'),
+  width: z.number().optional().describe('Breidd í px. Sjálfgefið: fyrsta studda stærð plássins'),
+  height: z.number().optional().describe('Hæð í px. Sjálfgefið: fyrsta studda stærð plássins'),
+});
 
-export function registerGetReactComponent(server: McpServer) {
-  server.registerTool(
-    'get_react_component',
-    {
-      title: 'Sækja React/Next.js samþættingarkóða',
-      description:
-        'Sækir tilbúinn React client-side component (<BirtingurAdSlot>) sem höndlar rétt birtingar, smelltengingar, 1x1 gegnsætt fallback án layout shifts, og viewability mælingar.',
-      inputSchema: Input.shape,
-    },
-    async () => {
-      const componentCode = `'use client';
+const COMPONENT_CODE = `'use client';
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -255,7 +250,57 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   );
 }`;
 
-      return { content: [{ type: 'text' as const, text: componentCode }] };
+/**
+ * Builds the integration doc: the BirtingurAdSlot component plus a ready-to-paste usage
+ * example with this slot's real ID and dimensions baked in. Pure (no I/O) so it is unit
+ * tested directly.
+ */
+export function buildBirtingurReactDoc(opts: {
+  slotId: string;
+  width: number;
+  height: number;
+}): string {
+  const { slotId, width, height } = opts;
+  return `${COMPONENT_CODE}
+
+--- NOTKUNARDÆMI (USAGE) — tilbúið fyrir þetta pláss ---
+Límdu þetta inn þar sem auglýsingin á að birtast. Slot-ID er FAST gildi fyrir þetta pláss —
+bakaðu það beint inn (eða lestu úr hardkóðuðu korti):
+
+<BirtingurAdSlot slotId="${slotId}" width={${width}} height={${height}} />
+
+MIKILVÆGT: EKKI sækja slotId úr env-breytu eða runtime-config sem gæti verið undefined í
+framleiðslu-build (t.d. NEXT_PUBLIC_* sem vantar í deploy). Ef slotId er undefined verður
+beiðnin /v1/ad?slot=undefined og kerfið skilar réttilega {empty:true} — ekkert birtist og
+engin áhorf/pageview skráist. Þetta er algengasta orsök þess að "ekkert sést" í framleiðslu.`;
+}
+
+export function registerGetReactComponent(server: McpServer, apiKey: string) {
+  server.registerTool(
+    'get_react_component',
+    {
+      title: 'Sækja React/Next.js samþættingarkóða',
+      description:
+        'Sækir tilbúinn React client-side component (<BirtingurAdSlot>) ÁSAMT tilbúnu notkunardæmi með réttu slot-ID baked inn. Höndlar birtingar, smelltengingar, 1x1 gegnsætt fallback án layout shifts, og viewability mælingar.',
+      inputSchema: Input.shape,
+    },
+    async ({ slotId, width, height }) => {
+      const slot = await apiCall<{ id: string; sizes: Array<{ width: number; height: number }> }>(
+        `/v1/publishers/me/slots/${slotId}`,
+        { apiKey },
+      );
+      let w = width;
+      let h = height;
+      if (w == null || h == null) {
+        const def = slot.sizes?.[0];
+        if (!def) {
+          throw new Error(`Slot ${slotId} hefur engar stærðir skilgreindar`);
+        }
+        w = def.width;
+        h = def.height;
+      }
+      const text = buildBirtingurReactDoc({ slotId: slot.id, width: w, height: h });
+      return { content: [{ type: 'text' as const, text }] };
     },
   );
 }
