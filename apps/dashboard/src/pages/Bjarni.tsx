@@ -13,7 +13,8 @@ import {
   Zap,
   Code2,
   BarChart3,
-  GraduationCap,
+  Users,
+  Cpu,
 } from 'lucide-react';
 
 export default function Bjarni() {
@@ -314,169 +315,168 @@ export default function Bjarni() {
           </div>
         </section>
 
-        {/* WHY AKADEMIAS SHOULD CARE */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <GraduationCap size={24} />
+        {/* WHAT BIRTINGUR CAN DO */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <Card className="bg-white border-slate-200/80 p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <Users size={22} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Námskeið seljast á réttum stað</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-950">Niche media network</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Auglýsing um Excel-námskeið á rekstrarblogg nær til fólks sem er{' '}
-              <strong>nú þegar að hugsa um starfsþróun</strong>. Forritunarnámskeið á tækniblogg.
-              Leiðtogaþjálfun á viðskiptavef. Þetta er samhengismiðun sem virkar — ekki
-              spray-and-pray.
+              Net af sérhæfðum íslenskum vefjum — blogg, áhugamálasíður, fagvefir. Tryggir
+              lesendahópar sem treysta efninu. Auglýsing þar hefur margfalt meiri slagkraft en á
+              yfirfylltum fréttamiðli.
             </p>
           </Card>
 
-          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-              <Target size={24} />
+          <Card className="bg-white border-slate-200/80 p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+              <Target size={22} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Eitt pláss, engin þreyta</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-950">
+              Eitt pláss, óskipt athygli
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Á stóru fréttamiðlunum eru 8-12 auglýsingar á skjá. Hjá okkur er{' '}
-              <strong>eitt pláss, ein auglýsing</strong>. Lesandinn sér Akademias — og bara
-              Akademias. Enginn samkeppnisaðili á sama skjá. Óskipt athygli.
+              Á stóru fréttamiðlunum eru 8–12 auglýsingar á skjá. Hjá okkur er{' '}
+              <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili truflandi.
+              Vörumerkið fær óskipta athygli lesandans.
             </p>
           </Card>
 
-          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
-              <ShieldCheck size={24} />
+          <Card className="bg-white border-slate-200/80 p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+              <ShieldCheck size={22} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">100% GDPR — engar vafrakökur</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-950">Cookie-laust frá grunni</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Enginn þriðja aðila tracker, engin fingerprinting, engin gagnasöfnun. Samhengismiðun —
-              ekki vefsporun. <strong>Cookie-laust frá grunni</strong>, ekki consent-pop-up sem
-              gerir fólk ósátt.
+              Enginn tracker, engin fingerprinting, engin PII. Samhengismiðun — ekki vefsporun.
+              GDPR-compliant by design. Enginn consent-pop-up þarf.
             </p>
           </Card>
 
-          <Card className="bg-white border-slate-200/80 p-8 space-y-4 shadow-sm hover:shadow-md transition-all">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-              <Zap size={24} />
+          <Card className="bg-white border-slate-200/80 p-5 sm:p-6 space-y-3 shadow-sm hover:shadow-md transition-all">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <Cpu size={22} />
             </div>
-            <h3 className="text-xl font-bold text-slate-950">Engin lágmörk — byrjaðu smátt</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-950">
+              AI-powered review pipeline
+            </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Keyptu inneign (t.d. 10.000 kr), búðu til herferð og horfðu á rauntíma tölfræðina.{' '}
-              <strong>Engin binding, ekkert lágmark, hættu hvenær sem er</strong>. Fest CPM: 550 kr
-              per þúsund birtingar.
+              Allar auglýsingamyndir eru sjálfkrafa skannaðar af Gemini Vision. Brand safety og
+              efnisflokkun á millisekúndum. Útgefendur hafa alltaf lokaorðið í samþykkisbiðröð.
             </p>
           </Card>
         </section>
 
-        {/* COMPARISON TABLE */}
-        <section className="bg-white border border-slate-200/85 rounded-3xl p-8 sm:p-12 space-y-8 shadow-xs">
+        {/* COMPARISON — mobile-friendly stacked layout */}
+        <section className="bg-white border border-slate-200/85 rounded-3xl p-5 sm:p-8 md:p-12 space-y-6 shadow-xs">
           <div className="space-y-3 max-w-2xl">
-            <h3 className="text-2xl font-black text-slate-950">
+            <h3 className="text-xl sm:text-2xl font-black text-slate-950">
               Samanburður: Risamiðlar vs. Birtingur
             </h3>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Skoðum hvernig upplifun og árangur breytist þegar herferðir eru fluttar á markvissari
-              birtingar.
-            </p>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop: table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-550 font-bold">
                   <th className="pb-4 pr-4">Eiginleiki</th>
-                  <th className="pb-4 px-4 text-slate-600">Hefðbundnir risamiðlar</th>
+                  <th className="pb-4 px-4 text-slate-600">Risamiðlar</th>
                   <th className="pb-4 pl-4 text-blue-600">Birtingur</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Umgjörð</td>
-                  <td className="py-4 px-4">Fjölmargar auglýsingar á skjá, truflun</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Eitt pláss í senn — óskipt athygli
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Traust fylgjenda</td>
-                  <td className="py-4 px-4">Almennt (fréttalestur, hraði)</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Hátt (sérhæft efni, tryggir lesendur)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Persónuvernd</td>
-                  <td className="py-4 px-4">Vafrakökur og vefsporun</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    100% kökulaust frá grunni
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Uppsetning</td>
-                  <td className="py-4 px-4">Dýrir milliliðir, löng tilboðsferli</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Sjálfvirk á 3 mínútum
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Lágmark</td>
-                  <td className="py-4 px-4">Oft krafist háa lágmarks</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Engin lágmörk — CPM 550 kr
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-4 pr-4 font-bold text-slate-900">Tæknilegt</td>
-                  <td className="py-4 px-4">Þriðja aðila tag managers, hæg load</td>
-                  <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    REST API, &lt;15ms svartími, IAB viewability
-                  </td>
-                </tr>
+                {[
+                  ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
+                  ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
+                  ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
+                  ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk á 3 mínútum'],
+                  ['Verð', 'Oft hátt lágmark', 'Engin lágmörk — CPM 550 kr'],
+                  ['Tækni', 'Tag managers, hæg load', 'REST API, <15ms, IAB viewability'],
+                ].map(([label, old, birtingur], i) => (
+                  <tr key={i}>
+                    <td className="py-4 pr-4 font-bold text-slate-900">{label}</td>
+                    <td className="py-4 px-4">{old}</td>
+                    <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">{birtingur}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
+
+          {/* Mobile: stacked cards */}
+          <div className="md:hidden space-y-3">
+            {[
+              ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
+              ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
+              ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
+              ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk á 3 mínútum'],
+              ['Verð', 'Oft hátt lágmark', 'Engin lágmörk — CPM 550 kr'],
+              ['Tækni', 'Tag managers, hæg load', 'REST API, <15ms, IAB viewability'],
+            ].map(([label, old, birtingur], i) => (
+              <div
+                key={i}
+                className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2"
+              >
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  {label}
+                </div>
+                <div className="text-xs text-slate-500 line-through">{old}</div>
+                <div className="text-sm text-blue-800 font-bold">{birtingur}</div>
+              </div>
+            ))}
+          </div>
         </section>
 
-        {/* DUAL OPPORTUNITY + CTA */}
-        <section className="bg-linear-to-br from-indigo-900 via-indigo-950 to-emerald-950 text-white rounded-3xl p-8 sm:p-12 space-y-8 shadow-xl relative overflow-hidden">
+        {/* CTA SECTION */}
+        <section className="bg-linear-to-br from-indigo-900 via-indigo-950 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 md:p-12 space-y-8 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-emerald-500/10 blur-[90px] pointer-events-none -z-10" />
 
           <div className="space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-emerald-300 bg-white/10 px-3.5 py-1 rounded-full w-fit">
-              Tvöföld tækifæri fyrir Akademias
+              Tölurnar
             </span>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">
-              Auglýsandi og útgefandi í einu
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white">
+              Sjálfvirkt, gagnsætt og byggt til að skala
             </h3>
-            <p className="text-sm sm:text-base text-indigo-200 leading-relaxed font-semibold max-w-3xl">
-              Akademias getur auglýst námskeið á sérhæfðum vefjum þar sem markhópurinn hangir —
-              <strong className="text-white"> og</strong> ef þið eigið blogg eða efnissíður geta þær
-              líka aflað tekna af auglýsingum frá öðrum vörumerkjum. 80% af tekjum renna til ykkar.
+            <p className="text-sm text-indigo-200 leading-relaxed font-semibold max-w-3xl">
+              Vörumerkið þitt getur verið live á niche-netinu okkar á 3 mínútum. Engar
+              skuldbindingar — keyptu inneign, stofnaðu herferð, horfðu á rauntíma tölfræði.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4 border-t border-indigo-800/80">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-4 border-t border-indigo-800/80">
             <div>
-              <span className="text-3xl font-black text-white block">550 kr</span>
-              <span className="text-xs text-indigo-300 font-bold">CPM (per þúsund birtingar)</span>
+              <span className="text-2xl sm:text-3xl font-black text-white block">550 kr</span>
+              <span className="text-[10px] sm:text-xs text-indigo-300 font-bold">
+                CPM (per þúsund birtingar)
+              </span>
             </div>
             <div>
-              <span className="text-3xl font-black text-white block">100%</span>
-              <span className="text-xs text-indigo-300 font-bold">Kökulaust og löglegt</span>
+              <span className="text-2xl sm:text-3xl font-black text-white block">0</span>
+              <span className="text-[10px] sm:text-xs text-indigo-300 font-bold">
+                Cookies / trackers
+              </span>
             </div>
             <div>
-              <span className="text-3xl font-black text-white block">15ms</span>
-              <span className="text-xs text-indigo-300 font-bold">Svartími á edge</span>
+              <span className="text-2xl sm:text-3xl font-black text-white block">&lt;15ms</span>
+              <span className="text-[10px] sm:text-xs text-indigo-300 font-bold">
+                p99 svartími á edge
+              </span>
             </div>
             <div>
-              <span className="text-3xl font-black text-white block">80/20</span>
-              <span className="text-xs text-indigo-300 font-bold">Skipting til útgefenda</span>
+              <span className="text-2xl sm:text-3xl font-black text-white block">80/20</span>
+              <span className="text-[10px] sm:text-xs text-indigo-300 font-bold">
+                Revenue split til útgefenda
+              </span>
             </div>
           </div>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+          <div className="pt-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <button
               onClick={() =>
-                (window.location.href =
-                  'mailto:info@birtingur.app?subject=Kynning%20-%20Bjarni%20/%20Akademias')
+                (window.location.href = 'mailto:info@birtingur.app?subject=Kynning%20-%20Bjarni')
               }
               className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-950 font-extrabold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
             >
@@ -494,7 +494,7 @@ export default function Bjarni() {
               to="/"
               className="text-xs font-bold text-indigo-200 hover:text-white transition flex items-center gap-1.5"
             >
-              Fara á forsíðu Birtingar <ExternalLink size={12} />
+              Fara á forsíðu <ExternalLink size={12} />
             </Link>
           </div>
         </section>
