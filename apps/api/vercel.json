@@ -6,6 +6,7 @@
     "api/index.js": { "maxDuration": 30 },
     "api/cron-accrue.js": { "maxDuration": 60 },
     "api/cron-aggregate.js": { "maxDuration": 60 },
+    "api/cron-diagnostics.js": { "maxDuration": 30 },
     "api/cron-payouts.js": { "maxDuration": 60 },
     "api/cron-refresh-cache.js": { "maxDuration": 60 }
   },
@@ -18,6 +19,7 @@
   "rewrites": [
     { "source": "/api/cron-accrue", "destination": "/api/cron-accrue" },
     { "source": "/api/cron-aggregate", "destination": "/api/cron-aggregate" },
+    { "source": "/api/cron-diagnostics", "destination": "/api/cron-diagnostics" },
     { "source": "/api/cron-payouts", "destination": "/api/cron-payouts" },
     { "source": "/api/cron-refresh-cache", "destination": "/api/cron-refresh-cache" },
     { "source": "/(.*)", "destination": "/api/index" }
