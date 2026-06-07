@@ -99,11 +99,15 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toContain('type=pageview');
   });
 
-  it('returns empty for unknown slot', async () => {
+  it('returns empty for unknown slot with pageview tracking pixel', async () => {
     const res = await app.request('/v1/ad?slot=missing&consent=none');
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.empty).toBe(true);
+    // Fix: now includes a tracking pixel even for uncached slots
+    expect(body.impressionPixel).toBeDefined();
+    expect(body.impressionPixel).toContain('type=pageview');
+    expect(body.impressionPixel).toContain('s=missing');
   });
 
   it('400 when slot param missing', async () => {

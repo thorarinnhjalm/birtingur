@@ -9,6 +9,15 @@ import { checkAndIncrementRateLimit } from '../lib/fraud.js';
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
+const pixelResponse = () =>
+  new Response(PIXEL, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/gif',
+      'Cache-Control': 'no-store',
+    },
+  });
+
 // Below-the-fold / lazy-loaded slots can render minutes after the ad is served,
 // so allow a window wider than the original 5 min but still bounded.
 const IMPRESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1h
@@ -16,33 +25,36 @@ const IMPRESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1h
 export const impressionRoute = new Hono();
 
 impressionRoute.get('/', async (c) => {
-  const creativeId = c.req.query('c');
-  const slotId = c.req.query('s');
-  const token = c.req.query('t') ?? '';
-  const typeParam = c.req.query('type');
+  // Wrap the entire handler in try/catch: the pixel MUST always be returned,
+  // even if Redis, Firestore, or any downstream service is temporarily down.
+  // Without this, a Redis failure on claimSignatureOnce would crash the handler
+  // and the browser would receive a 500 — losing the impression AND triggering
+  // client-side error noise.
+  try {
+    const creativeId = c.req.query('c');
+    const slotId = c.req.query('s');
+    const token = c.req.query('t') ?? '';
+    const typeParam = c.req.query('type');
 
-  if (!creativeId || !slotId) {
-    return new Response(PIXEL, {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/gif',
-        'Cache-Control': 'no-store',
-      },
-    });
-  }
+    if (!creativeId || !slotId) {
+      return pixelResponse();
+    }
 
-  const isFallback =
-    creativeId === 'cre_fallback_transparent' ||
-    creativeId === 'cre_fallback_birtingur' ||
-    typeParam === 'pageview';
+    const isFallback =
+      creativeId === 'cre_fallback_transparent' ||
+      creativeId === 'cre_fallback_birtingur' ||
+      creativeId === 'cre_nocache' ||
+      typeParam === 'pageview';
 
-  if (isFallback) {
-    const slot = await getSlotCache(slotId);
-    if (slot) {
+    if (isFallback) {
+      const slot = await getSlotCache(slotId);
+      // Log the pageview even when the slot is not in cache (publisherId will be empty).
+      // Previously, `if (slot)` silently dropped pageviews for uncached slots — the exact
+      // scenario that makes a publisher appear to have zero traffic.
       void logEvent({
         type: 'pageview',
         slotId,
-        publisherId: slot.publisherId,
+        publisherId: slot?.publisherId ?? '',
         creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
         campaignId: 'cmp_fallback',
         advertiserId: '',
@@ -50,83 +62,89 @@ impressionRoute.get('/', async (c) => {
         visitorToken: token,
         ts: Date.now(),
       });
-    }
-  } else {
-    // Validate signature to prevent impression fraud
-    const tsStr = c.req.query('ts') ?? '0';
-    const sig = c.req.query('sig') ?? '';
-    const ts = parseInt(tsStr, 10);
-    const isValid = verifySignature(creativeId, slotId, token, ts, sig);
-    const age = Date.now() - ts;
+    } else {
+      // Validate signature to prevent impression fraud
+      const tsStr = c.req.query('ts') ?? '0';
+      const sig = c.req.query('sig') ?? '';
+      const ts = parseInt(tsStr, 10);
+      const isValid = verifySignature(creativeId, slotId, token, ts, sig);
+      const age = Date.now() - ts;
 
-    if (!isValid || age < 0 || age > IMPRESSION_MAX_AGE_MS) {
-      // Invalid signature or expired signature: ignore silently (still return pixel)
-      return new Response(PIXEL, {
-        status: 200,
-        headers: {
-          'Content-Type': 'image/gif',
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
+      if (!isValid || age < 0 || age > IMPRESSION_MAX_AGE_MS) {
+        // Invalid signature or expired signature: ignore silently (still return pixel)
+        return pixelResponse();
+      }
 
-    const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
-    if (!fresh) {
-      return new Response(PIXEL, {
-        status: 200,
-        headers: {
-          'Content-Type': 'image/gif',
-          'Cache-Control': 'no-store',
-        },
-      });
-    }
+      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
+      if (!fresh) {
+        return pixelResponse();
+      }
 
-    const slot = await getSlotCache(slotId);
-    const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
+      const slot = await getSlotCache(slotId);
+      const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
 
-    if (slot && creative) {
-      const ip = getClientIp({
-        'x-real-ip': c.req.header('x-real-ip'),
-        'x-forwarded-for': c.req.header('x-forwarded-for'),
-      });
-      const isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'impression');
+      if (slot && creative) {
+        const ip = getClientIp({
+          'x-real-ip': c.req.header('x-real-ip'),
+          'x-forwarded-for': c.req.header('x-forwarded-for'),
+        });
+        const isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'impression');
 
-      if (isAllowed) {
-        // Log the impression now — the pixel firing proves the ad was actually seen
+        if (isAllowed) {
+          // Log the impression now — the pixel firing proves the ad was actually seen
+          void logEvent({
+            type: 'impression',
+            slotId,
+            publisherId: slot.publisherId,
+            creativeId,
+            campaignId: creative.campaignId,
+            advertiserId: '', // populated in batch aggregation
+            country: c.req.header('CF-IPCountry') ?? 'XX',
+            visitorToken: token,
+            ts: Date.now(),
+          });
+
+          if (token) {
+            void recordVisitorImpression(token, creativeId);
+          }
+          // CPM price models charge per 1000 impressions
+          if (slot.pricing.mode === 'cpm') {
+            const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
+            void decrementBudget(creative.campaignId, costIsk);
+            void incrementPaceSpent(creative.campaignId, costIsk);
+          }
+        } else {
+          console.warn(
+            `Impression rate limit exceeded for campaign ${creative.campaignId} from IP ${ip}`,
+          );
+        }
+      } else if (!slot || !creative) {
+        // The slot cache expired between when the ad was served and when the impression
+        // pixel fired (slot TTL < 1h impression window). Log a best-effort impression
+        // so it isn't silently dropped — these will appear as 'impression' events with
+        // empty publisherId/campaignId, which the aggregator can attribute in a later pass.
+        console.warn(
+          `Impression for stale slot cache: slot=${slotId}, creative=${creativeId}, slotFound=${!!slot}`,
+        );
         void logEvent({
           type: 'impression',
           slotId,
-          publisherId: slot.publisherId,
+          publisherId: slot?.publisherId ?? '',
           creativeId,
-          campaignId: creative.campaignId,
-          advertiserId: '', // populated in batch aggregation
+          campaignId: creative?.campaignId ?? '',
+          advertiserId: '',
           country: c.req.header('CF-IPCountry') ?? 'XX',
           visitorToken: token,
           ts: Date.now(),
         });
-
-        if (token) {
-          void recordVisitorImpression(token, creativeId);
-        }
-        // CPM price models charge per 1000 impressions
-        if (slot.pricing.mode === 'cpm') {
-          const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
-          void decrementBudget(creative.campaignId, costIsk);
-          void incrementPaceSpent(creative.campaignId, costIsk);
-        }
-      } else {
-        console.warn(
-          `Impression rate limit exceeded for campaign ${creative.campaignId} from IP ${ip}`,
-        );
       }
     }
+  } catch (err) {
+    // Never let an internal failure prevent the pixel from being returned.
+    // A crashing impression handler is worse than a lost event — it causes client-side
+    // errors and makes the ad slot look broken.
+    console.error('Impression handler error (pixel still returned):', err);
   }
 
-  return new Response(PIXEL, {
-    status: 200,
-    headers: {
-      'Content-Type': 'image/gif',
-      'Cache-Control': 'no-store',
-    },
-  });
+  return pixelResponse();
 });

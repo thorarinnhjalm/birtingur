@@ -13,7 +13,7 @@ const COMPONENT_CODE = `'use client';
 import { useEffect, useRef, useState } from 'react';
 
 const SERVING_BASE = 'https://serving.birtingur.app';
-const FALLBACK_CREATIVES = ['cre_fallback_transparent', 'cre_fallback_birtingur'];
+const FALLBACK_CREATIVES = ['cre_fallback_transparent', 'cre_fallback_birtingur', 'cre_nocache'];
 
 interface BirtingurAd {
   creativeId: string;
@@ -27,6 +27,7 @@ interface BirtingurAd {
 
 interface BirtingurEmpty {
   empty: true;
+  impressionPixel?: string;
 }
 
 type BirtingurResponse = BirtingurAd | BirtingurEmpty;
@@ -61,6 +62,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const impressionFired = useRef<string | null>(null);
+  const pageviewFired = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fetchAdRef = useRef<() => Promise<void>>();
 
@@ -187,6 +189,20 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     } else {
       // Fallback ef IntersectionObserver er ekki studdur: telja strax
       fireImpression();
+    }
+  }, [ad]);
+
+  // Fire pageview tracking pixel for empty responses (uncached slots).
+  // Without this, visits to pages with uncached slots are invisible to stats.
+  useEffect(() => {
+    if (!ad || pageviewFired.current) return;
+    if ('empty' in ad && ad.impressionPixel && !pageviewFired.current) {
+      pageviewFired.current = true;
+      const url = ad.impressionPixel.startsWith('http')
+        ? ad.impressionPixel
+        : \`\${SERVING_BASE}\${ad.impressionPixel}\`;
+      const img = new Image();
+      img.src = url;
     }
   }, [ad]);
 

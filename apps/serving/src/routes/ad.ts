@@ -21,6 +21,9 @@ adRoute.get('/', async (c) => {
     return c.json({ error: 'missing_slot' }, 400);
   }
 
+  const country = c.req.header('CF-IPCountry') ?? 'XX';
+  const token = getOrCreateVisitorToken(c.req.header('Cookie'), c.req.query('vid'));
+
   let slot = await getSlotCache(slotId);
   if (!slot && (slotId === 'slot_demo_abc' || process.env.NODE_ENV === 'development')) {
     slot = {
@@ -51,11 +54,15 @@ adRoute.get('/', async (c) => {
   }
 
   if (!slot) {
-    return c.json({ empty: true });
+    // Even when the slot cache is empty (expired or never populated), return a tracking
+    // pixel so we can record a pageview. Without this, uncached-slot visits are invisible
+    // to stats — a silent black hole that makes it look like the publisher has zero traffic.
+    return c.json({
+      empty: true,
+      impressionPixel: `/v1/impression?c=cre_nocache&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
+    });
   }
 
-  const country = c.req.header('CF-IPCountry') ?? 'XX';
-  const token = getOrCreateVisitorToken(c.req.header('Cookie'), c.req.query('vid'));
   const visitorImpressionsToday =
     consentParam === 'full' ? await getVisitorImpressionsToday(token) : {};
 

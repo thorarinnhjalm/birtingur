@@ -13,7 +13,55 @@ function resolveServeUrl(url: string): string {
   return url.charAt(0) === '/' ? base + url : base + '/' + url;
 }
 
+/**
+ * Fire a tracking pixel (impression/pageview) with IAB-aligned viewability:
+ * the pixel fires only when ≥50% of the element is visible for ≥1 continuous second.
+ * Falls back to immediate fire if IntersectionObserver is unavailable.
+ */
+function firePixelWithViewability(el: HTMLElement, pixelUrl: string): void {
+  const resolvedUrl = resolveServeUrl(pixelUrl);
+  const fire = () => {
+    const pixel = new Image(1, 1);
+    pixel.src = resolvedUrl;
+    pixel.style.position = 'absolute';
+    pixel.style.left = '-9999px';
+    el.appendChild(pixel);
+  };
+
+  if (typeof IntersectionObserver !== 'undefined') {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            // IAB standard: 50% visible for 1 continuous second
+            timer = setTimeout(() => {
+              fire();
+              observer.disconnect();
+            }, 1000);
+          } else if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+  } else {
+    // Fallback: fire immediately if IntersectionObserver is not supported
+    fire();
+  }
+}
+
 export function renderAd(el: HTMLElement, ad: AdResponse): void {
+  // Always fire the tracking pixel first — even for empty/fallback responses.
+  // Before this fix, empty responses ({empty:true}) never fired a pixel, making
+  // uncached-slot visits completely invisible to publisher stats.
+  if (ad.impressionPixel) {
+    firePixelWithViewability(el, ad.impressionPixel);
+  }
+
   if (ad.empty || !ad.creativeId || !ad.imageUrl || !ad.clickUrl) {
     el.style.display = 'none';
     return;
@@ -49,13 +97,5 @@ export function renderAd(el: HTMLElement, ad: AdResponse): void {
 
     a.appendChild(img);
     el.appendChild(a);
-  }
-
-  if (ad.impressionPixel) {
-    const pixel = new Image(1, 1);
-    pixel.src = resolveServeUrl(ad.impressionPixel);
-    pixel.style.position = 'absolute';
-    pixel.style.left = '-9999px';
-    el.appendChild(pixel);
   }
 }

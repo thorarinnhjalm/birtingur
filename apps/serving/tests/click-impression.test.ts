@@ -245,4 +245,54 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledTimes(30);
     expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(30);
   });
+
+  it('logs pageview even when slot cache is empty (uncached slot)', async () => {
+    const res = await app.request(
+      '/v1/impression?s=slot_unknown&c=cre_fallback_birtingur&type=pageview',
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/gif');
+
+    // Before the fix, this was silently dropped because `if (slot)` guarded the logEvent.
+    // Now it logs with publisherId='' so the event is at least captured.
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'pageview',
+        slotId: 'slot_unknown',
+        publisherId: '',
+        creativeId: 'cre_fallback_birtingur',
+      }),
+    );
+  });
+
+  it('logs pageview for cre_nocache creative (empty-response tracking pixel)', async () => {
+    const res = await app.request('/v1/impression?s=slot_xyz&c=cre_nocache&type=pageview');
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'pageview',
+        slotId: 'slot_xyz',
+        creativeId: 'cre_nocache',
+      }),
+    );
+  });
+
+  it('logs stale impression when slot cache expired between serve and view', async () => {
+    // Creative exists in our mock but slot_b does NOT — simulating a TTL expiry
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_b', 'tok123', ts);
+    const res = await app.request(`/v1/impression?s=slot_b&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
+    expect(res.status).toBe(200);
+
+    // Before the fix, this was silently dropped. Now it logs with empty publisherId/campaignId.
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'impression',
+        slotId: 'slot_b',
+        creativeId: 'cre_a',
+        publisherId: '',
+        campaignId: '',
+      }),
+    );
+  });
 });
