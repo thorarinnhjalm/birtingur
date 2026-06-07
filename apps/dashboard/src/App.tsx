@@ -8,6 +8,7 @@ import AdminOverview from '@/pages/admin/Overview';
 import LandingPage from '@/pages/LandingPage';
 import Vibers from '@/pages/Vibers';
 import Serfraedingar from '@/pages/Serfraedingar';
+import Bjarni from '@/pages/Bjarni';
 import { LoadingState } from '@/components/ui/LoadingState';
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -86,6 +87,7 @@ export default function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/vibers" element={<Vibers />} />
       <Route path="/serfraedingar" element={<Serfraedingar />} />
+      <Route path="/bjarni" element={<Bjarni />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
