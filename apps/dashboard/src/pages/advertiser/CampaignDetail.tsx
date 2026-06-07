@@ -708,7 +708,7 @@ export default function CampaignDetail() {
 
                           {!isRejected && isSelected && (
                             <div className="w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center">
-                              <Check size={10} className="stroke-[3]" />
+                              <Check size={10} strokeWidth={3} />
                             </div>
                           )}
                         </div>
