@@ -27,12 +27,14 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
   const events: QueuedEvent[] = [];
 
   for (let i = 0; i < batchSize; i++) {
-    const raw = await redis.rpop<string>(EVENT_QUEUE_ACCRUAL);
+    const raw = await redis.rpop<string | QueuedEvent>(EVENT_QUEUE_ACCRUAL);
     if (!raw) break;
     try {
-      events.push(JSON.parse(raw) as QueuedEvent);
+      // Upstash SDK auto-deserializes JSON, so `raw` may already be an object.
+      const ev: QueuedEvent = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      events.push(ev);
     } catch {
-      // skip malformed
+      console.warn('[cron-accrue] Failed to parse event from queue:', typeof raw, raw);
     }
   }
 

@@ -149,12 +149,15 @@ export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   // is no contention here.
   for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
     while (events.length < batchSize) {
-      const raw = await redis.rpop<string>(queue);
+      const raw = await redis.rpop<string | QueuedEvent>(queue);
       if (!raw) break;
       try {
-        events.push(JSON.parse(raw) as QueuedEvent);
+        // Upstash SDK auto-deserializes JSON, so `raw` may already be an object.
+        // Only call JSON.parse when it's still a string.
+        const ev: QueuedEvent = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        events.push(ev);
       } catch {
-        /* skip */
+        console.warn('[cron-aggregate] Failed to parse event from queue:', typeof raw, raw);
       }
     }
   }
