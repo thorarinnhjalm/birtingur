@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /advertiser/
+Disallow: /publisher/
+Disallow: /admin/
+Disallow: /role/
+Disallow: /sign-in
+
+Sitemap: https://birtingur.app/sitemap.xml
