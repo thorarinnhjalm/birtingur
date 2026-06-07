@@ -183,6 +183,33 @@ describe('pushSlotCache helper', () => {
     );
   });
 
+  it('writes the slot existence cache with a TTL that survives a missed refresh cycle', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    await pushSlotCache('slot_123');
+
+    const slotCall = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_123');
+    expect(slotCall).toBeDefined();
+    const opts = slotCall![2];
+    // The slot key encodes existence ("is this a real slot?"), not just freshness. It must
+    // outlive the 10-min refresh cron by a wide margin so a skipped / slow / misconfigured
+    // cron run can't silently evict a registered slot — which would make serving return
+    // {empty:true}, drop the house ad, and suppress the type=pageview pixel (pageviews:0).
+    expect(opts.ex).toBeGreaterThanOrEqual(24 * 60 * 60);
+  });
+
   it('filters out creatives matching blocked categories', async () => {
     mockState.slot = {
       id: 'slot_123',

@@ -23,8 +23,16 @@ export type GeoRegion = (typeof GEO_REGIONS)[number];
 /** Default frequency cap per visitor per day */
 export const FREQUENCY_CAP_DEFAULT_PER_DAY = 3;
 
-/** Hot slot-cache eviction TTL (kept short; a refresh cron rebuilds active slots). */
-export const SLOT_CACHE_TTL_SECONDS = 15 * 60; // 15 min
+/**
+ * Slot-cache TTL. This key encodes slot *existence* for the serving hot path, not just
+ * freshness — a cache miss makes /v1/ad return {empty:true}, which drops the house ad and
+ * suppresses the type=pageview pixel (so the publisher logs 0 pageviews). Content freshness
+ * is owned by event-driven pushes (create/update/pause/campaign/approval) and the 10-min
+ * refresh cron, so the TTL only needs to be a safety net long enough that a skipped, slow,
+ * or misconfigured refresh cycle can't silently evict a registered slot. 7 days also self-
+ * cleans orphaned keys since there is no slot-delete path that prunes the cache.
+ */
+export const SLOT_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 /** Budget gate counter TTL — must outlive a cache cycle comfortably. */
 export const BUDGET_COUNTER_TTL_SECONDS = 60 * 60; // 1h
 
