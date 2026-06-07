@@ -55,7 +55,7 @@ adRoute.get('/', async (c) => {
   }
 
   const country = c.req.header('CF-IPCountry') ?? 'XX';
-  const token = getOrCreateVisitorToken(c.req.header('Cookie'));
+  const token = getOrCreateVisitorToken(c.req.header('Cookie'), c.req.query('vid'));
   const visitorImpressionsToday =
     consentParam === 'full' ? await getVisitorImpressionsToday(token) : {};
 

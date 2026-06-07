@@ -24,4 +24,21 @@ describe('getOrCreateVisitorToken', () => {
     const t = getOrCreateVisitorToken(undefined);
     expect(t).toMatch(/^[a-f0-9]{12}$/); // randomBytes(6) to hex is 12 characters
   });
+
+  it('prefers a valid client-provided token over the cookie', () => {
+    // First-party localStorage token from the snippet wins, since third-party
+    // cookies do not survive cross-origin in modern browsers.
+    expect(getOrCreateVisitorToken('_adp_v=abc123456789', 'def456789abc')).toBe('def456789abc');
+  });
+
+  it('ignores a malformed client-provided token and falls back to the cookie', () => {
+    expect(getOrCreateVisitorToken('_adp_v=abc123456789', 'not-a-valid-token!')).toBe(
+      'abc123456789',
+    );
+  });
+
+  it('generates a token when neither client token nor cookie is present', () => {
+    const t = getOrCreateVisitorToken(undefined, undefined);
+    expect(t).toMatch(/^[a-f0-9]{12}$/);
+  });
 });

@@ -7,13 +7,22 @@ export function hashVisitorToken(input: string): string {
 
 const COOKIE_NAME = '_adp_v';
 
-export function getOrCreateVisitorToken(cookieHeader: string | undefined): string {
+const TOKEN_RE = /^[a-f0-9]{12}$/;
+
+export function getOrCreateVisitorToken(
+  cookieHeader: string | undefined,
+  clientToken?: string,
+): string {
+  // Prefer the first-party token the snippet keeps in the publisher's localStorage.
+  // Third-party cookies don't survive cross-origin in modern browsers, so the cookie
+  // path below only helps same-origin/demo callers.
+  if (clientToken && TOKEN_RE.test(clientToken)) return clientToken;
   if (cookieHeader) {
     const match = cookieHeader.split(/;\s*/).find((c) => c.startsWith(`${COOKIE_NAME}=`));
     if (match) {
       const value = match.slice(COOKIE_NAME.length + 1);
       // Valid tokens are 12 characters (hex randomBytes(6))
-      if (/^[a-f0-9]{12}$/.test(value)) return value;
+      if (TOKEN_RE.test(value)) return value;
     }
   }
   return randomBytes(6).toString('hex');
