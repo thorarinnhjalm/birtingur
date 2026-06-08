@@ -94,6 +94,7 @@ export default function RoleSelect() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Advertiser Card */}
           <Card
+            id="role_advertiser"
             className="cursor-pointer group flex flex-col justify-between h-72 hover:border-primary border-2 border-transparent transition-all duration-300"
             onClick={handleAdvertiserSelect}
           >
@@ -120,6 +121,7 @@ export default function RoleSelect() {
 
           {/* Publisher Card */}
           <Card
+            id="role_publisher"
             className="cursor-pointer group flex flex-col justify-between h-72 hover:border-sky-600 border-2 border-transparent transition-all duration-300"
             onClick={handlePublisherSelect}
           >
