@@ -40,8 +40,14 @@ function isAd(r: BirtingurResponse | null): r is BirtingurAd {
 
 interface Props {
   slotId: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  sizes?: {
+    mobile?: { w: number; h: number };
+    tablet?: { w: number; h: number };
+    desktop?: { w: number; h: number };
+  };
+  onLoadStatus?: (status: 'loading' | 'loaded' | 'empty' | 'error') => void;
   className?: string;
 }
 
@@ -52,7 +58,7 @@ interface Props {
  * 3. Í framleiðsluumhverfi (production) fellur component-inn plássið saman sjálfkrafa (renderar gagnsætt fallback)
  *    til að tryggja að notendaupplifun skemmist ekki og engin ljót villuboð sjáist á síðunni.
  * 4. Frá v1.2: Jafnvel þegar slot er ekki í cache skilar serving tracking pixel sem skráir pageview,
- *    þannig að tólfrá útgefandans sýnir rétta umferð.
+ *    þannig að tölfræði útgefandans sýnir rétta umferð.
  */
 
 /**
@@ -60,7 +66,14 @@ interface Props {
  * Kemur í veg fyrir Layout Shift (CLS) með því að taka frá pláss með tilgreindri hæð/breidd.
  * Uppfærir sig sjálfkrafa byggt á TTL úr svari þegar auglýsingin er í viewport.
  */
-export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props) {
+export function BirtingurAdSlot({
+  slotId,
+  width,
+  height,
+  sizes,
+  onLoadStatus,
+  className = '',
+}: Props) {
   const [ad, setAd] = useState<BirtingurResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +82,45 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   const pageviewFired = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const fetchAdRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Mæla skjáinn dýnamískt ef sizes eru skilgreind
+  const [activeSize, setActiveSize] = useState<{ w: number; h: number }>(() => {
+    if (typeof window === 'undefined') {
+      if (width && height) return { w: width, h: height };
+      if (sizes?.desktop) return sizes.desktop;
+      if (sizes?.tablet) return sizes.tablet;
+      if (sizes?.mobile) return sizes.mobile;
+      return { w: 0, h: 0 };
+    }
+    return getMatchingSize(window.innerWidth);
+  });
+
+  function getMatchingSize(winWidth: number): { w: number; h: number } {
+    if (sizes) {
+      if (winWidth < 768 && sizes.mobile) return sizes.mobile;
+      if (winWidth >= 768 && winWidth < 1024 && sizes.tablet) {
+        return sizes.tablet || sizes.desktop || sizes.mobile;
+      }
+      if (winWidth >= 1024 && sizes.desktop) return sizes.desktop;
+      const fallback = sizes.desktop || sizes.tablet || sizes.mobile;
+      if (fallback) return fallback;
+    }
+    return { w: width || 0, h: height || 0 };
+  }
+
+  useEffect(() => {
+    if (!sizes) return;
+    const handleResize = () => {
+      const matched = getMatchingSize(window.innerWidth);
+      setActiveSize((prev) => {
+        if (prev.w === matched.w && prev.h === matched.h) return prev;
+        return matched;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sizes, width, height]);
 
   // Fylgjast með því hvort plássið sé sýnilegt í viewport
   useEffect(() => {
@@ -95,10 +147,12 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     let cancelled = false;
     const fetchAd = async () => {
       try {
+        setLoading(true);
         setError(null);
-        // Ath: Hægt er að breyta consent=none í consent=full ef notandi hefur gefið vafrakökusamþykki (GDPR/CMP)
+        // Senda breidd og hæð í veffyrirspurn ef þær liggja fyrir
+        const sizeParams = activeSize.w && activeSize.h ? \`&w=\${activeSize.w}&h=\${activeSize.h}\` : '';
         const res = await fetch(
-          \`\${SERVING_BASE}/v1/ad?slot=\${encodeURIComponent(slotId)}&consent=none\`,
+          \`\${SERVING_BASE}/v1/ad?slot=\${encodeURIComponent(slotId)}&consent=none\${sizeParams}\`,
           { cache: 'no-store' }
         );
         if (!res.ok) {
@@ -131,13 +185,26 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     return () => {
       cancelled = true;
     };
-  }, [slotId]);
+  }, [slotId, activeSize.w, activeSize.h]);
+
+  // Kalla á onLoadStatus þegar staða breytist
+  useEffect(() => {
+    if (!onLoadStatus) return;
+    if (loading) {
+      onLoadStatus('loading');
+    } else if (error) {
+      onLoadStatus('error');
+    } else if (!ad || 'empty' in ad || HIDDEN_FALLBACKS.has(ad.creativeId)) {
+      onLoadStatus('empty');
+    } else {
+      onLoadStatus('loaded');
+    }
+  }, [loading, error, ad, onLoadStatus]);
 
   // Sjálfvirk uppfærsla (Auto-Refresh) byggt á TTL úr svari, en AÐEINS þegar plássið er sýnilegt (isVisible)
   useEffect(() => {
     if (!isAd(ad) || !isVisible) return;
 
-    // ttl er í sekúndum í svarinu. Umbreytum í millisekúndur.
     const ttlMs = ad.ttl * 1000;
 
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
@@ -152,7 +219,6 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   }, [ad, isVisible]);
 
   // Áhorfsmæling (Impression Tracking) með stuðningi við Viewability (IntersectionObserver).
-  // Mælt er með að telja áhorf aðeins þegar plássið er sýnilegt (t.d. 50% í 1 sek).
   useEffect(() => {
     if (!isAd(ad)) return;
     if (impressionFired.current === ad.creativeId) return;
@@ -191,13 +257,11 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
         observer.disconnect();
       };
     } else {
-      // Fallback ef IntersectionObserver er ekki studdur: telja strax
       fireImpression();
     }
   }, [ad]);
 
-  // Fire pageview tracking pixel for empty responses (uncached slots).
-  // Without this, visits to pages with uncached slots are invisible to stats.
+  // Fire pageview tracking pixel for empty responses.
   useEffect(() => {
     if (!ad || pageviewFired.current) return;
     if ('empty' in ad && ad.impressionPixel) {
@@ -213,7 +277,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   if (loading) {
     return (
       <div
-        style={{ width, height }}
+        style={{ width: activeSize.w || '100%', height: activeSize.h || 'auto' }}
         className={\`bg-gray-100 animate-pulse rounded-lg border border-gray-200 flex items-center justify-center \${className}\`}
       >
         <span className="text-[10px] text-gray-300 uppercase tracking-widest font-bold">
@@ -224,7 +288,6 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
   }
 
   // Ef villa átti sér stað, ef ekkert pláss fannst, eða ef um er að ræða ósýnilegt fallback.
-  // ATH: cre_fallback_birtingur (house ad) er EKKI í þessu setti — hann birtist sem CTA.
   if (error || !isAd(ad) || HIDDEN_FALLBACKS.has(ad.creativeId)) {
     if (error) {
       console.warn('Birtingur load error, rendering transparent fallback:', error);
@@ -232,7 +295,7 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     return (
       <div
         ref={containerRef}
-        style={{ width, height }}
+        style={{ width: activeSize.w || '100%', height: 1 }}
         aria-hidden="true"
         className={className}
       >
@@ -252,7 +315,11 @@ export function BirtingurAdSlot({ slotId, width, height, className = '' }: Props
     : \`\${SERVING_BASE}\${ad.clickUrl}\`;
 
   return (
-    <div ref={containerRef} style={{ width, height }} className={\`relative overflow-hidden rounded-xl border border-gray-200 shadow-sm hover:shadow bg-gray-50 ad-slot \${className}\`}>
+    <div
+      ref={containerRef}
+      style={{ width: activeSize.w || '100%', height: activeSize.h || 'auto' }}
+      className={\`relative overflow-hidden rounded-xl border border-gray-200 shadow-sm hover:shadow bg-gray-50 ad-slot \${className}\`}
+    >
       <a
         href={clickUrl}
         target="_blank"
@@ -280,19 +347,50 @@ export function buildBirtingurReactDoc(opts: {
   slotId: string;
   width: number;
   height: number;
+  supportedSizes?: Array<{ width: number; height: number }>;
 }): string {
-  const { slotId, width, height } = opts;
+  const { slotId, width, height, supportedSizes } = opts;
+
+  let responsiveSnippet = '';
+  if (supportedSizes && supportedSizes.length > 1) {
+    const mobile = supportedSizes.find((s) => s.width < 500);
+    const desktop = supportedSizes.find((s) => s.width >= 700);
+    const tablet = supportedSizes.find((s) => s.width >= 500 && s.width < 700);
+
+    const parts: string[] = [];
+    if (mobile) parts.push(`mobile: { w: ${mobile.width}, h: ${mobile.height} }`);
+    if (tablet) parts.push(`tablet: { w: ${tablet.width}, h: ${tablet.height} }`);
+    if (desktop) parts.push(`desktop: { w: ${desktop.width}, h: ${desktop.height} }`);
+
+    if (parts.length > 0) {
+      responsiveSnippet = `
+
+--- VALKOSTUR 2: MÓTTÆKILEG NOTKUN (RESPONSIVE USAGE) ---
+Hentar þegar plássið getur haft mismunandi stærð eftir tækjum (t.d. farsímar vs. tölvur).
+Íhluturinn hlustar sjálfkrafa á stærðarbreytingar á glugga og sækir rétta auglýsingu:
+
+<BirtingurAdSlot
+  slotId="${slotId}"
+  sizes={{
+    ${parts.join(',\n    ')}
+  }}
+  onLoadStatus={(status) => {
+    console.log('Staða auglýsingar:', status);
+    // Hægt að nota status ('empty' | 'loaded' | 'error') til að fela ytri gáma
+  }}
+/>`;
+    }
+  }
+
   return `${COMPONENT_CODE}
 
---- NOTKUNARDÆMI (USAGE) — tilbúið fyrir þetta pláss ---
-Límdu þetta inn þar sem auglýsingin á að birtast. Slot-ID er FAST gildi fyrir þetta pláss —
-bakaðu það beint inn (eða lestu úr hardkóðuðu korti):
+--- VALKOSTUR 1: FAST STÆRÐ (FIXED SIZE USAGE) ---
+Límdu þetta inn þar sem auglýsingin á að birtast. Slot-ID er FAST gildi fyrir þetta pláss:
 
-<BirtingurAdSlot slotId="${slotId}" width={${width}} height={${height}} />
+<BirtingurAdSlot slotId="${slotId}" width={${width}} height={${height}} />${responsiveSnippet}
 
-RÁÐ: Bakaðu slotId beint inn sem streng eins og sýnt er hér að ofan, eða lestu úr
-hardkóðuðu korti (t.d. birtingurSlots.ts). Forðist env-breytur (NEXT_PUBLIC_*) sem
-gætu verið undefined í deploy — þá skilar API-ið {empty:true} fyrir óþekkt pláss.`;
+RÁÐ: Bakaðu slotId beint inn sem streng eins og sýnt er hér að ofan. Forðist env-breytur (NEXT_PUBLIC_*)
+sem gætu verið undefined í keyrslu — þá skilar API-ið {empty:true} fyrir óþekkt pláss.`;
 }
 
 export function registerGetReactComponent(server: McpServer, apiKey: string) {
@@ -301,7 +399,7 @@ export function registerGetReactComponent(server: McpServer, apiKey: string) {
     {
       title: 'Sækja React/Next.js samþættingarkóða',
       description:
-        'Sækir tilbúinn React client-side component (<BirtingurAdSlot>) ÁSAMT tilbúnu notkunardæmi með réttu slot-ID baked inn. Höndlar birtingar, smelltengingar, 1x1 gegnsætt fallback án layout shifts, og viewability mælingar.',
+        'Sækir tilbúinn React client-side component (<BirtingurAdSlot>) ÁSAMT tilbúnu notkunardæmi með réttu slot-ID baked inn. Styður nú responsive stærðir og onLoadStatus callbacks.',
       inputSchema: Input.shape,
     },
     async ({ slotId, width, height }) => {
@@ -319,7 +417,12 @@ export function registerGetReactComponent(server: McpServer, apiKey: string) {
         w = def.width;
         h = def.height;
       }
-      const text = buildBirtingurReactDoc({ slotId: slot.id, width: w, height: h });
+      const text = buildBirtingurReactDoc({
+        slotId: slot.id,
+        width: w,
+        height: h,
+        supportedSizes: slot.sizes,
+      });
       return { content: [{ type: 'text' as const, text }] };
     },
   );

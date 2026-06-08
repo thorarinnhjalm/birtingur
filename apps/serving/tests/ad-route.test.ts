@@ -170,6 +170,22 @@ describe('GET /v1/ad', () => {
     // 3. Reset slot activeCreatives back to unrestricted (no geoRegions)
     delete mockSlot.activeCreatives[0]!.geoRegions;
   });
+
+  it('filters creatives by requested width and height parameters', async () => {
+    // 1. Matches size -> serves ad
+    const resMatched = await app.request('/v1/ad?slot=slot_a&consent=full&w=728&h=90');
+    expect(resMatched.status).toBe(200);
+    const bodyMatched = await resMatched.json();
+    expect(bodyMatched.creativeId).toBe('cre_a');
+
+    // 2. Mismatches size -> serves fallback house ad matching requested dimensions
+    const resMismatched = await app.request('/v1/ad?slot=slot_a&consent=full&w=300&h=250');
+    expect(resMismatched.status).toBe(200);
+    const bodyMismatched = await resMismatched.json();
+    expect(bodyMismatched.creativeId).toBe('cre_fallback_birtingur');
+    expect(bodyMismatched.width).toBe(300);
+    expect(bodyMismatched.height).toBe(250);
+  });
 });
 
 describe('Static script serving', () => {

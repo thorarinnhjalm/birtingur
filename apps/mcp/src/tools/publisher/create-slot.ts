@@ -77,7 +77,28 @@ export function registerCreateSlot(server: McpServer, apiKey: string) {
         body: requestBody,
         apiKey,
       });
-      return { content: [{ type: 'text' as const, text: JSON.stringify(r) }] };
+      let warning: string | undefined;
+      const slotObj = r as any;
+      if (slotObj && slotObj.name && slotObj.placement?.position) {
+        const lowerName = slotObj.name.toLowerCase();
+        const pos = slotObj.placement.position;
+        if (
+          pos === 'sidebar' &&
+          (lowerName.includes('haus') ||
+            lowerName.includes('header') ||
+            lowerName.includes('topp') ||
+            lowerName.includes('billboard'))
+        ) {
+          warning = `Viðvörun: Plássið heitir "${slotObj.name}" (bendir til efsta hluta síðu/header) en líkamleg staðsetning (placement.position) er skilgreind sem "sidebar".`;
+        } else if (
+          (pos === 'above_fold' || pos === 'in_content') &&
+          (lowerName.includes('hlið') || lowerName.includes('sidebar'))
+        ) {
+          warning = `Viðvörun: Plássið heitir "${slotObj.name}" (bendir til hliðardálks) en líkamleg staðsetning (placement.position) er skilgreind sem "${pos}".`;
+        }
+      }
+      const responseObj = warning ? { ...slotObj, warning } : r;
+      return { content: [{ type: 'text' as const, text: JSON.stringify(responseObj, null, 2) }] };
     },
   );
 }

@@ -16,6 +16,10 @@ export const adRoute = new Hono();
 adRoute.get('/', async (c) => {
   const slotId = c.req.query('slot');
   const consentParam = c.req.query('consent') === 'full' ? 'full' : 'none';
+  const wParam = c.req.query('w');
+  const hParam = c.req.query('h');
+  const widthParam = wParam ? parseInt(wParam, 10) : undefined;
+  const heightParam = hParam ? parseInt(hParam, 10) : undefined;
 
   if (!slotId) {
     return c.json({ error: 'missing_slot' }, 400);
@@ -75,7 +79,10 @@ adRoute.get('/', async (c) => {
       const funded = (budgets[ac.campaignId] ?? Number.POSITIVE_INFINITY) > 0;
       const p = pace[ac.campaignId];
       const underPace = !p || p.spent < p.limit; // fail-open if unset
-      return funded && underPace;
+      const sizeMatch =
+        (widthParam === undefined || ac.width === widthParam) &&
+        (heightParam === undefined || ac.height === heightParam);
+      return funded && underPace && sizeMatch;
     }),
   };
 
@@ -91,7 +98,10 @@ adRoute.get('/', async (c) => {
   });
 
   if (!creative) {
-    const size = slot.sizes[0] || { width: 300, height: 250 };
+    const size =
+      widthParam && heightParam
+        ? { width: widthParam, height: heightParam }
+        : slot.sizes[0] || { width: 300, height: 250 };
     c.header('Set-Cookie', setCookieHeader(token));
     c.header('Cache-Control', 'private, no-store');
     return c.json({
