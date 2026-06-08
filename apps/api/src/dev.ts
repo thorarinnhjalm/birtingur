@@ -31,11 +31,18 @@ if (existsSync(envPath)) {
   }
 }
 
-const hasProductionCredentials = !!(
-  process.env.FIREBASE_PRIVATE_KEY &&
-  process.env.FIREBASE_CLIENT_EMAIL &&
-  process.env.FIREBASE_PROJECT_ID
+const isEmulatorRunning = !!(
+  process.env.FIRESTORE_EMULATOR_HOST ||
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  process.env.FIREBASE_EMULATOR_HUB
 );
+
+const hasProductionCredentials =
+  !!(
+    process.env.FIREBASE_PRIVATE_KEY &&
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    process.env.FIREBASE_PROJECT_ID
+  ) && !isEmulatorRunning;
 
 if (!hasProductionCredentials) {
   if (process.env.FIRESTORE_EMULATOR_HOST === undefined) {

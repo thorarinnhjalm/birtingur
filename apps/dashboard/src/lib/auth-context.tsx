@@ -62,10 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInDemo = (username: string) => {
+    const cleanUsername = username.replace(/@.*$/, '');
     const mockUser = {
-      uid: 'demo-user-id',
-      email: `${username.toLowerCase()}@birtingur.is`,
-      displayName: username,
+      uid: `demo-user-id-${cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      email: username.includes('@')
+        ? username.toLowerCase()
+        : `${username.toLowerCase()}@birtingur.is`,
+      displayName: cleanUsername,
       emailVerified: true,
       isDemo: true,
       admin: true,

@@ -17,11 +17,20 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'npx turbo dev --filter=@ada/dashboard --filter=@ada/api',
-    cwd: '../../',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-  },
+  webServer: [
+    {
+      command: 'npx pnpm --filter @ada/dashboard dev',
+      cwd: '../../',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+    {
+      command: 'npx pnpm --filter @ada/api dev',
+      cwd: '../../',
+      url: 'http://localhost:3001/healthz',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120000,
+    },
+  ],
 });

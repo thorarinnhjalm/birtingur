@@ -2,6 +2,15 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 
+const originallyHadEmulator = !!(
+  process.env.FIRESTORE_EMULATOR_HOST ||
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  process.env.FIREBASE_EMULATOR_HUB
+);
+
+console.log('[API env] FIRESTORE_EMULATOR_HOST =', process.env.FIRESTORE_EMULATOR_HOST);
+console.log('[API env] originallyHadEmulator =', originallyHadEmulator);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const envPath = join(__dirname, '../../../../.env.local');
@@ -45,11 +54,13 @@ if (isTest) {
   delete process.env.FIREBASE_PROJECT_ID;
   delete process.env.FIREBASE_DATABASE_ID;
 } else {
-  const hasProductionCredentials = !!(
-    process.env.FIREBASE_PRIVATE_KEY &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PROJECT_ID
-  );
+  const isEmulatorRunning = originallyHadEmulator;
+  const hasProductionCredentials =
+    !!(
+      process.env.FIREBASE_PRIVATE_KEY &&
+      process.env.FIREBASE_CLIENT_EMAIL &&
+      process.env.FIREBASE_PROJECT_ID
+    ) && !isEmulatorRunning;
   if (hasProductionCredentials) {
     delete process.env.FIRESTORE_EMULATOR_HOST;
     delete process.env.FIREBASE_AUTH_EMULATOR_HOST;

@@ -44,12 +44,14 @@ export default function SignIn() {
     setError(null);
     setLoading(true);
 
-    if (
-      (email.trim() === 'DemoA' || email.trim() === 'demoa@birtingur.is') &&
-      password === 'password'
-    ) {
+    const isDemo =
+      (email.trim().toLowerCase().startsWith('demo') ||
+        email.trim().toLowerCase().endsWith('@birtingur.is')) &&
+      password === 'password';
+
+    if (isDemo) {
       try {
-        signInDemo('DemoA');
+        signInDemo(email.trim());
         handleSuccessRedirect();
         return;
       } catch {
