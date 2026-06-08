@@ -310,11 +310,13 @@ export default function AdvertiserOnboarding() {
                     Sjálfvirk vefgreining gervigreindar
                   </h4>
                   <p className="text-xs text-indigo-600 mt-0.5 leading-relaxed">
-                    Vefsíðan þín var flokkuð sem **
-                    {scrapedCategories.map((cat) => translateCategory(cat)).join(', ') ||
-                      'Almennt / Annað'}
-                    ** með {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til
-                    að mæla með bestu birtingarstöðunum fyrir auglýsingar þínar.
+                    Vefsíðan þín var flokkuð sem{' '}
+                    <strong>
+                      {scrapedCategories.map((cat) => translateCategory(cat)).join(', ') ||
+                        'Almennt / Annað'}
+                    </strong>{' '}
+                    með {Math.round(scrapedConfidence * 100)}% nákvæmni. Þetta verður notað til að
+                    mæla með bestu birtingarstöðunum fyrir auglýsingar þínar.
                   </p>
                 </div>
               </div>

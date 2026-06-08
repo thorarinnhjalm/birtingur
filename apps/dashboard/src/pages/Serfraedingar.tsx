@@ -140,7 +140,7 @@ export default function Serfraedingar() {
             <Sparkles size={14} className="text-indigo-600" />
             Ný nálgun í markaðsmálum á Íslandi
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
             Hæ Auður og Eydís! 👋
             <span className="block mt-3 bg-linear-to-r from-blue-600 via-indigo-600 to-purple-650 bg-clip-text text-transparent">
               Viðbót sem vantaði
@@ -165,9 +165,10 @@ export default function Serfraedingar() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Íslenski markaðurinn hefur lengi verið einkennst af örfáum risastórum fréttamiðlum þar
-              sem auglýsingar drukkna í suði. Birtingur safnar saman **sérhæfðum íslenskum vefjum,
-              bloggum og áhugamálavefjum**. Þessir miðlar hafa kannski minni heildarumferð en
-              risarnir, en **fylgjendahópurinn er gríðarlega einbeittur, tryggur og traustur**.
+              sem auglýsingar drukkna í suði. Birtingur safnar saman{' '}
+              <strong>sérhæfðum íslenskum vefjum, bloggum og áhugamálavefjum</strong>. Þessir miðlar
+              hafa kannski minni heildarumferð en risarnir, en{' '}
+              <strong>fylgjendahópurinn er gríðarlega einbeittur, tryggur og traustur</strong>.
               Auglýsing þar hefur margfalt meira vægi og trúverðugleika.
             </p>
           </Card>
@@ -182,10 +183,11 @@ export default function Serfraedingar() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Nú þegar vafrakökur (cookies) eru að deyja og persónuverndarlög (GDPR) herða tökin á
-              hefðbundinni vefsporun, er tími **samhengismiðunar (Contextual Targeting)** runninn
-              upp. Birtingur miðar auglýsingum eftir samhengi: fjármálaauglýsing á fjármálablogg,
-              hönnunarauglýsing á lífsstílsvef. Þetta grípur neytandann í réttu hugarástandi án þess
-              að elta hann á röndum eða brjóta á friðhelgi hans.
+              hefðbundinni vefsporun, er tími{' '}
+              <strong>samhengismiðunar (Contextual Targeting)</strong> runninn upp. Birtingur miðar
+              auglýsingum eftir samhengi: fjármálaauglýsing á fjármálablogg, hönnunarauglýsing á
+              lífsstílsvef. Þetta grípur neytandann í réttu hugarástandi án þess að elta hann á
+              röndum eða brjóta á friðhelgi hans.
             </p>
           </Card>
 
@@ -199,10 +201,10 @@ export default function Serfraedingar() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Risavefirnir eru pakkaðir af blikkandi borðum, sjálfvirkum endurhleðslum (refresh
-              loops) og truflunum. Birtingur bannar suð. Hvert auglýsingapláss sýnir **aðeins eina
-              vandaða auglýsing í senn** og hún hleðst rólega. Þetta gefur vörumerkinu óskipta
-              athygli lesandans meðan á lestri stendur, sem skilar sér í mun betra minni og hærra
-              smellihlutfalli.
+              loops) og truflunum. Birtingur bannar suð. Hvert auglýsingapláss sýnir{' '}
+              <strong>aðeins eina vandaða auglýsing í senn</strong> og hún hleðst rólega. Þetta
+              gefur vörumerkinu óskipta athyglin lesandans meðan á lestri stendur, sem skilar sér í
+              mun betra minni og hærra smellihlutfalli.
             </p>
           </Card>
 

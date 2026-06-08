@@ -154,15 +154,16 @@ export default function Tryggvi() {
             <Sparkles size={14} className="text-emerald-600" />
             Hönnunarsamstarf & tæknileg samlegð
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
             Hæ Tryggvi og Datera! 👋
             <span className="block mt-3 bg-linear-to-r from-blue-600 via-cyan-600 to-teal-600 bg-clip-text text-transparent">
               Fjölmiðlaáætlun mætir auglýsingamiðlun
             </span>
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-semibold max-w-2xl mx-auto">
-            Tryggvi, þú og teymið þitt eruð að smíða **Birtu (Media Planning)** en við erum með
-            innviðina í **Birtingi (Ad Serving)**. Hvað ef við gætum brúað bilið?
+            Tryggvi, þú og teymið þitt eruð að smíða <strong>Birtu (Media Planning)</strong> en við
+            erum með innviðina í <strong>Birtingi (Ad Serving)</strong>. Hvað ef við gætum brúað
+            bilið?
           </p>
         </section>
 
@@ -179,18 +180,20 @@ export default function Tryggvi() {
           </div>
           <div className="text-sm text-slate-650 leading-relaxed font-medium space-y-4 max-w-3xl">
             <p>
-              **Birta (birta.datera.is)** er frábært kerfi til að skipuleggja birtingaráætlanir,
-              bera saman fjölmiðla og halda utan um herferðir. Hins vegar þarf að framkvæma bókanir
-              og birta efnin handvirkt eða í gegnum mörg ólík kerfi á íslenskum markaði.
+              <strong>Birta (birta.datera.is)</strong> er frábært kerfi til að skipuleggja
+              birtingaráætlanir, bera saman fjölmiðla og halda utan um herferðir. Hins vegar þarf að
+              framkvæma bókanir og birta efnin handvirkt eða í gegnum mörg ólík kerfi á íslenskum
+              markaði.
             </p>
             <p>
-              **Birtingur** býður upp á rauntíma auglýsingabirtingar og sjálfvirkt net af vönduðum
-              íslenskum samstarfsvefjum (niche network).
+              <strong>Birtingur</strong> býður upp á rauntíma auglýsingabirtingar og sjálfvirkt net
+              af vönduðum íslenskum samstarfsvefjum (niche network).
             </p>
             <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-slate-800">
               <strong className="block text-slate-900 mb-1.5">Samlegðin:</strong>
-              Með því að tengja **Birtu** við **Birting** með einföldu API-kalli geta viðskiptavinir
-              Datera keypt, dreift og birt auglýsingar sínar á íslenskum vefjum með **einum smelli**
+              Með því að tengja <strong>Birtu</strong> við <strong>Birting</strong> með einföldu
+              API-kalli geta viðskiptavinir Datera keypt, dreift og birt auglýsingar sínar á
+              íslenskum vefjum með <strong>einum smelli</strong>
               beint úr skipulagsborðinu yfir í okkar Ad Serving net.
             </div>
           </div>
@@ -206,9 +209,9 @@ export default function Tryggvi() {
             <h3 className="text-xl font-bold text-slate-950">Blistering Fast Edge Ad Serving</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Vefir viðskiptavina ykkar eiga ekki að hægja á sér vegna auglýsinga. Innviðir okkar
-              keyra á **Hono + Cloudflare Workers** sem tryggir **&lt;15ms serving** á Edge-inu á
-              Íslandi. Ef netið dettur út, fellur skriftan hljóðlega niður (fail-silent) án þess að
-              tefja síðuna.
+              keyra á <strong>Hono + Cloudflare Workers</strong> sem tryggir{' '}
+              <strong>&lt;15ms serving</strong> á Edge-inu á Íslandi. Ef netið dettur út, fellur
+              skriftan hljóðleiðis niður (fail-silent) án þess að tefja síðuna.
             </p>
           </Card>
 
@@ -222,9 +225,9 @@ export default function Tryggvi() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Sem data-driven stofa vitið þið hversu erfitt er að halda utan um vafrakökusamþykki.
-              Birtingur notar **engar vafrakökur (cookies)** og enga notendasporun. Við styðjumst
-              eingöngu við **samhengismiðun (contextual targeting)** og lénsstýringu, sem er 100%
-              GDPR-vænt.
+              Birtingur notar <strong>engar vafrakökur (cookies)</strong> og enga notendasporun. Við
+              styðjumst eingöngu við <strong>samhengismiðun (contextual targeting)</strong> og
+              lénsstýringu, sem er 100% GDPR-vænt.
             </p>
           </Card>
 
@@ -238,9 +241,9 @@ export default function Tryggvi() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Allar auglýsingar sem hlaðið er upp fara í gegnum sjálfvirka myndagreiningu með
-              **Gemini AI**. Þær eru flokkaðar og athugaðar upp á gæði, textahlutfall og viðeigandi
-              innihald. Þetta tryggir 100% vörumerkjaöryggi (Brand Safety) fyrir viðskiptavini
-              ykkar.
+              <strong>Gemini AI</strong>. Þær eru flokkaðar og athugaðar upp á gæði, textahlutfall
+              og viðeigandi innihald. Þetta tryggir 100% vörumerkjaöryggi (Brand Safety) fyrir
+              viðskiptavini ykkar.
             </p>
           </Card>
 
@@ -254,8 +257,8 @@ export default function Tryggvi() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Auglýsingar drukkna oft í suðinu á risamiðlunum. Við tengjum saman trygga íslenska
-              nisjumiðla þar sem hvert pláss sýnir **aðeins eina auglýsingu í senn**. Þetta gefur
-              miklu meira CTR (meðaltal 1.8%) og meiri athygli fyrir herferðirnar.
+              nisjumiðla þar sem hvert pláss sýnir <strong>aðeins eina auglýsingu í senn</strong>.
+              Þetta gefur miklu meira CTR (meðaltal 1.8%) og meiri athygli fyrir herferðirnar.
             </p>
           </Card>
         </section>

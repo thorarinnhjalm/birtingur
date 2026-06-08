@@ -711,8 +711,8 @@ export default function LandingPage() {
                     <h3 className="text-lg font-bold text-white">Gagnsætt og samræmt verðlag</h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
                       Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu fyrir
-                      almennar sýningar, en styðjum einnig **fasta tímabilsleigu** (t.d. fast verð
-                      fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
+                      almennar sýningar, en styðjum einnig <strong>fasta tímabilsleigu</strong>{' '}
+                      (t.d. fast verð fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
                     </p>
                   </div>
 
@@ -901,9 +901,10 @@ export default function LandingPage() {
                   </h3>
                   <p className="text-sm text-slate-600 leading-relaxed mb-6">
                     Inneignir eru keyptar fyrirfram með kreditkorti í gegnum örugga greiðslugátt
-                    **Teya**. Innlögnin sjálf er VSK-frjáls innlögn á veltureikning og fer 100%
-                    óskert í inneignarveskið þitt. Rafrænn VSK-reikningur er eingöngu gefinn út
-                    fyrir umsýsluþóknun Birtings (20% af eyðslu) jafnóðum og auglýsingar eru sýndar.
+                    <strong>Teya</strong>. Innlögnin sjálf er VSK-frjáls innlögn á veltureikning og
+                    fer 100% óskert í inneignarveskið þitt. Rafrænn VSK-reikningur er eingöngu
+                    gefinn út fyrir umsýsluþóknun Birtings (20% af eyðslu) jafnóðum og auglýsingar
+                    eru sýndar.
                   </p>
 
                   {/* calculation example */}
@@ -1114,15 +1115,16 @@ export default function LandingPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-slate-600 leading-relaxed">
                 <p>
-                  Kerfið tekur **20% flatgreidda þóknun** (Platform Fee) af öllum auglýsingatekjum
-                  sem miðlað er á vefinn þinn. Þessi þóknun stendur straum af rekstri netþjóna,
-                  greiðslugáttum, sjálfvirkri nsfw modereringu og umsýslu. Engin önnur gjöld eiga
-                  við.
+                  Kerfið tekur <strong>20% flatgreidda þóknun</strong> (Platform Fee) af öllum
+                  auglýsingatekjum sem miðlað er á vefinn þinn. Þessi þóknun stendur straum af
+                  rekstri netþjóna, greiðslugáttum, sjálfvirkri nsfw modereringu og umsýslu. Engin
+                  önnur gjöld eiga við.
                 </p>
                 <p>
                   Tekjur þínar safnast upp í rauntíma á fjárhagsbók (ledger) stjórnborðsins. Ef
-                  inneign þín nær **5.000 kr.** er hún greidd út á skráðan bankareikning fyrsta
-                  virka dag hvers mánaðar. Safnist minni upphæð flyst hún óskert yfir á næsta mánuð.
+                  inneign þín nær <strong>5.000 kr.</strong> er hún greidd út á skráðan
+                  bankareikning fyrsta virka dag hvers mánaðar. Safnist minni upphæð flyst hún
+                  óskert yfir á næsta mánuð.
                 </p>
               </div>
             </div>
@@ -1240,11 +1242,11 @@ export default function LandingPage() {
                   1. Almenn ákvæði
                 </h2>
                 <p>
-                  Vefurinn **birtingur.app** (hér eftir „Birtingur“ eða „Vettvangurinn“) er rekinn
-                  af **Nútímalegri auglýsingamiðlun ehf.**, kt. 560126-1020, Laugavegi 182, 105
-                  Reykjavík (hér eftir „Félagið“). Birtingur er sjálfvirkur
-                  sjálfsafgreiðsluvettvangur sem tengir saman útgefendur vefsvæða og auglýsendur á
-                  Íslandi.
+                  Vefurinn <strong>birtingur.app</strong> (hér eftir „Birtingur“ eða
+                  „Vettvangurinn“) er rekinn af <strong>Nútímalegri auglýsingamiðlun ehf.</strong>,
+                  kt. 560126-1020, Laugavegi 182, 105 Reykjavík (hér eftir „Félagið“). Birtingur er
+                  sjálfvirkur sjálfsafgreiðsluvettvangur sem tengir saman útgefendur vefsvæða og
+                  auglýsendur á Íslandi.
                 </p>
                 <p>
                   Skilmálar þessir gilda um öll viðskipti og notkun á þjónustu Birtings, hvort sem
@@ -1258,26 +1260,27 @@ export default function LandingPage() {
                   2. Skilmálar fyrir auglýsendur (Kaupendur)
                 </h2>
                 <p>
-                  **Innborgun og Wallet**: Birtingur notar fyrirframgreitt inneignarkerfi (Wallet).
-                  Auglýsendur leggja inn inneign með kreditkorti í gegnum örugga greiðslugátt
-                  **Teya**. Lágmarksinnborgun er 2.000 kr. Innlögnin er VSK-frjáls innlögn á
-                  veltureikning og bætist 100% við inneign þína. Við innborgun færðu senda kvittun
-                  fyrir innlögninni. Lögbundinn sölureikningur með 24% virðisaukaskatti (VSK) er
-                  gefinn út fyrir 20% umsýsluþóknun Birtings jafnóðum og herferðir eru birtar.
-                  Inneignir fyrnast ekki en eru almennt ekki endurgreiddar nema herferðir séu
-                  stöðvaðar af hálfu kerfisins.
+                  <strong>Innborgun og Wallet</strong>: Birtingur notar fyrirframgreitt
+                  inneignarkerfi (Wallet). Auglýsendur leggja inn inneign með kreditkorti í gegnum
+                  örugga greiðslugátt
+                  <strong>Teya</strong>. Lágmarksinnborgun er 2.000 kr. Innlögnin er VSK-frjáls
+                  innlögn á veltureikning og bætist 100% við inneign þína. Við innborgun færðu senda
+                  kvittun fyrir innlögninni. Lögbundinn sölureikningur með 24% virðisaukaskatti
+                  (VSK) er gefinn út fyrir 20% umsýsluþóknun Birtings jafnóðum og herferðir eru
+                  birtar. Inneignir fyrnast ekki en eru almennt ekki endurgreiddar nema herferðir
+                  séu stöðvaðar af hálfu kerfisins.
                 </p>
                 <p>
-                  **Auglýsingaefni (Creatives)**: Auglýsendur bera fulla ábyrgð á því efni sem þeir
-                  hlaða upp í kerfið. Öllum auglýsingum er skannað sjálfvirkt fyrir óviðeigandi efni
-                  (t.d. nekt, ofbeldi) og þær þurfa samþykki kerfisstjóra áður en þær fara í
-                  birtingu. Ólöglegt efni, hatursáróður eða efni sem brýtur gegn höfundarrétti er
-                  stranglega bannað.
+                  <strong>Auglýsingaefni (Creatives)</strong>: Auglýsendur bera fulla ábyrgð á því
+                  efni sem þeir hlaða upp í kerfið. Öllum auglýsingum er skannað sjálfvirkt fyrir
+                  óviðeigandi efni (t.d. nekt, ofbeldi) og þær þurfa samþykki kerfisstjóra áður en
+                  þær fara í birtingu. Ólöglegt efni, hatursáróður eða efni sem brýtur gegn
+                  höfundarrétti er stranglega bannað.
                 </p>
                 <p>
-                  **Birtingar og kostnaður**: Kostnaður er dreginn af inneign notanda í rauntíma
-                  samkvæmt CPM (kostnaður per 1.000 sýningar) eða samkvæmt föstu verði plássa.
-                  Kerfið stöðvar herferð sjálfkrafa um leið og inneign hennar tæmist.
+                  <strong>Birtingar og kostnaður</strong>: Kostnaður er dreginn af inneign notanda í
+                  rauntíma samkvæmt CPM (kostnaður per 1.000 sýningar) eða samkvæmt föstu verði
+                  plássa. Kerfið ver herferð sjálfkrafa um leið og inneign hennar tæmist.
                 </p>
               </section>
 
@@ -1286,21 +1289,22 @@ export default function LandingPage() {
                   3. Skilmálar fyrir útgefendur (Söluaðila)
                 </h2>
                 <p>
-                  **Uppsetning og rekstur**: Útgefandi setur inn létta Javascript skriftu
-                  (widget.js) á sitt vefsvæði til að birta auglýsingar. Skriftan vinnur ósamstillt
-                  (async) og fellur út hljóðlaust ef villa kemur upp, án þess að tefja eða skemma
-                  fyrir vefnum.
+                  <strong>Uppsetning og rekstur</strong>: Útgefandi setur inn létta Javascript
+                  skriftu (widget.js) á sitt vefsvæði til að birta auglýsingar. Skriftan vinnur
+                  ósamstillt (async) og fellur út hljóðlaust ef villa kemur upp, aun þess að tefja
+                  eða skemma fyrir vefnum.
                 </p>
                 <p>
-                  **Ritstjórnarlegt frelsi**: Útgefandi getur virkjað handvirka samþykkisbiðröð
-                  (Approvals Queue) í sínu stjórnborði. Þannig er hægt að skoða og samþykkja eða
-                  hafna öllum auglýsingaborðum áður en þeir birtast á vefnum.
+                  <strong>Ritstjórnarlegt frelsi</strong>: Útgefandi getur virkjað handvirka
+                  samþykkisbiðröð (Approvals Queue) í sínu stjórnborði. Þannig er hægt að skoða og
+                  samþykkja eða hafna öllum auglýsingaborðum áður en þeir birtast á vefnum.
                 </p>
                 <p>
-                  **Þóknun og greiðslur**: Birtingur tekur **20% flatgreidda þóknun** af öllum
-                  auglýsingatekjum sem miðlast í gegnum kerfið. Þóknunin stendur straum af rekstri,
-                  greiðslugáttum og umsýslu. Tekjur útgefanda safnast upp í rauntíma. Ef áunnin
-                  inneign nær **5.000 kr.** nettó greiðist hún út á skráðan bankareikning fyrsta
+                  <strong>Þóknun og greiðslur</strong>: Birtingur tekur{' '}
+                  <strong>20% flatgreidda þóknun</strong> af öllum auglýsingatekjum sem miðlast í
+                  gegnum kerfið. Þóknunin stendur straum af rekstri, greiðslugáttum og umsýslu.
+                  Tekjur útgefanda safnast upp í rauntíma. Ef áunnin inneign nær{' '}
+                  <strong>5.000 kr.</strong> nettó greiðist hún út á skráðan bankareikning fyrsta
                   virka dag næsta mánaðar. Útgefandi ber ábyrgð á því að banka- og
                   reikningsupplýsingar séu réttar.
                 </p>
@@ -1312,17 +1316,17 @@ export default function LandingPage() {
                 </h2>
                 <p>
                   Birtingur leggur mikla áherslu á persónuvernd og lágmarkar söfnun gagna. Kerfið
-                  safnar **ekki persónugreinanlegum vafrakökum** (tracking cookies) til að fylgjast
-                  með notendum á milli vefsvæða.
+                  safnar <strong>ekki persónugreinanlegum vafrakökum</strong> (tracking cookies) til
+                  að fylgjast með notendum á milli vefsvæða.
                 </p>
                 <p>
-                  **Gagnaúrvinnsla**: Auglýsingamiðlun okkar er samhengismiðuð (Contextual
-                  Targeting) og byggist á flokkun vefefnis og grófri staðsetningu (landfræðilegt
-                  svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru aldrei vistaðar í
-                  gagnagrunni okkar heldur eru þær eingöngu notaðar í rauntíma til að ákvarða
-                  birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur telst því
-                  vera vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili (Controller)
-                  gagnvart sínum lesendum.
+                  <strong>Gagnaúrvinnsla</strong>: Auglýsingamiðlun okkar er samhengismiðuð
+                  (Contextual Targeting) og byggist á flokkun vefefnis og grófri staðsetningu
+                  (landfræðilegt svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru aldrei
+                  vistaðar í gagnagrunni okkar heldur eru þær eingöngu notaðar í rauntíma til að
+                  ákvarða birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur
+                  telst því vera vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili
+                  (Controller) gagnvart sínum lesendum.
                 </p>
               </section>
 

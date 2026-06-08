@@ -144,7 +144,7 @@ export default function Bjarni() {
             <Sparkles size={14} className="text-emerald-600" />
             Persónuleg kynning
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
             Hæ Bjarni! 👋
             <span className="block mt-3 bg-linear-to-r from-blue-600 via-indigo-600 to-emerald-600 bg-clip-text text-transparent">
               Ég heiti Birtingur

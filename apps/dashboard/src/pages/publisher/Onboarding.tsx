@@ -309,10 +309,12 @@ export default function PublisherOnboarding() {
                     Sjálfvirk flokkun gervigreindar tókst
                   </h4>
                   <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
-                    Vefurinn var greindur sem **
-                    {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label ||
-                      'Almennt'}
-                    ** með {Math.round(confidence * 100)}% öryggi.
+                    Vefurinn var greindur sem{' '}
+                    <strong>
+                      {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label ||
+                        'Almennt'}
+                    </strong>{' '}
+                    með {Math.round(confidence * 100)}% öryggi.
                   </p>
                 </div>
               </div>
@@ -537,8 +539,8 @@ export default function PublisherOnboarding() {
                 <div className="mt-3 space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 animate-fadeIn">
                   <p className="text-xs text-slate-500 leading-relaxed">
                     Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær
-                    eingöngu þegar reikningurinn þinn nær lágmarksútborgun (**5.000 kr.**). Þá
-                    geturðu auðveldlega skráð þær í stillingum.
+                    eingöngu þegar reikningurinn þinn nær lágmarksútborgun (
+                    <strong>5.000 kr.</strong>). Þá geturðu auðveldlega skráð þær í stillingum.
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

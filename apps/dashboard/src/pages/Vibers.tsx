@@ -158,7 +158,7 @@ export default function Vibers() {
             <Sparkles size={14} className="text-blue-600" />
             Einfalt og áhrifaríkt fyrir vefhönnuði
           </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
             Hæ Árni og Villi! 👋
             <span className="block mt-3 bg-linear-to-r from-blue-600 via-sky-600 to-indigo-600 bg-clip-text text-transparent">
               Sleppum tæknirúnkinu
@@ -201,9 +201,9 @@ export default function Vibers() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Við vitum að þið viljið ekki hægja á vefnum sem þið voruð að fínstilla. Skriftan okkar
-              er undir **1.5 KB** og hleðst async. Ef kerfið okkar myndi einhvern tíman liggja
-              niðri, þá fellur hún hljóðlega niður (fail-silent) og felur plássið sjálfkrafa. Engin
-              seinkun, engin SEO-refsing.
+              er undir <strong>1.5 KB</strong> og hleðst async. Ef kerfið okkar myndi einhvern tíman
+              liggja niðri, þá fellur hún hljóðlega niður (fail-silent) og felur plássið sjálfkrafa.
+              Engin seinkun, engin SEO-refsing.
             </p>
           </Card>
 
