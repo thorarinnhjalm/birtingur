@@ -1,12 +1,10 @@
 import type { CachedCreative, SlotCacheEntry } from '@ada/shared';
 
-import type { VisitorRegion } from './geo.js';
-
 export interface SelectionContext {
   country: string;
   consent: 'full' | 'none';
   visitorImpressionsToday: Record<string, number>;
-  region?: VisitorRegion;
+  regions?: string[];
 }
 
 function isEligible(c: CachedCreative, ctx: SelectionContext, now: number): boolean {
@@ -19,11 +17,11 @@ function isEligible(c: CachedCreative, ctx: SelectionContext, now: number): bool
     if (seen >= c.frequencyCapPerDay) return false;
   }
   // Region targeting (fail-open): only filter when the creative restricts regions, the visitor
-  // region is known, and 'all' is not present.
+  // regions are known, and 'all' is not present.
   const regions = c.geoRegions ?? [];
-  const visitorRegion = ctx.region ?? 'unknown';
-  if (regions.length > 0 && !regions.includes('all') && visitorRegion !== 'unknown') {
-    if (!regions.includes(visitorRegion)) return false;
+  const visitorRegions = ctx.regions ?? ['unknown'];
+  if (regions.length > 0 && !regions.includes('all') && !visitorRegions.includes('unknown')) {
+    if (!regions.some((r) => visitorRegions.includes(r))) return false;
   }
   return true;
 }

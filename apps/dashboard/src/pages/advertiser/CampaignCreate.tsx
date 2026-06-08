@@ -23,6 +23,25 @@ import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 
+const REGION_LABELS: Record<string, string> = {
+  all: 'Allt landið',
+  capital: 'Höfuðborgarsvæðið',
+  countryside: 'Landsbyggðin',
+  reykjavik: 'Reykjavík',
+  kopavogur: 'Kópavogur',
+  hafnarfjordur: 'Hafnarfjörður',
+  gardabaer: 'Garðabær',
+  mosfellsbaer: 'Mosfellsbær',
+  seltjarnarnes: 'Seltjarnarnes',
+  akureyri: 'Akureyri',
+  reykjanesbaer: 'Reykjanesbær',
+  selfoss: 'Selfoss',
+  akranes: 'Akranes',
+  isafjordur: 'Ísafjörður',
+  egilsstadir: 'Egilsstaðir',
+  vestmannaeyjar: 'Vestmannaeyjar',
+};
+
 export default function CampaignCreate() {
   const navigate = useNavigate();
   const walletQuery = useWallet();
@@ -52,7 +71,7 @@ export default function CampaignCreate() {
 
   // Step 3: Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<'all' | 'capital' | 'countryside'>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
 
   // Handle local image file load for sizing
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,6 +430,49 @@ export default function CampaignCreate() {
                   Landsbyggðin
                 </div>
               </div>
+
+              {/* Specific City Selector */}
+              <div className="pt-2">
+                <label
+                  htmlFor="city-select"
+                  className="block text-xs font-bold text-slate-700 mb-1.5"
+                >
+                  Eða velja ákveðinn bæ/bæjarfélag:
+                </label>
+                <select
+                  id="city-select"
+                  value={
+                    ['all', 'capital', 'countryside'].includes(selectedRegion) ? '' : selectedRegion
+                  }
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setSelectedRegion(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white hover:border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-blue-600"
+                >
+                  <option value="">-- Veldu bæjarfélag --</option>
+                  <option value="reykjavik">Reykjavík</option>
+                  <option value="kopavogur">Kópavogur</option>
+                  <option value="hafnarfjordur">Hafnarfjörður</option>
+                  <option value="gardabaer">Garðabær</option>
+                  <option value="mosfellsbaer">Mosfellsbær</option>
+                  <option value="seltjarnarnes">Seltjarnarnes</option>
+                  <option value="akureyri">Akureyri</option>
+                  <option value="reykjanesbaer">Reykjanesbær</option>
+                  <option value="selfoss">Selfoss</option>
+                  <option value="akranes">Akranes</option>
+                  <option value="isafjordur">Ísafjörður</option>
+                  <option value="egilsstadir">Egilsstaðir</option>
+                  <option value="vestmannaeyjar">Vestmannaeyjar</option>
+                </select>
+                {!['all', 'capital', 'countryside'].includes(selectedRegion) && (
+                  <p className="text-[11px] text-blue-600 font-bold mt-1.5">
+                    Valið bæjarfélag:{' '}
+                    <strong>{REGION_LABELS[selectedRegion] || selectedRegion}</strong>
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Reach Forecast Panel */}
@@ -532,11 +594,7 @@ export default function CampaignCreate() {
                 <div>
                   <span className="block text-slate-500 font-medium text-xs">Landshlutar:</span>
                   <span className="font-bold text-slate-950 text-sm">
-                    {selectedRegion === 'all'
-                      ? 'Allt land'
-                      : selectedRegion === 'capital'
-                        ? 'Höfuðborgarsvæðið'
-                        : 'Landsbyggðin'}
+                    {REGION_LABELS[selectedRegion] || selectedRegion}
                   </span>
                 </div>
               </div>

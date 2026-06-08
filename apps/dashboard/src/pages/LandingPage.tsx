@@ -15,14 +15,26 @@ export default function LandingPage() {
   // Handle URL synchronisation with search params (e.g. ?tab=faq)
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabType;
-    if (tabParam && ['home', 'advertisers', 'publishers', 'faq', 'terms'].includes(tabParam)) {
+    if (tabParam === 'advertisers') {
+      navigate('/auglysendur', { replace: true });
+    } else if (tabParam === 'publishers') {
+      navigate('/midlar', { replace: true });
+    } else if (tabParam && ['home', 'faq', 'terms'].includes(tabParam)) {
       setCurrentTab(tabParam);
     } else {
       setCurrentTab('home');
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const changeTab = (tab: TabType) => {
+    if (tab === 'advertisers') {
+      navigate('/auglysendur');
+      return;
+    }
+    if (tab === 'publishers') {
+      navigate('/midlar');
+      return;
+    }
     setSearchParams(tab === 'home' ? {} : { tab });
     setCurrentTab(tab);
     setMobileMenuOpen(false);

@@ -11,6 +11,8 @@ import Serfraedingar from '@/pages/Serfraedingar';
 import Bjarni from '@/pages/Bjarni';
 import { LoadingState } from '@/components/ui/LoadingState';
 import Tryggvi from '@/pages/Tryggvi';
+import AdvertiserLanding from '@/pages/AdvertiserLanding';
+import PublisherLanding from '@/pages/PublisherLanding';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -91,6 +93,10 @@ export default function App() {
       <Route path="/bjarni" element={<Bjarni />} />
       <Route path="/tryggvi" element={<Tryggvi />} />
       <Route path="/datera" element={<Tryggvi />} />
+      <Route path="/auglysendur" element={<AdvertiserLanding />} />
+      <Route path="/auglysendur/:region" element={<AdvertiserLanding />} />
+      <Route path="/midlar" element={<PublisherLanding />} />
+      <Route path="/midlar/:region" element={<PublisherLanding />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

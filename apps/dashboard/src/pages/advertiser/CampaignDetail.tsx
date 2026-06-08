@@ -29,6 +29,25 @@ import { AD_CATEGORIES, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
 
+const REGION_LABELS: Record<string, string> = {
+  all: 'Allt landið',
+  capital: 'Höfuðborgarsvæðið',
+  countryside: 'Landsbyggðin',
+  reykjavik: 'Reykjavík',
+  kopavogur: 'Kópavogur',
+  hafnarfjordur: 'Hafnarfjörður',
+  gardabaer: 'Garðabær',
+  mosfellsbaer: 'Mosfellsbær',
+  seltjarnarnes: 'Seltjarnarnes',
+  akureyri: 'Akureyri',
+  reykjanesbaer: 'Reykjanesbær',
+  selfoss: 'Selfoss',
+  akranes: 'Akranes',
+  isafjordur: 'Ísafjörður',
+  egilsstadir: 'Egilsstaðir',
+  vestmannaeyjar: 'Vestmannaeyjar',
+};
+
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,7 +90,7 @@ export default function CampaignDetail() {
   const [editEndsAt, setEditEndsAt] = useState('');
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editCreativeIds, setEditCreativeIds] = useState<string[]>([]);
-  const [editRegion, setEditRegion] = useState<'all' | 'capital' | 'countryside'>('all');
+  const [editRegion, setEditRegion] = useState<string>('all');
   const [editTotalBudget, setEditTotalBudget] = useState(0);
   const [editError, setEditError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -307,6 +326,13 @@ export default function CampaignDetail() {
             {campaign.targeting.categories
               .map((cat) => AD_CATEGORIES.find((c) => c.slug === cat)?.label || cat)
               .join(', ')}
+          </div>
+          <div className="mt-2 text-xs text-slate-500 font-semibold">
+            Svæði:{' '}
+            <span className="text-slate-700 font-bold">
+              {REGION_LABELS[campaign.targeting.geoRegions?.[0] || 'all'] ||
+                campaign.targeting.geoRegions?.[0]}
+            </span>
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
             <Calendar size={14} />
@@ -632,7 +658,7 @@ export default function CampaignDetail() {
                   ].map((region) => (
                     <div
                       key={region.key}
-                      onClick={() => setEditRegion(region.key as any)}
+                      onClick={() => setEditRegion(region.key)}
                       className={`p-2.5 rounded-lg border cursor-pointer text-center select-none transition-all duration-150 ${
                         editRegion === region.key
                           ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
@@ -642,6 +668,39 @@ export default function CampaignDetail() {
                       {region.label}
                     </div>
                   ))}
+                </div>
+
+                {/* Specific City Selector inside Edit Modal */}
+                <div className="pt-1.5">
+                  <select
+                    value={['all', 'capital', 'countryside'].includes(editRegion) ? '' : editRegion}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setEditRegion(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white hover:border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-blue-650"
+                  >
+                    <option value="">-- Eða veldu bæjarfélag --</option>
+                    <option value="reykjavik">Reykjavík</option>
+                    <option value="kopavogur">Kópavogur</option>
+                    <option value="hafnarfjordur">Hafnarfjörður</option>
+                    <option value="gardabaer">Garðabær</option>
+                    <option value="mosfellsbaer">Mosfellsbær</option>
+                    <option value="seltjarnarnes">Seltjarnarnes</option>
+                    <option value="akureyri">Akureyri</option>
+                    <option value="reykjanesbaer">Reykjanesbær</option>
+                    <option value="selfoss">Selfoss</option>
+                    <option value="akranes">Akranes</option>
+                    <option value="isafjordur">Ísafjörður</option>
+                    <option value="egilsstadir">Egilsstaðir</option>
+                    <option value="vestmannaeyjar">Vestmannaeyjar</option>
+                  </select>
+                  {!['all', 'capital', 'countryside'].includes(editRegion) && (
+                    <p className="text-[10px] text-blue-600 font-bold mt-1">
+                      Valið bæjarfélag: {REGION_LABELS[editRegion] || editRegion}
+                    </p>
+                  )}
                 </div>
               </div>
 

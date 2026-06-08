@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { FLAT_CPM_ISK } from '@ada/shared';
 import { selectCreative } from '../lib/select.js';
-import { regionFromHeaders } from '../lib/geo.js';
+import { getVisitorRegions } from '../lib/geo.js';
 import {
   getOrCreateVisitorToken,
   setCookieHeader,
@@ -79,7 +79,7 @@ adRoute.get('/', async (c) => {
     }),
   };
 
-  const region = regionFromHeaders({
+  const regions = getVisitorRegions({
     'x-vercel-ip-city': c.req.header('x-vercel-ip-city'),
   });
 
@@ -87,7 +87,7 @@ adRoute.get('/', async (c) => {
     country,
     consent: consentParam,
     visitorImpressionsToday,
-    region,
+    regions,
   });
 
   if (!creative) {

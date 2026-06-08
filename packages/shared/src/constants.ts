@@ -17,7 +17,24 @@ export const IAB_STANDARD_SIZES = [
 ] as const;
 
 /** Geo targeting regions (Icelandic) */
-export const GEO_REGIONS = ['all', 'capital', 'countryside'] as const;
+export const GEO_REGIONS = [
+  'all',
+  'capital',
+  'countryside',
+  'reykjavik',
+  'kopavogur',
+  'hafnarfjordur',
+  'gardabaer',
+  'mosfellsbaer',
+  'seltjarnarnes',
+  'akureyri',
+  'reykjanesbaer',
+  'selfoss',
+  'akranes',
+  'isafjordur',
+  'egilsstadir',
+  'vestmannaeyjar',
+] as const;
 export type GeoRegion = (typeof GEO_REGIONS)[number];
 
 /** Default frequency cap per visitor per day */

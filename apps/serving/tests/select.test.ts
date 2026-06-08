@@ -106,14 +106,15 @@ describe('selectCreative', () => {
   it('respects geoRegions', () => {
     const capitalOnly = makeCreative({ geoRegions: ['capital'] });
     const countrysideOnly = makeCreative({ creativeId: 'c2', geoRegions: ['countryside'] });
+    const akureyriOnly = makeCreative({ creativeId: 'c3', geoRegions: ['akureyri'] });
 
     // 1. Capital visitor selects only capitalOnly
-    let slot = makeSlot([capitalOnly, countrysideOnly]);
+    let slot = makeSlot([capitalOnly, countrysideOnly, akureyriOnly]);
     let got = selectCreative(slot, {
       country: 'IS',
       consent: 'full',
       visitorImpressionsToday: {},
-      region: 'capital',
+      regions: ['reykjavik', 'capital'],
     });
     expect(got?.creativeId).toBe('c1');
 
@@ -122,16 +123,25 @@ describe('selectCreative', () => {
       country: 'IS',
       consent: 'full',
       visitorImpressionsToday: {},
-      region: 'countryside',
+      regions: ['selfoss', 'countryside'],
     });
     expect(got?.creativeId).toBe('c2');
 
-    // 3. Unknown visitor (fail-open) selects either/any
+    // 3. Akureyri visitor selects akureyriOnly OR countrysideOnly (since they belong to both countryside and akureyri)
     got = selectCreative(slot, {
       country: 'IS',
       consent: 'full',
       visitorImpressionsToday: {},
-      region: 'unknown',
+      regions: ['akureyri', 'countryside'],
+    });
+    expect(['c2', 'c3']).toContain(got?.creativeId);
+
+    // 4. Unknown visitor (fail-open) selects either/any
+    got = selectCreative(slot, {
+      country: 'IS',
+      consent: 'full',
+      visitorImpressionsToday: {},
+      regions: ['unknown'],
     });
     expect(got).not.toBeNull();
   });
