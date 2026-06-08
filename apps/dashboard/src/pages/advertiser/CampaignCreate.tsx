@@ -71,7 +71,23 @@ export default function CampaignCreate() {
 
   // Step 3: Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(['all']);
+
+  const toggleRegion = (slug: string) => {
+    if (slug === 'all') {
+      setSelectedRegions(['all']);
+      return;
+    }
+    setSelectedRegions((prev) => {
+      const withoutAll = prev.filter((r) => r !== 'all');
+      if (withoutAll.includes(slug)) {
+        const next = withoutAll.filter((r) => r !== slug);
+        return next.length === 0 ? ['all'] : next;
+      } else {
+        return [...withoutAll, slug];
+      }
+    });
+  };
 
   // Handle local image file load for sizing
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,7 +175,7 @@ export default function CampaignCreate() {
         name,
         creativeIds: [creative.id],
         categories: selectedCategories,
-        geoRegions: selectedRegion === 'all' ? undefined : [selectedRegion],
+        geoRegions: selectedRegions.includes('all') ? undefined : selectedRegions,
         schedule: {
           startsAt: new Date(startDate).toISOString(),
           endsAt: endDate
@@ -393,26 +409,26 @@ export default function CampaignCreate() {
             )}
 
             {/* Region Targeting Selector */}
-            <div className="space-y-3 pt-4 border-t border-slate-100">
+            <div className="space-y-4 pt-4 border-t border-slate-100">
               <h4 className="text-sm font-bold text-slate-900">Landshlutamarkun (Valfrjálst)</h4>
               <p className="text-xs text-slate-500 font-medium">
                 Sýndu auglýsinguna aðeins notendum á ákveðnum landsvæðum. Sjálfgefið er allt landið.
               </p>
               <div className="grid grid-cols-3 gap-3">
                 <div
-                  onClick={() => setSelectedRegion('all')}
+                  onClick={() => toggleRegion('all')}
                   className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegion === 'all'
+                    selectedRegions.includes('all')
                       ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
                   }`}
                 >
-                  Allt land
+                  🌐 Allt landið
                 </div>
                 <div
-                  onClick={() => setSelectedRegion('capital')}
+                  onClick={() => toggleRegion('capital')}
                   className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegion === 'capital'
+                    selectedRegions.includes('capital')
                       ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
                   }`}
@@ -420,9 +436,9 @@ export default function CampaignCreate() {
                   Höfuðborgarsvæðið
                 </div>
                 <div
-                  onClick={() => setSelectedRegion('countryside')}
+                  onClick={() => toggleRegion('countryside')}
                   className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegion === 'countryside'
+                    selectedRegions.includes('countryside')
                       ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
                       : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
                   }`}
@@ -431,46 +447,54 @@ export default function CampaignCreate() {
                 </div>
               </div>
 
-              {/* Specific City Selector */}
-              <div className="pt-2">
-                <label
-                  htmlFor="city-select"
-                  className="block text-xs font-bold text-slate-700 mb-1.5"
-                >
-                  Eða velja ákveðinn bæ/bæjarfélag:
+              {/* Specific City Multi-Selector */}
+              <div className="pt-3 space-y-2">
+                <label className="block text-xs font-bold text-slate-700">
+                  Eða velja ákveðna bæi / bæjarfélög:
                 </label>
-                <select
-                  id="city-select"
-                  value={
-                    ['all', 'capital', 'countryside'].includes(selectedRegion) ? '' : selectedRegion
-                  }
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setSelectedRegion(e.target.value);
-                    }
-                  }}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white hover:border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-blue-600"
-                >
-                  <option value="">-- Veldu bæjarfélag --</option>
-                  <option value="reykjavik">Reykjavík</option>
-                  <option value="kopavogur">Kópavogur</option>
-                  <option value="hafnarfjordur">Hafnarfjörður</option>
-                  <option value="gardabaer">Garðabær</option>
-                  <option value="mosfellsbaer">Mosfellsbær</option>
-                  <option value="seltjarnarnes">Seltjarnarnes</option>
-                  <option value="akureyri">Akureyri</option>
-                  <option value="reykjanesbaer">Reykjanesbær</option>
-                  <option value="selfoss">Selfoss</option>
-                  <option value="akranes">Akranes</option>
-                  <option value="isafjordur">Ísafjörður</option>
-                  <option value="egilsstadir">Egilsstaðir</option>
-                  <option value="vestmannaeyjar">Vestmannaeyjar</option>
-                </select>
-                {!['all', 'capital', 'countryside'].includes(selectedRegion) && (
-                  <p className="text-[11px] text-blue-600 font-bold mt-1.5">
-                    Valið bæjarfélag:{' '}
-                    <strong>{REGION_LABELS[selectedRegion] || selectedRegion}</strong>
-                  </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {[
+                    { key: 'reykjavik', label: 'Reykjavík' },
+                    { key: 'kopavogur', label: 'Kópavogur' },
+                    { key: 'hafnarfjordur', label: 'Hafnarfjörður' },
+                    { key: 'gardabaer', label: 'Garðabær' },
+                    { key: 'mosfellsbaer', label: 'Mosfellsbær' },
+                    { key: 'seltjarnarnes', label: 'Seltjarnarnes' },
+                    { key: 'akureyri', label: 'Akureyri' },
+                    { key: 'reykjanesbaer', label: 'Reykjanesbær' },
+                    { key: 'selfoss', label: 'Selfoss' },
+                    { key: 'akranes', label: 'Akranes' },
+                    { key: 'isafjordur', label: 'Ísafjörður' },
+                    { key: 'egilsstadir', label: 'Egilsstaðir' },
+                    { key: 'vestmannaeyjar', label: 'Vestmannaeyjar' },
+                  ].map((city) => {
+                    const isChecked = selectedRegions.includes(city.key);
+                    return (
+                      <div
+                        key={city.key}
+                        onClick={() => toggleRegion(city.key)}
+                        className={`p-2.5 rounded-lg border cursor-pointer transition-all duration-150 flex items-center justify-between select-none ${
+                          isChecked
+                            ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="font-bold text-slate-800 text-[11px]">{city.label}</span>
+                        {isChecked && <Check size={12} className="text-primary" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                {!selectedRegions.includes('all') && (
+                  <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl mt-3 flex items-start gap-2">
+                    <Info size={14} className="text-primary shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
+                      Valin svæði:{' '}
+                      <span className="text-blue-600 font-bold">
+                        {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
+                      </span>
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -594,7 +618,7 @@ export default function CampaignCreate() {
                 <div>
                   <span className="block text-slate-500 font-medium text-xs">Landshlutar:</span>
                   <span className="font-bold text-slate-950 text-sm">
-                    {REGION_LABELS[selectedRegion] || selectedRegion}
+                    {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
                   </span>
                 </div>
               </div>

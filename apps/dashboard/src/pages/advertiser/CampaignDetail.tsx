@@ -90,7 +90,23 @@ export default function CampaignDetail() {
   const [editEndsAt, setEditEndsAt] = useState('');
   const [editCategories, setEditCategories] = useState<string[]>([]);
   const [editCreativeIds, setEditCreativeIds] = useState<string[]>([]);
-  const [editRegion, setEditRegion] = useState<string>('all');
+  const [editRegions, setEditRegions] = useState<string[]>(['all']);
+
+  const toggleEditRegion = (slug: string) => {
+    if (slug === 'all') {
+      setEditRegions(['all']);
+      return;
+    }
+    setEditRegions((prev) => {
+      const withoutAll = prev.filter((r) => r !== 'all');
+      if (withoutAll.includes(slug)) {
+        const next = withoutAll.filter((r) => r !== slug);
+        return next.length === 0 ? ['all'] : next;
+      } else {
+        return [...withoutAll, slug];
+      }
+    });
+  };
   const [editTotalBudget, setEditTotalBudget] = useState(0);
   const [editError, setEditError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -120,8 +136,11 @@ export default function CampaignDetail() {
       );
       setEditCategories(campaign.targeting.categories || []);
       setEditCreativeIds(campaign.creativeIds || []);
-      const region = campaign.targeting.geoRegions?.[0] || 'all';
-      setEditRegion(region as any);
+      setEditRegions(
+        campaign.targeting.geoRegions && campaign.targeting.geoRegions.length > 0
+          ? campaign.targeting.geoRegions
+          : ['all'],
+      );
       setEditTotalBudget(campaign.budget.totalIsk || 0);
       setEditError(null);
     }
@@ -187,7 +206,7 @@ export default function CampaignDetail() {
           name: editName || undefined,
           categories: editCategories,
           creativeIds: editCreativeIds,
-          geoRegions: editRegion === 'all' ? [] : [editRegion],
+          geoRegions: editRegions.includes('all') ? [] : editRegions,
           schedule: {
             startsAt: new Date(editStartsAt).toISOString(),
             endsAt: editEndsAt
@@ -330,8 +349,9 @@ export default function CampaignDetail() {
           <div className="mt-2 text-xs text-slate-500 font-semibold">
             Svæði:{' '}
             <span className="text-slate-700 font-bold">
-              {REGION_LABELS[campaign.targeting.geoRegions?.[0] || 'all'] ||
-                campaign.targeting.geoRegions?.[0]}
+              {campaign.targeting.geoRegions && campaign.targeting.geoRegions.length > 0
+                ? campaign.targeting.geoRegions.map((r) => REGION_LABELS[r] || r).join(', ')
+                : 'Allt landið'}
             </span>
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
@@ -648,19 +668,19 @@ export default function CampaignDetail() {
               </div>
 
               {/* Region Targeting */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-700 block">Landshlutamarkun</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { key: 'all', label: 'Allt land' },
+                    { key: 'all', label: '🌐 Allt land' },
                     { key: 'capital', label: 'Höfuðborgarsvæðið' },
                     { key: 'countryside', label: 'Landsbyggðin' },
                   ].map((region) => (
                     <div
                       key={region.key}
-                      onClick={() => setEditRegion(region.key)}
+                      onClick={() => toggleEditRegion(region.key)}
                       className={`p-2.5 rounded-lg border cursor-pointer text-center select-none transition-all duration-150 ${
-                        editRegion === region.key
+                        editRegions.includes(region.key)
                           ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
                           : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
                       }`}
@@ -671,34 +691,46 @@ export default function CampaignDetail() {
                 </div>
 
                 {/* Specific City Selector inside Edit Modal */}
-                <div className="pt-1.5">
-                  <select
-                    value={['all', 'capital', 'countryside'].includes(editRegion) ? '' : editRegion}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        setEditRegion(e.target.value);
-                      }
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-semibold bg-white hover:border-slate-300 focus:outline-hidden focus:ring-1 focus:ring-blue-650"
-                  >
-                    <option value="">-- Eða veldu bæjarfélag --</option>
-                    <option value="reykjavik">Reykjavík</option>
-                    <option value="kopavogur">Kópavogur</option>
-                    <option value="hafnarfjordur">Hafnarfjörður</option>
-                    <option value="gardabaer">Garðabær</option>
-                    <option value="mosfellsbaer">Mosfellsbær</option>
-                    <option value="seltjarnarnes">Seltjarnarnes</option>
-                    <option value="akureyri">Akureyri</option>
-                    <option value="reykjanesbaer">Reykjanesbær</option>
-                    <option value="selfoss">Selfoss</option>
-                    <option value="akranes">Akranes</option>
-                    <option value="isafjordur">Ísafjörður</option>
-                    <option value="egilsstadir">Egilsstaðir</option>
-                    <option value="vestmannaeyjar">Vestmannaeyjar</option>
-                  </select>
-                  {!['all', 'capital', 'countryside'].includes(editRegion) && (
+                <div className="pt-2 space-y-2">
+                  <label className="block text-[10px] font-bold text-slate-500">
+                    Eða velja ákveðna bæi / bæjarfélög:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { key: 'reykjavik', label: 'Reykjavík' },
+                      { key: 'kopavogur', label: 'Kópavogur' },
+                      { key: 'hafnarfjordur', label: 'Hafnarfjörður' },
+                      { key: 'gardabaer', label: 'Garðabær' },
+                      { key: 'mosfellsbaer', label: 'Mosfellsbær' },
+                      { key: 'seltjarnarnes', label: 'Seltjarnarnes' },
+                      { key: 'akureyri', label: 'Akureyri' },
+                      { key: 'reykjanesbaer', label: 'Reykjanesbær' },
+                      { key: 'selfoss', label: 'Selfoss' },
+                      { key: 'akranes', label: 'Akranes' },
+                      { key: 'isafjordur', label: 'Ísafjörður' },
+                      { key: 'egilsstadir', label: 'Egilsstaðir' },
+                      { key: 'vestmannaeyjar', label: 'Vestmannaeyjar' },
+                    ].map((city) => {
+                      const isChecked = editRegions.includes(city.key);
+                      return (
+                        <div
+                          key={city.key}
+                          onClick={() => toggleEditRegion(city.key)}
+                          className={`p-2 rounded-lg border cursor-pointer transition-all duration-150 flex items-center justify-between select-none ${
+                            isChecked
+                              ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
+                              : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          <span className="font-bold text-slate-800 text-[10px]">{city.label}</span>
+                          {isChecked && <Check size={10} className="text-primary" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {!editRegions.includes('all') && (
                     <p className="text-[10px] text-blue-600 font-bold mt-1">
-                      Valið bæjarfélag: {REGION_LABELS[editRegion] || editRegion}
+                      Valin svæði: {editRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
                     </p>
                   )}
                 </div>
