@@ -43,6 +43,14 @@ interface AdminStats {
     clicks: number;
     ctr: number;
   }>;
+  fallbackStats: Array<{
+    creativeId: string;
+    name: string;
+    imageUrl: string;
+    impressions: number;
+    clicks: number;
+    ctr: number;
+  }>;
 }
 
 // 1. Admin Home (Overview metrics)
@@ -188,6 +196,53 @@ function Home() {
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
                       {tc.ctr.toFixed(1).replace('.', ',')}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Fallback & House Ads Stats */}
+      {stats?.fallbackStats && stats.fallbackStats.length > 0 && (
+        <Card className="p-6">
+          <h3 className="text-base font-bold text-slate-900 mb-4">
+            Árangur húsa- og fylliauglýsinga (7 dagar)
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider">Heiti</th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Creative ID
+                  </th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Sýningar (Pageviews)
+                  </th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    Smellir
+                  </th>
+                  <th className="pb-2 font-bold text-slate-400 uppercase tracking-wider text-right">
+                    CTR
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {stats.fallbackStats.map((fs) => (
+                  <tr key={fs.creativeId} className="hover:bg-slate-50">
+                    <td className="py-3 font-semibold text-slate-700">{fs.name}</td>
+                    <td className="py-3 font-mono text-[11px] text-slate-500">{fs.creativeId}</td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {fs.impressions.toLocaleString('is-IS')}
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {fs.clicks.toLocaleString('is-IS')}
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800">
+                      {fs.ctr.toFixed(2).replace('.', ',')}%
                     </td>
                   </tr>
                 ))}

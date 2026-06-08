@@ -6,6 +6,7 @@ export interface AdvertiserStatsResponse {
   impressions: number;
   clicks: number;
   spendIsk: number;
+  systemImpressions7d: number;
   history: {
     date: string;
     impressions: number;
@@ -14,12 +15,50 @@ export interface AdvertiserStatsResponse {
   }[];
 }
 
+async function getSystemImpressionsLast7Days(): Promise<number> {
+  let total = 0;
+  const now = new Date();
+  const minDate = new Date(now.getTime() - 7 * 24 * 3600_000);
+  const minDk = minDate.toISOString().split('T')[0]!.replace(/-/g, '') + '00'; // YYYYMMDDHH minimum hour key
+
+  try {
+    const campaignsSnap = await db.collection(COLLECTIONS.campaigns).get();
+    const statsPromises = campaignsSnap.docs.map((doc) =>
+      db.collection(`${COLLECTIONS.stats}/campaigns/${doc.id}`).get(),
+    );
+    const statsSnapshots = await Promise.all(statsPromises);
+    for (const statsSnap of statsSnapshots) {
+      for (const sDoc of statsSnap.docs) {
+        if (sDoc.id >= minDk) {
+          const data = sDoc.data();
+          total += data.impressions || 0;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to get system impressions:', err);
+  }
+
+  // Fallback to mock data if empty and running in dev/emulator
+  const isDevOrEmulator =
+    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
+  if (total === 0 && isDevOrEmulator) {
+    const base = 1248900;
+    // Animate the mock total upwards live based on current timestamp (12 impressions per second)
+    const increment = Math.floor((Date.now() % (1000 * 3600)) / 1000) * 12;
+    return base + increment;
+  }
+
+  return total;
+}
+
 export async function getAdvertiserStats(
   advertiserId: string,
   timeframeDays: number = 7,
 ): Promise<AdvertiserStatsResponse> {
   const campaigns = await listCampaignsForAdvertiser(advertiserId);
   const now = new Date();
+  const systemImpressions7d = await getSystemImpressionsLast7Days();
 
   // Initialize days map for historical roll-up
   const dailyMap = new Map<string, { impressions: number; clicks: number; spendIsk: number }>();
@@ -104,6 +143,7 @@ export async function getAdvertiserStats(
       impressions: totalImpressions,
       clicks: totalClicks,
       spendIsk: totalSpendIsk,
+      systemImpressions7d,
       history,
     };
   }
@@ -128,6 +168,7 @@ export async function getAdvertiserStats(
     impressions: totalImpressions,
     clicks: totalClicks,
     spendIsk: totalSpendIsk,
+    systemImpressions7d,
     history,
   };
 }

@@ -11,6 +11,15 @@ export interface TopCreativeEntry {
   ctr: number;
 }
 
+export interface FallbackAdStatsEntry {
+  creativeId: string;
+  name: string;
+  imageUrl: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+}
+
 export interface AdminStatsResponse {
   totalImpressions: number;
   totalClicks: number;
@@ -19,6 +28,49 @@ export interface AdminStatsResponse {
   p95LatencyMs: number;
   systemStatus: string;
   topCreatives: TopCreativeEntry[];
+  fallbackStats: FallbackAdStatsEntry[];
+}
+
+async function getSystemFallbackStats(): Promise<FallbackAdStatsEntry[]> {
+  const fallbacks = [
+    {
+      creativeId: 'cre_fallback_birtingur',
+      name: 'Húsaauglýsing (Birtingur kynning)',
+      imageUrl: '',
+    },
+    {
+      creativeId: 'cre_fallback_transparent',
+      name: 'Gagnsætt fallback (Ekkert pláss/tóm)',
+      imageUrl: '',
+    },
+  ];
+
+  const entries: FallbackAdStatsEntry[] = [];
+  for (const f of fallbacks) {
+    try {
+      const stats = await getCreativeStats(f.creativeId, 168); // 7 days
+      entries.push({
+        creativeId: f.creativeId,
+        name: f.name,
+        imageUrl: f.imageUrl,
+        impressions: stats.impressions,
+        clicks: stats.clicks,
+        ctr: stats.ctr,
+      });
+    } catch (err) {
+      console.error(`Failed to get stats for fallback creative ${f.creativeId}:`, err);
+      entries.push({
+        creativeId: f.creativeId,
+        name: f.name,
+        imageUrl: f.imageUrl,
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+      });
+    }
+  }
+
+  return entries;
 }
 
 async function getTopCreativesAcrossSystem(limit = 5): Promise<TopCreativeEntry[]> {
@@ -94,10 +146,29 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     console.error('Failed to fetch top creatives:', err);
   }
 
-  // 4. Fallback to mock data if empty and running in dev/emulator
+  // 4. Get system fallback/filler stats
+  let fallbackStats: FallbackAdStatsEntry[] = [];
+  try {
+    fallbackStats = await getSystemFallbackStats();
+  } catch (err) {
+    console.error('Failed to fetch fallback stats:', err);
+  }
+
+  // 5. Fallback to mock data if empty and running in dev/emulator
   const isDevOrEmulator =
     process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
+    const populatedFallbackStats = fallbackStats.map((f) => {
+      if (f.impressions === 0) {
+        if (f.creativeId === 'cre_fallback_birtingur') {
+          return { ...f, impressions: 34200, clicks: 820, ctr: (820 / 34200) * 100 };
+        } else {
+          return { ...f, impressions: 12400, clicks: 0, ctr: 0 };
+        }
+      }
+      return f;
+    });
+
     return {
       totalImpressions: 4820900,
       totalClicks: 168700,
@@ -106,6 +177,7 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
       p95LatencyMs: 24,
       systemStatus: 'OK',
       topCreatives,
+      fallbackStats: populatedFallbackStats,
     };
   }
 
@@ -117,5 +189,6 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     p95LatencyMs: 24,
     systemStatus: 'OK',
     topCreatives,
+    fallbackStats,
   };
 }

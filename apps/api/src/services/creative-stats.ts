@@ -39,7 +39,7 @@ export async function getCreativeStats(
     if (hk >= minHk) {
       const data = doc.data();
       statsMap.set(hk, {
-        impressions: (data.impressions as number) ?? 0,
+        impressions: (data.impressions as number) || (data.pageviews as number) || 0,
         clicks: (data.clicks as number) ?? 0,
       });
     }

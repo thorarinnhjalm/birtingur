@@ -59,6 +59,14 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         b.pageviews++;
         map.set(key, b);
       }
+
+      // Track pageviews in creative stats too (for fallback/filler creatives)
+      if (ev.creativeId) {
+        const cr = `${ev.creativeId}/${hourKey(ev.ts)}`;
+        const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        crb.pageviews++;
+        creativeHour.set(cr, crb);
+      }
     } else {
       const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
@@ -107,6 +115,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
+        pageviews: FieldValue.increment(b.pageviews),
       },
       { merge: true },
     );

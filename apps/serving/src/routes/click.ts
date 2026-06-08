@@ -39,6 +39,38 @@ clickRoute.get('/', async (c) => {
   }
 
   const slot = await getSlotCache(slotId);
+
+  const isFallback = creativeId.startsWith('cre_fallback_');
+
+  if (isFallback) {
+    const ip = getClientIp({
+      'x-real-ip': c.req.header('x-real-ip'),
+      'x-forwarded-for': c.req.header('x-forwarded-for'),
+    });
+
+    const isDuplicated = await isClickDeduplicated(creativeId, ip);
+    if (!isDuplicated) {
+      void logEvent({
+        type: 'click',
+        slotId,
+        publisherId: slot?.publisherId ?? '',
+        creativeId,
+        campaignId: 'cmp_fallback',
+        advertiserId: '',
+        country: c.req.header('CF-IPCountry') ?? 'XX',
+        visitorToken: token,
+        ts: Date.now(),
+      });
+    } else {
+      console.warn(
+        `Click rate limited/deduplicated for fallback creative ${creativeId} from IP ${ip}`,
+      );
+    }
+
+    const targetUrl = 'https://birtingur.app';
+    return c.redirect(targetUrl, 302);
+  }
+
   const creative = slot?.activeCreatives.find((cc) => cc.creativeId === creativeId);
 
   if (!slot || !creative) {

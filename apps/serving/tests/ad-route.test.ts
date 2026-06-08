@@ -95,7 +95,7 @@ describe('GET /v1/ad', () => {
     expect(body.imageUrl).toContain('data:image/svg+xml');
     expect(body.width).toBe(728);
     expect(body.height).toBe(90);
-    expect(body.clickUrl).toBe('https://birtingur.app');
+    expect(body.clickUrl).toContain('/v1/click?c=cre_fallback_birtingur');
     expect(body.impressionPixel).toContain('type=pageview');
   });
 

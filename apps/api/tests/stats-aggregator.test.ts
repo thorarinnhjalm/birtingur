@@ -26,10 +26,11 @@ vi.mock('../src/lib/firebase', () => {
           commit: vi.fn(async () => {
             for (const op of batchOps) {
               const path = op.ref.path;
-              const existing = mockStatsDocs[path] ?? { impressions: 0, clicks: 0 };
+              const existing = mockStatsDocs[path] ?? { impressions: 0, clicks: 0, pageviews: 0 };
 
               let impressionsInc = 0;
               let clicksInc = 0;
+              let pageviewsInc = 0;
 
               const impVal = op.data.impressions;
               if (impVal && typeof impVal === 'object' && 'operand' in impVal) {
@@ -45,9 +46,17 @@ vi.mock('../src/lib/firebase', () => {
                 clicksInc = clickVal;
               }
 
+              const pvVal = op.data.pageviews;
+              if (pvVal && typeof pvVal === 'object' && 'operand' in pvVal) {
+                pageviewsInc = (pvVal as any).operand;
+              } else if (typeof pvVal === 'number') {
+                pageviewsInc = pvVal;
+              }
+
               mockStatsDocs[path] = {
                 impressions: existing.impressions + impressionsInc,
                 clicks: existing.clicks + clicksInc,
+                pageviews: (existing.pageviews ?? 0) + pageviewsInc,
               };
             }
           }),
@@ -126,5 +135,28 @@ describe('aggregateEvents', () => {
     expect(mockStatsDocs[crePath]).toBeDefined();
     expect(mockStatsDocs[crePath].impressions).toBe(2);
     expect(mockStatsDocs[crePath].clicks).toBe(1);
+  });
+
+  it('groups pageviews into hourly buckets for fallback creatives', async () => {
+    const ts = Date.UTC(2026, 5, 2, 14, 30, 0); // 2026-06-02 14:30:00 UTC
+    const events = [
+      {
+        type: 'pageview' as const,
+        campaignId: 'cmp_fallback',
+        publisherId: 'pub_a',
+        creativeId: 'cre_fallback_birtingur',
+        slotId: 's1',
+        advertiserId: '',
+        country: 'IS',
+        visitorToken: 'v1',
+        ts,
+      },
+    ];
+    await aggregateEvents(events);
+
+    // Check creative hourly stats for fallback pageviews
+    const crePath = `stats/creatives/cre_fallback_birtingur/2026060214`;
+    expect(mockStatsDocs[crePath]).toBeDefined();
+    expect(mockStatsDocs[crePath].pageviews).toBe(1);
   });
 });

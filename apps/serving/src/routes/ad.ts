@@ -104,10 +104,18 @@ adRoute.get('/', async (c) => {
         : slot.sizes[0] || { width: 300, height: 250 };
     c.header('Set-Cookie', setCookieHeader(token));
     c.header('Cache-Control', 'private, no-store');
+
+    const ts = Date.now();
+    const signature = createSignature('cre_fallback_birtingur', slotId, token, ts);
+    const clickUrl =
+      `/v1/click?c=cre_fallback_birtingur` +
+      `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
+      `&ts=${ts}&sig=${signature}`;
+
     return c.json({
       creativeId: 'cre_fallback_birtingur',
       imageUrl: generateHouseAdSvg(size.width, size.height),
-      clickUrl: 'https://birtingur.app',
+      clickUrl,
       width: size.width,
       height: size.height,
       impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
