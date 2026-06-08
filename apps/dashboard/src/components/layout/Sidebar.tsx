@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { apiFetch } from '@/lib/api';
+import Logo from '@/components/ui/Logo';
 
 export interface SidebarItem {
   to: string;
@@ -82,11 +83,12 @@ export function Sidebar({
 
   return (
     <aside className="bg-surface-container-low flex flex-col h-screen py-gutter px-4 w-[280px] fixed left-0 top-0 z-50 border-r border-outline-variant">
-      <div className="mb-10 px-4">
-        <h1 className="text-headline-md font-bold text-primary">{title}</h1>
-        <p className="text-label-md text-on-secondary-fixed-variant opacity-70 mt-1">
-          Íslensk markaðssetning
-        </p>
+      <div className="mb-10 px-4 flex items-center gap-3">
+        <Logo size={36} className="shadow-md shadow-blue-500/10 rounded-lg" />
+        <div>
+          <h1 className="text-headline-sm font-bold text-primary leading-tight">{title}</h1>
+          <p className="text-xs text-on-secondary-fixed-variant opacity-70 mt-0.5">Birtingur.app</p>
+        </div>
       </div>
 
       {actionButtonText && (

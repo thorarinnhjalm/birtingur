@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
+import Logo from '@/components/ui/Logo';
 import {
   Sparkles,
   Coins,
@@ -84,9 +85,7 @@ export default function Vibers() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 cursor-pointer">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-extrabold text-xl text-white shadow-lg shadow-blue-500/20">
-              B
-            </div>
+            <Logo size={40} className="shadow-lg shadow-blue-500/10 rounded-xl" />
             <div>
               <span className="font-extrabold text-2xl tracking-tight text-slate-900">
                 Birtingur
@@ -415,9 +414,7 @@ export default function Vibers() {
             {/* Logo/Info */}
             <div className="space-y-4">
               <Link to="/" className="flex items-center gap-2 cursor-pointer">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-extrabold text-sm text-white shadow-md shadow-blue-500/20">
-                  B
-                </div>
+                <Logo size={32} className="shadow-md shadow-blue-500/10 rounded-lg" />
                 <span className="font-extrabold text-lg text-slate-850">Birtingur</span>
               </Link>
               <p className="text-xs text-slate-500 leading-relaxed font-medium">
