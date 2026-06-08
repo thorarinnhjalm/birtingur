@@ -32,6 +32,7 @@ async function getSystemImpressionsLast7Days(): Promise<number> {
 
     const statsPromises: Promise<any>[] = [];
     for (const doc of publishersSnap.docs) {
+      if (doc.id.includes('demo')) continue;
       for (const dk of dates) {
         statsPromises.push(db.doc(`${COLLECTIONS.stats}/publishers/${doc.id}/${dk}`).get());
       }
