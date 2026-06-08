@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ArrowRight,
-  HelpCircle,
 } from 'lucide-react';
 
 // Icelandic dative & genitive declensions for natural Icelandic SEO text

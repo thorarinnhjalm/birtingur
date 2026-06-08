@@ -7,13 +7,11 @@ import {
   MapPin,
   Upload,
   Coins,
-  MousePointerClick,
   CheckCircle2,
   ChevronRight,
   ArrowRight,
   TrendingUp,
   Target,
-  BadgeAlert,
 } from 'lucide-react';
 
 // Icelandic dative & genitive declensions for natural Icelandic SEO text
