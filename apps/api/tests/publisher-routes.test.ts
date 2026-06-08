@@ -65,7 +65,7 @@ describe('Publisher HTTP Routes', () => {
       expect(body.domain).toBe('publisher.is');
     });
 
-    it('returns 409 if publisher already exists for user email', async () => {
+    it('returns 409 if publisher domain already exists', async () => {
       vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
 
       // Create first
@@ -84,7 +84,7 @@ describe('Publisher HTTP Routes', () => {
         }),
       });
 
-      // Try creating second
+      // Try creating second with same domain
       const res = await app.request('/v1/publishers', {
         method: 'POST',
         headers: {
@@ -92,7 +92,7 @@ describe('Publisher HTTP Routes', () => {
           Authorization: 'Bearer valid-token',
         },
         body: JSON.stringify({
-          domain: 'another.is',
+          domain: 'publisher.is',
           displayName: 'Another Website',
           payoutMethod: samplePayout,
           contentPolicy: samplePolicy,

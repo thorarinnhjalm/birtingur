@@ -3,9 +3,11 @@ import { requireAuth, type Env } from '../lib/auth.js';
 import {
   createPublisher,
   getPublisherByOwnerEmail,
+  getPublishersByOwnerEmail,
+  getPublisherByDomain,
   updatePublisher,
 } from '../services/publishers.js';
-import { getPublisherStats } from '../services/publisher-stats.js';
+import { getPublisherStats, getAggregatedPublisherStats } from '../services/publisher-stats.js';
 import { AppError } from '../lib/errors.js';
 import { scrapeAndClassifyDomain } from '../services/domain-classifier.js';
 import {
@@ -21,14 +23,36 @@ export const publishersRouter = new Hono<Env>();
 // Apply authentication middleware to all publisher routes
 publishersRouter.use('*', requireAuth);
 
+publishersRouter.get('/all', async (c) => {
+  const user = c.get('user');
+  const publishers = await getPublishersByOwnerEmail(user.email);
+  return c.json(publishers);
+});
+
+publishersRouter.get('/stats', async (c) => {
+  const user = c.get('user');
+  const publishers = await getPublishersByOwnerEmail(user.email);
+  const publisherIds = publishers.map((p) => p.id);
+
+  const queryTimeframe = c.req.query('timeframe');
+  const timeframe = queryTimeframe === '30' ? 30 : 7;
+
+  const stats = await getAggregatedPublisherStats(publisherIds, timeframe);
+  return c.json(stats);
+});
+
 publishersRouter.post('/', async (c) => {
   const user = c.get('user');
   const body = await c.req.json();
 
-  // Check if publisher already exists
-  const existing = await getPublisherByOwnerEmail(user.email);
+  if (!body.domain) {
+    throw new AppError(400, 'Domain is required', 'BAD_REQUEST');
+  }
+
+  // Check if publisher with this domain already exists
+  const existing = await getPublisherByDomain(body.domain);
   if (existing) {
-    throw new AppError(409, 'Publisher profile already exists for this user email', 'CONFLICT');
+    throw new AppError(409, 'Publisher profile already exists for this domain', 'CONFLICT');
   }
 
   // Handle mapping from payoutDetails format to payoutMethod format

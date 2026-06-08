@@ -166,3 +166,67 @@ export async function getPublisherStats(
     history,
   };
 }
+
+export async function getAggregatedPublisherStats(
+  publisherIds: string[],
+  timeframeDays: 7 | 30 = 7,
+): Promise<PublisherStatsResponse> {
+  if (publisherIds.length === 0) {
+    return {
+      impressions: 0,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 0,
+      history: [],
+    };
+  }
+
+  // Fetch stats for all publishers in parallel
+  const allStats = await Promise.all(
+    publisherIds.map((id) => getPublisherStats(id, timeframeDays)),
+  );
+
+  let totalImpressions = 0;
+  let totalClicks = 0;
+  let totalSpendIsk = 0;
+  let totalPageviews = 0;
+
+  // Use a map to aggregate history by date
+  const historyMap: Record<
+    string,
+    { impressions: number; clicks: number; spendIsk: number; pageviews: number }
+  > = {};
+
+  for (const stats of allStats) {
+    totalImpressions += stats.impressions;
+    totalClicks += stats.clicks;
+    totalSpendIsk += stats.spendIsk;
+    totalPageviews += stats.pageviews || 0;
+
+    for (const h of stats.history) {
+      if (!historyMap[h.date]) {
+        historyMap[h.date] = { impressions: 0, clicks: 0, spendIsk: 0, pageviews: 0 };
+      }
+      historyMap[h.date]!.impressions += h.impressions;
+      historyMap[h.date]!.clicks += h.clicks;
+      historyMap[h.date]!.spendIsk += h.spendIsk;
+      historyMap[h.date]!.pageviews += h.pageviews || 0;
+    }
+  }
+
+  // Convert map back to array sorted by date
+  const history = Object.entries(historyMap)
+    .map(([date, data]) => ({
+      date,
+      ...data,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  return {
+    impressions: totalImpressions,
+    clicks: totalClicks,
+    spendIsk: totalSpendIsk,
+    pageviews: totalPageviews,
+    history,
+  };
+}

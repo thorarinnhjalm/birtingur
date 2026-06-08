@@ -73,6 +73,32 @@ export async function getPublisherByOwnerEmail(email: string): Promise<Publisher
   return firstDoc.data();
 }
 
+export async function getPublishersByOwnerEmail(email: string): Promise<Publisher[]> {
+  const snapshot = await db
+    .collection(COLLECTIONS.publishers)
+    .where('ownerEmail', '==', email)
+    .withConverter(publisherConverter)
+    .get();
+
+  return snapshot.docs.map((doc) => doc.data());
+}
+
+export async function getPublisherByDomain(domain: string): Promise<Publisher | null> {
+  const snapshot = await db
+    .collection(COLLECTIONS.publishers)
+    .where('domain', '==', domain.toLowerCase())
+    .limit(1)
+    .withConverter(publisherConverter)
+    .get();
+
+  const firstDoc = snapshot.docs[0];
+  if (!firstDoc) {
+    return null;
+  }
+
+  return firstDoc.data();
+}
+
 export async function updatePublisher(
   id: string,
   updates: Partial<Omit<Publisher, 'id' | 'createdAt' | 'ownerEmail'>>,

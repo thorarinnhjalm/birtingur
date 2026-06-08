@@ -6,8 +6,10 @@ import {
   createPublisher,
   getPublisherById,
   getPublisherByOwnerEmail,
+  getPublishersByOwnerEmail,
   updatePublisher,
 } from '../src/services/publishers';
+import { getAggregatedPublisherStats } from '../src/services/publisher-stats';
 
 describe('Publisher Service', () => {
   beforeEach(async () => {
@@ -176,6 +178,53 @@ describe('Publisher Service', () => {
           displayName: 'New Name',
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('getPublishersByOwnerEmail', () => {
+    it('retrieves all publishers owned by an email', async () => {
+      await createPublisher({
+        ownerEmail: 'multi@test.is',
+        domain: 'site1.is',
+        displayName: 'Site 1',
+        payoutMethod: samplePayout,
+        contentPolicy: samplePolicy,
+        categories: ['taekni'],
+      });
+
+      await createPublisher({
+        ownerEmail: 'multi@test.is',
+        domain: 'site2.is',
+        displayName: 'Site 2',
+        payoutMethod: samplePayout,
+        contentPolicy: samplePolicy,
+        categories: ['taekni'],
+      });
+
+      const list = await getPublishersByOwnerEmail('multi@test.is');
+      expect(list).toHaveLength(2);
+      expect(list.map((p) => p.domain)).toContain('site1.is');
+      expect(list.map((p) => p.domain)).toContain('site2.is');
+    });
+
+    it('returns empty array if email owns no publishers', async () => {
+      const list = await getPublishersByOwnerEmail('none@test.is');
+      expect(list).toEqual([]);
+    });
+  });
+
+  describe('getAggregatedPublisherStats', () => {
+    it('returns empty aggregated stats for empty publisherIds list', async () => {
+      const stats = await getAggregatedPublisherStats([], 7);
+      expect(stats.impressions).toBe(0);
+      expect(stats.history).toEqual([]);
+    });
+
+    it('returns aggregated stats for multiple publisherIds', async () => {
+      const stats = await getAggregatedPublisherStats(['pub_1', 'pub_2'], 7);
+      expect(stats.impressions).toBeGreaterThan(0);
+      expect(stats.history).toHaveLength(7);
+      expect(stats.history[0]?.impressions).toBeGreaterThan(0);
     });
   });
 });

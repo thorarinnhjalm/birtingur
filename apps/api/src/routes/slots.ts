@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
-import { getPublisherByOwnerEmail } from '../services/publishers.js';
+import { getPublishersByOwnerEmail } from '../services/publishers.js';
 import {
   createSlot,
   getSlot,
@@ -15,16 +15,39 @@ export const slotsRouter = new Hono<Env>();
 
 slotsRouter.use('*', requireAuth);
 
+async function verifySlotOwnership(slotId: string, email: string) {
+  const slot = await getSlot(slotId);
+  if (!slot) return null;
+  const publishers = await getPublishersByOwnerEmail(email);
+  const hasOwnership = publishers.some((p) => p.id === slot.publisherId);
+  if (!hasOwnership) return null;
+  return slot;
+}
+
 slotsRouter.post('/', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  const body = await c.req.json();
+  let publisherId = body.publisherId;
+
+  const publishers = await getPublishersByOwnerEmail(user.email);
+
+  if (!publisherId) {
+    // Fallback to the first owned publisher to maintain backward compatibility
+    const firstPub = publishers[0];
+    if (firstPub) {
+      publisherId = firstPub.id;
+    } else {
+      throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+    }
   }
 
-  const body = await c.req.json();
+  const hasOwnership = publishers.some((p) => p.id === publisherId);
+  if (!hasOwnership) {
+    throw new AppError(403, 'Forbidden: You do not own this publisher', 'FORBIDDEN');
+  }
+
   const slot = await createSlot({
-    publisherId: publisher.id,
+    publisherId,
     name: body.name,
     sizes: body.sizes,
     pricing: body.pricing,
@@ -36,60 +59,46 @@ slotsRouter.post('/', async (c) => {
 
 slotsRouter.get('/', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
-  }
+  const publishers = await getPublishersByOwnerEmail(user.email);
+  const publisherIds = publishers.map((p) => p.id);
 
-  const slots = await listSlotsForPublisher(publisher.id);
-  return c.json(slots);
+  const allSlots = [];
+  for (const pubId of publisherIds) {
+    const slots = await listSlotsForPublisher(pubId);
+    allSlots.push(...slots);
+  }
+  return c.json(allSlots);
 });
 
 slotsRouter.get('/:id/stats', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
-  }
   const id = c.req.param('id');
-  const slot = await getSlot(id);
-  if (!slot || slot.publisherId !== publisher.id) {
+  const slot = await verifySlotOwnership(id, user.email);
+  if (!slot) {
     throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
   }
   const timeframe = c.req.query('timeframe') === '30' ? 30 : 7;
-  const stats = await getSlotStats(publisher.id, id, timeframe);
+  const stats = await getSlotStats(slot.publisherId, id, timeframe);
   return c.json(stats);
 });
 
 slotsRouter.get('/:id', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
-  }
-
   const id = c.req.param('id');
-  const slot = await getSlot(id);
-  if (!slot || slot.publisherId !== publisher.id) {
+  const slot = await verifySlotOwnership(id, user.email);
+  if (!slot) {
     throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
   }
-
   return c.json(slot);
 });
 
 slotsRouter.patch('/:id', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
-  }
-
   const id = c.req.param('id');
-  const slot = await getSlot(id);
-  if (!slot || slot.publisherId !== publisher.id) {
+  const slot = await verifySlotOwnership(id, user.email);
+  if (!slot) {
     throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
   }
-
   const body = await c.req.json();
   const updated = await updateSlot(id, body);
   return c.json(updated);
@@ -97,14 +106,9 @@ slotsRouter.patch('/:id', async (c) => {
 
 slotsRouter.get('/:id/snippet', async (c) => {
   const user = c.get('user');
-  const publisher = await getPublisherByOwnerEmail(user.email);
-  if (!publisher) {
-    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
-  }
-
   const id = c.req.param('id');
-  const slot = await getSlot(id);
-  if (!slot || slot.publisherId !== publisher.id) {
+  const slot = await verifySlotOwnership(id, user.email);
+  if (!slot) {
     throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
   }
 

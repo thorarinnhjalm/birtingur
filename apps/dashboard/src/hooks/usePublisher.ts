@@ -10,6 +10,14 @@ export function usePublisher() {
   });
 }
 
+export function usePublishers() {
+  return useQuery({
+    queryKey: ['publishers', 'all'],
+    queryFn: () => apiFetch<Publisher[]>('/v1/publishers/all'),
+    retry: false,
+  });
+}
+
 export function useCreatePublisher() {
   const qc = useQueryClient();
   return useMutation({
@@ -32,6 +40,7 @@ export function useCreatePublisher() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['publisher', 'me'] });
+      qc.invalidateQueries({ queryKey: ['publishers', 'all'] });
     },
   });
 }
@@ -57,6 +66,7 @@ export function useCreateSlot() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: {
+      publisherId: string;
       name: string;
       sizes: { width: number; height: number }[];
       pricing: Pricing;

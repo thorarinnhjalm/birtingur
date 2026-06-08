@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCreateSlot } from '@/hooks/usePublisher';
+import { useCreateSlot, usePublishers } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,12 +10,21 @@ import { Check } from 'lucide-react';
 export default function SlotCreate() {
   const navigate = useNavigate();
   const createSlotMutation = useCreateSlot();
+  const { data: publishers } = usePublishers();
 
   const [name, setName] = useState('');
   const [selectedSizes, setSelectedSizes] = useState<Array<{ width: number; height: number }>>([]);
   const [categories, _setCategories] = useState<string[]>([]);
   const [autoApprove, setAutoApprove] = useState(true);
+  const [selectedPublisherId, setSelectedPublisherId] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Set default publisher once loaded
+  useEffect(() => {
+    if (publishers && publishers.length > 0 && !selectedPublisherId) {
+      setSelectedPublisherId(publishers[0]?.id || '');
+    }
+  }, [publishers, selectedPublisherId]);
 
   const [pricingMode, setPricingMode] = useState<'cpm' | 'slot'>('cpm');
   const [slotPriceIsk, setSlotPriceIsk] = useState<string>('50000');
@@ -71,6 +80,7 @@ export default function SlotCreate() {
 
     try {
       await createSlotMutation.mutateAsync({
+        publisherId: selectedPublisherId,
         name,
         sizes: selectedSizes,
         pricing,
@@ -79,7 +89,7 @@ export default function SlotCreate() {
         },
         autoApprove,
       });
-      navigate('/publisher/slots');
+      navigate('/publisher');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ekki tókst að búa til auglýsingapláss.';
       setError(msg);
@@ -97,6 +107,25 @@ export default function SlotCreate() {
 
       <Card className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
+          {publishers && publishers.length > 1 && (
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">Veldu vef *</label>
+              <select
+                value={selectedPublisherId}
+                onChange={(e) => setSelectedPublisherId(e.target.value)}
+                required
+                disabled={createSlotMutation.isPending}
+                className="w-full rounded-lg border border-slate-200 p-2.5 text-xs bg-white font-bold text-slate-800 focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+              >
+                {publishers.map((pub) => (
+                  <option key={pub.id} value={pub.id}>
+                    {pub.displayName} ({pub.domain})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <Input
             label="Heiti auglýsingapláss *"
             placeholder="Dæmi: Forsíða leaderboard efst"

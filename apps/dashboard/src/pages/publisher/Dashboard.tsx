@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import { AlertTriangle } from 'lucide-react';
@@ -6,7 +6,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { usePublisher, usePublisherSlots } from '@/hooks/usePublisher';
+import { usePublishers, usePublisherSlots } from '@/hooks/usePublisher';
 import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -34,26 +34,30 @@ interface StatsResponse {
 }
 
 function PublisherHome() {
-  const { data: publisher, isLoading: isPubLoading } = usePublisher();
-  const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(!!publisher);
+  const { data: publishers, isLoading: isPubsLoading } = usePublishers();
+  const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(
+    !!publishers && publishers.length > 0,
+  );
   const { data: stats } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats'],
-    queryFn: () => apiFetch<StatsResponse>('/v1/publishers/me/stats?timeframe=30'),
-    enabled: !!publisher,
+    queryFn: () => apiFetch<StatsResponse>('/v1/publishers/stats?timeframe=30'),
+    enabled: !!publishers && publishers.length > 0,
   });
   const navigate = useNavigate();
 
-  if (isPubLoading || isSlotsLoading) return <LoadingState />;
+  if (isPubsLoading || isSlotsLoading) return <LoadingState />;
 
-  if (!publisher) {
+  if (!publishers || publishers.length === 0) {
     return <Navigate to="/publisher/onboarding" replace />;
   }
 
+  const firstPublisher = publishers[0];
   const hasMissingPayoutDetails =
-    !publisher.payoutMethod ||
-    !publisher.payoutMethod.iban ||
-    !publisher.payoutMethod.kennitala ||
-    !publisher.payoutMethod.accountName;
+    !firstPublisher ||
+    !firstPublisher.payoutMethod ||
+    !firstPublisher.payoutMethod.iban ||
+    !firstPublisher.payoutMethod.kennitala ||
+    !firstPublisher.payoutMethod.accountName;
 
   const hasEarnings = stats && stats.spendIsk > 0;
   const showNudgeBanner = hasMissingPayoutDetails && hasEarnings;
@@ -64,19 +68,28 @@ function PublisherHome() {
       <div className="flex justify-between items-end mb-6">
         <div>
           <h2 className="text-display-lg text-primary font-bold mb-2">
-            Góðan dag, {publisher.displayName?.split(' ')[0] || 'útgefandi'}
+            Góðan dag, {firstPublisher?.displayName?.split(' ')[0] || 'útgefandi'}
           </h2>
           <p className="text-secondary font-body-lg">
             Hér er yfirlit yfir árangur og tekjur í dag.
           </p>
         </div>
-        <button
-          onClick={() => navigate('/publisher/slots/new')}
-          className="bg-primary text-on-primary px-8 py-4 rounded-lg font-bold flex items-center gap-3 hover:shadow-lg transition-all active:scale-95 cursor-pointer border-none"
-        >
-          <span className="material-symbols-outlined">add_circle</span>
-          <span>Nýtt auglýsingapláss</span>
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => navigate('/publisher/onboarding')}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-4 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer border-none"
+          >
+            <span className="material-symbols-outlined text-[20px]">add_to_photos</span>
+            <span>Nýr vefur</span>
+          </button>
+          <button
+            onClick={() => navigate('/publisher/slots/new')}
+            className="bg-primary text-on-primary px-8 py-4 rounded-lg font-bold flex items-center gap-3 hover:shadow-lg transition-all active:scale-95 cursor-pointer border-none"
+          >
+            <span className="material-symbols-outlined">add_circle</span>
+            <span>Nýtt auglýsingapláss</span>
+          </button>
+        </div>
       </div>
 
       {showNudgeBanner && (
@@ -331,55 +344,88 @@ function PublisherHome() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
-                {slots.map((s) => (
-                  <tr
-                    key={s.id}
-                    className="hover:bg-surface-container transition-colors group cursor-pointer"
-                    onClick={() => navigate(`/publisher/slots/${s.id}`)}
-                  >
-                    <td className="px-8 py-5">
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-body-md font-bold text-on-surface truncate max-w-[200px]">
-                          {s.name}
-                        </span>
-                        <span className="text-[12px] text-outline font-medium truncate max-w-[200px]">
-                          {publisher.domain}
-                          {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
-                            ? s.placement.pageMatcher
-                            : ''}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold whitespace-nowrap">
-                        {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
-                        ></span>
-                        <span className="text-body-md font-medium">
-                          {s.status === 'active' ? 'Virk' : 'Óvirk'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className="text-body-md text-on-surface font-semibold">
-                        {s.status === 'active' ? '—' : '—'}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
-                      {formatIsk(
-                        s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk,
-                      )}{' '}
-                      <span className="text-[10px] text-secondary font-medium block">
-                        {s.pricing.mode === 'cpm' ? 'CPM' : `fyrir ${s.pricing.slotPeriodDays}d`}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {publishers.map((pub) => {
+                  const pubSlots = slots?.filter((s) => s.publisherId === pub.id) || [];
+                  if (pubSlots.length === 0) {
+                    return (
+                      <tr key={pub.id} className="bg-slate-50/50">
+                        <td
+                          colSpan={5}
+                          className="px-8 py-4 text-xs font-semibold text-slate-400 font-mono"
+                        >
+                          🌐 {pub.domain} — Engin auglýsingapláss skráð.
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return (
+                    <React.Fragment key={pub.id}>
+                      <tr className="bg-slate-50/80 border-y border-outline-variant select-none">
+                        <td
+                          colSpan={5}
+                          className="px-8 py-3 text-xs font-extrabold text-slate-800 tracking-wide"
+                        >
+                          <span className="flex items-center gap-1.5 uppercase font-sans">
+                            <span className="material-symbols-outlined text-[16px] text-slate-500">
+                              public
+                            </span>
+                            {pub.displayName} ({pub.domain})
+                          </span>
+                        </td>
+                      </tr>
+                      {pubSlots.map((s) => (
+                        <tr
+                          key={s.id}
+                          className="hover:bg-surface-container transition-colors group cursor-pointer"
+                          onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                        >
+                          <td className="px-8 py-5 pl-12">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-body-md font-bold text-on-surface truncate max-w-[200px]">
+                                {s.name}
+                              </span>
+                              <span className="text-[12px] text-outline font-medium truncate max-w-[200px]">
+                                {pub.domain}
+                                {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
+                                  ? s.placement.pageMatcher
+                                  : ''}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5">
+                            <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold whitespace-nowrap">
+                              {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
+                              ></span>
+                              <span className="text-body-md font-medium">
+                                {s.status === 'active' ? 'Virk' : 'Óvirk'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                            <span className="text-body-md text-on-surface font-semibold">—</span>
+                          </td>
+                          <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
+                            {formatIsk(
+                              s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk,
+                            )}{' '}
+                            <span className="text-[10px] text-secondary font-medium block">
+                              {s.pricing.mode === 'cpm'
+                                ? 'CPM'
+                                : `fyrir ${s.pricing.slotPeriodDays}d`}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -406,13 +452,13 @@ const sidebarItems = [
 ];
 
 export default function PublisherDashboard() {
-  const { data: publisher, isLoading } = usePublisher();
+  const { data: publishers, isLoading } = usePublishers();
 
   useEffect(() => {
-    if (publisher) {
+    if (publishers && publishers.length > 0) {
       localStorage.setItem('ada_last_role', 'publisher');
     }
-  }, [publisher]);
+  }, [publishers]);
 
   if (isLoading) {
     return (
@@ -424,7 +470,7 @@ export default function PublisherDashboard() {
     );
   }
 
-  if (!publisher) {
+  if (!publishers || publishers.length === 0) {
     return (
       <Routes>
         <Route path="onboarding" element={<PublisherOnboarding />} />
@@ -437,6 +483,7 @@ export default function PublisherDashboard() {
     <AppShell items={sidebarItems} title="Birtingur Útgefandi">
       <Routes>
         <Route path="/" element={<PublisherHome />} />
+        <Route path="onboarding" element={<PublisherOnboarding />} />
         <Route path="slots" element={<SlotList />} />
         <Route path="slots/new" element={<SlotCreate />} />
         <Route path="slots/:id" element={<SlotDetail />} />
