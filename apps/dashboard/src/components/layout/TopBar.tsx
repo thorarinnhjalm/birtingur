@@ -244,7 +244,7 @@ export function TopBar() {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden backdrop-blur-md bg-white/95">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white/95 border border-outline-variant rounded-2xl shadow-xl z-50 overflow-hidden backdrop-blur-md">
               {/* Header */}
               <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
                 <h3 className="text-sm font-bold text-on-surface">Tilkynningar</h3>
@@ -271,7 +271,7 @@ export function TopBar() {
                         !item.read ? 'bg-primary-container/20' : ''
                       }`}
                     >
-                      <div className="mt-0.5 flex-shrink-0">{getNotificationIcon(item.type)}</div>
+                      <div className="mt-0.5 shrink-0">{getNotificationIcon(item.type)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start gap-2">
                           <p
@@ -285,12 +285,12 @@ export function TopBar() {
                             {item.time}
                           </span>
                         </div>
-                        <p className="text-xs text-on-surface-variant mt-1 leading-normal break-words">
+                        <p className="text-xs text-on-surface-variant mt-1 leading-normal wrap-break-word">
                           {item.message}
                         </p>
                       </div>
                       {!item.read && (
-                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 flex-shrink-0"></div>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 shrink-0"></div>
                       )}
                     </div>
                   ))
