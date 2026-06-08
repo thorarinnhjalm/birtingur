@@ -19,21 +19,29 @@ export interface AdvertiserStatsResponse {
 async function getSystemImpressionsLast7Days(): Promise<number> {
   let total = 0;
   const now = new Date();
-  const minDate = new Date(now.getTime() - 7 * 24 * 3600_000);
-  const minDk = minDate.toISOString().split('T')[0]!.replace(/-/g, '') + '00'; // YYYYMMDDHH minimum hour key
 
   try {
-    const campaignsSnap = await db.collection(COLLECTIONS.campaigns).get();
-    const statsPromises = campaignsSnap.docs.map((doc) =>
-      db.collection(`${COLLECTIONS.stats}/campaigns/${doc.id}`).get(),
-    );
-    const statsSnapshots = await Promise.all(statsPromises);
-    for (const statsSnap of statsSnapshots) {
-      for (const sDoc of statsSnap.docs) {
-        if (sDoc.id >= minDk) {
-          const data = sDoc.data();
-          total += data.impressions || 0;
-        }
+    const publishersSnap = await db.collection(COLLECTIONS.publishers).get();
+
+    // Generate YYYYMMDD keys for the last 7 days
+    const dates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now.getTime() - i * 24 * 3600_000);
+      dates.push(d.toISOString().split('T')[0]!.replace(/-/g, ''));
+    }
+
+    const statsPromises: Promise<any>[] = [];
+    for (const doc of publishersSnap.docs) {
+      for (const dk of dates) {
+        statsPromises.push(db.doc(`${COLLECTIONS.stats}/publishers/${doc.id}/${dk}`).get());
+      }
+    }
+
+    const snaps = await Promise.all(statsPromises);
+    for (const snap of snaps) {
+      if (snap.exists) {
+        const data = snap.data();
+        total += data.pageviews || data.impressions || 0;
       }
     }
   } catch (err) {
