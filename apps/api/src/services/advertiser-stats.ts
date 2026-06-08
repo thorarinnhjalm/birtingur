@@ -49,16 +49,6 @@ async function getSystemImpressionsLast7Days(): Promise<number> {
     console.error('Failed to get system impressions:', err);
   }
 
-  // Fallback to mock data if empty and running in dev/emulator
-  const isDevOrEmulator =
-    process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
-  if (total === 0 && isDevOrEmulator) {
-    const base = 1248900;
-    // Animate the mock total upwards smoothly (1.25 impressions per second) without resetting hourly
-    const increment = Math.floor(Date.now() / 800) % 10000000;
-    return base + increment;
-  }
-
   return total;
 }
 
