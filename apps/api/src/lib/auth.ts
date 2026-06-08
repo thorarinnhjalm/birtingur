@@ -33,12 +33,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
   const token = authHeader.substring(7).trim();
 
   // Bypass validation for demo/local testing
-  if (
-    token.startsWith('demo-mock-token') &&
-    (process.env.NODE_ENV !== 'production' ||
-      process.env.FIRESTORE_EMULATOR_HOST ||
-      process.env.FIREBASE_AUTH_EMULATOR_HOST)
-  ) {
+  if (token.startsWith('demo-mock-token') && process.env.NODE_ENV !== 'production') {
     const parts = token.split(':');
     const email = parts[1] || 'demoa@birtingur.is';
     const cleanUsername = email.replace(/@.*$/, '');
