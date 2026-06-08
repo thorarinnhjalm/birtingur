@@ -28,6 +28,12 @@ function firePixelWithViewability(el: HTMLElement, pixelUrl: string): void {
     el.appendChild(pixel);
   };
 
+  // Pageviews (traffic tracking) are fired immediately without viewability/IntersectionObserver checks
+  if (pixelUrl.includes('type=pageview')) {
+    fire();
+    return;
+  }
+
   if (typeof IntersectionObserver !== 'undefined') {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const observer = new IntersectionObserver(

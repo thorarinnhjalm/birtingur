@@ -8,7 +8,7 @@ import {
   setCookieHeader,
   getVisitorImpressionsToday,
 } from '../lib/visitor.js';
-import { getRemainingBudgets, getPaceState } from '../lib/analytics.js';
+import { getRemainingBudgets, getPaceState, logEvent } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
@@ -122,6 +122,19 @@ adRoute.get('/', async (c) => {
     `/v1/impression?c=${encodeURIComponent(creative.creativeId)}` +
     `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
     `&ts=${ts}&sig=${signature}`;
+
+  // Log pageview event for successful ad serve (traffic tracking)
+  void logEvent({
+    type: 'pageview',
+    slotId,
+    publisherId: slot.publisherId,
+    creativeId: creative.creativeId,
+    campaignId: creative.campaignId,
+    advertiserId: '',
+    country,
+    visitorToken: token,
+    ts,
+  });
 
   // Impression is counted when the pixel fires (impression.ts), not here.
 
