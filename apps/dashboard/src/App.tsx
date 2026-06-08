@@ -10,6 +10,7 @@ import Vibers from '@/pages/Vibers';
 import Serfraedingar from '@/pages/Serfraedingar';
 import Bjarni from '@/pages/Bjarni';
 import { LoadingState } from '@/components/ui/LoadingState';
+import Tryggvi from '@/pages/Tryggvi';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -88,6 +89,8 @@ export default function App() {
       <Route path="/vibers" element={<Vibers />} />
       <Route path="/serfraedingar" element={<Serfraedingar />} />
       <Route path="/bjarni" element={<Bjarni />} />
+      <Route path="/tryggvi" element={<Tryggvi />} />
+      <Route path="/datera" element={<Tryggvi />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
