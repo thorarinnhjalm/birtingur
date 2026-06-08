@@ -39,9 +39,15 @@ export async function getAdvertiserStats(
   let totalSpendIsk = 0;
   let hasRealData = false;
 
-  for (const cmp of campaigns) {
+  const campaignPromises = campaigns.map(async (cmp) => {
     const snap = await db.collection(`${COLLECTIONS.stats}/campaigns/${cmp.id}`).get();
-    for (const doc of snap.docs) {
+    return snap.docs;
+  });
+
+  const snapsDocs = await Promise.all(campaignPromises);
+
+  for (const docs of snapsDocs) {
+    for (const doc of docs) {
       const docId = doc.id; // YYYYMMDDHH
       const dk = docId.substring(0, 8); // YYYYMMDD
       if (dailyMap.has(dk)) {

@@ -31,63 +31,81 @@ export async function getPublisherStats(
   const now = new Date();
   let hasRealData = false;
 
-  for (let i = timeframeDays - 1; i >= 0; i--) {
+  const promises = Array.from({ length: timeframeDays }, (_, index) => {
+    const i = timeframeDays - 1 - index;
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     const dateStr = d.toISOString().split('T')[0]!; // YYYY-MM-DD
     const dk = dateStr.replace(/-/g, ''); // YYYYMMDD
 
-    let dayImpressions = 0;
-    let dayClicks = 0;
-    let daySpendIsk = 0;
-    let dayPageviews = 0;
-
-    // 1. Try subcollection path
+    // Fetch the daily stats documents
     const subRef = db.doc(`${COLLECTIONS.stats}/publishers/${publisherId}/${dk}`);
-    const subSnap = await subRef.get();
+    return subRef.get().then(async (subSnap) => {
+      let dayImpressions = 0;
+      let dayClicks = 0;
+      let daySpendIsk = 0;
+      let dayPageviews = 0;
+      let dayHasRealData = false;
 
-    if (subSnap.exists) {
-      const data = subSnap.data();
-      if (data) {
-        hasRealData = true;
-        dayImpressions = data.impressions || 0;
-        dayClicks = data.clicks || 0;
-        daySpendIsk = data.spendIsk || 0;
-        dayPageviews = data.pageviews || 0;
-      }
-    } else {
-      // 2. Fallback to top-level stats collection
-      const snapshot = await db
-        .collection(COLLECTIONS.stats)
-        .where('__name__', '>=', dateStr)
-        .where('__name__', '<=', dateStr + '_\uf8ff')
-        .get();
+      if (subSnap.exists) {
+        const data = subSnap.data();
+        if (data) {
+          dayHasRealData = true;
+          dayImpressions = data.impressions || 0;
+          dayClicks = data.clicks || 0;
+          daySpendIsk = data.spendIsk || 0;
+          dayPageviews = data.pageviews || 0;
+        }
+      } else {
+        // 2. Fallback to top-level stats collection
+        const snapshot = await db
+          .collection(COLLECTIONS.stats)
+          .where('__name__', '>=', dateStr)
+          .where('__name__', '<=', dateStr + '_\uf8ff')
+          .get();
 
-      for (const doc of snapshot.docs) {
-        const data = doc.data();
-        const pubData = data.byPublisher?.[publisherId];
-        if (pubData) {
-          hasRealData = true;
-          dayImpressions += pubData.impressions || 0;
-          dayClicks += pubData.clicks || 0;
-          daySpendIsk += pubData.spendIsk || 0;
-          dayPageviews += pubData.pageviews || 0;
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          const pubData = data.byPublisher?.[publisherId];
+          if (pubData) {
+            dayHasRealData = true;
+            dayImpressions += pubData.impressions || 0;
+            dayClicks += pubData.clicks || 0;
+            daySpendIsk += pubData.spendIsk || 0;
+            dayPageviews += pubData.pageviews || 0;
+          }
         }
       }
-    }
 
+      return {
+        date: dateStr,
+        impressions: dayImpressions,
+        clicks: dayClicks,
+        spendIsk: daySpendIsk,
+        pageviews: dayPageviews,
+        hasRealData: dayHasRealData,
+      };
+    });
+  });
+
+  const results = await Promise.all(promises);
+
+  for (const res of results) {
+    if (res.hasRealData) {
+      hasRealData = true;
+    }
     history.push({
-      date: dateStr,
-      impressions: dayImpressions,
-      clicks: dayClicks,
-      spendIsk: daySpendIsk,
-      pageviews: dayPageviews,
+      date: res.date,
+      impressions: res.impressions,
+      clicks: res.clicks,
+      spendIsk: res.spendIsk,
+      pageviews: res.pageviews,
     });
 
-    totalImpressions += dayImpressions;
-    totalClicks += dayClicks;
-    totalSpendIsk += daySpendIsk;
-    totalPageviews += dayPageviews;
+    totalImpressions += res.impressions;
+    totalClicks += res.clicks;
+    totalSpendIsk += res.spendIsk;
+    totalPageviews += res.pageviews;
   }
 
   // 3. Fallback to mock data if empty and running in dev/emulator

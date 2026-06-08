@@ -28,40 +28,54 @@ export async function getSlotStats(
   const now = new Date();
   let hasRealData = false;
 
-  for (let i = timeframeDays - 1; i >= 0; i--) {
+  const promises = Array.from({ length: timeframeDays }, (_, index) => {
+    const i = timeframeDays - 1 - index;
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     const dateStr = d.toISOString().split('T')[0]!; // YYYY-MM-DD
     const dk = dateStr.replace(/-/g, ''); // YYYYMMDD
 
-    const snap = await db
-      .doc(`${COLLECTIONS.stats}/publisher_slots/${publisherId}_${slotId}/${dk}`)
-      .get();
-
-    if (snap.exists) {
-      hasRealData = true;
-      const data = snap.data();
-      const day = {
-        date: dateStr,
-        impressions: (data?.impressions as number) || 0,
-        clicks: (data?.clicks as number) || 0,
-        spendIsk: (data?.spendIsk as number) || 0,
-        pageviews: (data?.pageviews as number) || 0,
-      };
-      history.push(day);
-      impressions += day.impressions;
-      clicks += day.clicks;
-      spendIsk += day.spendIsk;
-      pageviews += day.pageviews;
-    } else {
-      history.push({
+    const ref = db.doc(`${COLLECTIONS.stats}/publisher_slots/${publisherId}_${slotId}/${dk}`);
+    return ref.get().then((snap) => {
+      if (snap.exists) {
+        const data = snap.data();
+        return {
+          date: dateStr,
+          impressions: (data?.impressions as number) || 0,
+          clicks: (data?.clicks as number) || 0,
+          spendIsk: (data?.spendIsk as number) || 0,
+          pageviews: (data?.pageviews as number) || 0,
+          exists: true,
+        };
+      }
+      return {
         date: dateStr,
         impressions: 0,
         clicks: 0,
         spendIsk: 0,
         pageviews: 0,
-      });
+        exists: false,
+      };
+    });
+  });
+
+  const results = await Promise.all(promises);
+
+  for (const res of results) {
+    if (res.exists) {
+      hasRealData = true;
     }
+    history.push({
+      date: res.date,
+      impressions: res.impressions,
+      clicks: res.clicks,
+      spendIsk: res.spendIsk,
+      pageviews: res.pageviews,
+    });
+    impressions += res.impressions;
+    clicks += res.clicks;
+    spendIsk += res.spendIsk;
+    pageviews += res.pageviews;
   }
 
   // Fallback to mock data if empty and running in dev/emulator
