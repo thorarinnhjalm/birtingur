@@ -335,7 +335,7 @@ export default function PublisherLanding() {
                 <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Áætlaðar mánaðarlegar tekjur þínar
                 </span>
-                <span className="block text-3xl font-black text-slate-900 mt-1.5 bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="block text-3xl font-black mt-1.5 bg-linear-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
                   {estimatedRevenue.toLocaleString('is-IS')} kr.
                 </span>
                 <span className="block text-[10px] text-slate-400 font-medium mt-1">

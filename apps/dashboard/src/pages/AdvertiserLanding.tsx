@@ -359,7 +359,7 @@ export default function AdvertiserLanding() {
                 <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   Áætlaður fjöldi auglýsingasýninga
                 </span>
-                <span className="block text-3xl font-black text-slate-900 mt-1.5 bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <span className="block text-3xl font-black mt-1.5 bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   {estimatedImpressions.toLocaleString('is-IS')}
                 </span>
                 <span className="block text-[10px] text-slate-400 font-medium mt-1">
