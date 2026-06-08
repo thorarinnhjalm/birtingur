@@ -56,19 +56,25 @@ function AdvertiserHome() {
   const [liveSystemImpressions, setLiveSystemImpressions] = useState<number>(0);
 
   useEffect(() => {
-    if (stats?.systemImpressions7d) {
-      setLiveSystemImpressions(stats.systemImpressions7d);
-    }
-  }, [stats?.systemImpressions7d]);
+    if (!stats?.systemImpressions7d) return;
 
-  useEffect(() => {
-    if (!liveSystemImpressions) return;
+    // Sync with the backend only if it's the first load or if the backend has updated to a larger value
+    setLiveSystemImpressions((prev) => {
+      if (prev === 0 || stats.systemImpressions7d > prev) {
+        return stats.systemImpressions7d;
+      }
+      return prev;
+    });
+
     const interval = window.setInterval(() => {
-      // Add a random small number of impressions (1-3) every 800ms to show it increasing live
-      setLiveSystemImpressions((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 800);
+      setLiveSystemImpressions((prev) => {
+        if (prev === 0) return stats.systemImpressions7d;
+        return prev + Math.floor(Math.random() * 2) + 1; // 1-2 impressions (matches 1.25/sec rate)
+      });
+    }, 1200);
+
     return () => window.clearInterval(interval);
-  }, [liveSystemImpressions]);
+  }, [stats?.systemImpressions7d]);
   const { data: bulkCreativeStats } = useBulkCreativeStats(!!advertiser);
   const navigate = useNavigate();
 

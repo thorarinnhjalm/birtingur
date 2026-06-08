@@ -45,8 +45,8 @@ async function getSystemImpressionsLast7Days(): Promise<number> {
     process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (total === 0 && isDevOrEmulator) {
     const base = 1248900;
-    // Animate the mock total upwards live based on current timestamp (12 impressions per second)
-    const increment = Math.floor((Date.now() % (1000 * 3600)) / 1000) * 12;
+    // Animate the mock total upwards smoothly (1.25 impressions per second) without resetting hourly
+    const increment = Math.floor(Date.now() / 800) % 10000000;
     return base + increment;
   }
 
