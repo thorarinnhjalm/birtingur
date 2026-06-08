@@ -115,9 +115,12 @@ describe('GET /v1/click', () => {
   it('redirects to fallback destination and logs click for fallback creatives', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_empty', 'tok123', ts);
-    const res = await app.request(`/v1/click?s=slot_empty&c=cre_fallback_birtingur&t=tok123&ts=${ts}&sig=${sig}`, {
-      headers: { 'CF-IPCountry': 'IS' },
-    });
+    const res = await app.request(
+      `/v1/click?s=slot_empty&c=cre_fallback_birtingur&t=tok123&ts=${ts}&sig=${sig}`,
+      {
+        headers: { 'CF-IPCountry': 'IS' },
+      },
+    );
     expect(res.status).toBe(302);
     expect(res.headers.get('Location')).toBe('https://birtingur.app');
     expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
