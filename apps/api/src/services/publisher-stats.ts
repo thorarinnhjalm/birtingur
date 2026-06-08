@@ -1,6 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import type { PublisherStatsBreakdown } from '@ada/shared/types';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   history: {
@@ -131,7 +132,7 @@ export async function getPublisherStats(
 
       const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
+      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
       // Mock pageviews should be around 1.8x to 3x of impressions, plus some extra fallback hits
       const dayPageviews = Math.floor(dayImpressions * (1.8 + Math.random() * 1.2)) + 150;
 

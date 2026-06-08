@@ -1,6 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { listCampaignsForAdvertiser } from './campaigns.js';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 export interface AdvertiserStatsResponse {
   impressions: number;
@@ -96,8 +97,8 @@ export async function getAdvertiserStats(
         const imp = data.impressions || 0;
         const clk = data.clicks || 0;
 
-        // Estimate campaign spend based on standard 280 CPM
-        const spend = Math.round((imp / 1000) * 280);
+        // Estimate campaign spend based on FLAT_CPM_ISK
+        const spend = Math.round((imp / 1000) * FLAT_CPM_ISK);
 
         dayStats.impressions += imp;
         dayStats.clicks += clk;
@@ -125,7 +126,7 @@ export async function getAdvertiserStats(
 
       const ctr = 0.022 + Math.sin(i * 0.5) * 0.004 + Math.random() * 0.005;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
+      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
 
       history.push({
         date: dateStr,

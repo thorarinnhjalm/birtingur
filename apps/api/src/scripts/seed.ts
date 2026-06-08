@@ -148,7 +148,7 @@ async function seed() {
     const impressions =
       18000 + Math.floor(Math.sin(i * 0.8) * 4000) + Math.floor(Math.random() * 2000);
     const clicks = Math.floor(impressions * (0.015 + Math.random() * 0.01));
-    const spendIsk = Math.floor((impressions / 1000) * 450);
+    const spendIsk = Math.floor((impressions / 1000) * FLAT_CPM_ISK);
 
     // Publisher stats subcollection document
     const pubStatsRef = db.doc(`${COLLECTIONS.stats}/publishers/pub_demo_id/${dk}`);

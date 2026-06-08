@@ -1,5 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 export interface SlotStatsResponse {
   impressions: number;
@@ -102,7 +103,7 @@ export async function getSlotStats(
 
       const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * 280);
+      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
       const dayPageviews = Math.floor(dayImpressions * (1.8 + Math.random() * 1.2)) + 50;
 
       mockHistory.push({
