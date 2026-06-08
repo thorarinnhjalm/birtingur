@@ -1,7 +1,7 @@
 import { handle } from 'hono/vercel';
 import app from '../src/index.js';
 
-export const config = { runtime: 'edge' };
+export const config = { runtime: 'nodejs' };
 export const GET = handle(app);
 export const POST = handle(app);
 export const PUT = handle(app);
