@@ -6,10 +6,21 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
-import { Globe, ArrowRight, ArrowLeft, Sparkles, Loader2, Copy, Check } from 'lucide-react';
+import {
+  Globe,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Loader2,
+  Copy,
+  Check,
+  Megaphone,
+} from 'lucide-react';
 import { AD_CATEGORIES } from '@ada/shared';
 
 export default function AdvertiserOnboarding() {
+  const REGISTRATION_CLOSED = true; // Set to false to reopen registration
+
   const createAdvertiser = useCreateAdvertiser();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -84,6 +95,32 @@ export default function AdvertiserOnboarding() {
     scrapedConfidence,
     scrapedDescription,
   ]);
+
+  if (REGISTRATION_CLOSED) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 md:p-12">
+        <Card className="max-w-md w-full p-8 shadow-xl border border-slate-100 rounded-2xl bg-white text-center">
+          <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-amber-100">
+            <Megaphone className="h-8 w-8 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-3">
+            Skráning auglýsenda er lokuð
+          </h1>
+          <p className="text-sm text-slate-500 font-medium leading-relaxed mb-6">
+            Tímabundið er lokað fyrir nýja auglýsendur á meðan við söfnum upp vefjum sem bjóða upp á
+            auglýsingapláss.
+          </p>
+          <Button
+            type="button"
+            onClick={() => navigate('/role')}
+            className="w-full py-3 font-bold rounded-xl"
+          >
+            Til baka í hlutverkaval
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   // Step 1: Scrape & Analyze Domain
   const handleStartScrape = async (e: React.FormEvent) => {

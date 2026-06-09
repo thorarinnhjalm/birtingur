@@ -17,12 +17,16 @@ export default function RoleSelect() {
   const bypassRedirect =
     searchParams.get('select') === 'true' || searchParams.get('switch') === 'true';
 
+  const hasAdvertiser = !!advertiserQuery.data;
+  const hasPublisher = !!publisherQuery.data;
+
+  const REGISTRATION_CLOSED = true; // Set to false to reopen registration
+  const isAdvertiserDisabled = REGISTRATION_CLOSED && !hasAdvertiser;
+
   useEffect(() => {
     if (bypassRedirect) return;
     if (advertiserQuery.isPending || publisherQuery.isPending) return;
 
-    const hasAdvertiser = !!advertiserQuery.data;
-    const hasPublisher = !!publisherQuery.data;
     const lastRole = localStorage.getItem('ada_last_role');
 
     // Prefer the remembered role when the user actually has that profile — this is
@@ -41,9 +45,9 @@ export default function RoleSelect() {
     }
     // Dual-role with no remembered choice (or no profile at all) → show the chooser.
   }, [
-    advertiserQuery.data,
+    hasAdvertiser,
     advertiserQuery.isPending,
-    publisherQuery.data,
+    hasPublisher,
     publisherQuery.isPending,
     bypassRedirect,
     navigate,
@@ -60,9 +64,10 @@ export default function RoleSelect() {
   }
 
   const handleAdvertiserSelect = () => {
+    if (isAdvertiserDisabled) return;
     localStorage.setItem('ada_last_role', 'advertiser');
     // If advertiser profile already exists, go to home, else onboarding
-    if (advertiserQuery.data) {
+    if (hasAdvertiser) {
       navigate('/advertiser');
     } else {
       navigate('/advertiser/onboarding');
@@ -72,7 +77,7 @@ export default function RoleSelect() {
   const handlePublisherSelect = () => {
     localStorage.setItem('ada_last_role', 'publisher');
     // If publisher profile already exists, go to home, else onboarding
-    if (publisherQuery.data) {
+    if (hasPublisher) {
       navigate('/publisher');
     } else {
       navigate('/publisher/onboarding');
@@ -93,31 +98,55 @@ export default function RoleSelect() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Advertiser Card */}
-          <Card
-            id="role_advertiser"
-            className="cursor-pointer group flex flex-col justify-between h-72 hover:border-primary border-2 border-transparent transition-all duration-300"
-            onClick={handleAdvertiserSelect}
-          >
-            <div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-all">
-                <Megaphone size={24} />
+          {isAdvertiserDisabled ? (
+            <Card
+              id="role_advertiser"
+              className="relative flex flex-col justify-between h-72 border-2 border-slate-200 bg-slate-50/70 opacity-75 shadow-none select-none transition-all duration-300"
+            >
+              <div className="absolute top-4 right-4 bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs">
+                Tímabundið lokuð
               </div>
-              <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
-                Ég vil birta auglýsingar
-              </h3>
-              <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Kynntu vörur þínar eða þjónustu. Settu inn inneign, hladdu upp auglýsingum og veldu
-                markviss pláss á íslenskum vefjum.
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm font-bold text-primary mt-4">
-              <span>Fara í auglýsingaborð</span>
-              <ArrowRight
-                size={16}
-                className="transform group-hover:translate-x-1 transition-transform"
-              />
-            </div>
-          </Card>
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-slate-200 text-slate-400 flex items-center justify-center mb-5">
+                  <Megaphone size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-400">Ég vil birta auglýsingar</h3>
+                <p className="text-sm text-slate-400 mt-2 font-medium leading-relaxed">
+                  Skráning nýrra auglýsenda er tímabundið lokuð á meðan við söfnum upp vefjum sem
+                  eru með auglýsingapláss.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-slate-400 mt-4">
+                <span>Skráning lokuð í bili</span>
+              </div>
+            </Card>
+          ) : (
+            <Card
+              id="role_advertiser"
+              className="cursor-pointer group flex flex-col justify-between h-72 hover:border-primary border-2 border-transparent transition-all duration-300"
+              onClick={handleAdvertiserSelect}
+            >
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-all">
+                  <Megaphone size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
+                  Ég vil birta auglýsingar
+                </h3>
+                <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
+                  Kynntu vörur þínar eða þjónustu. Settu inn inneign, hladdu upp auglýsingum og
+                  veldu markviss pláss á íslenskum vefjum.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-primary mt-4">
+                <span>Fara í auglýsingaborð</span>
+                <ArrowRight
+                  size={16}
+                  className="transform group-hover:translate-x-1 transition-transform"
+                />
+              </div>
+            </Card>
+          )}
 
           {/* Publisher Card */}
           <Card

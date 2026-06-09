@@ -11,6 +11,15 @@ export const advertisersRouter = new Hono<Env>();
 advertisersRouter.use('*', requireAuth);
 
 advertisersRouter.post('/', async (c) => {
+  const REGISTRATION_CLOSED = true; // Set to false to reopen registration
+  if (REGISTRATION_CLOSED) {
+    throw new AppError(
+      403,
+      'Skráning nýrra auglýsenda er tímabundið lokuð.',
+      'REGISTRATION_CLOSED',
+    );
+  }
+
   const user = c.get('user');
   const body = await c.req.json();
   const adv = await createAdvertiser({ ownerEmail: user.email, ...body });
