@@ -6,5 +6,8 @@ Disallow: /role/
 Disallow: /sign-in
 Disallow: /vibers
 Disallow: /serfraedingar
+Disallow: /bjarni
+Disallow: /tryggvi
+Disallow: /datera
 
 Sitemap: https://birtingur.app/sitemap.xml
