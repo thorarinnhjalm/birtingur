@@ -42,8 +42,30 @@ describe('Firestore rules — publishers', () => {
       });
     });
 
-    const userCtx = testEnv.authenticatedContext('uid-jon', { email: 'jon@example.is' });
+    const userCtx = testEnv.authenticatedContext('uid-jon', {
+      email: 'jon@example.is',
+      email_verified: true,
+    });
     await assertSucceeds(userCtx.firestore().collection('publishers').doc('pub_a').get());
+  });
+
+  it('owner with unverified email cannot read own publisher doc', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.firestore().collection('publishers').doc('pub_a').set({
+        ownerEmail: 'jon@example.is',
+        domain: 'example.is',
+        displayName: 'Example',
+        status: 'active',
+      });
+    });
+
+    // Email matches the owner, but the token has not verified the address — an
+    // email-squatting attacker. Must be denied.
+    const unverifiedCtx = testEnv.authenticatedContext('uid-jon', {
+      email: 'jon@example.is',
+      email_verified: false,
+    });
+    await assertFails(unverifiedCtx.firestore().collection('publishers').doc('pub_a').get());
   });
 
   it('non-owner cannot read publisher doc', async () => {
@@ -56,7 +78,10 @@ describe('Firestore rules — publishers', () => {
       });
     });
 
-    const otherCtx = testEnv.authenticatedContext('uid-other', { email: 'other@example.is' });
+    const otherCtx = testEnv.authenticatedContext('uid-other', {
+      email: 'other@example.is',
+      email_verified: true,
+    });
     await assertFails(otherCtx.firestore().collection('publishers').doc('pub_a').get());
   });
 
@@ -110,7 +135,10 @@ describe('Firestore rules — ledger', () => {
         });
     });
 
-    const userCtx = testEnv.authenticatedContext('uid-anna', { email: 'anna@example.is' });
+    const userCtx = testEnv.authenticatedContext('uid-anna', {
+      email: 'anna@example.is',
+      email_verified: true,
+    });
     await assertSucceeds(userCtx.firestore().collection('ledger').doc('led_1').get());
   });
 
@@ -133,7 +161,10 @@ describe('Firestore rules — ledger', () => {
         });
     });
 
-    const otherCtx = testEnv.authenticatedContext('uid-other', { email: 'other@example.is' });
+    const otherCtx = testEnv.authenticatedContext('uid-other', {
+      email: 'other@example.is',
+      email_verified: true,
+    });
     await assertFails(otherCtx.firestore().collection('ledger').doc('led_1').get());
   });
 
