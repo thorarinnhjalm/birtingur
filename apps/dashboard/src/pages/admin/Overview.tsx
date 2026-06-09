@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Banknote, CheckCircle, XCircle, Calendar } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -901,7 +901,8 @@ function AdminAdvertisersList() {
 
 // 6. Slots List
 function AdminSlotsList() {
-  const { data: slots, isLoading, refetch } = useAdminSlots();
+  const { data: slots, isLoading: isSlotsLoading, refetch } = useAdminSlots();
+  const { data: publishers, isLoading: isPublishersLoading } = useAdminPublishers();
   const updateStatus = useUpdateEntityStatus();
   const [error, setError] = useState<string | null>(null);
 
@@ -916,7 +917,15 @@ function AdminSlotsList() {
     }
   };
 
-  if (isLoading) return <LoadingState />;
+  const publisherMap = useMemo(() => {
+    const map = new Map<string, any>();
+    if (publishers) {
+      publishers.forEach((p) => map.set(p.id, p));
+    }
+    return map;
+  }, [publishers]);
+
+  if (isSlotsLoading || isPublishersLoading) return <LoadingState />;
 
   const items = slots || [];
 
@@ -947,7 +956,7 @@ function AdminSlotsList() {
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
                   <th className="py-2.5">Pláss / Heiti</th>
-                  <th className="py-2.5">Útgefandi ID</th>
+                  <th className="py-2.5">Útgefandi</th>
                   <th className="py-2.5">Stærðir</th>
                   <th className="py-2.5">Verðlagning</th>
                   <th className="py-2.5">Staða</th>
@@ -955,38 +964,55 @@ function AdminSlotsList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {items.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/50">
-                    <td className="py-3">
-                      <div className="font-semibold text-slate-900">{s.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{s.id}</div>
-                    </td>
-                    <td className="py-3 font-mono text-slate-500">{s.publisherId}</td>
-                    <td className="py-3 text-slate-600 font-semibold">
-                      {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')} px
-                    </td>
-                    <td className="py-3 text-slate-600 font-semibold">
-                      {s.pricing.mode === 'cpm'
-                        ? `${formatIsk(s.pricing.cpmIsk)} CPM`
-                        : `${formatIsk(s.pricing.slotPriceIsk)} á ${s.pricing.slotPeriodDays} daga`}
-                    </td>
-                    <td className="py-3">
-                      <Badge variant={s.status === 'active' ? 'success' : 'pending'}>
-                        {s.status === 'active' ? 'Virkt' : 'Fryst/Pásað'}
-                      </Badge>
-                    </td>
-                    <td className="py-3 text-right">
-                      <Button
-                        variant={s.status === 'active' ? 'danger' : 'primary'}
-                        onClick={() => handleToggleStatus(s.id, s.status)}
-                        loading={updateStatus.isPending}
-                        className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
-                      >
-                        {s.status === 'active' ? 'Frysta' : 'Virkja'}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {items.map((s) => {
+                  const pub = publisherMap.get(s.publisherId);
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-50/50">
+                      <td className="py-3">
+                        <div className="font-semibold text-slate-900">{s.name}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{s.id}</div>
+                      </td>
+                      <td className="py-3">
+                        {pub ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-slate-900">{pub.displayName}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {pub.domain}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-mono">
+                              {s.publisherId}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-slate-400">{s.publisherId}</span>
+                        )}
+                      </td>
+                      <td className="py-3 text-slate-600 font-semibold">
+                        {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')} px
+                      </td>
+                      <td className="py-3 text-slate-600 font-semibold">
+                        {s.pricing.mode === 'cpm'
+                          ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                          : `${formatIsk(s.pricing.slotPriceIsk)} á ${s.pricing.slotPeriodDays} daga`}
+                      </td>
+                      <td className="py-3">
+                        <Badge variant={s.status === 'active' ? 'success' : 'pending'}>
+                          {s.status === 'active' ? 'Virkt' : 'Fryst/Pásað'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 text-right">
+                        <Button
+                          variant={s.status === 'active' ? 'danger' : 'primary'}
+                          onClick={() => handleToggleStatus(s.id, s.status)}
+                          loading={updateStatus.isPending}
+                          className="text-[10px] font-bold py-1.5 px-3 border border-transparent"
+                        >
+                          {s.status === 'active' ? 'Frysta' : 'Virkja'}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

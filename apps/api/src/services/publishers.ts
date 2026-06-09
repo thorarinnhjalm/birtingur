@@ -4,6 +4,7 @@ import { PublisherSchema } from '@ada/shared/schemas';
 import type { Publisher } from '@ada/shared/types';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
+import { sendWelcomePublisherEmail } from './mail.js';
 
 export async function createPublisher(input: {
   ownerEmail: string;
@@ -39,6 +40,11 @@ export async function createPublisher(input: {
     .doc(id)
     .withConverter(publisherConverter)
     .set(validated);
+
+  // Send welcome email asynchronously so it doesn't block API response
+  sendWelcomePublisherEmail(validated.ownerEmail, validated.displayName, validated.domain).catch(
+    (err) => console.error('Error sending welcome email to publisher:', err),
+  );
 
   return validated;
 }

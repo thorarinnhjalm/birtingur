@@ -5,6 +5,7 @@ import type { Advertiser } from '@ada/shared/types';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
+import { sendWelcomeAdvertiserEmail } from './mail.js';
 
 const CreateAdvertiserSchema = z.object({
   ownerEmail: z.string().email(),
@@ -43,6 +44,11 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
     .doc(adv.id)
     .withConverter(advertiserConverter)
     .set(adv);
+
+  // Send welcome email asynchronously so it doesn't block API response
+  sendWelcomeAdvertiserEmail(adv.ownerEmail, adv.companyName).catch((err) =>
+    console.error('Error sending welcome email to advertiser:', err),
+  );
 
   return adv;
 }
