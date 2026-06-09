@@ -18,6 +18,7 @@ pnpm lint
 pnpm typecheck
 pnpm test         # all package tests via turbo
 pnpm format       # prettier --write
+pnpm verify       # the pre-commit gate: format:check && typecheck && lint
 ```
 
 Per-package: `pnpm --filter @ada/api test` (also `@ada/dashboard`, `@ada/mcp`, `@ada/serving`, `@ada/shared`, `@ada/snippet`, `@ada/firebase-tests`).
@@ -34,7 +35,9 @@ pnpm emulator          # standalone emulator (firestore:8080, auth:9099, storage
 
 Run a single test file/case: `pnpm --filter @ada/api test -- tests/campaigns.test.ts -t "case name"` — but only with an emulator running (wrap in `firebase --config firebase/firebase.json emulators:exec '...'` otherwise).
 
-`@ada/shared` and `@ada/dashboard` tests are plain `vitest` (no emulator).
+`@ada/shared`, `@ada/dashboard`, and `@ada/snippet` tests are plain `vitest` (no emulator). `pnpm test:e2e` runs the dashboard Playwright suite (boots firestore+auth emulators; needs OpenJDK on PATH).
+
+Local data: start `pnpm emulator` in one shell, then `pnpm --filter @ada/api seed` in another to fill it with sample publishers, campaigns, slots, and wallets.
 
 ## Architecture
 
@@ -52,6 +55,7 @@ Seven workspaces under `apps/*` and `packages/*`. **`@ada/shared` is the depende
 - **Auth** (`apps/api/src/lib/auth.ts`): `Authorization: Bearer <token>`. Three token kinds — Firebase ID tokens (dashboard users), API keys prefixed `ak_` (programmatic/MCP, verified in `services/api-keys.ts`), and the literal `demo-mock-token` which bypasses auth for local/demo (grants admin). Admin status comes from `ADMIN_EMAILS`.
 - **Firestore** (`apps/api/src/lib/firebase.ts`): firebase-admin, auto-switches to emulator when `FIRESTORE_EMULATOR_HOST` is set. Collections: `publishers, slots, advertisers, creatives, campaigns, ledger, payouts, stats`.
 - **Ad model (category-based)**: a publisher has `categories` (1..n from `AD_CATEGORIES` in `@ada/shared`); slots inherit them. A campaign's `targeting.categories` (not slotIds) decides where it serves. `push-cache.ts` resolves campaigns→slots by category intersection at cache-build time, so the serving hot path (`apps/serving`, `select.ts`) just reads `slot.activeCreatives` from Redis. CPM is **locked** server-side to `FLAT_CPM_ISK` (`createSlot` ignores client price). `GET /v1/categories/inventory` gives the per-category daily-impression forecast shown in the buy flow.
+- **Serving ↔ snippet contract (cross-origin)**: the `packages/snippet` embed runs on the **publisher's** origin but fetches from `apps/serving` at a different origin (`SERVE_BASE`, baked in at esbuild time). `/v1/ad` returns tracking URLs (`clickUrl`, `impressionPixel`) **relative** to the serving origin; `render.ts` must resolve them against `SERVE_BASE` or they 404 on the publisher domain (impressions go uncounted). The impression pixel fires only after a viewability delay (IAB standard). Frequency capping uses a **first-party** visitor id the snippet stores in publisher-origin `localStorage` (`getVisitorId`, consent-gated) and passes as `?vid=`; third-party cookies are not relied on. The server prefers `vid`, falls back to the `_adp_v` cookie for same-origin/demo.
 - **Money flow**: advertiser wallets are an append-only **ledger** (`services/ledger.ts`, `wallet.ts`). CPM spend accrues on a cron (`/api/cron-accrue`, every 15 min) — charged **per batch** as `round(FLAT_CPM_ISK * count / 1000)`, publisher credited net of the 20% platform fee. The cron decrements `campaign.budget.remainingIsk` (the enforced cap); `budget:{id}` in Redis is the real-time serve-time gate. Stats aggregate hourly (`/api/cron-aggregate`); publisher payouts run monthly (`/api/cron-payouts`, manual bank transfer marks them complete). Cron endpoints are gated by `CRON_SECRET`. Click/impression events are HMAC-signed (`serving/src/lib/crypto.ts`) and deduped (`seen:{sig}`) to block replay/fraud.
 - **Payments**: Teya (card top-ups) under `services/teya/` with `http.ts`/`webhook.ts` and a `stub.ts` for tests; Payday/Blikk is the invoicing/bookkeeping integration (see `docs/superpowers/plans/2026-06-03-10-payday-blikk-integration.md`). Both follow a real-impl + `stub.ts` pattern.
 - **Auto-scan** (`services/auto-scan/`, `domain-classifier.ts`): classifies publisher domains (uses `GEMINI_API_KEY`) during approval; also has a `stub.ts`.
@@ -60,4 +64,8 @@ Seven workspaces under `apps/*` and `packages/*`. **`@ada/shared` is the depende
 
 - **ESM throughout.** Relative imports inside a package must use the `.js` extension (e.g. `from './routes/publishers.js'`) even though the source is `.ts`.
 - Vercel function entrypoints (`apps/api/api/*.js`) are intentionally compiled JS pointing at `dist/` and are excluded from the typecheck tsconfig — don't convert them back to TS (see recent commits e4259e2 / 67d0335).
-- Specs and implementation plans live in `docs/superpowers/specs/` and `docs/superpowers/plans/` — consult them before building a feature.
+- Specs and implementation plans live in `docs/superpowers/specs/` and `docs/superpowers/plans/` — consult them before building a feature. Deeper system design (data model, Mermaid flow diagrams, accounting) is in `docs/architecture.md`; Vercel/Firebase/Upstash setup is in `docs/deployment.md`.
+
+## Deployment topology
+
+Each app is a separate deploy (prod domains under `adplatform.is`): API → `api.`, dashboard → `app.`, MCP → `mcp.`, serving → `serve.` (Vercel V1, Cloudflare Worker V2). The snippet is a static artifact on Cloudflare R2/CDN (`cdn.adplatform.is/v1/snippet.js`). Firestore + Redis (Upstash) are the `ada-prod` project/database. The three crons in the money flow run on Vercel schedules and are the only writers of accrual/stats/payouts.
