@@ -38,6 +38,9 @@ interface AdminStats {
   topCreatives: Array<{
     creativeId: string;
     advertiserId: string;
+    advertiserName?: string;
+    width?: number;
+    height?: number;
     imageUrl: string;
     impressions: number;
     clicks: number;
@@ -178,14 +181,19 @@ function Home() {
                           <img
                             src={tc.imageUrl}
                             alt=""
-                            className="w-10 h-8 rounded object-cover border border-slate-200 bg-white"
+                            className="w-12 h-9 rounded object-cover border border-slate-200 bg-white shadow-sm"
                           />
                         )}
-                        <span className="font-bold text-slate-700 font-mono text-[11px]">
-                          {tc.creativeId.length > 16
-                            ? tc.creativeId.slice(0, 16) + '…'
-                            : tc.creativeId}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-800">
+                            {tc.advertiserName || 'Óþekktur auglýsandi'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                            {tc.width && tc.height
+                              ? `${tc.width} × ${tc.height} px`
+                              : tc.creativeId}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">

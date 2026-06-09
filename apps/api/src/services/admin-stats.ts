@@ -5,13 +5,16 @@ import { getCreativeStats } from './creative-stats.js';
 export interface TopCreativeEntry {
   creativeId: string;
   advertiserId: string;
+  advertiserName?: string;
+  width?: number;
+  height?: number;
   imageUrl: string;
   impressions: number;
   clicks: number;
   ctr: number;
 }
 
-export interface FallbackAdStatsEntry {
+interface FallbackAdStatsEntry {
   creativeId: string;
   name: string;
   imageUrl: string;
@@ -81,9 +84,25 @@ async function getTopCreativesAcrossSystem(limit = 5): Promise<TopCreativeEntry[
     snap.docs.map(async (doc) => {
       const data = doc.data();
       const stats = await getCreativeStats(doc.id, 168); // 7 days
+
+      let advertiserName = 'Óþekktur auglýsandi';
+      if (data.advertiserId) {
+        try {
+          const advDoc = await db.collection(COLLECTIONS.advertisers).doc(data.advertiserId).get();
+          if (advDoc.exists) {
+            advertiserName = advDoc.data()?.companyName || advertiserName;
+          }
+        } catch (err) {
+          console.error(`Failed to fetch advertiser ${data.advertiserId}:`, err);
+        }
+      }
+
       entries.push({
         creativeId: doc.id,
         advertiserId: data.advertiserId ?? '',
+        advertiserName,
+        width: data.width,
+        height: data.height,
         imageUrl: data.imageUrl ?? '',
         impressions: stats.impressions,
         clicks: stats.clicks,
