@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import Logo from '@/components/ui/Logo';
+import PublicHeader from '@/components/layout/PublicHeader';
+import PublicFooter from '@/components/layout/PublicFooter';
 
 type TabType = 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms';
 
 export default function LandingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentTab, setCurrentTab] = useState<TabType>('home');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -37,7 +39,7 @@ export default function LandingPage() {
     }
     setSearchParams(tab === 'home' ? {} : { tab });
     setCurrentTab(tab);
-    setMobileMenuOpen(false);
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -81,145 +83,7 @@ export default function LandingPage() {
       <div className="absolute top-1/3 right-10 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[100px] pointer-events-none -z-10" />
 
       {/* HEADER */}
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/85 border-b border-slate-200/60 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => changeTab('home')}>
-            <Logo size={40} className="shadow-lg shadow-blue-500/10 rounded-xl" />
-            <div>
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">
-                Birtingur
-              </span>
-              <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 ml-2 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60">
-                birtingur.app
-              </span>
-            </div>
-          </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1.5 lg:gap-3 bg-white/80 border border-slate-200/80 px-2 py-1.5 rounded-full shadow-xs">
-            <button
-              onClick={() => changeTab('home')}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${currentTab === 'home' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-            >
-              Yfirlit
-            </button>
-            <button
-              onClick={() => changeTab('advertisers')}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${currentTab === 'advertisers' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-            >
-              Fyrir auglýsendur
-            </button>
-            <button
-              onClick={() => changeTab('publishers')}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${currentTab === 'publishers' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-            >
-              Fyrir útgefendur
-            </button>
-            <button
-              onClick={() => changeTab('faq')}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 cursor-pointer ${currentTab === 'faq' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'}`}
-            >
-              Spurningar (FAQ)
-            </button>
-          </nav>
-
-          {/* CTA Buttons */}
-          <div className="hidden md:flex items-center gap-4">
-            {user ? (
-              <button
-                onClick={handleMinarSidur}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
-              >
-                Mínar síður <span className="material-symbols-outlined text-sm">arrow_forward</span>
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('/sign-in')}
-                  className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                >
-                  Skrá inn
-                </button>
-                <button
-                  onClick={() => navigate('/sign-in')}
-                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
-                >
-                  Hefja auglýsingar
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-2xl">
-                {mobileMenuOpen ? 'close' : 'menu'}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Panel */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white/95 px-4 py-6 space-y-3 shadow-xl animate-fade-in">
-            <button
-              onClick={() => changeTab('home')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-base font-semibold ${currentTab === 'home' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              Yfirlit
-            </button>
-            <button
-              onClick={() => changeTab('advertisers')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-base font-semibold ${currentTab === 'advertisers' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              Fyrir auglýsendur
-            </button>
-            <button
-              onClick={() => changeTab('publishers')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-base font-semibold ${currentTab === 'publishers' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              Fyrir útgefendur
-            </button>
-            <button
-              onClick={() => changeTab('faq')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-base font-semibold ${currentTab === 'faq' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              Spurningar (FAQ)
-            </button>
-
-            <div className="pt-4 border-t border-slate-200/80 flex flex-col gap-3">
-              {user ? (
-                <button
-                  onClick={handleMinarSidur}
-                  className="w-full text-center py-3 rounded-xl bg-blue-600 font-bold text-white shadow-lg"
-                >
-                  Mínar síður
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => navigate('/sign-in')}
-                    className="w-full text-center py-3 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50"
-                  >
-                    Skrá inn
-                  </button>
-                  <button
-                    onClick={() => navigate('/sign-in')}
-                    className="w-full text-center py-3 rounded-xl bg-blue-600 font-bold text-white shadow-lg"
-                  >
-                    Hefja auglýsingar
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
+      <PublicHeader onTabChange={changeTab} currentTab={currentTab} />
 
       {/* MAIN CONTENT HOUSING CHOSEN TAB */}
       <main className="grow">
@@ -1255,8 +1119,8 @@ export default function LandingPage() {
                 </h2>
                 <p>
                   Vefurinn <strong>birtingur.app</strong> (hér eftir „Birtingur“ eða
-                  „Vettvangurinn“) er rekinn af <strong>Nútímalegri auglýsingamiðlun ehf.</strong>,
-                  kt. 560126-1020, Laugavegi 182, 105 Reykjavík (hér eftir „Félagið“). Birtingur er
+                  „Vettvangurinn“) er rekinn af <strong>Neðri Hóll Hugmyndahús ehf.</strong>, kt.
+                  470126-2480, Álfhólsvegi 97, 200 Kópavogur (hér eftir „Félagið“). Birtingur er
                   sjálfvirkur sjálfsafgreiðsluvettvangur sem tengir saman útgefendur vefsvæða og
                   auglýsendur á Íslandi.
                 </p>
@@ -1347,10 +1211,10 @@ export default function LandingPage() {
                   5. Takmörkun ábyrgðar
                 </h2>
                 <p>
-                  Birtingur ehf. ábyrgist ekki 100% samfellda keyrslu eða algjört villuleysi í
-                  kerfinu. Þjónustan er afhent „eins og hún er“. Félagið ber enga ábyrgð á óbeinu
-                  tjóni, glötuðum tekjum útgefenda, eða rekstrartjóni auglýsenda vegna bilana eða
-                  tafa á birtingum.
+                  Neðri Hóll Hugmyndahús ehf. ábyrgist ekki 100% samfellda keyrslu eða algjört
+                  villuleysi í kerfinu. Þjónustan er afhent „eins og hún er“. Félagið ber enga
+                  ábyrgð á óbeinu tjóni, glötuðum tekjum útgefenda, eða rekstrartjóni auglýsenda
+                  vegna bilana eða tafa á birtingum.
                 </p>
               </section>
 
@@ -1363,8 +1227,8 @@ export default function LandingPage() {
                   notkunar á vettvangnum skal málinu vísað til Héraðsdóms Reykjavíkur.
                 </p>
                 <p className="text-xs text-slate-400 pt-4">
-                  Síðast uppfært: 3. júní 2026. Birtingur ehf. áskilur sér rétt til að uppfæra
-                  skilmála þessa reglulega.
+                  Síðast uppfært: 3. júní 2026. Neðri Hóll Hugmyndahús ehf. áskilur sér rétt til að
+                  uppfæra skilmála þessa reglulega.
                 </p>
               </section>
             </div>
@@ -1373,118 +1237,7 @@ export default function LandingPage() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-200/80 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Logo/Info */}
-            <div className="space-y-4">
-              <div
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => changeTab('home')}
-              >
-                <Logo size={32} className="shadow-md shadow-blue-500/10 rounded-lg" />
-                <span className="font-extrabold text-lg text-slate-850">Birtingur</span>
-              </div>
-              <p className="text-xs text-slate-550 leading-relaxed">
-                Nútímaleg auglýsingamiðlun ehf.
-                <br />
-                Kt. 560126-1020 | VSK nr. 148902
-                <br />
-                Laugavegur 182, 105 Reykjavík
-              </p>
-            </div>
-
-            {/* Links Advertiser */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
-                Auglýsendur
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <button
-                    onClick={() => changeTab('advertisers')}
-                    className="text-slate-500 hover:text-slate-850 transition cursor-pointer"
-                  >
-                    Stofna herferð
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => changeTab('advertisers')}
-                    className="text-slate-500 hover:text-slate-850 transition cursor-pointer"
-                  >
-                    Inneignir og greiðslur
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Links Publisher */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
-                Útgefendur
-              </h4>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <button
-                    onClick={() => changeTab('publishers')}
-                    className="text-slate-500 hover:text-slate-850 transition cursor-pointer"
-                  >
-                    Sækja kóða
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => changeTab('publishers')}
-                    className="text-slate-500 hover:text-slate-850 transition cursor-pointer"
-                  >
-                    Tekjuöflun
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal / Contact */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
-                Þjónusta
-              </h4>
-              <ul className="space-y-2 text-xs text-slate-500">
-                <li>
-                  Hafa samband:{' '}
-                  <a
-                    href="mailto:info@birtingur.app"
-                    className="text-slate-500 hover:text-slate-850 transition"
-                  >
-                    info@birtingur.app
-                  </a>
-                </li>
-                <li>Hjálparmiðstöð & FAQ</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-[10px] text-slate-500">
-              © 2026 Birtingur (birtingur.app) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
-            </span>
-            <div className="flex gap-4 text-[10px] text-slate-550">
-              <button
-                onClick={() => changeTab('terms')}
-                className="hover:text-slate-800 transition cursor-pointer bg-transparent border-0 p-0 font-normal"
-              >
-                Notendaskilmálar
-              </button>
-              <button
-                onClick={() => changeTab('terms')}
-                className="hover:text-slate-800 transition cursor-pointer bg-transparent border-0 p-0 font-normal"
-              >
-                Persónuverndarstefna
-              </button>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter onTabChange={changeTab} />
     </div>
   );
 }

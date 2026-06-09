@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import Logo from '@/components/ui/Logo';
+import PublicHeader from '@/components/layout/PublicHeader';
+import PublicFooter from '@/components/layout/PublicFooter';
 import {
   Sparkles,
   MapPin,
@@ -152,39 +154,7 @@ export default function AdvertiserLanding() {
       <div className="absolute top-1/4 right-10 w-[500px] h-[500px] rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
 
       {/* HEADER */}
-      <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 border-b border-slate-200/60 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <Logo size={40} className="shadow-lg shadow-blue-500/10 rounded-xl" />
-            <div>
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">
-                Birtingur
-              </span>
-              {activeRegion && (
-                <span className="hidden sm:inline-block text-[11px] font-bold px-2.5 py-0.5 ml-2.5 rounded-full bg-blue-50 text-blue-700 border border-blue-150">
-                  <MapPin size={10} className="inline mr-1" />
-                  {activeRegion.name}
-                </span>
-              )}
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/sign-in')}
-              className="px-4 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-            >
-              Skrá inn
-            </button>
-            <button
-              onClick={() => navigate('/sign-in')}
-              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-500/30 transition-all duration-200 cursor-pointer"
-            >
-              Prófa frítt
-            </button>
-          </div>
-        </div>
-      </header>
+      <PublicHeader activeRegion={activeRegion} />
 
       <main className="grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 space-y-16 relative">
         {/* HERO SECTION */}
@@ -436,25 +406,7 @@ export default function AdvertiserLanding() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-400">
-          <div className="flex items-center gap-2 text-slate-600">
-            <Logo size={24} />
-            <span className="font-bold">Birtingur © 2026</span>
-          </div>
-          <div className="flex gap-4">
-            <Link to="/" className="hover:text-slate-650">
-              Forsíða
-            </Link>
-            <Link to="/midlar" className="hover:text-slate-650">
-              Fyrir miðla
-            </Link>
-            <Link to="/sign-in" className="hover:text-slate-650">
-              Innskráning
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
