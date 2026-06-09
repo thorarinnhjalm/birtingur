@@ -32,9 +32,13 @@ const FAQS = [
 export function Sidebar({
   items,
   title = 'Auglýsingakerfi',
+  isOpen = false,
+  onClose,
 }: {
   items: SidebarItem[];
   title?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -82,214 +86,235 @@ export function Sidebar({
   const actionButtonText = isAdvertiser ? 'Ný herferð' : isPublisher ? 'Nýtt pláss' : null;
 
   return (
-    <aside className="bg-surface-container-low flex flex-col h-screen py-gutter px-4 w-[280px] fixed left-0 top-0 z-50 border-r border-outline-variant">
-      <div className="mb-10 px-4 flex items-center gap-3">
-        <Logo size={36} className="shadow-md shadow-blue-500/10 rounded-lg" />
-        <div>
-          <h1 className="text-headline-sm font-bold text-primary leading-tight">{title}</h1>
-          <p className="text-xs text-on-secondary-fixed-variant opacity-70 mt-0.5">Birtingur.app</p>
+    <>
+      {isOpen && <div className="fixed inset-0 bg-slate-900/40 z-40 md:hidden" onClick={onClose} />}
+      <aside
+        className={clsx(
+          'bg-surface-container-low flex flex-col h-screen py-gutter px-4 w-[280px] fixed left-0 top-0 z-50 border-r border-outline-variant transition-transform duration-300 md:translate-x-0',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="mb-10 px-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Logo size={36} className="shadow-md shadow-blue-500/10 rounded-lg" />
+            <div>
+              <h1 className="text-headline-sm font-bold text-primary leading-tight">{title}</h1>
+              <p className="text-xs text-on-secondary-fixed-variant opacity-70 mt-0.5">
+                Birtingur.app
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="md:hidden p-1 bg-transparent border-none text-slate-400 hover:text-slate-600 cursor-pointer flex items-center"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
         </div>
-      </div>
 
-      {actionButtonText && (
-        <button
-          onClick={handleActionClick}
-          className="mb-8 w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <span className="material-symbols-outlined">add</span>
-          <span>{actionButtonText}</span>
-        </button>
-      )}
+        {actionButtonText && (
+          <button
+            onClick={handleActionClick}
+            className="mb-8 w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-medium flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <span className="material-symbols-outlined">add</span>
+            <span>{actionButtonText}</span>
+          </button>
+        )}
 
-      <nav className="grow space-y-1">
-        {items.map((it) => (
+        <nav className="grow space-y-1">
+          {items.map((it) => (
+            <NavLink
+              key={it.to}
+              to={it.to}
+              end={it.to === '/advertiser' || it.to === '/publisher' || it.to === '/admin'}
+              className={({ isActive }) =>
+                clsx(
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:scale-[0.98]',
+                  isActive
+                    ? 'bg-secondary-container text-primary font-bold border-l-2 border-primary'
+                    : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50',
+                )
+              }
+            >
+              {typeof it.icon === 'string' ? (
+                <span className="material-symbols-outlined">{it.icon}</span>
+              ) : (
+                <span className="shrink-0">{it.icon}</span>
+              )}
+              <span className="text-label-md">{it.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="mt-auto border-t border-outline-variant pt-4 space-y-1">
           <NavLink
-            key={it.to}
-            to={it.to}
-            end={it.to === '/advertiser' || it.to === '/publisher' || it.to === '/admin'}
+            to={
+              isAdvertiser
+                ? '/advertiser/settings'
+                : isPublisher
+                  ? '/publisher/settings'
+                  : '/admin/settings'
+            }
             className={({ isActive }) =>
               clsx(
-                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors active:scale-[0.98]',
+                'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
                 isActive
                   ? 'bg-secondary-container text-primary font-bold border-l-2 border-primary'
                   : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50',
               )
             }
           >
-            {typeof it.icon === 'string' ? (
-              <span className="material-symbols-outlined">{it.icon}</span>
-            ) : (
-              <span className="shrink-0">{it.icon}</span>
-            )}
-            <span className="text-label-md">{it.label}</span>
+            <span className="material-symbols-outlined">settings</span>
+            <span className="text-label-md">Stillingar</span>
           </NavLink>
-        ))}
-      </nav>
-
-      <div className="mt-auto border-t border-outline-variant pt-4 space-y-1">
-        <NavLink
-          to={
-            isAdvertiser
-              ? '/advertiser/settings'
-              : isPublisher
-                ? '/publisher/settings'
-                : '/admin/settings'
-          }
-          className={({ isActive }) =>
-            clsx(
-              'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
-              isActive
-                ? 'bg-secondary-container text-primary font-bold border-l-2 border-primary'
-                : 'text-on-secondary-fixed-variant hover:bg-secondary-container/50',
-            )
-          }
-        >
-          <span className="material-symbols-outlined">settings</span>
-          <span className="text-label-md">Stillingar</span>
-        </NavLink>
-        <button
-          onClick={() => {
-            setIsHelpOpen(true);
-            setShowContactForm(false);
-            setContactSent(false);
-          }}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-on-secondary-fixed-variant hover:bg-secondary-container/50 w-full text-left cursor-pointer"
-        >
-          <span className="material-symbols-outlined">help</span>
-          <span className="text-label-md">Aðstoð</span>
-        </button>
-      </div>
-
-      {isHelpOpen && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 animate-scaleIn mx-4 relative text-slate-800">
-            <button
-              onClick={() => setIsHelpOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined">help</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                  Aðstoð & Algengar Spurningar
-                </h3>
-                <p className="text-xs text-slate-500">Hvernig getum við hjálpað þér í dag?</p>
-              </div>
-            </div>
-
-            {!showContactForm ? (
-              <>
-                <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
-                  {FAQS.map((faq, idx) => (
-                    <div
-                      key={idx}
-                      className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"
-                    >
-                      <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-start gap-2">
-                        <span className="text-primary font-extrabold mt-0.5">•</span>
-                        {faq.q}
-                      </h4>
-                      <p className="text-xs text-slate-600 leading-relaxed pl-3.5">{faq.a}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <h5 className="font-bold text-xs text-slate-900">Enn með spurningar?</h5>
-                    <p className="text-[11px] text-slate-500">
-                      Hafðu samband og við svörum fljótt.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowContactForm(true)}
-                    className="inline-flex items-center justify-center gap-2 bg-primary hover:opacity-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-primary/10 cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm">chat</span>
-                    Hafa samband
-                  </button>
-                </div>
-              </>
-            ) : contactSent ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-emerald-600 text-2xl">
-                    check_circle
-                  </span>
-                </div>
-                <h4 className="text-lg font-bold text-slate-900 mb-1">Skilaboð móttekin!</h4>
-                <p className="text-sm text-slate-500 max-w-xs">
-                  Við munum svara eins fljótt og auðið er. Þakka þér fyrir.
-                </p>
-                <button
-                  onClick={() => setIsHelpOpen(false)}
-                  className="mt-6 bg-primary text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:opacity-95 transition-all cursor-pointer"
-                >
-                  Loka
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Efni</label>
-                  <input
-                    type="text"
-                    value={contactSubject}
-                    onChange={(e) => setContactSubject(e.target.value)}
-                    placeholder="Hvað getum við aðstoðað þig með?"
-                    required
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Skilaboð</label>
-                  <textarea
-                    value={contactBody}
-                    onChange={(e) => setContactBody(e.target.value)}
-                    placeholder="Lýstu vandanum eða spurningunni þinni..."
-                    required
-                    rows={4}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                  />
-                </div>
-                <div className="flex gap-3 justify-end pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowContactForm(false)}
-                    className="text-sm text-slate-500 hover:text-slate-700 font-semibold px-3 py-2 cursor-pointer"
-                  >
-                    Til baka
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={contactSending}
-                    className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:opacity-95 transition-all shadow-sm shadow-primary/10 cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {contactSending ? (
-                      <>
-                        <span className="material-symbols-outlined text-sm animate-spin">
-                          progress_activity
-                        </span>
-                        Sendi...
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined text-sm">send</span>
-                        Senda skilaboð
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+          <button
+            onClick={() => {
+              setIsHelpOpen(true);
+              setShowContactForm(false);
+              setContactSent(false);
+            }}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-on-secondary-fixed-variant hover:bg-secondary-container/50 w-full text-left cursor-pointer"
+          >
+            <span className="material-symbols-outlined">help</span>
+            <span className="text-label-md">Aðstoð</span>
+          </button>
         </div>
-      )}
-    </aside>
+
+        {isHelpOpen && (
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-fadeIn">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 animate-scaleIn mx-4 relative text-slate-800">
+              <button
+                onClick={() => setIsHelpOpen(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">help</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight">
+                    Aðstoð & Algengar Spurningar
+                  </h3>
+                  <p className="text-xs text-slate-500">Hvernig getum við hjálpað þér í dag?</p>
+                </div>
+              </div>
+
+              {!showContactForm ? (
+                <>
+                  <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                    {FAQS.map((faq, idx) => (
+                      <div
+                        key={idx}
+                        className="border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                      >
+                        <h4 className="font-bold text-sm text-slate-900 mb-1 flex items-start gap-2">
+                          <span className="text-primary font-extrabold mt-0.5">•</span>
+                          {faq.q}
+                        </h4>
+                        <p className="text-xs text-slate-600 leading-relaxed pl-3.5">{faq.a}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h5 className="font-bold text-xs text-slate-900">Enn með spurningar?</h5>
+                      <p className="text-[11px] text-slate-500">
+                        Hafðu samband og við svörum fljótt.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowContactForm(true)}
+                      className="inline-flex items-center justify-center gap-2 bg-primary hover:opacity-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-primary/10 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">chat</span>
+                      Hafa samband
+                    </button>
+                  </div>
+                </>
+              ) : contactSent ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                    <span className="material-symbols-outlined text-emerald-600 text-2xl">
+                      check_circle
+                    </span>
+                  </div>
+                  <h4 className="text-lg font-bold text-slate-900 mb-1">Skilaboð móttekin!</h4>
+                  <p className="text-sm text-slate-500 max-w-xs">
+                    Við munum svara eins fljótt og auðið er. Þakka þér fyrir.
+                  </p>
+                  <button
+                    onClick={() => setIsHelpOpen(false)}
+                    className="mt-6 bg-primary text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:opacity-95 transition-all cursor-pointer"
+                  >
+                    Loka
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Efni</label>
+                    <input
+                      type="text"
+                      value={contactSubject}
+                      onChange={(e) => setContactSubject(e.target.value)}
+                      placeholder="Hvað getum við aðstoðað þig með?"
+                      required
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Skilaboð
+                    </label>
+                    <textarea
+                      value={contactBody}
+                      onChange={(e) => setContactBody(e.target.value)}
+                      placeholder="Lýstu vandanum eða spurningunni þinni..."
+                      required
+                      rows={4}
+                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-3 justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowContactForm(false)}
+                      className="text-sm text-slate-500 hover:text-slate-700 font-semibold px-3 py-2 cursor-pointer"
+                    >
+                      Til baka
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={contactSending}
+                      className="bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:opacity-95 transition-all shadow-sm shadow-primary/10 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {contactSending ? (
+                        <>
+                          <span className="material-symbols-outlined text-sm animate-spin">
+                            progress_activity
+                          </span>
+                          Sendi...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">send</span>
+                          Senda skilaboð
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

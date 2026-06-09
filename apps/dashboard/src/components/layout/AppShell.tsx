@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Sidebar, type SidebarItem } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -11,12 +11,19 @@ export function AppShell({
   children: ReactNode;
   title?: string;
 }) {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex bg-background font-sans antialiased text-on-background">
-      <Sidebar items={items} title={title} />
-      <div className="flex-1 flex flex-col min-w-0 pl-[280px]">
-        <TopBar />
-        <main className="flex-1 p-margin-desktop space-y-gutter max-w-7xl w-full mx-auto flex flex-col justify-between">
+      <Sidebar
+        items={items}
+        title={title}
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+      />
+      <div className="flex-1 flex flex-col min-w-0 pl-0 md:pl-[280px]">
+        <TopBar onMenuClick={() => setIsMobileOpen(true)} />
+        <main className="flex-1 p-4 md:p-margin-desktop space-y-gutter max-w-7xl w-full mx-auto flex flex-col justify-between">
           <div className="flex-1">{children}</div>
           {/* Help link — non-intrusive */}
           <div className="text-center py-4 mt-8">

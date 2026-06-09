@@ -176,6 +176,7 @@ vi.mock('../src/lib/firebase', () => ({
         };
         return builder;
       }),
+      get: vi.fn(async () => ({ docs: [] })),
     })),
   },
   storage: {},

@@ -67,7 +67,37 @@ slotsRouter.get('/', async (c) => {
     const slots = await listSlotsForPublisher(pubId);
     allSlots.push(...slots);
   }
-  return c.json(allSlots);
+
+  // Fetch stats for all slots in parallel
+  const enrichedSlots = await Promise.all(
+    allSlots.map(async (slot) => {
+      try {
+        const stats = await getSlotStats(slot.publisherId, slot.id, 30);
+        return {
+          ...slot,
+          stats: {
+            impressions: stats.impressions,
+            clicks: stats.clicks,
+            spendIsk: stats.spendIsk,
+            pageviews: stats.pageviews,
+          },
+        };
+      } catch (err) {
+        console.error(`Failed to fetch stats for slot ${slot.id}:`, err);
+        return {
+          ...slot,
+          stats: {
+            impressions: 0,
+            clicks: 0,
+            spendIsk: 0,
+            pageviews: 0,
+          },
+        };
+      }
+    }),
+  );
+
+  return c.json(enrichedSlots);
 });
 
 slotsRouter.get('/:id/stats', async (c) => {

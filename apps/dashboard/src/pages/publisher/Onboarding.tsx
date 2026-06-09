@@ -504,7 +504,7 @@ export default function PublisherOnboarding() {
                 value={estimatedSlotsCount}
                 onChange={(e) => setEstimatedSlotsCount(Number(e.target.value))}
                 disabled={createPublisher.isPending}
-                className="w-full accent-primary h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                className="custom-slider w-full h-2 rounded-lg appearance-none cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-bold px-1">
                 <span>1 pláss</span>

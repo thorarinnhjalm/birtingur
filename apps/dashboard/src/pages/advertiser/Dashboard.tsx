@@ -534,25 +534,17 @@ function AdvertiserHome() {
                         </div>
                       </td>
                       <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
-                        {(() => {
-                          const creId = c.creativeIds?.[0];
-                          const s = creId && bulkCreativeStats?.[creId];
-                          return s ? s.impressions.toLocaleString('is-IS') : '—';
-                        })()}
+                        {(c as any).stats
+                          ? (c as any).stats.impressions.toLocaleString('is-IS')
+                          : '0'}
                       </td>
                       <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
-                        {(() => {
-                          const creId = c.creativeIds?.[0];
-                          const s = creId && bulkCreativeStats?.[creId];
-                          return s ? s.clicks.toLocaleString('is-IS') : '—';
-                        })()}
+                        {(c as any).stats ? (c as any).stats.clicks.toLocaleString('is-IS') : '0'}
                       </td>
                       <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
-                        {(() => {
-                          const creId = c.creativeIds?.[0];
-                          const s = creId && bulkCreativeStats?.[creId];
-                          return s ? `${s.ctr.toFixed(1).replace('.', ',')}%` : '—';
-                        })()}
+                        {(c as any).stats
+                          ? `${(c as any).stats.ctr.toFixed(1).replace('.', ',')}%`
+                          : '0,0%'}
                       </td>
                       <td className="px-8 py-5 text-right">
                         <button className="p-2 text-outline hover:text-primary hover:bg-secondary-container rounded-full transition-all cursor-pointer">

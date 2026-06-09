@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { formatIsk } from '@/lib/format';
 import { Banknote, TrendingUp, Calendar } from 'lucide-react';
-import type { Payout } from '@ada/shared';
+import { DEFAULT_PLATFORM_FEE_PERCENT, type Payout } from '@ada/shared';
 
 interface StatsResponse {
   impressions: number;
@@ -34,6 +34,7 @@ export default function Earnings() {
   if (isStatsLoading || isPayoutsLoading) return <LoadingState />;
 
   const earningsTotal = stats?.spendIsk || 0;
+  const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
 
   // Calculate next payout date (1st of next month)
   const now = new Date();
@@ -60,7 +61,7 @@ export default function Earnings() {
               Samansafnaðar tekjur (síðustu 30 daga)
             </span>
             <span className="block text-3xl font-extrabold text-slate-900">
-              {formatIsk(earningsTotal)}
+              {formatIsk(netEarningsTotal)}
             </span>
           </div>
           <div className="p-3 bg-sky-50 text-sky-600 rounded-xl shrink-0">
@@ -74,10 +75,10 @@ export default function Earnings() {
               Áætluð næsta útborgun ({nextPayoutLabel})
             </span>
             <span className="block text-3xl font-extrabold">
-              {formatIsk(earningsTotal >= 5000 ? earningsTotal : 0)}
+              {formatIsk(netEarningsTotal >= 5000 ? netEarningsTotal : 0)}
             </span>
             <span className="text-[10px] text-slate-450 block font-semibold">
-              {earningsTotal < 5000
+              {netEarningsTotal < 5000
                 ? 'Lágmarksútborgun (5.000 kr) hefur ekki verið náð'
                 : 'Greiðist sjálfkrafa'}
             </span>

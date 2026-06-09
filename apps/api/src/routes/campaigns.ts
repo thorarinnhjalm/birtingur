@@ -41,7 +41,36 @@ campaignsRouter.get('/', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const list = await listCampaignsForAdvertiser(adv.id);
-  return c.json(list);
+
+  // Fetch stats for all campaigns in parallel
+  const enrichedList = await Promise.all(
+    list.map(async (cmp) => {
+      try {
+        const stats = await getCampaignStats(cmp.id, 24 * 30); // 30 days
+        const ctr = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+        return {
+          ...cmp,
+          stats: {
+            impressions: stats.impressions,
+            clicks: stats.clicks,
+            ctr,
+          },
+        };
+      } catch (err) {
+        console.error(`Failed to fetch stats for campaign ${cmp.id}:`, err);
+        return {
+          ...cmp,
+          stats: {
+            impressions: 0,
+            clicks: 0,
+            ctr: 0,
+          },
+        };
+      }
+    }),
+  );
+
+  return c.json(enrichedList);
 });
 
 campaignsRouter.get('/:id', async (c) => {

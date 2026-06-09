@@ -98,7 +98,7 @@ const getMockNotifications = (role: 'advertiser' | 'publisher' | 'admin'): Notif
   ];
 };
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, admin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,10 +174,19 @@ export function TopBar() {
   const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
 
   return (
-    <header className="bg-surface-container-lowest border-b border-outline-variant shadow-sm flex justify-between items-center w-full px-margin-desktop py-4 sticky top-0 z-40">
+    <header className="bg-surface-container-lowest border-b border-outline-variant shadow-sm flex justify-between items-center w-full px-4 md:px-margin-desktop py-4 sticky top-0 z-40">
       {/* Search and Workspace Toggle */}
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-4 bg-surface-container rounded-full px-4 py-2 w-72 lg:w-96">
+      <div className="flex items-center gap-4">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-1 bg-transparent border-none text-slate-500 hover:text-slate-700 cursor-pointer flex items-center"
+            aria-label="Opna valmynd"
+          >
+            <span className="material-symbols-outlined text-[24px]">menu</span>
+          </button>
+        )}
+        <div className="flex items-center gap-4 bg-surface-container rounded-full px-4 py-2 w-36 sm:w-72 lg:w-96">
           <span className="material-symbols-outlined text-outline">search</span>
           <input
             type="text"

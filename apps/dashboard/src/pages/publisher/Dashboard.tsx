@@ -126,8 +126,10 @@ function PublisherHome() {
               <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
               Áætlaðar tekjur í þessum mánuði
             </p>
-            <h3 className="font-bold text-[64px] text-primary tracking-tighter leading-none my-4">
-              {stats ? formatIsk(stats.spendIsk) : '0 kr.'}
+            <h3 className="font-bold text-4xl sm:text-5xl lg:text-[64px] text-primary tracking-tighter leading-none my-4">
+              {stats
+                ? formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))
+                : '0 kr.'}
             </h3>
             {(() => {
               if (!stats?.history || stats.history.length < 2) return null;
@@ -164,7 +166,9 @@ function PublisherHome() {
                 </defs>
                 <Area
                   type="monotone"
-                  dataKey="spendIsk"
+                  dataKey={(h: any) =>
+                    Math.round(h.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100))
+                  }
                   stroke="#2563eb"
                   strokeWidth={2}
                   fillOpacity={1}
@@ -285,7 +289,13 @@ function PublisherHome() {
             </p>
             <p className="font-bold text-headline-md text-on-surface">
               {stats && stats.impressions > 0
-                ? formatIsk(Math.round((stats.spendIsk / stats.impressions) * 1000))
+                ? formatIsk(
+                    Math.round(
+                      ((stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)) /
+                        stats.impressions) *
+                        1000,
+                    ),
+                  )
                 : '0 kr.'}
             </p>
           </div>
@@ -345,7 +355,8 @@ function PublisherHome() {
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {publishers.map((pub) => {
-                  const pubSlots = slots?.filter((s) => s.publisherId === pub.id) || [];
+                  const pubSlots =
+                    (slots as any[])?.filter((s: any) => s.publisherId === pub.id) || [];
                   if (pubSlots.length === 0) {
                     return (
                       <tr key={pub.id} className="bg-slate-50/50">
@@ -374,7 +385,7 @@ function PublisherHome() {
                           </span>
                         </td>
                       </tr>
-                      {pubSlots.map((s) => (
+                      {pubSlots.map((s: any) => (
                         <tr
                           key={s.id}
                           className="hover:bg-surface-container transition-colors group cursor-pointer"
@@ -395,7 +406,7 @@ function PublisherHome() {
                           </td>
                           <td className="px-8 py-5">
                             <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold whitespace-nowrap">
-                              {s.sizes.map((sz) => `${sz.width}x${sz.height}`).join(', ')}
+                              {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
                             </span>
                           </td>
                           <td className="px-8 py-5">
@@ -408,17 +419,21 @@ function PublisherHome() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-8 py-5 text-center">
-                            <span className="text-body-md text-on-surface font-semibold">—</span>
+                          <td className="px-8 py-5 text-center text-body-md text-on-surface font-semibold">
+                            {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
                           </td>
                           <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
-                            {formatIsk(
-                              s.pricing.mode === 'cpm' ? s.pricing.cpmIsk : s.pricing.slotPriceIsk,
-                            )}{' '}
+                            {s.stats
+                              ? formatIsk(
+                                  Math.round(
+                                    s.stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
+                                  ),
+                                )
+                              : '0 kr.'}
                             <span className="text-[10px] text-secondary font-medium block">
                               {s.pricing.mode === 'cpm'
-                                ? 'CPM'
-                                : `fyrir ${s.pricing.slotPeriodDays}d`}
+                                ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                                : `${formatIsk(s.pricing.slotPriceIsk)} / ${s.pricing.slotPeriodDays}d`}
                             </span>
                           </td>
                         </tr>
