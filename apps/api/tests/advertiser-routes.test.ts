@@ -195,6 +195,7 @@ describe('Advertiser HTTP Routes', () => {
     vi.mocked(auth.verifyIdToken).mockResolvedValue({
       uid: 'user-123',
       email: 'advertiser@example.is',
+      email_verified: true,
     } as unknown as DecodedIdToken);
   });
 

@@ -77,6 +77,7 @@ describe('Authentication Middleware', () => {
         uid: 'user-123',
         email: 'user@example.is',
         admin: false,
+        email_verified: true,
       };
 
       vi.mocked(auth.verifyIdToken).mockResolvedValue(mockDecodedToken as any);
@@ -138,6 +139,7 @@ describe('Authentication Middleware', () => {
         uid: 'user-123',
         email: 'user@example.is',
         admin: false,
+        email_verified: true,
       };
       vi.mocked(auth.verifyIdToken).mockResolvedValue(mockDecodedToken as any);
 
@@ -160,6 +162,7 @@ describe('Authentication Middleware', () => {
         uid: 'admin-123',
         email: 'admin@example.is',
         admin: true,
+        email_verified: true,
       };
       vi.mocked(auth.verifyIdToken).mockResolvedValue(mockDecodedToken as any);
 

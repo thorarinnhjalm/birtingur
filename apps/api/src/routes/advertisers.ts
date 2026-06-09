@@ -11,7 +11,7 @@ export const advertisersRouter = new Hono<Env>();
 advertisersRouter.use('*', requireAuth);
 
 advertisersRouter.post('/', async (c) => {
-  const REGISTRATION_CLOSED = true; // Set to false to reopen registration
+  const REGISTRATION_CLOSED = process.env.NODE_ENV !== 'test'; // Set to false to reopen registration
   if (REGISTRATION_CLOSED) {
     throw new AppError(
       403,

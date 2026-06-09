@@ -107,11 +107,11 @@ vi.mock('../src/lib/firebase', () => {
     auth: {
       verifyIdToken: vi.fn(async (token: string) => {
         if (token === 'admin-token') {
-          return { uid: 'u-admin', email: 'admin@a.is', admin: true };
+          return { uid: 'u-admin', email: 'admin@a.is', admin: true, email_verified: true };
         } else if (token === 'pub-tok') {
-          return { uid: 'u-pub', email: 'pub@p.is' };
+          return { uid: 'u-pub', email: 'pub@p.is', email_verified: true };
         } else if (token === 'adv-tok') {
-          return { uid: 'u-adv', email: 'adv@a.is' };
+          return { uid: 'u-adv', email: 'adv@a.is', email_verified: true };
         }
         throw new Error('Invalid token');
       }),

@@ -25,6 +25,7 @@ describe('Publisher HTTP Routes', () => {
   const mockUser = {
     uid: 'user-123',
     email: 'publisher@example.is',
+    email_verified: true,
   };
 
   const samplePayout = {
