@@ -164,69 +164,180 @@ function generateHouseAdSvg(width: number, height: number): string {
   const isHorizontal = width > height * 1.5;
   const isCompact = width < 200 || height < 80;
 
+  // Premium Logo SVG definition
+  const logoGroup = `
+    <g class="logo-mark">
+      <!-- Stem -->
+      <rect x="20" y="14" width="12" height="72" rx="3" fill="url(#spine-grad)" />
+      <!-- Top fold -->
+      <path d="M 32 14 L 62 14 L 50 28 L 32 28 Z" fill="url(#top-fold-grad)" />
+      <!-- Top loop -->
+      <path d="M 62 14 L 78 30 L 62 46 L 46 30 Z" fill="url(#top-loop-grad)" filter="url(#logo-shadow)" />
+      <!-- Mid fold -->
+      <path d="M 32 46 L 62 46 L 50 60 L 32 60 Z" fill="url(#mid-fold-grad)" filter="url(#logo-shadow)" />
+      <!-- Bottom loop -->
+      <path d="M 62 46 L 82 66 L 62 86 L 42 66 Z" fill="url(#bottom-loop-grad)" filter="url(#logo-shadow-deep)" />
+      <!-- Bottom fold -->
+      <path d="M 32 72 L 62 86 L 32 86 Z" fill="url(#bottom-fold-grad)" />
+    </g>
+  `;
+
   let content = '';
 
   if (isCompact) {
-    content = `
-      <text x="50%" y="55%" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">Birtingur.app</text>
-    `;
-  } else if (isHorizontal) {
-    const fontSizeTitle = height >= 90 ? 18 : 13;
-    const fontSizeSub = height >= 90 ? 11 : 9;
-    const buttonW = height >= 90 ? 110 : 80;
-    const buttonH = height >= 90 ? 30 : 20;
-    const buttonX = width - buttonW - width * 0.05;
-    const buttonY = (height - buttonH) / 2;
-    const buttonTextY = height >= 90 ? 19 : 13;
-    const buttonTextSize = height >= 90 ? 10 : 8;
+    // Mini layout (e.g. 120x60)
+    const logoSize = Math.min(width * 0.25, height * 0.5, 24);
+    const logoScale = logoSize / 100;
+    const logoX = width * 0.1;
+    const logoY = (height - logoSize) / 2;
+    const textX = logoX + logoSize + 6;
+    const fontSize = Math.max(9, Math.min(width * 0.08, 12));
 
     content = `
-      <g transform="translate(${width * 0.05}, ${height * 0.5})">
-        <text x="0" y="-2" fill="#ffffff" font-size="${fontSizeTitle}" font-weight="800">Birtingur.app</text>
-        <text x="0" y="${height >= 90 ? 16 : 12}" fill="#e0f2fe" font-size="${fontSizeSub}" font-weight="500">Auglýstu hér á 550 kr. CPM</text>
+      <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
+        ${logoGroup}
       </g>
+      <text x="${textX}" y="${height / 2 + fontSize * 0.35}" fill="#ffffff" font-size="${fontSize}" font-weight="800">Birtingur</text>
+    `;
+  } else if (isHorizontal) {
+    // Horizontal banner layout (e.g. 728x90, 468x60)
+    const logoSize = Math.min(height * 0.65, 52);
+    const logoScale = logoSize / 100;
+    const logoX = width * 0.03;
+    const logoY = (height - logoSize) / 2;
+
+    const textX = logoX + logoSize + 14;
+    const titleSize = Math.max(12, Math.min(height * 0.26, 20));
+    const subSize = Math.max(9, Math.min(height * 0.16, 12));
+
+    const titleY = height * 0.42;
+    const subY = height * 0.72;
+
+    const buttonW = Math.max(75, Math.min(width * 0.22, 140));
+    const buttonH = Math.max(22, Math.min(height * 0.44, 34));
+    const buttonX = width - buttonW - width * 0.03;
+    const buttonY = (height - buttonH) / 2;
+    const buttonTextSize = Math.max(8, Math.min(buttonH * 0.36, 11));
+    const buttonTextY = buttonH / 2 + buttonTextSize * 0.35;
+
+    const pitchText =
+      height >= 80
+        ? 'Sjálfvirkur auglýsingamarkaður • 550 kr. CPM fastaverð'
+        : 'Auglýstu á 550 kr. CPM • Birtingur.app';
+
+    const buttonText = buttonW > 100 ? 'Stofna herferð' : 'Auglýsa';
+
+    content = `
+      <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
+        ${logoGroup}
+      </g>
+      <text x="${textX}" y="${titleY}" fill="#ffffff" font-size="${titleSize}" font-weight="900" letter-spacing="-0.02em">Birtingur</text>
+      <text x="${textX}" y="${subY}" fill="#e0f2fe" font-size="${subSize}" font-weight="500">${pitchText}</text>
+      
       <g transform="translate(${buttonX}, ${buttonY})">
-        <rect width="${buttonW}" height="${buttonH}" rx="6" fill="#ffffff" filter="url(#shadow)"/>
-        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1e3a8a" font-size="${buttonTextSize}" font-weight="800">Auglýsa</text>
+        <rect width="${buttonW}" height="${buttonH}" rx="${buttonH * 0.2}" fill="#ffffff" filter="url(#shadow)"/>
+        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="${buttonTextSize}" font-weight="800">${buttonText}</text>
       </g>
     `;
   } else {
-    // Vertical or square layout
-    const titleY = height * 0.28;
-    const descY1 = height * 0.46;
-    const descY2 = height * 0.56;
-    const buttonW = Math.min(width * 0.8, 140);
+    // Vertical or square layout (e.g. 300x250, 300x600, 160x600)
+    const logoSize = Math.min(width * 0.32, height * 0.22, 72);
+    const logoScale = logoSize / 100;
+    const logoX = (width - logoSize) / 2;
+    const logoY = height * 0.12;
+
+    const titleSize = Math.max(14, Math.min(width * 0.08, 22));
+    const titleY = logoY + logoSize + titleSize + 8;
+
+    const sub1Size = Math.max(10, Math.min(width * 0.048, 13));
+    const sub1Y = titleY + sub1Size + 12;
+
+    const sub2Size = Math.max(8, Math.min(width * 0.04, 11));
+    const sub2Y = sub1Y + sub2Size + 10;
+
+    const buttonW = Math.min(width * 0.75, 150);
     const buttonH = 34;
     const buttonX = (width - buttonW) / 2;
-    const buttonY = height * 0.7;
-    const buttonTextY = 21;
+    const buttonY = Math.max(sub2Y + 24, height * 0.74);
+    const buttonTextY = buttonH / 2 + 4;
+
+    const pitchText1 = width >= 240 ? 'Sjálfvirkur auglýsingamarkaður' : 'Auglýstu á netinu';
+
+    const pitchText2 =
+      width >= 200 ? 'Fastaverð: 550 kr. CPM • Engin lágmörk' : '550 kr. CPM fastaverð';
 
     content = `
-      <text x="50%" y="${titleY}" text-anchor="middle" fill="#ffffff" font-size="20" font-weight="900">Birtingur.app</text>
-      <text x="50%" y="${descY1}" text-anchor="middle" fill="#e0f2fe" font-size="12" font-weight="700">Auglýstu hér</text>
-      <text x="50%" y="${descY2}" text-anchor="middle" fill="#e0f2fe" font-size="10" font-weight="500">550 kr. CPM fastaverð</text>
+      <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
+        ${logoGroup}
+      </g>
+      <text x="50%" y="${titleY}" text-anchor="middle" fill="#ffffff" font-size="${titleSize}" font-weight="900" letter-spacing="-0.02em">Birtingur</text>
+      <text x="50%" y="${sub1Y}" text-anchor="middle" fill="#e0f2fe" font-size="${sub1Size}" font-weight="700">${pitchText1}</text>
+      <text x="50%" y="${sub2Y}" text-anchor="middle" fill="#bae6fd" font-size="${sub2Size}" font-weight="500">${pitchText2}</text>
       
       <g transform="translate(${buttonX}, ${buttonY})">
         <rect width="${buttonW}" height="${buttonH}" rx="8" fill="#ffffff" filter="url(#shadow)"/>
-        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="800">Prófa núna</text>
+        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="800">Stofna herferð</text>
       </g>
     `;
   }
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
     <defs>
+      <!-- Background linear gradient -->
       <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#1e3a8a" />
-        <stop offset="100%" stop-color="#0ea5e9" />
+        <stop offset="0%" stop-color="#030712" />
+        <stop offset="40%" stop-color="#0b1530" />
+        <stop offset="100%" stop-color="#1d4ed8" />
       </linearGradient>
+
+      <!-- Radial background glow -->
+      <radialGradient id="glow" cx="10%" cy="10%" r="70%">
+        <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.25" />
+        <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
+      </radialGradient>
+
+      <!-- Button shadow -->
       <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.15"/>
+        <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#000000" flood-opacity="0.18"/>
+      </filter>
+
+      <!-- Logo Gradients & Shadows -->
+      <linearGradient id="spine-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#1e3a8a" />
+        <stop offset="100%" stop-color="#1e40af" />
+      </linearGradient>
+      <linearGradient id="top-fold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" />
+        <stop offset="100%" stop-color="#0284c7" />
+      </linearGradient>
+      <linearGradient id="top-loop-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#3b82f6" />
+        <stop offset="100%" stop-color="#1d4ed8" />
+      </linearGradient>
+      <linearGradient id="mid-fold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#06b6d4" />
+        <stop offset="100%" stop-color="#0f766e" />
+      </linearGradient>
+      <linearGradient id="bottom-loop-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#14b8a6" />
+        <stop offset="100%" stop-color="#1d4ed8" />
+      </linearGradient>
+      <linearGradient id="bottom-fold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#2563eb" />
+        <stop offset="100%" stop-color="#1e3a8a" />
+      </linearGradient>
+      <filter id="logo-shadow" x="-10%" y="-10%" width="130%" height="130%">
+        <feDropShadow dx="-0.5" dy="1.5" stdDeviation="1.5" flood-color="#0f172a" flood-opacity="0.25"/>
+      </filter>
+      <filter id="logo-shadow-deep" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="-1" dy="2.5" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.35"/>
       </filter>
     </defs>
     <style>
-      text { font-family: 'Inter', system-ui, sans-serif; }
+      text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     </style>
     <rect width="100%" height="100%" fill="url(#grad)"/>
+    <rect width="100%" height="100%" fill="url(#glow)"/>
     ${content}
   </svg>`;
 
