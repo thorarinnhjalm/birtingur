@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
-import Logo from '@/components/ui/Logo';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import {
   Sparkles,
-  MapPin,
   Code2,
   Coins,
   ShieldCheck,

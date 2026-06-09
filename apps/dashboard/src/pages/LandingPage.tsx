@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/lib/auth-context';
-import Logo from '@/components/ui/Logo';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 
@@ -11,7 +9,6 @@ export default function LandingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentTab, setCurrentTab] = useState<TabType>('home');
 
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Handle URL synchronisation with search params (e.g. ?tab=faq)
@@ -41,17 +38,6 @@ export default function LandingPage() {
     setCurrentTab(tab);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleMinarSidur = () => {
-    const lastRole = localStorage.getItem('ada_last_role');
-    if (lastRole === 'advertiser') {
-      navigate('/advertiser');
-    } else if (lastRole === 'publisher') {
-      navigate('/publisher');
-    } else {
-      navigate('/role');
-    }
   };
 
   // State for Sandbox Widget Demo
