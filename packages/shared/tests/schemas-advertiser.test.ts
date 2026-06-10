@@ -171,3 +171,25 @@ describe('CreativeSchema', () => {
     ).toThrow();
   });
 });
+
+describe('AutoScanResultSchema.sensitiveCategories', () => {
+  const base = { nsfwScore: 0.1, blockedTerms: [], category: 'retail', confidence: 0.9 };
+
+  it('stays undefined when absent (unscanned ≠ scanned-clean)', () => {
+    const parsed = AutoScanResultSchema.parse(base);
+    expect(parsed.sensitiveCategories).toBeUndefined();
+  });
+
+  it('round-trips an empty array (scanned, clean)', () => {
+    const parsed = AutoScanResultSchema.parse({ ...base, sensitiveCategories: [] });
+    expect(parsed.sensitiveCategories).toEqual([]);
+  });
+
+  it('accepts valid sensitive slugs and rejects unknown ones', () => {
+    const ok = AutoScanResultSchema.parse({ ...base, sensitiveCategories: ['afengi', 'vedmal'] });
+    expect(ok.sensitiveCategories).toEqual(['afengi', 'vedmal']);
+    expect(() =>
+      AutoScanResultSchema.parse({ ...base, sensitiveCategories: ['gambling'] }),
+    ).toThrow();
+  });
+});

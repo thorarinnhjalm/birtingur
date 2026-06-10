@@ -95,3 +95,26 @@ export const AD_CATEGORIES = [
 
 export const AD_CATEGORY_SLUGS = AD_CATEGORIES.map((c) => c.slug) as readonly string[];
 export type AdCategory = (typeof AD_CATEGORIES)[number]['slug'];
+
+/**
+ * Sensitive creative categories publishers can block (brand safety).
+ * A creative carries 0..n of these flags from auto-scan; publishers block from this list.
+ * Note: alcohol, tobacco and gambling advertising are also legally restricted in Iceland —
+ * these flags enable future admin enforcement, but legal enforcement is not done here.
+ */
+export const SENSITIVE_AD_CATEGORIES = [
+  { slug: 'afengi', label: 'Áfengi' },
+  { slug: 'vedmal', label: 'Veðmál & happdrætti' },
+  { slug: 'stefnumot', label: 'Stefnumót' },
+  { slug: 'rafmyntir', label: 'Rafmyntir & áhættufjárfestingar' },
+  { slug: 'megrun_utlit', label: 'Megrun & útlitsaðgerðir' },
+  { slug: 'politik', label: 'Stjórnmál' },
+  { slug: 'trumal', label: 'Trúmál' },
+  { slug: 'tobak_veip', label: 'Tóbak & veip' },
+  { slug: 'kynlifstengt', label: 'Kynlífstengt efni' },
+] as const;
+
+export const SENSITIVE_AD_CATEGORY_SLUGS = SENSITIVE_AD_CATEGORIES.map(
+  (c) => c.slug,
+) as readonly string[];
+export type SensitiveAdCategory = (typeof SENSITIVE_AD_CATEGORIES)[number]['slug'];

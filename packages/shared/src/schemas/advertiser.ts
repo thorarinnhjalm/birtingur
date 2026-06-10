@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SENSITIVE_AD_CATEGORY_SLUGS } from '../constants.js';
 
 const KennitalaSchema = z
   .string()
@@ -26,6 +27,11 @@ export const AutoScanResultSchema = z.object({
   blockedTerms: z.array(z.string()),
   category: z.string().min(1),
   confidence: z.number().min(0).max(1),
+  // Deliberately .optional(), NOT .default([]): converters parse on read, and absence
+  // must keep meaning "never scanned for sensitive flags" (fail-closed in push-cache).
+  sensitiveCategories: z
+    .array(z.enum(SENSITIVE_AD_CATEGORY_SLUGS as [string, ...string[]]))
+    .optional(),
 });
 export type AutoScanResult = z.infer<typeof AutoScanResultSchema>;
 
