@@ -40,6 +40,12 @@ export default function PublicHeader({
     if (path.startsWith('/midlar')) {
       return 'publishers';
     }
+    if (path.startsWith('/faq')) {
+      return 'faq';
+    }
+    if (path.startsWith('/skilmalar')) {
+      return 'terms';
+    }
 
     // Check main path search params
     const tabParam = searchParams.get('tab') as TabType;
@@ -60,10 +66,12 @@ export default function PublicHeader({
         navigate('/auglysendur');
       } else if (tab === 'publishers') {
         navigate('/midlar');
-      } else if (tab === 'home') {
-        navigate('/');
+      } else if (tab === 'faq') {
+        navigate('/faq');
+      } else if (tab === 'terms') {
+        navigate('/skilmalar');
       } else {
-        navigate(`/?tab=${tab}`);
+        navigate('/');
       }
     }
   };

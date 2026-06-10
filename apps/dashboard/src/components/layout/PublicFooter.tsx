@@ -16,10 +16,12 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
         navigate('/auglysendur');
       } else if (tab === 'publishers') {
         navigate('/midlar');
-      } else if (tab === 'home') {
-        navigate('/');
+      } else if (tab === 'faq') {
+        navigate('/faq');
+      } else if (tab === 'terms') {
+        navigate('/skilmalar');
       } else {
-        navigate(`/?tab=${tab}`);
+        navigate('/');
       }
     }
   };
