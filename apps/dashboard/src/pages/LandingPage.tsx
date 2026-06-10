@@ -68,6 +68,17 @@ export default function LandingPage() {
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
       <div className="absolute top-1/3 right-10 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[100px] pointer-events-none -z-10" />
 
+      {/* Informational Banner */}
+      <div className="bg-linear-to-r from-blue-600 to-indigo-600 text-white py-2.5 px-4 text-center text-xs sm:text-sm font-bold tracking-wide shadow-inner flex items-center justify-center gap-2">
+        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] uppercase font-black tracking-wider shrink-0">
+          Tilkynning
+        </span>
+        <span>
+          Eins og er erum við eingöngu að skrá ný auglýsingapláss (vefi). Skráning nýrra auglýsenda
+          opnar fljótlega!
+        </span>
+      </div>
+
       {/* HEADER */}
       <PublicHeader onTabChange={changeTab} currentTab={currentTab} />
 
@@ -105,19 +116,23 @@ export default function LandingPage() {
                   <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
                     <button
                       onClick={() => changeTab('advertisers')}
-                      className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-base shadow-xl shadow-blue-500/10 hover:shadow-blue-500/25 transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-600 font-extrabold text-base transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
                     >
-                      Kaupa auglýsingar (Auglýsandi){' '}
+                      Kaupa auglýsingar (Lokað í bili)
                       <span className="material-symbols-outlined">campaign</span>
                     </button>
                     <button
                       onClick={() => changeTab('publishers')}
                       className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-extrabold text-base transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      Selja auglýsingapláss (Útgefandi){' '}
+                      Selja auglýsingapláss (Útgefandi)
                       <span className="material-symbols-outlined text-lg">add_to_queue</span>
                     </button>
                   </div>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">
+                    * Skráning nýrra auglýsenda er tímabundið lokuð í bili. Útgefendur geta skráð
+                    sig strax!
+                  </p>
                 </div>
 
                 {/* Visual Bento Mockup */}

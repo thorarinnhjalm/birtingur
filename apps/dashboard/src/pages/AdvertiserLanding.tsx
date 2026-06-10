@@ -185,19 +185,25 @@ export default function AdvertiserLanding() {
             nokkrum mínútum.
           </p>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => navigate('/sign-in')}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 font-extrabold text-white shadow-xl shadow-blue-600/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
-            >
-              Stofna vefauglýsingu <ArrowRight size={18} />
-            </button>
-            <a
-              href="#reiknivel"
-              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 font-bold text-slate-700 transition cursor-pointer text-center"
-            >
-              Sjá verðlagningu
-            </a>
+          <div className="pt-4 flex flex-col items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+              <button
+                disabled
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-200 text-slate-500 border border-slate-300 font-extrabold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
+              >
+                Skráning auglýsenda lokuð <ArrowRight size={18} />
+              </button>
+              <a
+                href="#reiknivel"
+                className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 font-bold text-slate-700 transition cursor-pointer text-center"
+              >
+                Sjá verðlagningu
+              </a>
+            </div>
+            <p className="text-xs text-slate-500 font-semibold text-center mt-1">
+              Eins og er erum við eingöngu að safna inn vefjum (útgefendum) til að stækka
+              samstarfsnetið áður en við opnum fyrir auglýsingar.
+            </p>
           </div>
         </section>
 
@@ -338,10 +344,10 @@ export default function AdvertiserLanding() {
               </div>
 
               <button
-                onClick={() => navigate('/sign-in')}
-                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-sm text-white transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center justify-center gap-1.5"
+                disabled
+                className="w-full py-3.5 rounded-xl bg-slate-200 text-slate-500 border border-slate-300 font-bold text-sm transition-all cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                Byrja að auglýsa núna <ChevronRight size={16} />
+                Skráning lokuð í bili <ChevronRight size={16} />
               </button>
             </div>
           </div>

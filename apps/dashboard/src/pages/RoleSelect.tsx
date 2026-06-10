@@ -112,12 +112,13 @@ export default function RoleSelect() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-400">Ég vil birta auglýsingar</h3>
                 <p className="text-sm text-slate-400 mt-2 font-medium leading-relaxed">
-                  Skráning nýrra auglýsenda er tímabundið lokuð á meðan við söfnum upp vefjum sem
-                  eru með auglýsingapláss.
+                  Skráning nýrra auglýsenda er tímabundið lokuð í bili. Eins og er erum við eingöngu
+                  að safna inn vefjum og stækka samstarfsnetið (inventory) áður en við opnum fyrir
+                  auglýsendur.
                 </p>
               </div>
               <div className="flex items-center gap-1.5 text-sm font-bold text-slate-400 mt-4">
-                <span>Skráning lokuð í bili</span>
+                <span>Söfnum eingöngu inn útgefendum í bili</span>
               </div>
             </Card>
           ) : (
