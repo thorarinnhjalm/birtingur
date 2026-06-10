@@ -119,7 +119,21 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
 
   // Initialize notifications whenever the active role changes
   useEffect(() => {
-    setNotifications(getMockNotifications(role));
+    const cacheKey = `ada_notifications_${role}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        setNotifications(JSON.parse(cached));
+      } catch {
+        const initial = getMockNotifications(role);
+        setNotifications(initial);
+        localStorage.setItem(cacheKey, JSON.stringify(initial));
+      }
+    } else {
+      const initial = getMockNotifications(role);
+      setNotifications(initial);
+      localStorage.setItem(cacheKey, JSON.stringify(initial));
+    }
   }, [role]);
 
   // Click outside to close dropdown
@@ -136,11 +150,38 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    localStorage.setItem(`ada_notifications_${role}`, JSON.stringify(updated));
   };
 
-  const toggleReadStatus = (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n)));
+  const handleNotificationClick = (item: NotificationItem) => {
+    // 1. Mark as read
+    const updated = notifications.map((n) => (n.id === item.id ? { ...n, read: true } : n));
+    setNotifications(updated);
+    localStorage.setItem(`ada_notifications_${role}`, JSON.stringify(updated));
+
+    // 2. Navigate based on notification ID/role
+    if (item.id === 'adv-1' || item.id === 'adv-2') {
+      navigate('/advertiser/topup');
+    } else if (item.id === 'adv-3') {
+      navigate('/advertiser');
+    } else if (item.id === 'pub-1') {
+      navigate('/publisher/settings');
+    } else if (item.id === 'pub-2') {
+      navigate('/publisher/earnings');
+    } else if (item.id === 'pub-3') {
+      navigate('/publisher/slots');
+    } else if (item.id === 'adm-1') {
+      navigate('/admin/publishers');
+    } else if (item.id === 'adm-2') {
+      navigate('/admin/review');
+    } else if (item.id === 'adm-3') {
+      navigate('/admin/advertisers');
+    }
+
+    // 3. Close the dropdown
+    setIsDropdownOpen(false);
   };
 
   const getNotificationIcon = (type: NotificationItem['type']) => {
@@ -275,7 +316,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                   notifications.map((item) => (
                     <div
                       key={item.id}
-                      onClick={() => toggleReadStatus(item.id)}
+                      onClick={() => handleNotificationClick(item)}
                       className={`p-4 flex gap-3 cursor-pointer hover:bg-surface-container transition-all text-left ${
                         !item.read ? 'bg-primary-container/20' : ''
                       }`}
