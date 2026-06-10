@@ -91,8 +91,9 @@ fail-closed). New scans always write a concrete array; `[]` means "scanned, clea
 Replace the equality check with:
 
 ```ts
-const blocked = (publisher.contentPolicy.blockedCategories ?? [])
-  .filter((c) => SENSITIVE_AD_CATEGORY_SLUGS.includes(c)); // stale AD_CATEGORY slugs → no-op
+const blocked = (publisher.contentPolicy.blockedCategories ?? []).filter((c) =>
+  SENSITIVE_AD_CATEGORY_SLUGS.includes(c),
+); // stale AD_CATEGORY slugs → no-op
 if (blocked.length > 0) {
   const flags = creative.autoScanResult?.sensitiveCategories;
   if (!flags) continue; // fail-closed: unscanned creative on a blocking publisher
