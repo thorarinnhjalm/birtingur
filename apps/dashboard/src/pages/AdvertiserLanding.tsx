@@ -125,11 +125,11 @@ export default function AdvertiserLanding() {
   useEffect(() => {
     // Dynamic SEO Metadata setup
     const titleText = activeRegion
-      ? `Auglýsa á netinu ${activeRegion.dative} | Einfaldar staðbundnar vefauglýsingar`
-      : 'Einfaldasta leiðin til að auglýsa á íslenskum vefsíðum | Birtingur';
+      ? `Auglýsingar á netinu ${activeRegion.dative} | Birtingar á íslenskum vefjum`
+      : 'Auglýsingar á netinu og birtingar á íslenskum vefsíðum | Birtingur';
     const descriptionText = activeRegion
-      ? `Viltu ná til nýrra viðskiptavina ${activeRegion.dative}? Birtingur býður upp á einstaklega einfaldar og kökulausar vefauglýsingar á staðbundnum íslenskum vefjum án allrar flækju.`
-      : 'Birtingur gerir litlum og meðalstórum fyrirtækjum kleift að auglýsa á vönduðum íslenskum vefsíðum á nokkrum mínútum án þess að þurfa flókin kerfi eða tæknifólk.';
+      ? `Koma á framfæri auglýsingum á netinu og ná til nýrra viðskiptavina ${activeRegion.dative}? Birtingur býður upp á einfaldar birtingar og kökulausar vefauglýsingar.`
+      : 'Birtingur gerir þér kleift að setja upp árangursríkar auglýsingar á netinu. Birtu auglýsingar á vönduðum íslenskum vefsíðum á nokkrum mínútum án flókinna kerfa.';
 
     document.title = titleText;
 
