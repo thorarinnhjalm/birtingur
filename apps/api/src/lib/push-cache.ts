@@ -22,7 +22,7 @@ const key = (slotId: string) => `slot:${slotId}`;
 /** Stale slugs (from the pre-taxonomy UI) must not block and must not trigger fail-closed. */
 function blockedSensitiveCategories(publisher: Publisher): string[] {
   return (publisher.contentPolicy.blockedCategories ?? []).filter((c) =>
-    (SENSITIVE_AD_CATEGORY_SLUGS as readonly string[]).includes(c),
+    SENSITIVE_AD_CATEGORY_SLUGS.includes(c),
   );
 }
 

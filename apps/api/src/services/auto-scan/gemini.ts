@@ -131,7 +131,7 @@ Respond with a JSON object.`;
       const confidence = Number(parsed.confidence) || 0.5;
       const sensitiveCategories: string[] = Array.isArray(parsed.sensitiveCategories)
         ? parsed.sensitiveCategories.filter((s: unknown) =>
-            (SENSITIVE_AD_CATEGORY_SLUGS as readonly string[]).includes(String(s)),
+            SENSITIVE_AD_CATEGORY_SLUGS.includes(String(s)),
           )
         : [];
 

@@ -262,6 +262,49 @@ describe('pushSlotCache helper', () => {
     expect(entry.activeCreatives[0].creativeId).toBe('creative_clean');
   });
 
+  it('serves a flagged creative when its flags do not intersect the blocks', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: ['afengi'] },
+    };
+    mockState.campaigns = [
+      {
+        id: 'camp_1',
+        status: 'active',
+        creativeIds: ['creative_politics'],
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule: { startsAt: new Date(Date.now() - 10000), endsAt: new Date(Date.now() + 10000) },
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+    mockState.creatives = [
+      {
+        id: 'creative_politics',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/3.png',
+        clickUrl: 'https://ex.com/3',
+        autoScanResult: { category: 'other', sensitiveCategories: ['politik'] },
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
+    expect(entry.activeCreatives).toHaveLength(1);
+    expect(entry.activeCreatives[0].creativeId).toBe('creative_politics');
+  });
+
   it('fail-closed: excludes unscanned creatives when the publisher blocks anything', async () => {
     mockState.slot = {
       id: 'slot_123',
