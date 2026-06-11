@@ -9,17 +9,6 @@ import { Check, Copy, RefreshCw, Trash2, Key, Plus } from 'lucide-react';
 import { AD_CATEGORIES } from '@ada/shared';
 import { useContentCategories } from '@/hooks/useContentCategories';
 
-const CATEGORY_LABEL_MAP: Record<string, string> = {
-  news: 'Fréttir (news)',
-  sports: 'Íþróttir (sports)',
-  tech: 'Tækni (tech)',
-  finance: 'Fjármál (finance)',
-  lifestyle: 'Lífstíll (lifestyle)',
-  entertainment: 'Afþreying (entertainment)',
-  gambling: 'Veðmál (gambling)',
-  other: 'Annað (other)',
-};
-
 export default function Settings() {
   const { data: publisher, isLoading, refetch } = usePublisher();
 
@@ -277,21 +266,20 @@ export default function Settings() {
               Útiloka auglýsingaflokka (Block content categories)
             </label>
             <p className="text-xs text-slate-400 mt-0.5">
-              Veldu þá flokka af auglýsingum sem þú vilt EKKI sýna á vefsíðunni þinni (t.d.
-              gambling).
+              Veldu þá flokka af auglýsingum sem þú vilt EKKI sýna á vefsíðunni þinni (t.d. áfengi
+              eða veðmál).
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
-              {contentCategories?.map((catSlug) => {
-                const isBlocked = blockedCategories.includes(catSlug);
-                const catLabel = CATEGORY_LABEL_MAP[catSlug] || catSlug;
+              {contentCategories?.map((cat) => {
+                const isBlocked = blockedCategories.includes(cat.slug);
                 return (
                   <div
-                    key={catSlug}
+                    key={cat.slug}
                     onClick={() => {
                       if (isBlocked) {
-                        setBlockedCategories(blockedCategories.filter((s) => s !== catSlug));
+                        setBlockedCategories(blockedCategories.filter((s) => s !== cat.slug));
                       } else {
-                        setBlockedCategories([...blockedCategories, catSlug]);
+                        setBlockedCategories([...blockedCategories, cat.slug]);
                       }
                     }}
                     className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
@@ -300,7 +288,7 @@ export default function Settings() {
                         : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                     }`}
                   >
-                    {catLabel}
+                    {cat.label}
                   </div>
                 );
               })}
