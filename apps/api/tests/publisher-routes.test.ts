@@ -36,7 +36,7 @@ describe('Publisher HTTP Routes', () => {
   };
 
   const samplePolicy = {
-    blockedCategories: ['gambling'],
+    blockedCategories: ['vedmal'],
     requireManualApproval: false,
   };
 
@@ -219,14 +219,14 @@ describe('Publisher HTTP Routes', () => {
         },
         body: JSON.stringify({
           contentPolicy: {
-            blockedCategories: ['gambling', 'sports'],
+            blockedCategories: ['afengi', 'tobak_veip'],
           },
         }),
       });
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.contentPolicy.blockedCategories).toEqual(['gambling', 'sports']);
+      expect(body.contentPolicy.blockedCategories).toEqual(['afengi', 'tobak_veip']);
     });
   });
 });
