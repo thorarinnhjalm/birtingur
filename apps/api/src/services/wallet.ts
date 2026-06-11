@@ -3,6 +3,8 @@ import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { appendLedger, sumByParty } from './ledger.js';
 import { AppError } from '../lib/errors.js';
+import { getAdvertiserById } from './advertisers.js';
+import { createNotification } from './notifications.js';
 
 export interface Wallet {
   advertiserId: string;
@@ -49,6 +51,22 @@ export async function topUp(
   });
 
   await syncMirror(advertiserId);
+
+  try {
+    const advertiser = await getAdvertiserById(advertiserId);
+    if (advertiser) {
+      await createNotification({
+        userEmail: advertiser.ownerEmail,
+        role: 'advertiser',
+        type: 'success',
+        title: 'Innborgun staðfest',
+        message: `Greiðsla upp á ${amountIsk.toLocaleString('is-IS')} kr. var móttekin og bætt við reikninginn þinn.`,
+        link: '/advertiser/topup',
+      });
+    }
+  } catch (err) {
+    console.error('Error creating topup notification:', err);
+  }
 }
 
 export async function chargeCampaign(

@@ -6,6 +6,7 @@ import { SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { sendWelcomePublisherEmail } from './mail.js';
+import { createNotification } from './notifications.js';
 
 function assertValidBlockedCategories(contentPolicy?: { blockedCategories?: string[] }): void {
   const blocked = contentPolicy?.blockedCategories;
@@ -56,6 +57,20 @@ export async function createPublisher(input: {
   sendWelcomePublisherEmail(validated.ownerEmail, validated.displayName, validated.domain).catch(
     (err) => console.error('Error sending welcome email to publisher:', err),
   );
+
+  try {
+    await createNotification({
+      userEmail: validated.ownerEmail,
+      role: 'publisher',
+      type: 'success',
+      title: 'Velkomin/n í Birting!',
+      message:
+        'Útgefendaaðgangurinn þinn hefur verið stofnaður. Búðu til þitt fyrsta auglýsingapláss.',
+      link: '/publisher/slots/new',
+    });
+  } catch (err) {
+    console.error('Error creating welcome publisher notification:', err);
+  }
 
   return validated;
 }

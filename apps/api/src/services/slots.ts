@@ -8,6 +8,8 @@ import { AppError } from '../lib/errors.js';
 import { generateSnippet } from '../lib/snippet.js';
 import { pushSlotCache } from '../lib/push-cache.js';
 import { isRedisConfigured } from '../lib/redis.js';
+import { getPublisherById } from './publishers.js';
+import { createNotification } from './notifications.js';
 
 export async function createSlot(input: {
   publisherId: string;
@@ -53,6 +55,22 @@ export async function createSlot(input: {
 
   if (isRedisConfigured()) {
     await pushSlotCache(id);
+  }
+
+  try {
+    const publisher = await getPublisherById(input.publisherId);
+    if (publisher) {
+      await createNotification({
+        userEmail: publisher.ownerEmail,
+        role: 'publisher',
+        type: 'info',
+        title: 'Auglýsingapláss skráð',
+        message: `Nýja auglýsingaplássið þitt „${input.name}“ hefur verið skráð í kerfið.`,
+        link: `/publisher/slots/${id}`,
+      });
+    }
+  } catch (err) {
+    console.error('Error creating slot notification:', err);
   }
 
   return validated;

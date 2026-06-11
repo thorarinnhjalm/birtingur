@@ -13,6 +13,7 @@ import { apiKeysRouter } from './routes/api-keys.js';
 import { widgetsRouter } from './routes/widgets.js';
 import { categoriesRouter } from './routes/categories.js';
 import { supportRouter } from './routes/support.js';
+import { notificationsRouter } from './routes/notifications.js';
 
 export const app = new Hono();
 
@@ -43,5 +44,6 @@ app.route('/v1/api-keys', apiKeysRouter);
 app.route('/v1/widgets', widgetsRouter);
 app.route('/v1/categories', categoriesRouter);
 app.route('/v1/support', supportRouter);
+app.route('/v1/notifications', notificationsRouter);
 
 export default app;

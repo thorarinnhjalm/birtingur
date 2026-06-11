@@ -6,6 +6,7 @@ import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { sendWelcomeAdvertiserEmail } from './mail.js';
+import { createNotification } from './notifications.js';
 
 const CreateAdvertiserSchema = z.object({
   ownerEmail: z.string().email(),
@@ -49,6 +50,19 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
   sendWelcomeAdvertiserEmail(adv.ownerEmail, adv.companyName).catch((err) =>
     console.error('Error sending welcome email to advertiser:', err),
   );
+
+  try {
+    await createNotification({
+      userEmail: adv.ownerEmail,
+      role: 'advertiser',
+      type: 'success',
+      title: 'Velkomin/n í Birting!',
+      message: 'Auglýsingaaðgangurinn þinn hefur verið stofnaður. Byrjaðu á að fylla á veskið.',
+      link: '/advertiser/topup',
+    });
+  } catch (err) {
+    console.error('Error creating welcome advertiser notification:', err);
+  }
 
   return adv;
 }

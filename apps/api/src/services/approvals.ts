@@ -7,6 +7,8 @@ import { updateCreativeReview, requireCreative } from './creatives.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { refundCampaign } from './wallet.js';
 import { isRedisConfigured } from '../lib/redis.js';
+import { createNotification } from './notifications.js';
+import { getAdvertiserById } from './advertisers.js';
 
 export async function listAdminQueue(limit = 50): Promise<Creative[]> {
   const snap = await db
@@ -41,6 +43,34 @@ export async function adminReview(creativeId: string, input: AdminReviewInput): 
       reason: parsed.reason,
     },
   });
+
+  // Trigger notification for creative review
+  try {
+    const advertiser = await getAdvertiserById(existing.advertiserId);
+    if (advertiser) {
+      if (parsed.action === 'approve') {
+        await createNotification({
+          userEmail: advertiser.ownerEmail,
+          role: 'advertiser',
+          type: 'success',
+          title: 'Auglýsing samþykkt',
+          message: `Auglýsingin þín (${existing.width}x${existing.height}) var samþykkt af stjórnanda.`,
+          link: '/advertiser/creatives',
+        });
+      } else {
+        await createNotification({
+          userEmail: advertiser.ownerEmail,
+          role: 'advertiser',
+          type: 'error',
+          title: 'Auglýsingu hafnað',
+          message: `Auglýsingunni þinni (${existing.width}x${existing.height}) var hafnað. Ástæða: ${parsed.reason || 'Ekki tilgreind'}`,
+          link: '/advertiser/creatives',
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error creating creative review notification:', err);
+  }
 
   // Propagate to active campaigns
   await propagateCreativeChange(creativeId, parsed.action === 'approve');
@@ -77,12 +107,14 @@ export async function propagateCreativeChange(
     const cmp = doc.data() as Campaign;
     let modified = false;
 
+    let newStatus = '';
     if (approved) {
       if (cmp.status === 'pending_approval') {
         const allCreativesApproved = await allCreativesAutoApproved(cmp.creativeIds);
         if (allCreativesApproved) {
           cmp.status = 'active';
           modified = true;
+          newStatus = 'active';
         }
       }
     } else {
@@ -92,6 +124,7 @@ export async function propagateCreativeChange(
         await refundCampaign(cmp.advertiserId, cmp.id, cmp.budget.remainingIsk);
         cmp.budget.remainingIsk = 0;
         modified = true;
+        newStatus = 'completed';
       }
     }
 
@@ -101,6 +134,35 @@ export async function propagateCreativeChange(
         .doc(cmp.id)
         .withConverter(campaignConverter)
         .set(cmp);
+
+      if (newStatus) {
+        try {
+          const advertiser = await getAdvertiserById(cmp.advertiserId);
+          if (advertiser) {
+            if (newStatus === 'active') {
+              await createNotification({
+                userEmail: advertiser.ownerEmail,
+                role: 'advertiser',
+                type: 'success',
+                title: 'Herferð komin í gang',
+                message: `Herferðin þín „${cmp.name}“ er nú virk og byrjuð að birta auglýsingar.`,
+                link: `/advertiser/campaigns/${cmp.id}`,
+              });
+            } else if (newStatus === 'completed') {
+              await createNotification({
+                userEmail: advertiser.ownerEmail,
+                role: 'advertiser',
+                type: 'warning',
+                title: 'Herferð lokið',
+                message: `Herferðinni þinni „${cmp.name}“ var lokið þar sem auglýsingu var hafnað og eftirstöðvar endurgreiddar.`,
+                link: `/advertiser/campaigns/${cmp.id}`,
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Error creating campaign status notification:', err);
+        }
+      }
     }
 
     if (isRedisConfigured()) {

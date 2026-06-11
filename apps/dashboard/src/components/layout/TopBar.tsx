@@ -3,100 +3,15 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '../ui/Button';
 import { LogOut, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  type Notification,
+} from '@/hooks/useNotifications';
+import { formatRelative } from '@/lib/format';
 
-interface NotificationItem {
-  id: string;
-  type: 'info' | 'warning' | 'success' | 'error';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-}
-
-const getMockNotifications = (role: 'advertiser' | 'publisher' | 'admin'): NotificationItem[] => {
-  if (role === 'advertiser') {
-    return [
-      {
-        id: 'adv-1',
-        type: 'error',
-        title: 'Inneign er á þrotum',
-        message: '„Nýársherferð 2026“ hefur verið stöðvuð þar sem veskið er tómt.',
-        time: 'Fyrir 2 klst',
-        read: false,
-      },
-      {
-        id: 'adv-2',
-        type: 'success',
-        title: 'Innborgun staðfest',
-        message: 'Greiðsla upp á 50.000 kr. var móttekin og bætt við reikninginn þinn.',
-        time: 'Fyrir 1 degi',
-        read: false,
-      },
-      {
-        id: 'adv-3',
-        type: 'info',
-        title: 'Nýtt árangursmat',
-        message: 'Gervigreindin hefur greint herferðirnar þínar og lagt fram tillögur að árangri.',
-        time: 'Fyrir 3 dögum',
-        read: true,
-      },
-    ];
-  }
-  if (role === 'publisher') {
-    return [
-      {
-        id: 'pub-1',
-        type: 'warning',
-        title: 'Samþykki bíður',
-        message: 'Nýtt auglýsingaefni frá „Nóa Síríus“ bíður eftir samþykki þínu.',
-        time: 'Fyrir 15 mín',
-        read: false,
-      },
-      {
-        id: 'pub-2',
-        type: 'success',
-        title: 'Útborgun staðfest',
-        message: 'Útborgun upp á 24.500 kr. hefur verið greidd inn á reikninginn þinn.',
-        time: 'Fyrir 2 dögum',
-        read: false,
-      },
-      {
-        id: 'pub-3',
-        type: 'info',
-        title: 'Pláss móttekið',
-        message: 'Nýja auglýsingaplássið þitt „Forsíða Billboard“ hefur verið samþykkt.',
-        time: 'Fyrir 1 viku',
-        read: true,
-      },
-    ];
-  }
-  return [
-    {
-      id: 'adm-1',
-      type: 'info',
-      title: 'Nýr útgefandi skráður',
-      message: 'Lénið „markadssetning.is“ bíður eftir samþykki stjórnanda.',
-      time: 'Fyrir 45 mín',
-      read: false,
-    },
-    {
-      id: 'adm-2',
-      type: 'warning',
-      title: 'Yfirferð herferðar',
-      message: 'Ný herferð frá „Saga Travel“ bíður eftir samþykki á efni.',
-      time: 'Fyrir 3 klst',
-      read: false,
-    },
-    {
-      id: 'adm-3',
-      type: 'error',
-      title: 'Veski í mínus',
-      message: 'Auðkenni adv_9281 keyrir herferð með neikvæðri stöðu.',
-      time: 'Fyrir 5 klst',
-      read: true,
-    },
-  ];
-};
+// Mock notifications helper removed
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, admin, signOut } = useAuth();
@@ -114,27 +29,13 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
       : 'admin';
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Initialize notifications whenever the active role changes
-  useEffect(() => {
-    const cacheKey = `ada_notifications_${role}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        setNotifications(JSON.parse(cached));
-      } catch {
-        const initial = getMockNotifications(role);
-        setNotifications(initial);
-        localStorage.setItem(cacheKey, JSON.stringify(initial));
-      }
-    } else {
-      const initial = getMockNotifications(role);
-      setNotifications(initial);
-      localStorage.setItem(cacheKey, JSON.stringify(initial));
-    }
-  }, [role]);
+  const { data: notificationsData } = useNotifications(role);
+  const notifications = notificationsData || [];
+
+  const markReadMutation = useMarkNotificationRead(role);
+  const markAllReadMutation = useMarkAllNotificationsRead(role);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -150,41 +51,67 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAllAsRead = () => {
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    setNotifications(updated);
-    localStorage.setItem(`ada_notifications_${role}`, JSON.stringify(updated));
+    markAllReadMutation.mutate();
   };
 
-  const handleNotificationClick = (item: NotificationItem) => {
+  const handleNotificationClick = (item: Notification) => {
     // 1. Mark as read
-    const updated = notifications.map((n) => (n.id === item.id ? { ...n, read: true } : n));
-    setNotifications(updated);
-    localStorage.setItem(`ada_notifications_${role}`, JSON.stringify(updated));
+    if (!item.read) {
+      markReadMutation.mutate(item.id);
+    }
 
-    // 2. Navigate based on notification ID/role
-    if (item.id === 'adv-1' || item.id === 'adv-2') {
-      navigate('/advertiser/topup');
-    } else if (item.id === 'adv-3') {
-      navigate('/advertiser');
-    } else if (item.id === 'pub-1') {
-      navigate('/publisher/settings');
-    } else if (item.id === 'pub-2') {
-      navigate('/publisher/earnings');
-    } else if (item.id === 'pub-3') {
-      navigate('/publisher/slots');
-    } else if (item.id === 'adm-1') {
-      navigate('/admin/publishers');
-    } else if (item.id === 'adm-2') {
-      navigate('/admin/review');
-    } else if (item.id === 'adm-3') {
-      navigate('/admin/advertisers');
+    // 2. Navigate based on notification link or fallback
+    if (item.link) {
+      navigate(item.link);
+    } else {
+      // Fallback paths matching original mock logic if link is missing
+      if (item.id.startsWith('adv')) {
+        if (item.id === 'adv-1' || item.id === 'adv-2') {
+          navigate('/advertiser/topup');
+        } else {
+          navigate('/advertiser');
+        }
+      } else if (item.id.startsWith('pub')) {
+        if (item.id === 'pub-1') {
+          navigate('/publisher/settings');
+        } else if (item.id === 'pub-2') {
+          navigate('/publisher/earnings');
+        } else {
+          navigate('/publisher/slots');
+        }
+      } else if (item.id.startsWith('adm') || item.id.startsWith('not')) {
+        if (item.id === 'adm-1') {
+          navigate('/admin/publishers');
+        } else if (item.id === 'adm-2') {
+          navigate('/admin/review');
+        } else {
+          navigate('/admin');
+        }
+      }
     }
 
     // 3. Close the dropdown
     setIsDropdownOpen(false);
   };
 
-  const getNotificationIcon = (type: NotificationItem['type']) => {
+  const formatNotificationTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const diffMs = Date.now() - date.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHrs = Math.floor(diffMin / 60);
+
+      if (diffMin < 1) return 'Nýlega';
+      if (diffMin < 60) return `Fyrir ${diffMin} mín`;
+      if (diffHrs < 24) return `Fyrir ${diffHrs} klst`;
+
+      return formatRelative(date);
+    } catch {
+      return '';
+    }
+  };
+
+  const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'success':
         return <CheckCircle size={16} className="text-success" />;
@@ -332,7 +259,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                             {item.title}
                           </p>
                           <span className="text-[10px] text-outline whitespace-nowrap">
-                            {item.time}
+                            {formatNotificationTime(item.createdAt)}
                           </span>
                         </div>
                         <p className="text-xs text-on-surface-variant mt-1 leading-normal wrap-break-word">

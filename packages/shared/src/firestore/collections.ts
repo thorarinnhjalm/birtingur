@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   ledger: 'ledger',
   payouts: 'payouts',
   stats: 'stats',
+  notifications: 'notifications',
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

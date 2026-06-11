@@ -1,5 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
+import { createNotification } from './notifications.js';
 
 export interface SupportMessage {
   id: string;
@@ -32,6 +33,20 @@ export async function createSupportMessage(input: {
     createdAt: new Date(),
   };
   await col.doc(msg.id).set(msg);
+
+  try {
+    await createNotification({
+      userEmail: 'admin',
+      role: 'admin',
+      type: 'info',
+      title: 'Ný skilaboð bárust',
+      message: `Nýtt erindi frá ${input.senderEmail} bíður yfirferðar.`,
+      link: '/admin',
+    });
+  } catch (err) {
+    console.error('Error creating admin support message notification:', err);
+  }
+
   return msg;
 }
 

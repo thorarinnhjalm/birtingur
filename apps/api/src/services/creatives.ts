@@ -6,6 +6,7 @@ import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import type { AutoScanner } from './auto-scan/index.js';
+import { createNotification } from './notifications.js';
 
 const CreateCreativeInputSchema = z.object({
   imageUrl: z.string().url(),
@@ -76,6 +77,21 @@ export async function createCreative(
     .doc(creative.id)
     .withConverter(creativeConverter)
     .set(creative);
+
+  if (reviewStatus === 'pending') {
+    try {
+      await createNotification({
+        userEmail: 'admin',
+        role: 'admin',
+        type: 'warning',
+        title: 'Ný auglýsing í biðröð',
+        message: 'Nýtt auglýsingaefni bíður handvirks samþykkis stjórnanda.',
+        link: '/admin/review',
+      });
+    } catch (err) {
+      console.error('Error creating admin pending review notification:', err);
+    }
+  }
 
   return creative;
 }

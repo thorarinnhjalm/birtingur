@@ -7,4 +7,5 @@ export {
   campaignConverter,
   ledgerEntryConverter,
   payoutConverter,
+  notificationConverter,
 } from './converters.js';
