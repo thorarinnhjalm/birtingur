@@ -20,10 +20,17 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleOpen = () => {
+    const handleOpen = (e: any) => {
       setIsContactOpen(true);
       setSent(false);
       setError(null);
+      if (e.detail) {
+        if (e.detail.subject) setSubject(e.detail.subject);
+        if (e.detail.body) setBody(e.detail.body);
+      } else {
+        setSubject('');
+        setBody('');
+      }
     };
     window.addEventListener('open-public-support', handleOpen);
     return () => {

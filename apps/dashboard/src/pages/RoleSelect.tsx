@@ -8,7 +8,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ArrowRight, Megaphone, Globe, Shield } from 'lucide-react';
 
 export default function RoleSelect() {
-  const { admin } = useAuth();
+  const { user, admin } = useAuth();
   const advertiserQuery = useAdvertiser();
   const publisherQuery = usePublisher();
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ export default function RoleSelect() {
           {isAdvertiserDisabled ? (
             <Card
               id="role_advertiser"
-              className="relative flex flex-col justify-between h-72 border-2 border-slate-200 bg-slate-50/70 opacity-75 shadow-none select-none transition-all duration-300"
+              className="relative flex flex-col justify-between h-72 border-2 border-slate-200 bg-slate-50/70 shadow-none transition-all duration-300"
             >
               <div className="absolute top-4 right-4 bg-amber-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs">
                 Tímabundið lokuð
@@ -117,8 +117,22 @@ export default function RoleSelect() {
                   auglýsendur.
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 text-sm font-bold text-slate-400 mt-4">
-                <span>Söfnum eingöngu inn útgefendum í bili</span>
+              <div className="flex items-center justify-between w-full mt-4">
+                <span className="text-xs text-slate-400 font-bold">Skráning lokuð</span>
+                <button
+                  onClick={() => {
+                    const event = new window.CustomEvent('open-public-support', {
+                      detail: {
+                        subject: 'Biðlisti: Virkja auglýsendaprófíl',
+                        body: `Hæ. Ég er innskráður notandi (${user?.email || ''}) og hef áhuga á að fá virkjaðan auglýsendaprófíl á reikningnum mínum hjá Birtingi þegar opnað verður fyrir nýja auglýsendur.`,
+                      },
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs transition duration-300 cursor-pointer shadow-md shadow-blue-500/10 border-none"
+                >
+                  Skrá mig á biðlista
+                </button>
               </div>
             </Card>
           ) : (

@@ -188,10 +188,18 @@ export default function AdvertiserLanding() {
           <div className="pt-4 flex flex-col items-center justify-center gap-3">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
               <button
-                disabled
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-200 text-slate-500 border border-slate-300 font-extrabold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
+                onClick={() => {
+                  const event = new window.CustomEvent('open-public-support', {
+                    detail: {
+                      subject: 'Biðlisti: Vil kaupa auglýsingar',
+                      body: `Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi${activeRegion ? ` með miðun á ${activeRegion.name}` : ''} þegar opnað verður fyrir skráningu nýrra auglýsenda. Vinsamlegast látið mig vita.`,
+                    },
+                  });
+                  window.dispatchEvent(event);
+                }}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold flex items-center justify-center gap-2 transition duration-300 cursor-pointer shadow-md shadow-blue-500/10 border-none"
               >
-                Skráning auglýsenda lokuð <ArrowRight size={18} />
+                Skrá mig á biðlista <ArrowRight size={18} />
               </button>
               <a
                 href="#reiknivel"
@@ -200,9 +208,9 @@ export default function AdvertiserLanding() {
                 Sjá verðlagningu
               </a>
             </div>
-            <p className="text-xs text-slate-500 font-semibold text-center mt-1">
-              Eins og er erum við eingöngu að safna inn vefjum (útgefendum) til að stækka
-              samstarfsnetið áður en við opnum fyrir auglýsingar.
+            <p className="text-xs text-slate-550 font-semibold text-center mt-1">
+              Skráðu þig á biðlista okkar til að tryggja þér pláss á undan öðrum og fá tilkynningu
+              um leið og við opnum fyrir auglýsingar!
             </p>
           </div>
         </section>
@@ -344,10 +352,18 @@ export default function AdvertiserLanding() {
               </div>
 
               <button
-                disabled
-                className="w-full py-3.5 rounded-xl bg-slate-200 text-slate-500 border border-slate-300 font-bold text-sm transition-all cursor-not-allowed flex items-center justify-center gap-1.5"
+                onClick={() => {
+                  const event = new window.CustomEvent('open-public-support', {
+                    detail: {
+                      subject: 'Biðlisti: Vil kaupa auglýsingar',
+                      body: `Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi${activeRegion ? ` með miðun á ${activeRegion.name}` : ''} með áætlað mánaðarlegt auglýsingafjármagn upp á um það bil ${budget.toLocaleString('is-IS')} kr. Vinsamlegast látið mig vita þegar opnað verður fyrir skráningu.`,
+                    },
+                  });
+                  window.dispatchEvent(event);
+                }}
+                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/10 border-none"
               >
-                Skráning lokuð í bili <ChevronRight size={16} />
+                Skrá mig á biðlista <ChevronRight size={16} />
               </button>
             </div>
           </div>

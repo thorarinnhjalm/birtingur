@@ -110,13 +110,32 @@ export default function AdvertiserOnboarding() {
             Tímabundið er lokað fyrir nýja auglýsendur á meðan við söfnum upp vefjum sem bjóða upp á
             auglýsingapláss.
           </p>
-          <Button
-            type="button"
-            onClick={() => navigate('/role')}
-            className="w-full py-3 font-bold rounded-xl"
-          >
-            Til baka í hlutverkaval
-          </Button>
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                const event = new window.CustomEvent('open-public-support', {
+                  detail: {
+                    subject: 'Biðlisti: Virkja auglýsanda (onboarding)',
+                    body: `Hæ. Ég fór í gegnum skráningarferlið sem auglýsandi (${user?.email || ''}) en skráning er lokuð. Ég vil skrá mig á biðlista til að geta auglýst fljótlega.`,
+                  },
+                });
+                window.dispatchEvent(event);
+              }}
+              className="w-full py-3 font-bold rounded-xl"
+            >
+              Skrá mig á biðlista
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate('/role')}
+              className="w-full py-3 font-semibold rounded-xl text-slate-500 hover:text-slate-700"
+            >
+              Til baka í hlutverkaval
+            </Button>
+          </div>
         </Card>
       </div>
     );

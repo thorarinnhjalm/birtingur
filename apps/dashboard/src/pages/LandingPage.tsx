@@ -99,7 +99,21 @@ export default function LandingPage() {
         </span>
         <span>
           Eins og er erum við eingöngu að skrá ný auglýsingapláss (vefi). Skráning nýrra auglýsenda
-          opnar fljótlega!
+          opnar fljótlega –{' '}
+          <button
+            onClick={() => {
+              const event = new window.CustomEvent('open-public-support', {
+                detail: {
+                  subject: 'Biðlisti: Vil kaupa auglýsingar',
+                  body: 'Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi þegar opnað verður fyrir skráningu nýrra auglýsenda. Vinsamlegast látið mig vita.',
+                },
+              });
+              window.dispatchEvent(event);
+            }}
+            className="underline hover:text-blue-100 font-extrabold cursor-pointer bg-transparent border-none p-0 inline text-xs sm:text-sm"
+          >
+            smelltu hér til að skrá þig á biðlista!
+          </button>
         </span>
       </div>
 
@@ -142,7 +156,7 @@ export default function LandingPage() {
                       onClick={() => changeTab('advertisers')}
                       className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-600 font-extrabold text-base transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
                     >
-                      Kaupa auglýsingar (Lokað í bili)
+                      Kaupa auglýsingar (Skrá á biðlista)
                       <span className="material-symbols-outlined">campaign</span>
                     </button>
                     <button
@@ -154,8 +168,8 @@ export default function LandingPage() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-400 font-semibold mt-1">
-                    * Skráning nýrra auglýsenda er tímabundið lokuð í bili. Útgefendur geta skráð
-                    sig strax!
+                    * Skráning nýrra auglýsenda er lokuð í bili en hægt er að skrá sig á biðlista.
+                    Útgefendur geta skráð sig strax!
                   </p>
                 </div>
 
