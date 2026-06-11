@@ -5,6 +5,7 @@ import { getAdminStats } from '../../services/admin-stats.js';
 import { adminReviewRoutes } from './review.js';
 import { adminPayoutsRoutes } from './payouts.js';
 import { adminEntitiesRoutes } from './entities.js';
+import { refreshAllActiveSlotCaches } from '../../services/cache-refresh.js';
 
 export const adminRoutes = new Hono<Env>();
 
@@ -14,6 +15,11 @@ adminRoutes.use('/*', requireAuth, requireAdmin);
 adminRoutes.route('/review-queue', adminReviewRoutes);
 adminRoutes.route('/payouts', adminPayoutsRoutes);
 adminRoutes.route('/entities', adminEntitiesRoutes);
+
+adminRoutes.post('/cache/refresh', async (c) => {
+  const count = await refreshAllActiveSlotCaches();
+  return c.json({ success: true, count });
+});
 
 adminRoutes.get('/stats', async (c) => {
   const stats = await getAdminStats();

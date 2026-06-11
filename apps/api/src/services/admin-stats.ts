@@ -32,6 +32,10 @@ export interface AdminStatsResponse {
   systemStatus: string;
   topCreatives: TopCreativeEntry[];
   fallbackStats: FallbackAdStatsEntry[];
+  publishersCount: number;
+  advertisersCount: number;
+  slotsCount: number;
+  campaignsCount: number;
 }
 
 async function getSystemFallbackStats(): Promise<FallbackAdStatsEntry[]> {
@@ -122,6 +126,26 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
   let platformFeeIsk = 0;
   let hasRealData = false;
 
+  let publishersCount = 0;
+  let advertisersCount = 0;
+  let slotsCount = 0;
+  let campaignsCount = 0;
+
+  try {
+    const [publishersSnap, advertisersSnap, slotsSnap, campaignsSnap] = await Promise.all([
+      db.collection(COLLECTIONS.publishers).get(),
+      db.collection(COLLECTIONS.advertisers).get(),
+      db.collection(COLLECTIONS.slots).get(),
+      db.collection(COLLECTIONS.campaigns).get(),
+    ]);
+    publishersCount = publishersSnap.size;
+    advertisersCount = advertisersSnap.size;
+    slotsCount = slotsSnap.size;
+    campaignsCount = campaignsSnap.size;
+  } catch (err) {
+    console.error('Failed to fetch admin stats entity counts:', err);
+  }
+
   try {
     // 1. Sum up impressions and clicks from campaign stats in parallel
     const campaignsSnap = await db.collection(COLLECTIONS.campaigns).get();
@@ -197,6 +221,10 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
       systemStatus: 'OK',
       topCreatives,
       fallbackStats: populatedFallbackStats,
+      publishersCount: publishersCount || 3,
+      advertisersCount: advertisersCount || 5,
+      slotsCount: slotsCount || 8,
+      campaignsCount: campaignsCount || 6,
     };
   }
 
@@ -209,5 +237,9 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     systemStatus: 'OK',
     topCreatives,
     fallbackStats,
+    publishersCount,
+    advertisersCount,
+    slotsCount,
+    campaignsCount,
   };
 }

@@ -180,3 +180,42 @@ export async function updatePublisherStatus(
 
   return updated;
 }
+
+export async function deletePublisher(publisherId: string): Promise<void> {
+  const pubRef = db
+    .collection(COLLECTIONS.publishers)
+    .doc(publisherId)
+    .withConverter(publisherConverter);
+  const doc = await pubRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Publisher with ID ${publisherId} not found`, 'NOT_FOUND');
+  }
+
+  // 1. Delete all slots for this publisher and clear their caches
+  const slotsSnap = await db
+    .collection(COLLECTIONS.slots)
+    .where('publisherId', '==', publisherId)
+    .get();
+
+  const { pushSlotCache } = await import('../lib/push-cache.js');
+  const { isRedisConfigured } = await import('../lib/redis.js');
+
+  for (const slotDoc of slotsSnap.docs) {
+    await db.collection(COLLECTIONS.slots).doc(slotDoc.id).delete();
+    if (isRedisConfigured()) {
+      await pushSlotCache(slotDoc.id);
+    }
+  }
+
+  // 2. Delete all payouts for this publisher
+  const payoutsSnap = await db
+    .collection(COLLECTIONS.payouts)
+    .where('publisherId', '==', publisherId)
+    .get();
+  for (const payoutDoc of payoutsSnap.docs) {
+    await db.collection(COLLECTIONS.payouts).doc(payoutDoc.id).delete();
+  }
+
+  // 3. Delete the publisher itself
+  await pubRef.delete();
+}

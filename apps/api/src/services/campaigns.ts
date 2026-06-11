@@ -199,3 +199,57 @@ export async function updateCampaign(
 
   return next;
 }
+
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  const existing = await getCampaign(campaignId);
+  if (!existing) {
+    throw new AppError(404, `Campaign ${campaignId} not found`, 'NOT_FOUND');
+  }
+
+  await db.collection(COLLECTIONS.campaigns).doc(campaignId).delete();
+
+  if (isRedisConfigured()) {
+    const { getRedis } = await import('../lib/redis.js');
+    const redis = getRedis();
+    await redis.del(`budget:${campaignId}`);
+    await redis.del(`pace_limit:${campaignId}`);
+    try {
+      await pushCacheForCampaign(campaignId);
+    } catch {
+      // Ignore cache push error for deleted campaign
+    }
+  }
+}
+
+export async function updateCampaignStatus(
+  campaignId: string,
+  status: CampaignStatus,
+): Promise<Campaign> {
+  const existing = await getCampaign(campaignId);
+  if (!existing) {
+    throw new AppError(404, `Campaign ${campaignId} not found`, 'NOT_FOUND');
+  }
+
+  const next = CampaignSchema.parse({
+    ...existing,
+    status,
+  });
+
+  await db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter)
+    .set(next);
+
+  if (isRedisConfigured()) {
+    if (status === 'paused' || status === 'completed') {
+      const { getRedis } = await import('../lib/redis.js');
+      const redis = getRedis();
+      await redis.del(`budget:${campaignId}`);
+      await redis.del(`pace_limit:${campaignId}`);
+    }
+    await pushCacheForCampaign(campaignId);
+  }
+
+  return next;
+}

@@ -223,3 +223,28 @@ export async function deleteCreative(id: string, advertiserId: string): Promise<
   // Delete from Firestore
   await db.collection(COLLECTIONS.creatives).doc(id).delete();
 }
+
+export async function deleteCreativeAdmin(id: string): Promise<void> {
+  const existing = await requireCreative(id);
+
+  // Check if used by campaigns that are active, paused, or pending_approval
+  const campaignsSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('creativeIds', 'array-contains', id)
+    .get();
+
+  const inUse = campaignsSnap.docs.some((doc) => {
+    const status = doc.data().status;
+    return ['active', 'pending_approval', 'paused'].includes(status);
+  });
+
+  if (inUse) {
+    throw new AppError(
+      400,
+      'Ekki er hægt að eyða auglýsingu sem er í notkun í virkri herferð, herferð í yfirferð eða í pásu.',
+      'BAD_REQUEST',
+    );
+  }
+
+  await db.collection(COLLECTIONS.creatives).doc(id).delete();
+}

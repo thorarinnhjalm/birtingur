@@ -180,3 +180,15 @@ export async function updateSlotStatus(slotId: string, status: 'active' | 'pause
 
   return updated;
 }
+
+export async function deleteSlot(id: string): Promise<void> {
+  const slotRef = db.collection(COLLECTIONS.slots).doc(id).withConverter(slotConverter);
+  const doc = await slotRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
+  }
+  await slotRef.delete();
+  if (isRedisConfigured()) {
+    await pushSlotCache(id);
+  }
+}

@@ -110,3 +110,52 @@ export async function updateAdvertiserStatus(
 
   return updated;
 }
+
+export async function deleteAdvertiser(advertiserId: string): Promise<void> {
+  const advRef = db
+    .collection(COLLECTIONS.advertisers)
+    .doc(advertiserId)
+    .withConverter(advertiserConverter);
+  const doc = await advRef.get();
+  if (!doc.exists) {
+    throw new AppError(404, `Advertiser with ID ${advertiserId} not found`, 'NOT_FOUND');
+  }
+
+  // 1. Delete all campaigns and their Redis keys
+  const campaignsSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('advertiserId', '==', advertiserId)
+    .get();
+
+  const { isRedisConfigured, getRedis } = await import('../lib/redis.js');
+  const redis = isRedisConfigured() ? getRedis() : null;
+
+  for (const campDoc of campaignsSnap.docs) {
+    await db.collection(COLLECTIONS.campaigns).doc(campDoc.id).delete();
+    if (redis) {
+      await redis.del(`budget:${campDoc.id}`);
+      await redis.del(`pace_limit:${campDoc.id}`);
+    }
+  }
+
+  // 2. Delete all creatives
+  const creativesSnap = await db
+    .collection(COLLECTIONS.creatives)
+    .where('advertiserId', '==', advertiserId)
+    .get();
+  for (const creativeDoc of creativesSnap.docs) {
+    await db.collection(COLLECTIONS.creatives).doc(creativeDoc.id).delete();
+  }
+
+  // 3. Delete all ledger entries for this advertiser
+  const ledgerSnap = await db
+    .collection(COLLECTIONS.ledger)
+    .where('party.id', '==', advertiserId)
+    .get();
+  for (const ledgerDoc of ledgerSnap.docs) {
+    await db.collection(COLLECTIONS.ledger).doc(ledgerDoc.id).delete();
+  }
+
+  // 4. Delete the advertiser itself
+  await advRef.delete();
+}
