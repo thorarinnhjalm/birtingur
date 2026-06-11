@@ -34,10 +34,13 @@ export async function listNotifications(
 ): Promise<Notification[]> {
   const email = userEmail.toLowerCase();
   const col = db.collection(COLLECTIONS.notifications).withConverter(notificationConverter);
-  const snap = await col.where('userEmail', '==', email).where('role', '==', role).get();
-  const notifications = snap.docs.map((d) => d.data() as Notification);
-  notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  return notifications.slice(0, 50);
+  const snap = await col
+    .where('userEmail', '==', email)
+    .where('role', '==', role)
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .get();
+  return snap.docs.map((d) => d.data() as Notification);
 }
 
 export async function markNotificationAsRead(id: string): Promise<void> {
