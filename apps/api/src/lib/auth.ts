@@ -61,7 +61,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
     }
     c.set('user', {
       uid: `apikey:${record.id}`,
-      email: record.ownerEmail,
+      email: record.ownerEmail.toLowerCase(),
       admin: false,
       apiKeyId: record.id,
       scope: record.scope,
@@ -104,7 +104,7 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
 
     c.set('user', {
       uid: decodedToken.uid,
-      email,
+      email: email.toLowerCase(),
       admin: isAdmin,
       scope: 'both',
     });
