@@ -47,7 +47,7 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   // (approval can land any moment and spend starts immediately), in impressions, per
   // category. Budget is spread over the actual flight window — a future startsAt must not
   // dilute the daily commitment with pre-flight days.
-  const COMMITTED_STATUSES = ['active', 'pending_approval'];
+  const COMMITTED_STATUSES = ['active', 'pending_approval'] as const;
   const cmpSnap = await db
     .collection(COLLECTIONS.campaigns)
     .where('status', 'in', COMMITTED_STATUSES)
@@ -58,7 +58,9 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   const perImpression = Math.round(FLAT_CPM_ISK / 1000);
   for (const doc of cmpSnap.docs) {
     const cmp = doc.data();
-    if (!COMMITTED_STATUSES.includes(cmp.status)) continue;
+    // Redundant with the query filter; kept so the logic is self-contained for
+    // unit-test mocks that ignore .where().
+    if (!(COMMITTED_STATUSES as readonly string[]).includes(cmp.status)) continue;
     if (cmp.budget.mode !== 'cpm_capped') continue;
     if (cmp.schedule.endsAt.getTime() <= now) continue;
     const flightStartMs = Math.max(now, cmp.schedule.startsAt.getTime());
