@@ -109,6 +109,7 @@ describe('Inventory Service', () => {
         remainingIsk: 27500,
       },
       schedule: {
+        startsAt: new Date(Date.now() - 86_400_000),
         endsAt,
       },
       targeting: {
@@ -121,5 +122,82 @@ describe('Inventory Service', () => {
     expect(matur.avgDailyImpressions).toBe(11000);
     expect(matur.committedDailyImpressions).toBe(10000);
     expect(matur.availableDailyImpressions).toBe(1000);
+  });
+
+  function seedPublisherWithStats(impressionsPerDay: number) {
+    mockPublishers.push({ id: 'pub_food', status: 'active', categories: ['matur'] });
+    const now = new Date();
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dk = d.toISOString().split('T')[0]!.replace(/-/g, '');
+      mockStatsDocs[`${COLLECTIONS.stats}/publishers/pub_food/${dk}`] = {
+        impressions: impressionsPerDay,
+      };
+    }
+  }
+
+  it('spreads a future flight over its actual flight days, not days-from-now', async () => {
+    seedPublisherWithStats(11000);
+    // Starts in 2 days, ends in 7 → 5 flight days. 27500 ISK / 5 = 5500/day → 10000 imp/day.
+    // The old (broken) math would use 7 days → ~7857 imp/day.
+    mockCampaigns.push({
+      status: 'active',
+      budget: { mode: 'cpm_capped', remainingIsk: 27500 },
+      schedule: {
+        startsAt: new Date(Date.now() + 2 * 86_400_000),
+        endsAt: new Date(Date.now() + 7 * 86_400_000),
+      },
+      targeting: { categories: ['matur'] },
+    });
+
+    const result = await getCategoryInventory();
+    const matur = result.find((r) => r.category === 'matur')!;
+    expect(matur.committedDailyImpressions).toBe(10000);
+  });
+
+  it('counts pending_approval campaigns as committed demand', async () => {
+    seedPublisherWithStats(11000);
+    mockCampaigns.push({
+      status: 'pending_approval',
+      budget: { mode: 'cpm_capped', remainingIsk: 27500 },
+      schedule: {
+        startsAt: new Date(Date.now() - 86_400_000),
+        endsAt: new Date(Date.now() + 5 * 86_400_000),
+      },
+      targeting: { categories: ['matur'] },
+    });
+
+    const result = await getCategoryInventory();
+    const matur = result.find((r) => r.category === 'matur')!;
+    expect(matur.committedDailyImpressions).toBe(10000);
+  });
+
+  it('does not count paused or already-ended campaigns', async () => {
+    seedPublisherWithStats(11000);
+    mockCampaigns.push(
+      {
+        status: 'paused',
+        budget: { mode: 'cpm_capped', remainingIsk: 27500 },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 5 * 86_400_000),
+        },
+        targeting: { categories: ['matur'] },
+      },
+      {
+        status: 'active',
+        budget: { mode: 'cpm_capped', remainingIsk: 27500 },
+        schedule: {
+          startsAt: new Date(Date.now() - 10 * 86_400_000),
+          endsAt: new Date(Date.now() - 86_400_000), // already over
+        },
+        targeting: { categories: ['matur'] },
+      },
+    );
+
+    const result = await getCategoryInventory();
+    const matur = result.find((r) => r.category === 'matur')!;
+    expect(matur.committedDailyImpressions).toBe(0);
   });
 });

@@ -31,13 +31,14 @@ describe('GET /v1/categories/content', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns the allowed content-category list (bare array)', async () => {
+  it('returns the sensitive content-category list (slug + label objects)', async () => {
     const res = await app.request('/v1/categories/content', {
       headers: { Authorization: 'Bearer valid-token' },
     });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
-    expect(body).toContain('taekni');
+    expect(body.map((c: { slug: string }) => c.slug)).toContain('afengi');
+    expect(body[0]).toHaveProperty('label');
   });
 });

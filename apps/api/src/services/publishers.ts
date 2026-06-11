@@ -2,9 +2,19 @@ import { db } from '../lib/firebase.js';
 import { COLLECTIONS, publisherConverter } from '@ada/shared/firestore';
 import { PublisherSchema } from '@ada/shared/schemas';
 import type { Publisher } from '@ada/shared/types';
+import { SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { sendWelcomePublisherEmail } from './mail.js';
+
+function assertValidBlockedCategories(contentPolicy?: { blockedCategories?: string[] }): void {
+  const blocked = contentPolicy?.blockedCategories;
+  if (!blocked) return;
+  const invalid = blocked.filter((c) => !SENSITIVE_AD_CATEGORY_SLUGS.includes(c));
+  if (invalid.length > 0) {
+    throw new AppError(400, `Invalid blocked categories: ${invalid.join(', ')}`, 'BAD_REQUEST');
+  }
+}
 
 export async function createPublisher(input: {
   ownerEmail: string;
@@ -16,6 +26,7 @@ export async function createPublisher(input: {
   estimatedSlotsCount?: number;
   categories: string[];
 }): Promise<Publisher> {
+  assertValidBlockedCategories(input.contentPolicy);
   const id = generateId('pub');
   const publisherData = {
     id,
@@ -109,6 +120,7 @@ export async function updatePublisher(
   id: string,
   updates: Partial<Omit<Publisher, 'id' | 'createdAt' | 'ownerEmail'>>,
 ): Promise<Publisher> {
+  assertValidBlockedCategories(updates.contentPolicy);
   const pubRef = db.collection(COLLECTIONS.publishers).doc(id).withConverter(publisherConverter);
 
   const doc = await pubRef.get();

@@ -16,7 +16,7 @@
 
 - **ESM imports:** relative imports inside a package use the `.js` extension (`from '../constants.js'`) even though sources are `.ts`.
 - **`@ada/shared` is the dependency root.** After editing anything in `packages/shared`, run `pnpm --filter @ada/shared build` before typechecking/running downstream packages.
-- **Firestore converters Zod-parse on read** (`packages/shared/src/firestore/converters.ts:64`). This is why `sensitiveCategories` must be `.optional()` and NOT `.default([])` — a default would turn unscanned creatives into "scanned, clean" on read and defeat fail-closed. It is also why `ContentPolicySchema.blockedCategories` stays `z.array(z.string())` (tightening it to an enum would make existing publisher docs with stale slugs unreadable); validation of *new* values happens in the publishers service instead.
+- **Firestore converters Zod-parse on read** (`packages/shared/src/firestore/converters.ts:64`). This is why `sensitiveCategories` must be `.optional()` and NOT `.default([])` — a default would turn unscanned creatives into "scanned, clean" on read and defeat fail-closed. It is also why `ContentPolicySchema.blockedCategories` stays `z.array(z.string())` (tightening it to an enum would make existing publisher docs with stale slugs unreadable); validation of _new_ values happens in the publishers service instead.
 - **Running API tests:** the full suite is `pnpm test:api` from the repo root (wraps the Firestore emulator; needs Java on PATH). A single file is:
   `firebase --config firebase/firebase.json emulators:exec 'pnpm --filter @ada/api test -- tests/<file>.test.ts'`
   Shared and dashboard tests are plain vitest: `pnpm --filter @ada/shared test`, `pnpm --filter @ada/dashboard test`.
@@ -24,33 +24,34 @@
 
 ### File map
 
-| File | Change |
-|---|---|
-| `packages/shared/src/constants.ts` | Add `SENSITIVE_AD_CATEGORIES` taxonomy |
-| `packages/shared/src/schemas/advertiser.ts` | Add `sensitiveCategories` to `AutoScanResultSchema` |
-| `packages/shared/tests/schemas-advertiser.test.ts` | Schema tests (optional-not-defaulted) |
-| `apps/api/src/services/auto-scan/stub.ts` + `gemini.ts` | Return `sensitiveCategories` |
-| `apps/api/tests/auto-scan.test.ts` | Stub scanner tests |
-| `apps/api/src/lib/push-cache.ts` | New blocking check (filter stale, intersect, fail-closed) + flight-aware `pace_limit` |
-| `apps/api/tests/push-cache.test.ts` | Rewrite blocked-category test, add fail-closed/stale/pace tests |
-| `apps/api/src/services/domain-classifier.ts` | `getAllowedCategories()` returns sensitive taxonomy |
-| `apps/api/tests/categories-content.test.ts` | Update endpoint shape assertions |
-| `apps/api/src/services/publishers.ts` | Validate `blockedCategories` on create/update |
-| `apps/api/tests/publishers.test.ts` | Validation tests, fix `samplePolicy` fixture |
-| `apps/mcp/src/tools/publisher/set-content-policy.ts` | Enum-validate input, list slugs in description |
-| `apps/api/src/services/inventory.ts` | Flight-aware committed math, count `pending_approval` |
-| `apps/api/tests/inventory.test.ts` | Add `startsAt` to fixtures, new tests |
-| `apps/api/src/scripts/rescan-creatives.ts` (new) | Backfill script |
-| `apps/api/package.json` | `rescan-creatives` script entry |
-| `apps/dashboard/src/hooks/useContentCategories.ts` | Response type `{slug,label}[]` |
-| `apps/dashboard/src/pages/publisher/Settings.tsx` | Render new taxonomy, drop `CATEGORY_LABEL_MAP` |
-| `apps/dashboard/src/pages/advertiser/CampaignCreate.tsx` | Soft oversell warning in step 3 |
+| File                                                     | Change                                                                                |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `packages/shared/src/constants.ts`                       | Add `SENSITIVE_AD_CATEGORIES` taxonomy                                                |
+| `packages/shared/src/schemas/advertiser.ts`              | Add `sensitiveCategories` to `AutoScanResultSchema`                                   |
+| `packages/shared/tests/schemas-advertiser.test.ts`       | Schema tests (optional-not-defaulted)                                                 |
+| `apps/api/src/services/auto-scan/stub.ts` + `gemini.ts`  | Return `sensitiveCategories`                                                          |
+| `apps/api/tests/auto-scan.test.ts`                       | Stub scanner tests                                                                    |
+| `apps/api/src/lib/push-cache.ts`                         | New blocking check (filter stale, intersect, fail-closed) + flight-aware `pace_limit` |
+| `apps/api/tests/push-cache.test.ts`                      | Rewrite blocked-category test, add fail-closed/stale/pace tests                       |
+| `apps/api/src/services/domain-classifier.ts`             | `getAllowedCategories()` returns sensitive taxonomy                                   |
+| `apps/api/tests/categories-content.test.ts`              | Update endpoint shape assertions                                                      |
+| `apps/api/src/services/publishers.ts`                    | Validate `blockedCategories` on create/update                                         |
+| `apps/api/tests/publishers.test.ts`                      | Validation tests, fix `samplePolicy` fixture                                          |
+| `apps/mcp/src/tools/publisher/set-content-policy.ts`     | Enum-validate input, list slugs in description                                        |
+| `apps/api/src/services/inventory.ts`                     | Flight-aware committed math, count `pending_approval`                                 |
+| `apps/api/tests/inventory.test.ts`                       | Add `startsAt` to fixtures, new tests                                                 |
+| `apps/api/src/scripts/rescan-creatives.ts` (new)         | Backfill script                                                                       |
+| `apps/api/package.json`                                  | `rescan-creatives` script entry                                                       |
+| `apps/dashboard/src/hooks/useContentCategories.ts`       | Response type `{slug,label}[]`                                                        |
+| `apps/dashboard/src/pages/publisher/Settings.tsx`        | Render new taxonomy, drop `CATEGORY_LABEL_MAP`                                        |
+| `apps/dashboard/src/pages/advertiser/CampaignCreate.tsx` | Soft oversell warning in step 3                                                       |
 
 ---
 
 ### Task 1: Shared taxonomy + schema field
 
 **Files:**
+
 - Modify: `packages/shared/src/constants.ts` (after the `AD_CATEGORY_SLUGS` block, ~line 97)
 - Modify: `packages/shared/src/schemas/advertiser.ts`
 - Test: `packages/shared/tests/schemas-advertiser.test.ts`
@@ -161,6 +162,7 @@ git commit -m "feat(shared): sensitive ad-category taxonomy + creative sensitive
 ### Task 2: Auto-scan returns sensitive flags
 
 **Files:**
+
 - Modify: `apps/api/src/services/auto-scan/stub.ts`
 - Modify: `apps/api/src/services/auto-scan/gemini.ts`
 - Test: `apps/api/tests/auto-scan.test.ts`
@@ -277,6 +279,7 @@ git commit -m "feat(api): auto-scan classifies creatives into sensitive categori
 ### Task 3: push-cache blocking — intersect, filter stale, fail-closed
 
 **Files:**
+
 - Modify: `apps/api/src/lib/push-cache.ts`
 - Test: `apps/api/tests/push-cache.test.ts`
 
@@ -460,6 +463,7 @@ function blockedSensitiveCategories(publisher: Publisher): string[] {
 ```
 
 Use it in **both** places the entry is built:
+
 - the paused/suspended early-return entry (~line 62): `blockedCategories: blockedSensitiveCategories(publisher),`
 - the main path (~line 158): `const blockedCategories = blockedSensitiveCategories(publisher);`
 
@@ -505,6 +509,7 @@ git commit -m "feat(api): enforce sensitive-category blocking in push-cache, fai
 ### Task 4: Content-categories endpoint + write-path validation + MCP tool
 
 **Files:**
+
 - Modify: `apps/api/src/services/domain-classifier.ts` (`getAllowedCategories`, ~line 12)
 - Modify: `apps/api/src/services/publishers.ts` (`createPublisher`, `updatePublisher`)
 - Modify: `apps/mcp/src/tools/publisher/set-content-policy.ts`
@@ -528,6 +533,7 @@ it('returns the sensitive content-category list (slug + label objects)', async (
 ```
 
 In `apps/api/tests/publishers.test.ts`:
+
 - change the `samplePolicy` fixture (~line 26) to use valid slugs:
 
 ```ts
@@ -659,6 +665,7 @@ git commit -m "feat(api,mcp): sensitive taxonomy on /v1/categories/content + blo
 ### Task 5: Dashboard Settings uses the new taxonomy
 
 **Files:**
+
 - Modify: `apps/dashboard/src/hooks/useContentCategories.ts`
 - Modify: `apps/dashboard/src/pages/publisher/Settings.tsx`
 
@@ -692,28 +699,30 @@ export function useContentCategories() {
   `contentCategories?.map((catSlug) => …)` with `CATEGORY_LABEL_MAP[catSlug]`; change to:
 
 ```tsx
-{contentCategories?.map((cat) => {
-  const isBlocked = blockedCategories.includes(cat.slug);
-  return (
-    <div
-      key={cat.slug}
-      onClick={() => {
-        if (isBlocked) {
-          setBlockedCategories(blockedCategories.filter((s) => s !== cat.slug));
-        } else {
-          setBlockedCategories([...blockedCategories, cat.slug]);
-        }
-      }}
-      className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
-        isBlocked
-          ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/10'
-          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-      }`}
-    >
-      {cat.label}
-    </div>
-  );
-})}
+{
+  contentCategories?.map((cat) => {
+    const isBlocked = blockedCategories.includes(cat.slug);
+    return (
+      <div
+        key={cat.slug}
+        onClick={() => {
+          if (isBlocked) {
+            setBlockedCategories(blockedCategories.filter((s) => s !== cat.slug));
+          } else {
+            setBlockedCategories([...blockedCategories, cat.slug]);
+          }
+        }}
+        className={`px-3 py-2 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
+          isBlocked
+            ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/10'
+            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+        }`}
+      >
+        {cat.label}
+      </div>
+    );
+  });
+}
 ```
 
 - [ ] **Step 3: Verify**
@@ -734,6 +743,7 @@ git commit -m "feat(dashboard): publisher blocked-categories UI uses sensitive t
 ### Task 6: Backfill script `rescan-creatives`
 
 **Files:**
+
 - Create: `apps/api/src/scripts/rescan-creatives.ts`
 - Modify: `apps/api/package.json` (scripts block)
 
@@ -829,6 +839,7 @@ right after this lands — fail-closed means blocking publishers serve nothing u
 ### Task 7: Flight-aware committed math in the inventory forecast
 
 **Files:**
+
 - Modify: `apps/api/src/services/inventory.ts`
 - Test: `apps/api/tests/inventory.test.ts`
 
@@ -951,7 +962,10 @@ for (const doc of cmpSnap.docs) {
   if (cmp.budget.mode !== 'cpm_capped') continue;
   if (cmp.schedule.endsAt.getTime() <= now) continue;
   const flightStartMs = Math.max(now, cmp.schedule.startsAt.getTime());
-  const daysLeft = Math.max(1, Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000));
+  const daysLeft = Math.max(
+    1,
+    Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
+  );
   const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
   const dailyImpressions = Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
   for (const cat of cmp.targeting.categories) {
@@ -981,6 +995,7 @@ git commit -m "fix(api): inventory forecast is flight-aware and counts pending_a
 ### Task 8: Flight-aware `pace_limit` seeding
 
 **Files:**
+
 - Modify: `apps/api/src/lib/push-cache.ts` (both `pushSlotCache` ~line 114 and `pushCacheForCampaign` ~line 245)
 - Test: `apps/api/tests/push-cache.test.ts`
 
@@ -1089,6 +1104,7 @@ git commit -m "fix(api): pace_limit spreads budget over the actual flight window
 ### Task 9: Soft oversell warning in the buy flow
 
 **Files:**
+
 - Modify: `apps/dashboard/src/pages/advertiser/CampaignCreate.tsx`
 
 No component test (per spec — manual check); gates are typecheck + dashboard suite.
@@ -1111,11 +1127,9 @@ Add the computation right after `const isInsufficientFunds = …` (~line 199):
 const deliveryWarning = (() => {
   if (selectedCategories.length === 0 || !startDate) return null;
   const startMs = new Date(startDate).getTime();
-  const endMs = endDate
-    ? new Date(endDate).getTime()
-    : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
+  const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
   const flightDays = Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
-  const neededDaily = Math.round((totalBudget / FLAT_CPM_ISK) * 1000 / flightDays);
+  const neededDaily = Math.round(((totalBudget / FLAT_CPM_ISK) * 1000) / flightDays);
   const availableDaily = selectedCategories.reduce((sum, slug) => {
     const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
     return sum + (forecast?.availableDailyImpressions ?? 0);
@@ -1129,16 +1143,18 @@ Render it in **Step 3** of the wizard, directly after the Reach Forecast Panel's
 `)}` (~line 565) and before the `{error && …}` block:
 
 ```tsx
-{deliveryWarning && (
-  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700 flex items-start gap-2">
-    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-    <span>
-      Herferðin gæti afhent hægar en áætlað — valdir flokkar hafa um{' '}
-      {deliveryWarning.availableDaily.toLocaleString('is-IS')} lausar birtingar á dag en
-      herferðin þarf um {deliveryWarning.neededDaily.toLocaleString('is-IS')}.
-    </span>
-  </div>
-)}
+{
+  deliveryWarning && (
+    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700 flex items-start gap-2">
+      <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+      <span>
+        Herferðin gæti afhent hægar en áætlað — valdir flokkar hafa um{' '}
+        {deliveryWarning.availableDaily.toLocaleString('is-IS')} lausar birtingar á dag en herferðin
+        þarf um {deliveryWarning.neededDaily.toLocaleString('is-IS')}.
+      </span>
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 2: Verify**

@@ -24,7 +24,7 @@ describe('Publisher Service', () => {
   };
 
   const samplePolicy = {
-    blockedCategories: ['gambling', 'alcohol'],
+    blockedCategories: ['vedmal', 'afengi'],
     requireManualApproval: true,
   };
 
@@ -178,6 +178,28 @@ describe('Publisher Service', () => {
           displayName: 'New Name',
         }),
       ).rejects.toThrow();
+    });
+
+    it('rejects blockedCategories outside the sensitive taxonomy', async () => {
+      const created = await createPublisher({
+        ownerEmail: 'owner@test.is',
+        domain: 'test.is',
+        displayName: 'Test Publisher',
+        payoutMethod: samplePayout,
+        contentPolicy: samplePolicy,
+        categories: ['taekni'],
+      });
+
+      await expect(
+        updatePublisher(created.id, {
+          contentPolicy: { blockedCategories: ['gambling'], requireManualApproval: false },
+        }),
+      ).rejects.toThrow(/Invalid blocked categories/);
+
+      const updated = await updatePublisher(created.id, {
+        contentPolicy: { blockedCategories: ['stefnumot'], requireManualApproval: false },
+      });
+      expect(updated.contentPolicy.blockedCategories).toEqual(['stefnumot']);
     });
   });
 

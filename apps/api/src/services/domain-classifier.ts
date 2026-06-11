@@ -1,4 +1,4 @@
-import { AD_CATEGORY_SLUGS } from '@ada/shared';
+import { AD_CATEGORY_SLUGS, SENSITIVE_AD_CATEGORIES } from '@ada/shared';
 
 export interface ClassificationResult {
   categories: string[];
@@ -9,8 +9,9 @@ export interface ClassificationResult {
   keywords: string;
 }
 
-export async function getAllowedCategories(): Promise<string[]> {
-  return AD_CATEGORY_SLUGS as string[];
+/** Blockable creative content categories shown to publishers (brand safety). */
+export async function getAllowedCategories(): Promise<Array<{ slug: string; label: string }>> {
+  return SENSITIVE_AD_CATEGORIES.map((c) => ({ slug: c.slug, label: c.label }));
 }
 
 interface LocalRule {

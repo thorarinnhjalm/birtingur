@@ -1,5 +1,6 @@
 import type { AutoScanner, ScanInput, ScanReturn } from './index.js';
 import { StubAutoScanner } from './stub.js';
+import { SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
 
 /**
  * Gemini Vision–powered creative scanner.
@@ -39,6 +40,12 @@ Evaluate for:
 2. Prohibited content (gambling, drugs, weapons, hate speech)
 3. Misleading/deceptive claims
 4. Appropriate category classification
+5. Sensitive-category flags. Return every flag that applies from exactly this list
+   (return [] if none apply):
+   afengi (alcohol), vedmal (gambling/betting/lotteries), stefnumot (dating services),
+   rafmyntir (crypto/high-risk investments), megrun_utlit (weight loss/cosmetic procedures),
+   politik (politics), trumal (religion), tobak_veip (tobacco/vaping),
+   kynlifstengt (sexually suggestive content)
 
 Respond with a JSON object.`;
 
@@ -84,8 +91,20 @@ Respond with a JSON object.`;
                     type: 'NUMBER',
                     description: 'Classification confidence between 0.0 and 1.0',
                   },
+                  sensitiveCategories: {
+                    type: 'ARRAY',
+                    items: { type: 'STRING' },
+                    description:
+                      'Sensitive flags that apply, from: afengi, vedmal, stefnumot, rafmyntir, megrun_utlit, politik, trumal, tobak_veip, kynlifstengt. Empty array if none.',
+                  },
                 },
-                required: ['nsfwScore', 'blockedTerms', 'category', 'confidence'],
+                required: [
+                  'nsfwScore',
+                  'blockedTerms',
+                  'category',
+                  'confidence',
+                  'sensitiveCategories',
+                ],
               },
             },
           }),
@@ -110,6 +129,11 @@ Respond with a JSON object.`;
       const blockedTerms: string[] = Array.isArray(parsed.blockedTerms) ? parsed.blockedTerms : [];
       const category = String(parsed.category || 'unknown');
       const confidence = Number(parsed.confidence) || 0.5;
+      const sensitiveCategories: string[] = Array.isArray(parsed.sensitiveCategories)
+        ? parsed.sensitiveCategories.filter((s: unknown) =>
+            SENSITIVE_AD_CATEGORY_SLUGS.includes(String(s)),
+          )
+        : [];
 
       let outcome: 'auto_approved' | 'flagged_for_manual' | 'auto_rejected';
       if (nsfwScore > 0.7 || blockedTerms.length > 0) {
@@ -122,7 +146,7 @@ Respond with a JSON object.`;
 
       return {
         outcome,
-        scanResult: { nsfwScore, blockedTerms, category, confidence },
+        scanResult: { nsfwScore, blockedTerms, category, confidence, sensitiveCategories },
       };
     } catch (error) {
       console.warn('GeminiAutoScanner: Scan failed, using fallback:', error);

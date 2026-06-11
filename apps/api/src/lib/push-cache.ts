@@ -13,10 +13,24 @@ import {
   SLOT_CACHE_TTL_SECONDS,
   BUDGET_COUNTER_TTL_SECONDS,
   FLAT_CPM_ISK,
+  SENSITIVE_AD_CATEGORY_SLUGS,
 } from '@ada/shared';
-import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
+import type { SlotCacheEntry, CachedCreative, Creative, Publisher, Campaign } from '@ada/shared';
 
 const key = (slotId: string) => `slot:${slotId}`;
+
+/** Stale slugs (from the pre-taxonomy UI) must not block and must not trigger fail-closed. */
+function blockedSensitiveCategories(publisher: Publisher): string[] {
+  return (publisher.contentPolicy.blockedCategories ?? []).filter((c) =>
+    SENSITIVE_AD_CATEGORY_SLUGS.includes(c),
+  );
+}
+
+/** Days remaining in the campaign's actual flight window (pre-flight days excluded). */
+function flightDaysLeft(campaign: Campaign): number {
+  const flightStartMs = Math.max(Date.now(), campaign.schedule.startsAt.getTime());
+  return Math.max(1, Math.ceil((campaign.schedule.endsAt.getTime() - flightStartMs) / 86_400_000));
+}
 
 export async function pushSlotCache(slotId: string): Promise<void> {
   const redis = getRedis();
@@ -59,7 +73,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       sizes: slot.sizes,
       pricing: slot.pricing,
       activeCreatives: [],
-      blockedCategories: publisher.contentPolicy.blockedCategories ?? [],
+      blockedCategories: blockedSensitiveCategories(publisher),
       refreshedAt: Date.now(),
     };
     await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });
@@ -112,18 +126,13 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       ex: BUDGET_COUNTER_TTL_SECONDS,
     });
     if (campaign.budget.mode === 'cpm_capped') {
-      const daysLeft = Math.max(
-        1,
-        Math.ceil((campaign.schedule.endsAt.getTime() - Date.now()) / 86_400_000),
-      );
+      const daysLeft = flightDaysLeft(campaign);
       const perImpression = Math.round(FLAT_CPM_ISK / 1000);
       const paceLimit = Math.max(
         perImpression,
         Math.round(campaign.budget.remainingIsk / daysLeft),
       );
-      await redis.set(`pace_limit:${campaign.id}`, paceLimit, {
-        ex: BUDGET_COUNTER_TTL_SECONDS,
-      });
+      await redis.set(`pace_limit:${campaign.id}`, paceLimit, { ex: BUDGET_COUNTER_TTL_SECONDS });
     }
   }
 
@@ -155,7 +164,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
   });
 
   const activeCreatives: CachedCreative[] = [];
-  const blockedCategories = publisher.contentPolicy.blockedCategories ?? [];
+  const blockedCategories = blockedSensitiveCategories(publisher);
   const seenAdvertisers = new Set<string>();
 
   // 6. Map to CachedCreative
@@ -189,9 +198,11 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       );
       if (!matchesSize) continue;
 
-      // Check if blocked by category
-      if (creative.autoScanResult?.category) {
-        if (blockedCategories.includes(creative.autoScanResult.category)) {
+      // Brand safety: skip creatives whose sensitive flags intersect the publisher's blocks.
+      // Fail-closed: a blocking publisher never shows creatives that lack sensitive-flag data.
+      if (blockedCategories.length > 0) {
+        const flags = creative.autoScanResult?.sensitiveCategories;
+        if (!flags || flags.some((f) => blockedCategories.includes(f))) {
           continue;
         }
       }
@@ -243,10 +254,7 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
   const redis = getRedis();
   await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: BUDGET_COUNTER_TTL_SECONDS });
   if (cmp.budget.mode === 'cpm_capped') {
-    const daysLeft = Math.max(
-      1,
-      Math.ceil((cmp.schedule.endsAt.getTime() - Date.now()) / 86_400_000),
-    );
+    const daysLeft = flightDaysLeft(cmp);
     const perImpression = Math.round(FLAT_CPM_ISK / 1000);
     const paceLimit = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
     await redis.set(`pace_limit:${cmp.id}`, paceLimit, {

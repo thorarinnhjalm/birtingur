@@ -18,7 +18,7 @@ import {
   Info,
   Sparkles,
 } from 'lucide-react';
-import { AD_CATEGORIES } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -197,6 +197,22 @@ export default function CampaignCreate() {
 
   const walletBalance = walletQuery.data?.balanceIsk ?? 0;
   const isInsufficientFunds = walletBalance < totalBudget;
+
+  // Soft oversell warning: campaign needs more daily impressions than the selected
+  // categories have available. Informational only — submission is never blocked.
+  const deliveryWarning = (() => {
+    if (selectedCategories.length === 0 || !startDate) return null;
+    const startMs = new Date(startDate).getTime();
+    const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
+    const flightDays = Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
+    const neededDaily = Math.round(((totalBudget / FLAT_CPM_ISK) * 1000) / flightDays);
+    const availableDaily = selectedCategories.reduce((sum, slug) => {
+      const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
+      return sum + (forecast?.availableDailyImpressions ?? 0);
+    }, 0);
+    if (neededDaily <= availableDaily) return null;
+    return { neededDaily, availableDaily };
+  })();
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -561,6 +577,17 @@ export default function CampaignCreate() {
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {deliveryWarning && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700 flex items-start gap-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  Herferðin gæti afhent hægar en áætlað — valdir flokkar hafa um{' '}
+                  {deliveryWarning.availableDaily.toLocaleString('is-IS')} lausar birtingar á dag en
+                  herferðin þarf um {deliveryWarning.neededDaily.toLocaleString('is-IS')}.
+                </span>
               </div>
             )}
 

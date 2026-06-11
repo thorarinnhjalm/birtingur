@@ -1,5 +1,9 @@
 import type { AutoScanner, ScanInput, ScanReturn } from './index.js';
 
+// Must stay a subset of BLOCKED_TERMS — the vedmal flag only fires for terms
+// that the BLOCKED_TERMS filter already caught.
+const GAMBLING_TERMS = ['casino', 'gambling', 'fjárhættuspil', 'bet365'];
+
 const BLOCKED_TERMS = [
   'casino',
   'gambling',
@@ -25,6 +29,7 @@ export class StubAutoScanner implements AutoScanner {
           blockedTerms: found,
           category: 'unknown',
           confidence: 0.9,
+          sensitiveCategories: found.some((t) => GAMBLING_TERMS.includes(t)) ? ['vedmal'] : [],
         },
       };
     }
@@ -36,6 +41,7 @@ export class StubAutoScanner implements AutoScanner {
           blockedTerms: [],
           category: 'unknown',
           confidence: 0.5,
+          sensitiveCategories: [],
         },
       };
     }
@@ -46,6 +52,7 @@ export class StubAutoScanner implements AutoScanner {
         blockedTerms: [],
         category: 'retail',
         confidence: 0.95,
+        sensitiveCategories: [],
       },
     };
   }
