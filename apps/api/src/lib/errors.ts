@@ -1,4 +1,5 @@
 import type { ErrorHandler } from 'hono';
+import { ZodError } from 'zod';
 
 export class AppError extends Error {
   constructor(
@@ -14,6 +15,17 @@ export class AppError extends Error {
 }
 
 export const handleError: ErrorHandler = (err, c) => {
+  if (err instanceof ZodError) {
+    return c.json(
+      {
+        error: 'ValidationError',
+        message: 'Invalid input data',
+        details: err.errors,
+      },
+      400,
+    );
+  }
+
   if (err instanceof AppError) {
     return c.json(
       {

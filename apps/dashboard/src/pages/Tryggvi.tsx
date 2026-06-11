@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth-context';
 import Logo from '@/components/ui/Logo';
+import PublicFooter from '@/components/layout/PublicFooter';
 import {
   Sparkles,
   Target,
@@ -515,11 +516,8 @@ export default function Tryggvi() {
 
           <div className="pt-6 flex flex-col sm:flex-row items-center gap-4">
             <button
-              onClick={() =>
-                (window.location.href =
-                  'mailto:info@birtingur.app?subject=Birtingur%20og%20Datera%20Samstarf%20-%20Tryggvi')
-              }
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-950 font-extrabold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
+              onClick={() => window.dispatchEvent(new window.CustomEvent('open-public-support'))}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-indigo-950 font-extrabold text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98 border-none"
             >
               <MessageSquare size={16} />
               Bóka spjall við okkur
@@ -535,109 +533,7 @@ export default function Tryggvi() {
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-200/80 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {/* Logo/Info */}
-            <div className="space-y-4">
-              <Link to="/" className="flex items-center gap-2 cursor-pointer">
-                <Logo size={32} className="shadow-md shadow-blue-500/10 rounded-lg" />
-                <span className="font-extrabold text-lg text-slate-850">Birtingur</span>
-              </Link>
-              <p className="text-xs text-slate-550 leading-relaxed">
-                Nútímaleg auglýsingamiðlun ehf.
-                <br />
-                Kt. 560126-1020 | VSK nr. 148902
-                <br />
-                Laugavegur 182, 105 Reykjavík
-              </p>
-            </div>
-
-            {/* Links Advertiser */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-550 mb-3">
-                Auglýsendur
-              </h4>
-              <ul className="space-y-2 text-xs font-semibold">
-                <li>
-                  <Link
-                    to="/?tab=advertisers"
-                    className="text-slate-500 hover:text-slate-850 transition"
-                  >
-                    Stofna herferð
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/?tab=advertisers"
-                    className="text-slate-500 hover:text-slate-850 transition"
-                  >
-                    Inneignir og greiðslur
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Links Publisher */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-550 mb-3">
-                Útgefendur
-              </h4>
-              <ul className="space-y-2 text-xs font-semibold">
-                <li>
-                  <Link
-                    to="/?tab=publishers"
-                    className="text-slate-500 hover:text-slate-850 transition"
-                  >
-                    Sækja kóða
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    to="/?tab=publishers"
-                    className="text-slate-500 hover:text-slate-850 transition"
-                  >
-                    Tekjuöflun
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal / Contact */}
-            <div>
-              <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-555 mb-3">
-                Þjónusta
-              </h4>
-              <ul className="space-y-2 text-xs text-slate-550 font-semibold">
-                <li>
-                  Hafa samband:{' '}
-                  <a
-                    href="mailto:info@birtingur.app"
-                    className="text-slate-550 hover:text-slate-850 transition"
-                  >
-                    info@birtingur.app
-                  </a>
-                </li>
-                <li>Hjálparmiðstöð & FAQ</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <span className="text-[10px] text-slate-500 font-semibold">
-              © 2026 Birtingur (birtingur.app) – Nútímaleg auglýsingamiðlun. Allur réttur áskilinn.
-            </span>
-            <div className="flex gap-4 text-[10px] text-slate-550 font-semibold">
-              <Link to="/?tab=terms" className="hover:text-slate-800 transition">
-                Notendaskilmálar
-              </Link>
-              <Link to="/?tab=terms" className="hover:text-slate-800 transition">
-                Persónuverndarstefna
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

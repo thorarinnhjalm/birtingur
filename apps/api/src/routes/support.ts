@@ -9,6 +9,30 @@ import { AppError } from '../lib/errors.js';
 import { z } from 'zod';
 
 export const supportRouter = new Hono<Env>();
+
+const CreatePublicMessageSchema = z.object({
+  senderEmail: z.string().email(),
+  senderName: z.string().min(1).max(100).optional(),
+  subject: z.string().min(1).max(200),
+  body: z.string().min(1).max(2000),
+});
+
+// POST /v1/support/public-messages — anyone (unauthenticated)
+supportRouter.post('/public-messages', async (c) => {
+  const raw = await c.req.json();
+  const parsed = CreatePublicMessageSchema.parse(raw);
+
+  const msg = await createSupportMessage({
+    senderEmail: parsed.senderEmail,
+    senderName: parsed.senderName || undefined,
+    role: 'unknown',
+    subject: parsed.subject,
+    body: parsed.body,
+  });
+
+  return c.json(msg, 201);
+});
+
 supportRouter.use('*', requireAuth);
 
 const CreateMessageSchema = z.object({

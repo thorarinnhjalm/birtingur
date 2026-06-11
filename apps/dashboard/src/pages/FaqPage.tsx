@@ -324,13 +324,13 @@ export default function FaqPage() {
                   skipulagningu herferða.
                 </p>
               </div>
-              <a
-                href="mailto:info@birtingur.app"
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-blue-500/20"
+              <button
+                onClick={() => window.dispatchEvent(new window.CustomEvent('open-public-support'))}
+                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-blue-500/20 border-none"
               >
-                <span className="material-symbols-outlined text-sm">mail</span>
-                Sendu okkur póst
-              </a>
+                <span className="material-symbols-outlined text-sm">chat</span>
+                Hafa samband
+              </button>
             </div>
           </div>
         </div>
