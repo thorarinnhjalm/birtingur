@@ -43,10 +43,14 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
     }
   }
 
-  // Committed: daily allowance of active cpm_capped campaigns, in impressions, per category.
+  // Committed: daily allowance of cpm_capped campaigns that are live or awaiting approval
+  // (approval can land any moment and spend starts immediately), in impressions, per
+  // category. Budget is spread over the actual flight window — a future startsAt must not
+  // dilute the daily commitment with pre-flight days.
+  const COMMITTED_STATUSES = ['active', 'pending_approval'];
   const cmpSnap = await db
     .collection(COLLECTIONS.campaigns)
-    .where('status', '==', 'active')
+    .where('status', 'in', COMMITTED_STATUSES)
     .withConverter(campaignConverter)
     .get();
   const committedByCategory = new Map<string, number>();
@@ -54,8 +58,14 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   const perImpression = Math.round(FLAT_CPM_ISK / 1000);
   for (const doc of cmpSnap.docs) {
     const cmp = doc.data();
+    if (!COMMITTED_STATUSES.includes(cmp.status)) continue;
     if (cmp.budget.mode !== 'cpm_capped') continue;
-    const daysLeft = Math.max(1, Math.ceil((cmp.schedule.endsAt.getTime() - now) / 86_400_000));
+    if (cmp.schedule.endsAt.getTime() <= now) continue;
+    const flightStartMs = Math.max(now, cmp.schedule.startsAt.getTime());
+    const daysLeft = Math.max(
+      1,
+      Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
+    );
     const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
     const dailyImpressions = Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
     for (const cat of cmp.targeting.categories) {
