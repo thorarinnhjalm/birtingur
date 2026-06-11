@@ -232,7 +232,7 @@ function PublisherHome() {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-gutter">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-gutter">
         <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="p-2 bg-sky-50 text-sky-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
@@ -261,6 +261,36 @@ function PublisherHome() {
                 ? `${(stats.impressions / 1000000).toFixed(1)}M`
                 : stats.impressions.toLocaleString('is-IS')
               : '0'}
+          </p>
+        </div>
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">ads_click</span>
+            </div>
+          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Smellir</p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats
+              ? stats.clicks >= 1000000
+                ? `${(stats.clicks / 1000000).toFixed(1)}M`
+                : stats.clicks.toLocaleString('is-IS')
+              : '0'}
+          </p>
+        </div>
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-rose-50 text-rose-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">touch_app</span>
+            </div>
+          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+            Smellihlutfall (CTR)
+          </p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats && stats.impressions > 0
+              ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+              : '0,00%'}
           </p>
         </div>
         <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
@@ -346,6 +376,12 @@ function PublisherHome() {
                     Birtingar
                   </th>
                   <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                    Smellir
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                    CTR
+                  </th>
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Tekjur
                   </th>
                 </tr>
@@ -358,7 +394,7 @@ function PublisherHome() {
                     return (
                       <tr key={pub.id} className="bg-slate-50/50">
                         <td
-                          colSpan={5}
+                          colSpan={7}
                           className="px-8 py-4 text-xs font-semibold text-slate-400 font-mono"
                         >
                           🌐 {pub.domain} — Engin auglýsingapláss skráð.
@@ -371,7 +407,7 @@ function PublisherHome() {
                     <React.Fragment key={pub.id}>
                       <tr className="bg-slate-50/80 border-y border-outline-variant select-none">
                         <td
-                          colSpan={5}
+                          colSpan={7}
                           className="px-8 py-3 text-xs font-extrabold text-slate-800 tracking-wide"
                         >
                           <span className="flex items-center gap-1.5 uppercase font-sans">
@@ -418,6 +454,14 @@ function PublisherHome() {
                           </td>
                           <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
                             {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
+                          </td>
+                          <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold text-slate-650">
+                            {s.stats ? s.stats.clicks.toLocaleString('is-IS') : '0'}
+                          </td>
+                          <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold text-slate-650">
+                            {s.stats && s.stats.impressions > 0
+                              ? `${((s.stats.clicks / s.stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+                              : '0,00%'}
                           </td>
                           <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
                             {s.stats
