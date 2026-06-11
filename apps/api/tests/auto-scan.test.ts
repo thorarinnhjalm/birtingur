@@ -47,5 +47,6 @@ describe('StubAutoScanner', () => {
       ocrTextHint: 'best casino bonus',
     });
     expect(res.scanResult.sensitiveCategories).toEqual(['vedmal']);
+    expect(res.outcome).toBe('auto_rejected'); // casino is also a blocked term
   });
 });

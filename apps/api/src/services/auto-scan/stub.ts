@@ -1,5 +1,7 @@
 import type { AutoScanner, ScanInput, ScanReturn } from './index.js';
 
+// Must stay a subset of BLOCKED_TERMS — the vedmal flag only fires for terms
+// that the BLOCKED_TERMS filter already caught.
 const GAMBLING_TERMS = ['casino', 'gambling', 'fjárhættuspil', 'bet365'];
 
 const BLOCKED_TERMS = [
