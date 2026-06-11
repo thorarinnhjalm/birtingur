@@ -747,10 +747,10 @@ function AdminPublishersList() {
 
   const filtered = items.filter(
     (p) =>
-      p.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.ownerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase()),
+      (p.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.domain || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.id || '').toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -965,10 +965,10 @@ function AdminAdvertisersList() {
 
   const filtered = items.filter(
     (a) =>
-      a.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.ownerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.companyName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.ownerEmail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (a.kennitala || '').includes(searchTerm) ||
-      a.id.toLowerCase().includes(searchTerm.toLowerCase()),
+      (a.id || '').toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -1222,9 +1222,9 @@ function AdminSlotsList() {
   if (searchTerm) {
     filtered = filtered.filter(
       (s) =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.publisherId.toLowerCase().includes(searchTerm.toLowerCase()),
+        (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.publisherId || '').toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }
 
@@ -1528,14 +1528,21 @@ function AdminSupportMessages() {
   const senderMap = useMemo(() => {
     const map = new Map<string, { label: string; company: string }>();
     if (publishers) {
-      publishers.forEach((p) =>
-        map.set(p.ownerEmail.toLowerCase(), { label: 'Útgefandi', company: p.displayName }),
-      );
+      publishers.forEach((p) => {
+        if (p.ownerEmail) {
+          map.set(p.ownerEmail.toLowerCase(), { label: 'Útgefandi', company: p.displayName || '' });
+        }
+      });
     }
     if (advertisers) {
-      advertisers.forEach((a) =>
-        map.set(a.ownerEmail.toLowerCase(), { label: 'Auglýsandi', company: a.companyName }),
-      );
+      advertisers.forEach((a) => {
+        if (a.ownerEmail) {
+          map.set(a.ownerEmail.toLowerCase(), {
+            label: 'Auglýsandi',
+            company: a.companyName || '',
+          });
+        }
+      });
     }
     return map;
   }, [publishers, advertisers]);
@@ -1568,7 +1575,9 @@ function AdminSupportMessages() {
         <div className="space-y-3">
           {sorted.map((msg) => {
             const isExpanded = expandedId === msg.id;
-            const senderInfo = senderMap.get(msg.senderEmail.toLowerCase());
+            const senderInfo = msg.senderEmail
+              ? senderMap.get(msg.senderEmail.toLowerCase())
+              : null;
             const senderLabel = senderInfo ? `${senderInfo.company} (${senderInfo.label})` : null;
 
             const roleLabel =
@@ -1729,10 +1738,10 @@ function AdminCampaignsList() {
     const advEmail = adv?.ownerEmail || '';
     return (
       (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       advName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       advEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.status.toLowerCase().includes(searchTerm.toLowerCase())
+      (c.status || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -1977,12 +1986,12 @@ function AdminCreativesList() {
     const advName = adv?.companyName || '';
     const advEmail = adv?.ownerEmail || '';
     return (
-      c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.clickUrl.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.clickUrl || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.ocrTextHint || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       advName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       advEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.reviewStatus.toLowerCase().includes(searchTerm.toLowerCase())
+      (c.reviewStatus || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
 
@@ -2250,11 +2259,11 @@ function AdminLedgerList() {
 
     const query = searchTerm.toLowerCase();
     const searchMatch =
-      entry.id.toLowerCase().includes(query) ||
-      entry.relatedId.toLowerCase().includes(query) ||
+      (entry.id || '').toLowerCase().includes(query) ||
+      (entry.relatedId || '').toLowerCase().includes(query) ||
       partyName.toLowerCase().includes(query) ||
       partyEmail.toLowerCase().includes(query) ||
-      entry.type.toLowerCase().includes(query);
+      (entry.type || '').toLowerCase().includes(query);
 
     return typeMatch && searchMatch;
   });
