@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { apiFetch } from '@/lib/api';
 import { Check, Copy, RefreshCw, Trash2, Key, Plus } from 'lucide-react';
-import { AD_CATEGORIES } from '@ada/shared';
+import { AD_CATEGORIES, SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
 import { useContentCategories } from '@/hooks/useContentCategories';
 
 export default function Settings() {
@@ -75,7 +75,12 @@ export default function Settings() {
       setAccountHolder(publisher.payoutMethod?.accountName || '');
       setVatNumber(publisher.vatNumber || '');
       setSelectedCategories(publisher.categories || []);
-      setBlockedCategories(publisher.contentPolicy?.blockedCategories || []);
+      // Stale pre-taxonomy slugs must not round-trip into a save — the API now rejects them.
+      setBlockedCategories(
+        (publisher.contentPolicy?.blockedCategories || []).filter((s) =>
+          SENSITIVE_AD_CATEGORY_SLUGS.includes(s),
+        ),
+      );
       fetchWidgetKey();
       fetchApiKeys();
     }
