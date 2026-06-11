@@ -65,30 +65,31 @@ function PublisherHome() {
   return (
     <div className="space-y-gutter">
       {/* Header & Top CTA */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-display-lg text-primary font-bold mb-2">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Góðan dag, {firstPublisher?.displayName?.split(' ')[0] || 'útgefandi'}
           </h2>
-          <p className="text-secondary font-body-lg">
+          <p className="text-slate-500 text-sm font-medium mt-1">
             Hér er yfirlit yfir árangur og tekjur í dag.
           </p>
         </div>
-        <div className="flex gap-4">
-          <button
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
             onClick={() => navigate('/publisher/onboarding')}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-4 rounded-lg font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer border-none"
+            className="flex items-center gap-2 font-bold py-2 px-3 text-xs border border-slate-200"
           >
-            <span className="material-symbols-outlined text-[20px]">add_to_photos</span>
+            <span className="material-symbols-outlined text-[18px]">add_to_photos</span>
             <span>Nýr vefur</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => navigate('/publisher/slots/new')}
-            className="bg-primary text-on-primary px-8 py-4 rounded-lg font-bold flex items-center gap-3 hover:shadow-lg transition-all active:scale-95 cursor-pointer border-none"
+            className="flex items-center gap-2 font-bold py-2 px-4 text-xs shadow-md shadow-primary/10"
           >
-            <span className="material-symbols-outlined">add_circle</span>
-            <span>Nýtt auglýsingapláss</span>
-          </button>
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>Nýtt pláss</span>
+          </Button>
         </div>
       </div>
 
@@ -118,15 +119,15 @@ function PublisherHome() {
       )}
 
       {/* Hero Bento Grid */}
-      <div className="grid grid-cols-12 gap-gutter mb-gutter">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-gutter items-stretch">
         {/* Main Earnings Card */}
-        <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant p-8 rounded-xl relative overflow-hidden flex flex-col justify-between min-h-[320px] shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in">
+        <div className="md:col-span-2 bg-white border border-outline-variant p-6 md:p-8 rounded-xl relative overflow-hidden flex flex-col justify-between min-h-[260px] shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in">
           <div className="z-10">
-            <p className="text-secondary font-medium mb-2 flex items-center gap-2">
+            <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
               Áætlaðar tekjur í þessum mánuði
             </p>
-            <h3 className="font-bold text-4xl sm:text-5xl lg:text-[64px] text-primary tracking-tighter leading-none my-4">
+            <h3 className="font-black text-3xl sm:text-4xl md:text-5xl text-primary tracking-tight my-4">
               {stats
                 ? formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))
                 : '0 kr.'}
@@ -140,19 +141,19 @@ function PublisherHome() {
               const pct = ((recent - older) / older) * 100;
               return (
                 <div
-                  className={`mt-4 flex items-center gap-2 ${pct >= 0 ? 'text-primary bg-secondary-fixed' : 'text-red-600 bg-red-50'} w-fit px-3 py-1 rounded-full text-label-sm font-semibold`}
+                  className={`mt-2 flex items-center gap-1.5 ${pct >= 0 ? 'text-green-600 bg-green-55' : 'text-red-600 bg-red-55'} w-fit px-2.5 py-0.5 rounded-full text-xs font-bold`}
                 >
-                  <span className="material-symbols-outlined text-[16px]">
+                  <span className="material-symbols-outlined text-[14px]">
                     {pct >= 0 ? 'trending_up' : 'trending_down'}
                   </span>
                   {pct >= 0 ? '+' : ''}
-                  {pct.toFixed(1).replace('.', ',')}% frá síðasta tímabili
+                  {pct.toFixed(0)}%
                 </div>
               );
             })()}
           </div>
           {/* Interactive Recharts Graph */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 opacity-90 z-0">
+          <div className="absolute bottom-0 left-0 right-0 h-24 opacity-80 z-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={stats?.history || []}
@@ -160,7 +161,7 @@ function PublisherHome() {
               >
                 <defs>
                   <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
+                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.15} />
                     <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
@@ -191,9 +192,9 @@ function PublisherHome() {
                         }
                       } catch {}
                       return (
-                        <div className="bg-slate-950/95 backdrop-blur text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border border-slate-800">
+                        <div className="bg-slate-950/95 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xl border border-slate-800">
                           <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
-                          <p className="text-sm font-bold text-sky-400">{formatIsk(val)}</p>
+                          <p className="text-xs font-bold text-sky-400">{formatIsk(val)}</p>
                         </div>
                       );
                     }
@@ -206,99 +207,95 @@ function PublisherHome() {
         </div>
 
         {/* Payout Card */}
-        <div className="col-span-12 lg:col-span-4 bg-tertiary text-on-tertiary p-8 rounded-xl flex flex-col justify-between shadow-xl min-h-[320px]">
+        <div className="md:col-span-1 bg-tertiary text-on-tertiary p-6 md:p-8 rounded-xl flex flex-col justify-between shadow-xl min-h-[260px]">
           <div>
-            <div className="w-12 h-12 bg-on-tertiary/10 rounded-lg flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-on-tertiary">schedule_send</span>
+            <div className="w-10 h-10 bg-on-tertiary/10 rounded-lg flex items-center justify-center mb-4 text-white">
+              <span className="material-symbols-outlined text-white text-xl">schedule_send</span>
             </div>
-            <p className="text-on-tertiary/70 font-medium mb-1">Næsta útgreiðsla</p>
-            <h4 className="font-bold text-headline-lg">
+            <p className="text-white/70 font-semibold text-xs mb-1 uppercase tracking-wider">
+              Næsta útgreiðsla
+            </p>
+            <h4 className="font-black text-2xl sm:text-3xl text-white tracking-tight">
               {stats
                 ? formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))
                 : '0 kr.'}
             </h4>
-            <p className="text-on-tertiary/50 text-[12px] mt-2">Áætlað 1. næsta mánaðar</p>
+            <p className="text-white/50 text-[10px] font-medium mt-1">Áætlað 1. næsta mánaðar</p>
           </div>
-          <button
+          <Button
             onClick={() => navigate('/publisher/earnings')}
-            className="w-full py-3 border border-on-tertiary/20 rounded-lg font-semibold hover:bg-on-tertiary/10 transition-colors mt-6 cursor-pointer bg-transparent text-white"
+            className="w-full py-2 bg-white/10 text-white font-bold text-xs hover:bg-white/20 transition-colors mt-4 shrink-0 rounded-lg"
           >
             Skoða færslur
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-gutter">
-        <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
-          <div className="w-14 h-14 bg-sky-50 text-sky-700 rounded-full flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined">public</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-gutter">
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-sky-50 text-sky-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">public</span>
+            </div>
           </div>
-          <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
-              Vefumferð (flettingar)
-            </p>
-            <p className="font-bold text-headline-md text-on-surface">
-              {stats
-                ? stats.pageviews >= 1000000
-                  ? `${(stats.pageviews / 1000000).toFixed(1)}M`
-                  : stats.pageviews.toLocaleString('is-IS')
-                : '0'}
-            </p>
-          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Vefumferð</p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats
+              ? stats.pageviews >= 1000000
+                ? `${(stats.pageviews / 1000000).toFixed(1)}M`
+                : stats.pageviews.toLocaleString('is-IS')
+              : '0'}
+          </p>
         </div>
-        <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
-          <div className="w-14 h-14 bg-primary/5 text-primary rounded-full flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined">visibility</span>
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">visibility</span>
+            </div>
           </div>
-          <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
-              Birtingar
-            </p>
-            <p className="font-bold text-headline-md text-on-surface">
-              {stats
-                ? stats.impressions >= 1000000
-                  ? `${(stats.impressions / 1000000).toFixed(1)}M`
-                  : stats.impressions.toLocaleString('is-IS')
-                : '0'}
-            </p>
-          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Birtingar</p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats
+              ? stats.impressions >= 1000000
+                ? `${(stats.impressions / 1000000).toFixed(1)}M`
+                : stats.impressions.toLocaleString('is-IS')
+              : '0'}
+          </p>
         </div>
-        <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
-          <div className="w-14 h-14 bg-green-50 text-green-700 rounded-full flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined">check_circle</span>
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
+            </div>
           </div>
-          <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
-              Fyllingarhlutfall
-            </p>
-            <p className="font-bold text-headline-md text-on-surface">
-              {stats && stats.pageviews > 0
-                ? `${Math.round((stats.impressions / stats.pageviews) * 100)}%`
-                : '0%'}
-            </p>
-          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+            Fyllihlutfall
+          </p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats && stats.pageviews > 0
+              ? `${Math.round((stats.impressions / stats.pageviews) * 100)}%`
+              : '0%'}
+          </p>
         </div>
-        <div className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl flex items-center gap-5 shadow-sm">
-          <div className="w-14 h-14 bg-purple-50 text-purple-700 rounded-full flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined">monetization_on</span>
+        <div className="bg-white border border-outline-variant p-4 hover:border-primary transition-all group rounded-xl shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+              <span className="material-symbols-outlined text-[20px]">monetization_on</span>
+            </div>
           </div>
-          <div>
-            <p className="text-secondary font-semibold text-label-sm uppercase tracking-wider">
-              eCPM
-            </p>
-            <p className="font-bold text-headline-md text-on-surface">
-              {stats && stats.impressions > 0
-                ? formatIsk(
-                    Math.round(
-                      ((stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)) /
-                        stats.impressions) *
-                        1000,
-                    ),
-                  )
-                : '0 kr.'}
-            </p>
-          </div>
+          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">eCPM</p>
+          <p className="font-bold text-lg text-slate-900 mt-0.5">
+            {stats && stats.impressions > 0
+              ? formatIsk(
+                  Math.round(
+                    ((stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)) /
+                      stats.impressions) *
+                      1000,
+                  ),
+                )
+              : '0 kr.'}
+          </p>
         </div>
       </div>
 
@@ -345,7 +342,7 @@ function PublisherHome() {
                   <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
                     Staða
                   </th>
-                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                  <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Birtingar
                   </th>
                   <th className="px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
@@ -391,7 +388,7 @@ function PublisherHome() {
                           className="hover:bg-surface-container transition-colors group cursor-pointer"
                           onClick={() => navigate(`/publisher/slots/${s.id}`)}
                         >
-                          <td className="px-8 py-5 pl-12">
+                          <td className="px-8 py-5">
                             <div className="flex flex-col min-w-0">
                               <span className="font-body-md font-bold text-on-surface truncate max-w-[200px]">
                                 {s.name}
@@ -419,7 +416,7 @@ function PublisherHome() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-8 py-5 text-center text-body-md text-on-surface font-semibold">
+                          <td className="px-8 py-5 text-right text-body-md text-on-surface font-semibold">
                             {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
                           </td>
                           <td className="px-8 py-5 text-right font-bold text-body-md text-primary">
