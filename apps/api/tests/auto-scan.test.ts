@@ -31,4 +31,21 @@ describe('StubAutoScanner', () => {
     });
     expect(r.outcome).toBe('flagged_for_manual');
   });
+
+  it('returns sensitiveCategories: [] for a clean creative (scanned-clean, not absent)', async () => {
+    const res = await scanner.scan({
+      imageUrl: 'https://example.com/clean.png',
+      clickUrl: 'https://example.com/landing',
+    });
+    expect(res.scanResult.sensitiveCategories).toEqual([]);
+  });
+
+  it('flags gambling terms as vedmal', async () => {
+    const res = await scanner.scan({
+      imageUrl: 'https://example.com/casino.png',
+      clickUrl: 'https://example.com/landing',
+      ocrTextHint: 'best casino bonus',
+    });
+    expect(res.scanResult.sensitiveCategories).toEqual(['vedmal']);
+  });
 });
