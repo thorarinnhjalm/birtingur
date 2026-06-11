@@ -290,7 +290,7 @@ function AdvertiserHome() {
 
           {/* Performance Graph Card */}
           {stats && stats.history && stats.history.length > 0 && (
-            <Card className="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in bg-white">
+            <Card className="bg-white border border-outline-variant p-6 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
                   <h3 className="text-base font-bold text-slate-800">Árangur herferða</h3>
@@ -428,7 +428,7 @@ function AdvertiserHome() {
           )}
 
           {/* Active Campaigns Table Section */}
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-sm bg-white">
+          <div className="bg-white rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             <div className="px-6 py-5 flex items-center justify-between border-b border-outline-variant">
               <div>
                 <h3 className="text-base font-bold text-slate-800">Virkar herferðir</h3>

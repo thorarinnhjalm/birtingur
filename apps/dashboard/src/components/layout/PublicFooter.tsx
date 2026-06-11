@@ -201,7 +201,7 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
       </div>
 
       {isContactOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-fadeIn text-slate-800">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-fadeIn text-slate-800">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full p-6 animate-scaleIn mx-4 relative">
             <button
               onClick={() => setIsContactOpen(false)}
