@@ -13,10 +13,18 @@ import {
   SLOT_CACHE_TTL_SECONDS,
   BUDGET_COUNTER_TTL_SECONDS,
   FLAT_CPM_ISK,
+  SENSITIVE_AD_CATEGORY_SLUGS,
 } from '@ada/shared';
-import type { SlotCacheEntry, CachedCreative, Creative } from '@ada/shared';
+import type { SlotCacheEntry, CachedCreative, Creative, Publisher } from '@ada/shared';
 
 const key = (slotId: string) => `slot:${slotId}`;
+
+/** Stale slugs (from the pre-taxonomy UI) must not block and must not trigger fail-closed. */
+function blockedSensitiveCategories(publisher: Publisher): string[] {
+  return (publisher.contentPolicy.blockedCategories ?? []).filter((c) =>
+    (SENSITIVE_AD_CATEGORY_SLUGS as readonly string[]).includes(c),
+  );
+}
 
 export async function pushSlotCache(slotId: string): Promise<void> {
   const redis = getRedis();
@@ -59,7 +67,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       sizes: slot.sizes,
       pricing: slot.pricing,
       activeCreatives: [],
-      blockedCategories: publisher.contentPolicy.blockedCategories ?? [],
+      blockedCategories: blockedSensitiveCategories(publisher),
       refreshedAt: Date.now(),
     };
     await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });
@@ -155,7 +163,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
   });
 
   const activeCreatives: CachedCreative[] = [];
-  const blockedCategories = publisher.contentPolicy.blockedCategories ?? [];
+  const blockedCategories = blockedSensitiveCategories(publisher);
   const seenAdvertisers = new Set<string>();
 
   // 6. Map to CachedCreative
@@ -189,9 +197,11 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       );
       if (!matchesSize) continue;
 
-      // Check if blocked by category
-      if (creative.autoScanResult?.category) {
-        if (blockedCategories.includes(creative.autoScanResult.category)) {
+      // Brand safety: skip creatives whose sensitive flags intersect the publisher's blocks.
+      // Fail-closed: a blocking publisher never shows creatives that lack sensitive-flag data.
+      if (blockedCategories.length > 0) {
+        const flags = creative.autoScanResult?.sensitiveCategories;
+        if (!flags || flags.some((f) => blockedCategories.includes(f))) {
           continue;
         }
       }

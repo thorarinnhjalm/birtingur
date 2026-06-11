@@ -210,7 +210,7 @@ describe('pushSlotCache helper', () => {
     expect(opts.ex).toBeGreaterThanOrEqual(24 * 60 * 60);
   });
 
-  it('filters out creatives matching blocked categories', async () => {
+  it('filters out creatives whose sensitiveCategories intersect blockedCategories', async () => {
     mockState.slot = {
       id: 'slot_123',
       publisherId: 'pub_123',
@@ -222,51 +222,130 @@ describe('pushSlotCache helper', () => {
       id: 'pub_123',
       status: 'active',
       categories: ['taekni'],
-      contentPolicy: { blockedCategories: ['Gambling'] },
+      contentPolicy: { blockedCategories: ['vedmal'] },
     };
-
     mockState.campaigns = [
       {
         id: 'camp_1',
         status: 'active',
-        creativeIds: ['creative_approved', 'creative_blocked'],
+        creativeIds: ['creative_clean', 'creative_gambling'],
         budget: { remainingIsk: 1000, mode: 'cpm_capped' },
-        schedule: {
-          startsAt: new Date(Date.now() - 10000),
-          endsAt: new Date(Date.now() + 10000),
-        },
+        schedule: { startsAt: new Date(Date.now() - 10000), endsAt: new Date(Date.now() + 10000) },
         targeting: { categories: ['taekni'] },
       },
     ];
-
     mockState.creatives = [
       {
-        id: 'creative_approved',
+        id: 'creative_clean',
         reviewStatus: 'auto_approved',
         width: 300,
         height: 250,
         imageUrl: 'https://ex.com/1.png',
         clickUrl: 'https://ex.com/1',
-        autoScanResult: { category: 'Tech' },
+        autoScanResult: { category: 'retail', sensitiveCategories: [] },
       },
       {
-        id: 'creative_blocked',
+        id: 'creative_gambling',
         reviewStatus: 'manual_approved',
         width: 300,
         height: 250,
         imageUrl: 'https://ex.com/2.png',
         clickUrl: 'https://ex.com/2',
-        autoScanResult: { category: 'Gambling' },
+        autoScanResult: { category: 'entertainment', sensitiveCategories: ['vedmal', 'rafmyntir'] },
       },
     ];
 
     await pushSlotCache('slot_123');
 
-    expect(mockRedisSet).toHaveBeenCalled();
     const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
-    expect(entry).toBeDefined();
     expect(entry.activeCreatives).toHaveLength(1);
-    expect(entry.activeCreatives[0].creativeId).toBe('creative_approved');
+    expect(entry.activeCreatives[0].creativeId).toBe('creative_clean');
+  });
+
+  it('fail-closed: excludes unscanned creatives when the publisher blocks anything', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: ['afengi'] },
+    };
+    mockState.campaigns = [
+      {
+        id: 'camp_1',
+        status: 'active',
+        creativeIds: ['creative_unscanned'],
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule: { startsAt: new Date(Date.now() - 10000), endsAt: new Date(Date.now() + 10000) },
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+    mockState.creatives = [
+      {
+        id: 'creative_unscanned',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/1.png',
+        clickUrl: 'https://ex.com/1',
+        autoScanResult: { category: 'retail' }, // no sensitiveCategories → never scanned for flags
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
+    expect(entry.activeCreatives).toHaveLength(0);
+  });
+
+  it('ignores stale non-sensitive slugs in blockedCategories (no fail-closed from them)', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      // Legacy values from the old (broken) UI — must be treated as if nothing is blocked
+      contentPolicy: { blockedCategories: ['Gambling', 'matur'] },
+    };
+    mockState.campaigns = [
+      {
+        id: 'camp_1',
+        status: 'active',
+        creativeIds: ['creative_unscanned'],
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule: { startsAt: new Date(Date.now() - 10000), endsAt: new Date(Date.now() + 10000) },
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+    mockState.creatives = [
+      {
+        id: 'creative_unscanned',
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: 'https://ex.com/1.png',
+        clickUrl: 'https://ex.com/1',
+        autoScanResult: { category: 'retail' },
+      },
+    ];
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
+    expect(entry.activeCreatives).toHaveLength(1); // stale slugs filtered → nothing blocked
+    expect(entry.blockedCategories).toEqual([]); // cache entry carries the filtered list
   });
 
   it('passes campaign targeting.geoRegions into the cached creative', async () => {
