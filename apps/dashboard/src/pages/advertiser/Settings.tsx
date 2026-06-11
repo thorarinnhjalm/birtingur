@@ -39,7 +39,7 @@ export default function Settings() {
   useEffect(() => {
     if (advertiser) {
       setCompanyName(advertiser.companyName);
-      setBillingEmail(advertiser.ownerEmail);
+      setBillingEmail(advertiser.billingEmail || advertiser.ownerEmail);
       setVatNumber(advertiser.vatNumber);
       fetchApiKeys();
     }

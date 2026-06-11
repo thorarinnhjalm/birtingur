@@ -17,9 +17,18 @@ const CreateAdvertiserSchema = z.object({
     .pipe(z.string().regex(/^\d{10}$/)),
   vatNumber: z.string().min(1).max(20),
   websiteUrl: z.string().url().optional(),
+  billingEmail: z.string().email().optional(),
 });
 
 export type CreateAdvertiserInput = z.infer<typeof CreateAdvertiserSchema>;
+
+export const UpdateAdvertiserProfileSchema = z.object({
+  companyName: z.string().min(1).max(200),
+  vatNumber: z.string().min(1).max(20),
+  billingEmail: z.string().email().optional(),
+});
+
+export type UpdateAdvertiserProfileInput = z.infer<typeof UpdateAdvertiserProfileSchema>;
 
 export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Advertiser> {
   const parsed = CreateAdvertiserSchema.parse(input);
@@ -38,6 +47,7 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
     status: 'active',
     createdAt: new Date(),
     websiteUrl: parsed.websiteUrl,
+    billingEmail: parsed.billingEmail,
   });
 
   await db
@@ -65,6 +75,29 @@ export async function createAdvertiser(input: CreateAdvertiserInput): Promise<Ad
   }
 
   return adv;
+}
+
+export async function updateAdvertiserProfile(
+  ownerEmail: string,
+  input: UpdateAdvertiserProfileInput,
+): Promise<Advertiser> {
+  const parsed = UpdateAdvertiserProfileSchema.parse(input);
+  const adv = await requireAdvertiser(ownerEmail);
+
+  const updated: Advertiser = AdvertiserSchema.parse({
+    ...adv,
+    companyName: parsed.companyName,
+    vatNumber: parsed.vatNumber,
+    billingEmail: parsed.billingEmail,
+  });
+
+  await db
+    .collection(COLLECTIONS.advertisers)
+    .doc(adv.id)
+    .withConverter(advertiserConverter)
+    .set(updated);
+
+  return updated;
 }
 
 export async function getAdvertiserById(id: string): Promise<Advertiser | null> {

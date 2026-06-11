@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 import { requireAuth, type Env } from '../lib/auth.js';
-import { createAdvertiser, getAdvertiserByOwnerEmail } from '../services/advertisers.js';
+import {
+  createAdvertiser,
+  getAdvertiserByOwnerEmail,
+  updateAdvertiserProfile,
+} from '../services/advertisers.js';
 import { getAdvertiserStats } from '../services/advertiser-stats.js';
 import { getAiTips } from '../services/ai-advisor.js';
 import { getWallet } from '../services/wallet.js';
@@ -24,6 +28,13 @@ advertisersRouter.post('/', async (c) => {
   const body = await c.req.json();
   const adv = await createAdvertiser({ ownerEmail: user.email, ...body });
   return c.json(adv, 201);
+});
+
+advertisersRouter.put('/me', async (c) => {
+  const user = c.get('user');
+  const body = await c.req.json();
+  const adv = await updateAdvertiserProfile(user.email, body);
+  return c.json(adv);
 });
 
 advertisersRouter.get('/me', async (c) => {

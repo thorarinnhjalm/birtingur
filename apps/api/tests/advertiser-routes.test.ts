@@ -251,6 +251,83 @@ describe('Advertiser HTTP Routes', () => {
     });
   });
 
+  describe('PUT /v1/advertisers/me', () => {
+    it('updates profile successfully', async () => {
+      mockAdvertisers.push({
+        id: 'adv_123',
+        ownerEmail: 'advertiser@example.is',
+        companyName: 'Blóm og lauf',
+        kennitala: '5555555555',
+        vatNumber: '98765',
+        walletBalanceIsk: 0,
+        status: 'active',
+        createdAt: new Date(),
+      });
+
+      const res = await app.request('/v1/advertisers/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          companyName: 'New Company Name',
+          vatNumber: '11111',
+          billingEmail: 'billing@example.is',
+        }),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.companyName).toBe('New Company Name');
+      expect(body.vatNumber).toBe('11111');
+      expect(body.billingEmail).toBe('billing@example.is');
+      expect(body.kennitala).toBe('5555555555'); // unchanged
+    });
+
+    it('returns 404 if profile is missing', async () => {
+      const res = await app.request('/v1/advertisers/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          companyName: 'New Company Name',
+          vatNumber: '11111',
+        }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 400 for invalid body schema', async () => {
+      mockAdvertisers.push({
+        id: 'adv_123',
+        ownerEmail: 'advertiser@example.is',
+        companyName: 'Blóm og lauf',
+        kennitala: '5555555555',
+        vatNumber: '98765',
+        walletBalanceIsk: 0,
+        status: 'active',
+        createdAt: new Date(),
+      });
+
+      const res = await app.request('/v1/advertisers/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          // missing companyName & vatNumber
+          billingEmail: 'not-an-email',
+        }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe('POST /v1/creatives', () => {
     it('creates creative', async () => {
       mockAdvertisers.push({

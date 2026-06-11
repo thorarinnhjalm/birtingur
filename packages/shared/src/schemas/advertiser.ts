@@ -19,6 +19,7 @@ export const AdvertiserSchema = z.object({
   status: AdvertiserStatusSchema,
   createdAt: z.date(),
   websiteUrl: z.string().url().optional(),
+  billingEmail: z.string().email().optional(),
 });
 export type Advertiser = z.infer<typeof AdvertiserSchema>;
 

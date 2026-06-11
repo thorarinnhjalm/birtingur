@@ -58,7 +58,11 @@ vi.mock('../src/lib/firebase', () => ({
   storage: {},
 }));
 
-import { createAdvertiser, getAdvertiserByOwnerEmail } from '../src/services/advertisers';
+import {
+  createAdvertiser,
+  getAdvertiserByOwnerEmail,
+  updateAdvertiserProfile,
+} from '../src/services/advertisers';
 
 describe('Advertiser Service', () => {
   beforeEach(() => {
@@ -94,6 +98,30 @@ describe('Advertiser Service', () => {
       const a = await createAdvertiser(valid);
       const got = await getAdvertiserByOwnerEmail('anna@blomabud.is');
       expect(got?.id).toBe(a.id);
+    });
+  });
+
+  describe('updateAdvertiserProfile', () => {
+    it('updates profile successfully', async () => {
+      await createAdvertiser(valid);
+      const updated = await updateAdvertiserProfile('anna@blomabud.is', {
+        companyName: 'Nýtt blómaheiti',
+        vatNumber: '654321',
+        billingEmail: 'billing@blomabud.is',
+      });
+      expect(updated.companyName).toBe('Nýtt blómaheiti');
+      expect(updated.vatNumber).toBe('654321');
+      expect(updated.billingEmail).toBe('billing@blomabud.is');
+      expect(updated.kennitala).toBe('1234567890'); // unchanged
+    });
+
+    it('throws when advertiser does not exist', async () => {
+      await expect(
+        updateAdvertiserProfile('none@example.is', {
+          companyName: 'Nýtt nafn',
+          vatNumber: '654321',
+        }),
+      ).rejects.toThrow(/No advertiser/);
     });
   });
 });
