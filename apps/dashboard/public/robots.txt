@@ -10,4 +10,4 @@ Disallow: /bjarni
 Disallow: /tryggvi
 Disallow: /datera
 
-Sitemap: https://birtingur.app/sitemap.xml
+Sitemap: https://www.birtingur.app/sitemap.xml

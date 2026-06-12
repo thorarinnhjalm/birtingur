@@ -9,6 +9,16 @@ export const app = new Hono();
 app.use('/*', cors());
 app.get('/healthz', (c) => c.json({ ok: true }));
 
+app.get('/robots.txt', (c) => {
+  return c.text('User-agent: *\nDisallow: /\n');
+});
+
+app.get('/', (c) => {
+  return c.text(
+    'Birtingur MCP Server is running. See https://www.birtingur.app for more information.',
+  );
+});
+
 app.notFound((c) => {
   return c.json({ error: 'not_found', message: `Route not found: ${c.req.path}` }, 404);
 });

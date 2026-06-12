@@ -2,7 +2,10 @@
   "rewrites": [
     { "source": "/vibers", "destination": "/index.html" },
     { "source": "/serfraedingar", "destination": "/index.html" },
-    { "source": "/((?!assets/|favicon.svg|favicon.ico).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!assets/|favicon.svg|favicon.ico|robots.txt|sitemap.xml).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
