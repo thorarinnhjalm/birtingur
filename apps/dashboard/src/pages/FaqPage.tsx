@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 
 export default function FaqPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -8,27 +9,6 @@ export default function FaqPage() {
   const [selectedPillar, setSelectedPillar] = useState<
     'all' | 'advertiser' | 'publisher' | 'technical'
   >('all');
-
-  // Dynamic SEO Metadata setup
-  useEffect(() => {
-    const titleText = 'Algengar spurningar | Birtingur — Auglýsingar á netinu';
-    const descriptionText =
-      'Fáðu svör við algengum spurningum um birtingar, auglýsingar á netinu, greiðslur og hvernig þú getur grætt á vefnum þínum með Birtingi.';
-
-    document.title = titleText;
-
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', descriptionText);
-
-    return () => {
-      document.title = 'Birtingur';
-    };
-  }, []);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -115,6 +95,46 @@ export default function FaqPage() {
     ],
     [],
   );
+
+  // Dynamic SEO Metadata setup
+  useEffect(() => {
+    const titleText = 'Algengar spurningar | Birtingur — Auglýsingar á netinu';
+    const descriptionText =
+      'Fáðu svör við algengum spurningum um birtingar, auglýsingar á netinu, greiðslur og hvernig þú getur grætt á vefnum þínum með Birtingi.';
+
+    updateSEO(titleText, descriptionText, '/faq');
+
+    // FAQ JSON-LD Schema
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.a.replace(/<[^>]*>/g, ''), // strip HTML tags for plain text
+        },
+      })),
+    };
+
+    let script = document.querySelector('script[type="application/ld+json"]#faq-schema');
+    if (!script) {
+      script = document.createElement('script');
+      script.setAttribute('type', 'application/ld+json');
+      script.setAttribute('id', 'faq-schema');
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(schema);
+
+    return () => {
+      document.title = 'Birtingur';
+      const scriptToRemove = document.querySelector('#faq-schema');
+      if (scriptToRemove) {
+        scriptToRemove.remove();
+      }
+    };
+  }, [faqItems]);
 
   // Filtered FAQ Items based on search and selected pillar
   const filteredFaqs = useMemo(() => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 
 export default function TermsPage() {
   // Dynamic SEO Metadata setup
@@ -9,15 +10,7 @@ export default function TermsPage() {
     const descriptionText =
       'Skilmálar og persónuverndarstefna Birtings. Upplýsingar um ábyrgð, greiðsluflæði og hvernig við tryggjum kökulausar og öruggar vefauglýsingar.';
 
-    document.title = titleText;
-
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', descriptionText);
+    updateSEO(titleText, descriptionText, '/skilmalar');
 
     return () => {
       document.title = 'Birtingur';

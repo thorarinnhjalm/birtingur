@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth-context';
 import Logo from '@/components/ui/Logo';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 import {
   Sparkles,
   Coins,
@@ -36,7 +37,11 @@ export default function Vibers() {
 
     // Set page title dynamically
     const originalTitle = document.title;
-    document.title = 'Hæ Árni og Villi! | Birtingur';
+    updateSEO(
+      'Hæ Árni og Villi! | Birtingur',
+      'Kynning fyrir Árna og Villa frá Vibers.',
+      '/vibers',
+    );
 
     return () => {
       if (metaRobots) {

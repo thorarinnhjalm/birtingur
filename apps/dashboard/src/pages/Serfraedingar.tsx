@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth-context';
 import Logo from '@/components/ui/Logo';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 import {
   Sparkles,
   Target,
@@ -32,7 +33,7 @@ export default function Serfraedingar() {
 
     // Set page title dynamically
     const originalTitle = document.title;
-    document.title = 'Hæ Auður og Eydís! | Birtingur';
+    updateSEO('Hæ Auður og Eydís! | Birtingur', 'Kynning fyrir Auði og Eydísi.', '/serfraedingar');
 
     return () => {
       if (metaRobots) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 
 type TabType = 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms';
 
@@ -33,15 +34,7 @@ export default function LandingPage() {
     const descriptionText =
       'Birtingur (birtingur.app) er sjálfvirkur, einfaldur og persónuverndarvænn vettvangur sem sérhæfir sig í árangursríkum auglýsingum á netinu og hröðum birtingum.';
 
-    document.title = titleText;
-
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', descriptionText);
+    updateSEO(titleText, descriptionText, '');
 
     return () => {
       document.title = 'Birtingur';
@@ -145,9 +138,10 @@ export default function LandingPage() {
 
                   {/* Subtitle */}
                   <p className="text-base sm:text-lg lg:text-xl text-slate-500 max-w-xl font-medium leading-relaxed">
-                    Birtingur (birtingur.app) er nútímalegur sjálfsafgreiðsluvettvangur sem tengir
+                    Birtingur er nútímaleg <strong>birtingaþjónusta</strong> og
+                    sjálfsafgreiðslukerfi fyrir <strong>auglýsingar á netinu</strong> sem tengir
                     saman íslenska útgefendur og auglýsendur. Stofnaðu herferðir á nokkrum mínútum
-                    eða byrjaðu að græða á vefnum þínum í dag.
+                    án flókinna milliliða.
                   </p>
 
                   {/* Actions */}
@@ -568,11 +562,13 @@ export default function LandingPage() {
                     <span className="material-symbols-outlined text-2xl font-bold">speed</span>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">Engar tafir</h3>
+                    <h3 className="text-lg font-bold text-slate-900 mb-2">
+                      Hraðvirk birtingaþjónusta
+                    </h3>
                     <p className="text-sm text-slate-500 leading-relaxed">
                       Skriftan okkar (widget.js) er undir 5KB að stærð og hleðst í bakgrunni
-                      (async). Hún tefur aldrei hleðslu á vefsíðum og hefur engin áhrif á
-                      leitarvélabestun (SEO).
+                      (async). Hún tryggir hraðvirkar og árangursríkar birtingar á netinu án þess að
+                      tefja hleðslu á vefsíðum eða skaða Google SEO.
                     </p>
                   </div>
                 </div>
@@ -584,12 +580,12 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-slate-900 mb-2">
-                      Persónuverndarvænt (GDPR)
+                      Persónuverndarvænar auglýsingar á netinu
                     </h3>
                     <p className="text-sm text-slate-500 leading-relaxed">
-                      Við notum engar persónugreinanlegar vafrakökur til að fylgjast með notendum.
-                      Miðunin byggir á samhengi efnisins (contextual targeting) og landfræði, sem
-                      einfaldar lagalegt samræmi.
+                      Sýndu öruggar og persónuverndarvænar auglýsingar á netinu án vafrakaka. Snjöll
+                      miðun okkar byggir á samhengi efnis og landfræðilegri staðsetningu, sem
+                      auðveldar GDPR samræmi.
                     </p>
                   </div>
                 </div>
@@ -623,11 +619,14 @@ export default function LandingPage() {
                         equalizer
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-white">Gagnsætt og samræmt verðlag</h3>
+                    <h3 className="text-lg font-bold text-white">
+                      Gagnsætt verð fyrir auglýsingar á netinu
+                    </h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu netinu fyrir
-                      almennar sýningar, en styðjum einnig <strong>fasta tímabilsleigu</strong>{' '}
-                      (t.d. fast verð fyrir 30 daga) þar sem útgefendur ráða leiguverðinu sjálfir.
+                      Við bjóðum <strong>flatt CPM verð upp á 550 kr.</strong> á öllu
+                      samstarfsnetinu fyrir almennar birtingar, en styðjum einnig{' '}
+                      <strong>fasta tímabilsleigu</strong> þar sem vefstjórar geta selt
+                      auglýsingapláss á sínu eigin verði.
                     </p>
                   </div>
 

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
+import { updateSEO } from '@/lib/seo';
 import {
   Sparkles,
   MapPin,
@@ -131,20 +132,13 @@ export default function AdvertiserLanding() {
       ? `Koma á framfæri auglýsingum á netinu og ná til nýrra viðskiptavina ${activeRegion.dative}? Birtingur býður upp á einfaldar birtingar og kökulausar vefauglýsingar.`
       : 'Birtingur gerir þér kleift að setja upp árangursríkar auglýsingar á netinu. Birtu auglýsingar á vönduðum íslenskum vefsíðum á nokkrum mínútum án flókinna kerfa.';
 
-    document.title = titleText;
-
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement('meta');
-      metaDesc.setAttribute('name', 'description');
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute('content', descriptionText);
+    const path = region ? `/auglysendur/${region.toLowerCase()}` : '/auglysendur';
+    updateSEO(titleText, descriptionText, path);
 
     return () => {
       document.title = 'Birtingur';
     };
-  }, [activeRegion]);
+  }, [activeRegion, region]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
