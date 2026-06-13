@@ -1,20 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(firebase --config firebase/firebase.json emulators:exec 'pnpm --filter @ada/api seed && pnpm --filter @ada/api rescan-creatives && pnpm --filter @ada/api rescan-creatives')",
-      "Bash(firebase --config firebase/firebase.json emulators:exec 'pnpm --filter @ada/api test -- tests/inventory.test.ts')",
-      "Bash(echo \"exit=$?\")",
-      "Bash(pnpm --filter @ada/api exec prettier --write src/lib/push-cache.ts)",
-      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/.claude/worktrees/brand-safety-forecast add apps/api/src/lib/push-cache.ts apps/api/tests/push-cache.test.ts)",
-      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/.claude/worktrees/brand-safety-forecast commit -m ' *)",
-      "Bash(pnpm --filter @ada/dashboard typecheck)",
-      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada/.claude/worktrees/brand-safety-forecast add apps/dashboard/src/pages/advertiser/CampaignCreate.tsx)",
       "Bash(pnpm build *)",
-      "Bash(sed -n '165,195p' apps/dashboard/src/pages/publisher/Settings.tsx)",
-      "Bash(sed -n '60,110p' apps/api/src/routes/publishers.ts)",
-      "Bash(pnpm --filter @ada/mcp typecheck)",
       "Bash(pnpm typecheck *)",
-      "Bash(vercel whoami *)"
+      "Bash(pnpm lint *)",
+      "Bash(pnpm format *)",
+      "Bash(pnpm --filter * typecheck)",
+      "Bash(pnpm --filter * lint)",
+      "Bash(pnpm --filter * build)",
+      "Bash(vercel whoami *)",
+      "Bash(npx skills *)"
     ]
   }
 }
