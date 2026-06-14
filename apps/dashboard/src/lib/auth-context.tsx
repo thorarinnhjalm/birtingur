@@ -54,11 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fbSignOut(auth);
   };
 
-  return (
-    <AuthCtx.Provider value={{ user, admin, loading, signOut }}>
-      {children}
-    </AuthCtx.Provider>
-  );
+  return <AuthCtx.Provider value={{ user, admin, loading, signOut }}>{children}</AuthCtx.Provider>;
 }
 
 export function useAuth(): AuthState {
