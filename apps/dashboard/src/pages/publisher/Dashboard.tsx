@@ -103,8 +103,10 @@ function PublisherHome() {
               <h4 className="font-bold text-slate-900 text-base">Bankaupplýsingar vantar</h4>
               <p className="text-slate-600 text-sm mt-1 font-medium">
                 Þú átt áætlaðar uppsafnaðar tekjur upp á{' '}
-                <strong className="text-slate-900 font-bold">{formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))}</strong> en
-                vantar enn reikningsupplýsingar til að geta fengið greitt. Vinsamlegast skráðu
+                <strong className="text-slate-900 font-bold">
+                  {formatIsk(Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)))}
+                </strong>{' '}
+                en vantar enn reikningsupplýsingar til að geta fengið greitt. Vinsamlegast skráðu
                 bankareikninginn þinn í stillingum.
               </p>
             </div>

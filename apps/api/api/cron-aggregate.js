@@ -2,16 +2,6 @@ import { drainAndAggregate } from '../dist/src/services/stats-aggregator.js';
 
 export const config = { runtime: 'nodejs' };
 
-async function pingHeartbeat() {
-  const url = process.env.HEARTBEAT_AGGREGATE_URL;
-  if (!url) return;
-  try {
-    await fetch(url);
-  } catch {
-    // Heartbeat ping failure is non-fatal — don't mask the cron result.
-  }
-}
-
 export async function GET(req) {
   if (req.headers.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('forbidden', { status: 403 });
@@ -25,7 +15,6 @@ export async function GET(req) {
       total.push(n);
       if (n === 0) break;
     }
-    await pingHeartbeat();
     return new Response(JSON.stringify({ batches: total }), {
       headers: { 'Content-Type': 'application/json' },
     });
