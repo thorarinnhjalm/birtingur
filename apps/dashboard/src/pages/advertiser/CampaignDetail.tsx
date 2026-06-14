@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '@/lib/api';
-import { AD_CATEGORIES, type Creative } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
 
@@ -465,14 +465,14 @@ export default function CampaignDetail() {
 
       {/* Performance by Web slot Table and Creative preview */}
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Performance by Site */}
+        {/* Performance by Creative */}
         <Card className="p-6 md:col-span-2 space-y-4">
-          <h3 className="text-base font-bold text-slate-900">Frammistaða eftir flokkum</h3>
+          <h3 className="text-base font-bold text-slate-900">Frammistaða eftir auglýsingu</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-medium border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="py-2.5">Flokkur</th>
+                  <th className="py-2.5">Auglýsing</th>
                   <th className="py-2.5">Birtingar</th>
                   <th className="py-2.5">Smellir</th>
                   <th className="py-2.5">CTR</th>
@@ -480,18 +480,39 @@ export default function CampaignDetail() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {campaign.targeting.categories.map((cat) => {
-                  const label = AD_CATEGORIES.find((c) => c.slug === cat)?.label || cat;
-                  return (
-                    <tr key={cat} className="hover:bg-slate-50/50">
-                      <td className="py-3 font-semibold text-slate-900">{label}</td>
-                      <td className="py-3">0</td>
-                      <td className="py-3">0</td>
-                      <td className="py-3">0,0%</td>
-                      <td className="py-3 text-right">0 kr</td>
-                    </tr>
-                  );
-                })}
+                {campaignCreatives.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                      Engar auglýsingar tengdar herferðinni.
+                    </td>
+                  </tr>
+                ) : (
+                  campaignCreatives.map((creative) => {
+                    const cStats = bulkStats?.[creative.id] ?? {
+                      impressions: 0,
+                      clicks: 0,
+                      ctr: 0,
+                    };
+                    const spendIsk = Math.round((cStats.impressions / 1000) * FLAT_CPM_ISK);
+                    const ctr =
+                      cStats.impressions > 0 ? (cStats.clicks / cStats.impressions) * 100 : 0;
+                    return (
+                      <tr key={creative.id} className="hover:bg-slate-50/50">
+                        <td
+                          className="py-3 font-semibold text-slate-900 max-w-[180px] truncate"
+                          title={creative.clickUrl}
+                        >
+                          {creative.clickUrl.replace(/^https?:\/\/([^/]+).*/, '$1')} ·{' '}
+                          {creative.width}×{creative.height}
+                        </td>
+                        <td className="py-3">{cStats.impressions.toLocaleString('is-IS')}</td>
+                        <td className="py-3">{cStats.clicks.toLocaleString('is-IS')}</td>
+                        <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
+                        <td className="py-3 text-right">{formatIsk(spendIsk)}</td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
