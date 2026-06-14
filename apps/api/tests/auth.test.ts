@@ -100,9 +100,9 @@ describe('Authentication Middleware', () => {
       expect(auth.verifyIdToken).toHaveBeenCalledWith('valid-token');
     });
 
-    it('accepts demo-mock-token in development', async () => {
-      const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+    it('accepts demo-mock-token when DEMO_AUTH=true', async () => {
+      const original = process.env.DEMO_AUTH;
+      process.env.DEMO_AUTH = 'true';
       try {
         const res = await app.request('/protected', {
           headers: {
@@ -113,13 +113,13 @@ describe('Authentication Middleware', () => {
         const body = await res.json();
         expect(body.user.email).toBe('demoa@birtingur.is');
       } finally {
-        process.env.NODE_ENV = originalNodeEnv;
+        process.env.DEMO_AUTH = original;
       }
     });
 
-    it('rejects demo-mock-token in production', async () => {
-      const originalNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+    it('rejects demo-mock-token when DEMO_AUTH is not set', async () => {
+      const original = process.env.DEMO_AUTH;
+      delete process.env.DEMO_AUTH;
       try {
         const res = await app.request('/protected', {
           headers: {
@@ -128,7 +128,7 @@ describe('Authentication Middleware', () => {
         });
         expect(res.status).toBe(401);
       } finally {
-        process.env.NODE_ENV = originalNodeEnv;
+        process.env.DEMO_AUTH = original;
       }
     });
   });
