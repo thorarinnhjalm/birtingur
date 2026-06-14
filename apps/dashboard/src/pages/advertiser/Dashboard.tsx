@@ -177,6 +177,7 @@ function AdvertiserHome() {
                   const daysLeft =
                     dailyAvg > 0 ? Math.round((wallet?.balanceIsk ?? 0) / dailyAvg) : 0;
                   if (daysLeft <= 0) return 'Innistæða er uppurin. Fylltu á til að halda áfram.';
+                  if (daysLeft > 365) return 'Innistæða þín dugar vel miðað við núverandi eyðslu.';
                   return `Innistæða þín dugar í um það bil ${daysLeft} daga miðað við núverandi eyðslu.`;
                 })()}
               </p>

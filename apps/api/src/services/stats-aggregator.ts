@@ -86,8 +86,15 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
         const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0 };
-        if (ev.type === 'impression') b.impressions++;
-        else b.clicks++;
+        if (ev.type === 'impression') {
+          b.impressions++;
+        } else if (ev.campaignId !== 'cmp_fallback') {
+          // Only count clicks from real campaigns so publisher CTR stays meaningful.
+          // Fallback/house-ad clicks are tracked in creative stats but must not
+          // inflate publisher click totals — their "impressions" are pageviews, not
+          // impressions, which would otherwise produce CTR > 100%.
+          b.clicks++;
+        }
         map.set(key, b);
       }
     }
