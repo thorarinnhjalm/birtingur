@@ -120,23 +120,13 @@ impressionRoute.get('/', async (c) => {
         }
       } else if (!slot || !creative) {
         // The slot cache expired between when the ad was served and when the impression
-        // pixel fired (slot TTL < 1h impression window). Log a best-effort impression
-        // so it isn't silently dropped — these will appear as 'impression' events with
-        // empty publisherId/campaignId, which the aggregator can attribute in a later pass.
+        // pixel fired. We can't attribute this impression to a specific campaign, so we
+        // drop it rather than logging with an empty campaignId — logging with empty IDs
+        // would inflate publisher stats without crediting any campaign, causing the two
+        // dashboards to show different impression totals for the same events.
         console.warn(
-          `Impression for stale slot cache: slot=${slotId}, creative=${creativeId}, slotFound=${!!slot}`,
+          `Impression dropped for stale slot cache: slot=${slotId}, creative=${creativeId}, slotFound=${!!slot}`,
         );
-        void logEvent({
-          type: 'impression',
-          slotId,
-          publisherId: slot?.publisherId ?? '',
-          creativeId,
-          campaignId: creative?.campaignId ?? '',
-          advertiserId: '',
-          country: c.req.header('CF-IPCountry') ?? 'XX',
-          visitorToken: token,
-          ts: Date.now(),
-        });
       }
     }
   } catch (err) {

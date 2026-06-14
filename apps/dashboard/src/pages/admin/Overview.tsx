@@ -86,15 +86,15 @@ function Home() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
-          label="Heildarbirtingar"
+          label="Birtingar (allur tími)"
           value={isLoading ? '...' : (stats?.totalImpressions.toLocaleString('is-IS') ?? '0')}
         />
         <StatCard
-          label="Heildarvelta"
+          label="Velta (allur tími)"
           value={isLoading ? '...' : formatIsk(stats?.totalRevenueIsk ?? 0)}
         />
         <StatCard
-          label="Þóknun (Birtingur)"
+          label="Þóknun (allur tími)"
           value={isLoading ? '...' : formatIsk(stats?.platformFeeIsk ?? 0)}
         />
         <StatCard

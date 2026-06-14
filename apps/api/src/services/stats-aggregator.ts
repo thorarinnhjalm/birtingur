@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY } from '@ada/shared';
+import { EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY, FLAT_CPM_ISK } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -129,6 +129,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
         pageviews: FieldValue.increment(b.pageviews),
+        spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
       },
       { merge: true },
     );
@@ -142,6 +143,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: FieldValue.increment(b.impressions),
         clicks: FieldValue.increment(b.clicks),
         pageviews: FieldValue.increment(b.pageviews),
+        spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
       },
       { merge: true },
     );
