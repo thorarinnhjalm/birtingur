@@ -100,36 +100,13 @@ describe('Authentication Middleware', () => {
       expect(auth.verifyIdToken).toHaveBeenCalledWith('valid-token');
     });
 
-    it('accepts demo-mock-token when DEMO_AUTH=true', async () => {
-      const original = process.env.DEMO_AUTH;
-      process.env.DEMO_AUTH = 'true';
-      try {
-        const res = await app.request('/protected', {
-          headers: {
-            Authorization: 'Bearer demo-mock-token',
-          },
-        });
-        expect(res.status).toBe(200);
-        const body = await res.json();
-        expect(body.user.email).toBe('demoa@birtingur.is');
-      } finally {
-        process.env.DEMO_AUTH = original;
-      }
-    });
-
-    it('rejects demo-mock-token when DEMO_AUTH is not set', async () => {
-      const original = process.env.DEMO_AUTH;
-      delete process.env.DEMO_AUTH;
-      try {
-        const res = await app.request('/protected', {
-          headers: {
-            Authorization: 'Bearer demo-mock-token',
-          },
-        });
-        expect(res.status).toBe(401);
-      } finally {
-        process.env.DEMO_AUTH = original;
-      }
+    it('rejects demo-mock-token (removed feature)', async () => {
+      const res = await app.request('/protected', {
+        headers: {
+          Authorization: 'Bearer demo-mock-token',
+        },
+      });
+      expect(res.status).toBe(401);
     });
   });
 

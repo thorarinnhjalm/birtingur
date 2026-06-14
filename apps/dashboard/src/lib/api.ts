@@ -15,16 +15,8 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise<T> {
-  const mockUserStr = localStorage.getItem('ada_mock_user');
   let token: string | null = null;
-  if (mockUserStr) {
-    try {
-      const mu = JSON.parse(mockUserStr);
-      token = `demo-mock-token:${mu.email}`;
-    } catch {
-      token = 'demo-mock-token';
-    }
-  } else if (auth.currentUser) {
+  if (auth.currentUser) {
     token = await auth.currentUser.getIdToken();
   }
 

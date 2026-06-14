@@ -32,23 +32,6 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
 
   const token = authHeader.substring(7).trim();
 
-  // Bypass validation for demo/local testing — requires explicit opt-in via DEMO_AUTH=true.
-  // Guarding on NODE_ENV !== 'production' was unsafe: an unset NODE_ENV on a staging deploy
-  // would silently grant full admin to any request with this token.
-  if (token.startsWith('demo-mock-token') && process.env.DEMO_AUTH === 'true') {
-    const parts = token.split(':');
-    const email = parts[1] || 'demoa@birtingur.is';
-    const cleanUsername = email.replace(/@.*$/, '');
-    c.set('user', {
-      uid: `demo-user-id-${cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-      email: email.toLowerCase(),
-      admin: true,
-      scope: 'both',
-    });
-    await next();
-    return;
-  }
-
   // Try API key verification first
   if (token.startsWith('ak_')) {
     const record = await verifyApiKey(token);
