@@ -48,20 +48,22 @@ impressionRoute.get('/', async (c) => {
 
     if (isFallback) {
       const slot = await getSlotCache(slotId);
-      // Log the pageview even when the slot is not in cache (publisherId will be empty).
-      // Previously, `if (slot)` silently dropped pageviews for uncached slots — the exact
-      // scenario that makes a publisher appear to have zero traffic.
-      void logEvent({
-        type: 'pageview',
-        slotId,
-        publisherId: slot?.publisherId ?? '',
-        creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
-        campaignId: 'cmp_fallback',
-        advertiserId: '',
-        country: c.req.header('CF-IPCountry') ?? 'XX',
-        visitorToken: token,
-        ts: Date.now(),
-      });
+      if (slot?.publisherId) {
+        void logEvent({
+          type: 'pageview',
+          slotId,
+          publisherId: slot.publisherId,
+          creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
+          campaignId: 'cmp_fallback',
+          advertiserId: '',
+          country: c.req.header('CF-IPCountry') ?? 'XX',
+          visitorToken: token,
+          ts: Date.now(),
+        });
+      }
+      // If the slot cache has expired, we don't know which publisher this pageview
+      // belongs to. Logging with publisherId='' would write to a garbage Firestore
+      // path (stats/publishers//YYYYMMDD) and accumulate junk data.
     } else {
       // Validate signature to prevent impression fraud
       const tsStr = c.req.query('ts') ?? '0';

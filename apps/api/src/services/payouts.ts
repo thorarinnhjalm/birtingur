@@ -34,11 +34,6 @@ export async function generateMonthlyPayouts(
     const platformFeeIsk = grossIsk - netIsk;
 
     const publisher = await getPublisherById(publisherId);
-    // TODO(payments): vatIsk is currently informational only — it is stored on the
-    // payout record but NOT included in the disbursed amount (markPayoutCompleted
-    // drains the ledger by -netIsk). Before connecting real payment/accounting,
-    // decide whether VAT-registered publishers are paid netIsk + vatIsk and wire
-    // the actual transfer + ledger entry accordingly. (Demo mode: no payouts run.)
     const vatIsk = publisher?.vatNumber ? Math.round(netIsk * VAT_RATE) : 0;
 
     const payout: Payout = PayoutSchema.parse({
@@ -97,11 +92,14 @@ export async function markPayoutCompleted(
   const updated: Payout = PayoutSchema.parse({ ...payout, status: 'completed', bankReference });
   await ref.withConverter(payoutConverter).set(updated);
 
-  // Drain ledger by adding a payout entry (negative for publisher)
+  // Drain ledger by adding a payout entry (negative for publisher).
+  // VAT-registered publishers are paid netIsk + vatIsk; the VAT portion is collected
+  // from Birtingur and remitted to the government by the publisher.
+  const disbursedIsk = payout.netIsk + (payout.vatIsk ?? 0);
   await appendLedger({
     party: { type: 'publisher', id: payout.publisherId },
     type: 'payout',
-    amountIsk: -payout.netIsk,
+    amountIsk: -disbursedIsk,
     relatedId: payoutId,
   });
   return updated;

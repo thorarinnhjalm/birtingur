@@ -2,6 +2,22 @@ import type { AutoScanner, ScanInput, ScanReturn } from './index.js';
 import { StubAutoScanner } from './stub.js';
 import { SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
 
+// When Gemini is unavailable, flag for manual review rather than auto-approving.
+// Auto-approving via the stub on a transient outage would permanently clear
+// sensitiveCategories on creatives that Gemini never actually evaluated.
+function failClosed(): ScanReturn {
+  return {
+    outcome: 'flagged_for_manual',
+    scanResult: {
+      nsfwScore: 0,
+      blockedTerms: [],
+      category: 'unknown',
+      confidence: 0,
+      sensitiveCategories: [],
+    },
+  };
+}
+
 /**
  * Gemini Vision–powered creative scanner.
  * Falls back to StubAutoScanner if GEMINI_API_KEY is not set.
@@ -21,8 +37,8 @@ export class GeminiAutoScanner implements AutoScanner {
         signal: globalThis.AbortSignal.timeout(8000),
       });
       if (!imageResponse.ok) {
-        console.warn('GeminiAutoScanner: Failed to fetch image, using fallback');
-        return this.fallback.scan(input);
+        console.warn('GeminiAutoScanner: Failed to fetch image, flagging for manual review');
+        return failClosed();
       }
 
       const imageBuffer = await imageResponse.arrayBuffer();
@@ -112,16 +128,16 @@ Respond with a JSON object.`;
       );
 
       if (!response.ok) {
-        console.warn('GeminiAutoScanner: Gemini API error, using fallback');
-        return this.fallback.scan(input);
+        console.warn('GeminiAutoScanner: Gemini API error, flagging for manual review');
+        return failClosed();
       }
 
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!text) {
-        console.warn('GeminiAutoScanner: Empty Gemini response, using fallback');
-        return this.fallback.scan(input);
+        console.warn('GeminiAutoScanner: Empty Gemini response, flagging for manual review');
+        return failClosed();
       }
 
       const parsed = JSON.parse(text);
@@ -149,8 +165,8 @@ Respond with a JSON object.`;
         scanResult: { nsfwScore, blockedTerms, category, confidence, sensitiveCategories },
       };
     } catch (error) {
-      console.warn('GeminiAutoScanner: Scan failed, using fallback:', error);
-      return this.fallback.scan(input);
+      console.warn('GeminiAutoScanner: Scan failed, flagging for manual review:', error);
+      return failClosed();
     }
   }
 }
