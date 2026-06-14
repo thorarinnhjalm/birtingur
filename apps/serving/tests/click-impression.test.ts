@@ -299,22 +299,16 @@ describe('GET /v1/impression', () => {
     );
   });
 
-  it('logs stale impression when slot cache expired between serve and view', async () => {
+  it('drops stale impression when slot cache expired between serve and view', async () => {
     // Creative exists in our mock but slot_b does NOT — simulating a TTL expiry
     const ts = Date.now();
     const sig = createSignature('cre_a', 'slot_b', 'tok123', ts);
     const res = await app.request(`/v1/impression?s=slot_b&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
     expect(res.status).toBe(200);
 
-    // Before the fix, this was silently dropped. Now it logs with empty publisherId/campaignId.
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'impression',
-        slotId: 'slot_b',
-        creativeId: 'cre_a',
-        publisherId: '',
-        campaignId: '',
-      }),
-    );
+    // Stale impressions are dropped entirely rather than logged with empty IDs.
+    // Logging with empty campaignId would inflate publisher stats without crediting
+    // any campaign, causing dashboard impression totals to diverge.
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 });
