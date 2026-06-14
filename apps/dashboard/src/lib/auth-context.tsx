@@ -7,30 +7,16 @@ interface AuthState {
   admin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
-  signInDemo: (username: string) => void;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [admin, setAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const mockUserStr = localStorage.getItem('ada_mock_user');
-    if (mockUserStr) {
-      try {
-        const mockUser = JSON.parse(mockUserStr);
-        setUser(mockUser);
-        setAdmin(mockUser.admin);
-        setLoading(false);
-        return;
-      } catch {
-        localStorage.removeItem('ada_mock_user');
-      }
-    }
-
     const unsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
@@ -61,29 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, []);
 
-  const signInDemo = (username: string) => {
-    const cleanUsername = username.replace(/@.*$/, '');
-    const mockUser = {
-      uid: `demo-user-id-${cleanUsername.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-      email: username.includes('@')
-        ? username.toLowerCase()
-        : `${username.toLowerCase()}@birtingur.is`,
-      displayName: cleanUsername,
-      emailVerified: true,
-      isDemo: true,
-      admin: true,
-      getIdToken: async () => 'demo-mock-token',
-      getIdTokenResult: async () => ({
-        claims: { admin: true },
-      }),
-    };
-    localStorage.setItem('ada_mock_user', JSON.stringify(mockUser));
-    setUser(mockUser as unknown as User);
-    setAdmin(true);
-  };
-
   const signOut = async () => {
-    localStorage.removeItem('ada_mock_user');
     localStorage.removeItem('ada_last_role');
     setUser(null);
     setAdmin(false);
@@ -91,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthCtx.Provider value={{ user, admin, loading, signOut, signInDemo }}>
+    <AuthCtx.Provider value={{ user, admin, loading, signOut }}>
       {children}
     </AuthCtx.Provider>
   );

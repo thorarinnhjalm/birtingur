@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth, googleProvider } from '@/lib/firebase';
-import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -13,7 +12,6 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { signInDemo } = useAuth();
 
   function handleSuccessRedirect() {
     const lastRole = localStorage.getItem('ada_last_role');
@@ -43,24 +41,6 @@ export default function SignIn() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
-    const isDemo =
-      (email.trim().toLowerCase().startsWith('demo') ||
-        email.trim().toLowerCase().endsWith('@birtingur.is')) &&
-      password === 'password';
-
-    if (isDemo) {
-      try {
-        signInDemo(email.trim());
-        handleSuccessRedirect();
-        return;
-      } catch {
-        setError('Innskráning á prufuaðgang mistókst.');
-        return;
-      } finally {
-        setLoading(false);
-      }
-    }
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -122,9 +102,9 @@ export default function SignIn() {
 
         <form onSubmit={handleEmail} className="space-y-4">
           <Input
-            label="Netfang eða notendanafn"
-            type="text"
-            placeholder="DemoA eða nafn@fyrirtæki.is"
+            label="Netfang"
+            type="email"
+            placeholder="nafn@fyrirtæki.is"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
