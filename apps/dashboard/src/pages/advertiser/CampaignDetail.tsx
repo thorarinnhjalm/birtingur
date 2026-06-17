@@ -617,6 +617,56 @@ export default function CampaignDetail() {
         </Card>
       </div>
 
+      {/* Performance by Web slot Table */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card className="p-6 md:col-span-2 space-y-4">
+          <h3 className="text-base font-bold text-slate-900">
+            Frammistaða eftir birtingavettvangi
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-medium border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5">Vettvangur</th>
+                  <th className="py-2.5">Birtingar</th>
+                  <th className="py-2.5">Smellir</th>
+                  <th className="py-2.5">CTR</th>
+                  <th className="py-2.5 text-right">Eytt</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {!stats?.byPublisher || Object.keys(stats.byPublisher).length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                      Engar birtingar eða smellir skráðir eftir birtingavettvangi enn sem komið er.
+                    </td>
+                  </tr>
+                ) : (
+                  Object.entries(stats.byPublisher)
+                    .map(([id, pubStats]) => ({ id, ...pubStats }))
+                    .sort((a, b) => b.impressions - a.impressions)
+                    .map((pub) => {
+                      const ctr = pub.impressions > 0 ? (pub.clicks / pub.impressions) * 100 : 0;
+                      return (
+                        <tr key={pub.id} className="hover:bg-slate-50/50">
+                          <td className="py-3">
+                            <div className="font-semibold text-slate-900">{pub.displayName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{pub.domain}</div>
+                          </td>
+                          <td className="py-3">{pub.impressions.toLocaleString('is-IS')}</td>
+                          <td className="py-3">{pub.clicks.toLocaleString('is-IS')}</td>
+                          <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
+                          <td className="py-3 text-right">{formatIsk(pub.spendIsk)}</td>
+                        </tr>
+                      );
+                    })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
           <Card className="max-w-xl w-full bg-white shadow-2xl overflow-hidden p-6 space-y-5 my-8">

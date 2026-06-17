@@ -169,7 +169,7 @@ async function seed() {
       const hClicks = Math.floor(clicks / 24) + Math.floor(Math.random() * 5);
       const hSpend = Math.floor(spendIsk / 24) + Math.floor(Math.random() * 20);
 
-      const cmpStatsRef = db.doc(`${COLLECTIONS.stats}/${campaignRef.id}/hourly/${hourStr}`);
+      const cmpStatsRef = db.doc(`${COLLECTIONS.stats}/campaigns/${campaignRef.id}/${hourStr}`);
       await cmpStatsRef.set({
         impressions: hImpressions,
         clicks: hClicks,

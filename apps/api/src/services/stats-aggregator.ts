@@ -44,7 +44,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     clicks: number;
     pageviews: number;
   }
-  const campaignHour = new Map<string, Bucket>();
+  interface CampaignBucket {
+    impressions: number;
+    clicks: number;
+    byPublisher: Record<string, { impressions: number; clicks: number }>;
+  }
+  const campaignHour = new Map<string, CampaignBucket>();
   const publisherDay = new Map<string, Bucket>();
   const publisherSlotDay = new Map<string, Bucket>();
   const creativeHour = new Map<string, Bucket>();
@@ -73,9 +78,24 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
       const cr = `${ev.creativeId}/${hourKey(ev.ts)}`;
 
-      const cb = campaignHour.get(ch) ?? { impressions: 0, clicks: 0, pageviews: 0 };
-      if (ev.type === 'impression') cb.impressions++;
-      else cb.clicks++;
+      const cb = campaignHour.get(ch) ?? {
+        impressions: 0,
+        clicks: 0,
+        byPublisher: {},
+      };
+      if (ev.type === 'impression') {
+        cb.impressions++;
+        if (!cb.byPublisher[ev.publisherId]) {
+          cb.byPublisher[ev.publisherId] = { impressions: 0, clicks: 0 };
+        }
+        cb.byPublisher[ev.publisherId]!.impressions++;
+      } else {
+        cb.clicks++;
+        if (!cb.byPublisher[ev.publisherId]) {
+          cb.byPublisher[ev.publisherId] = { impressions: 0, clicks: 0 };
+        }
+        cb.byPublisher[ev.publisherId]!.clicks++;
+      }
       campaignHour.set(ch, cb);
 
       const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
@@ -105,14 +125,21 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   for (const [key, b] of campaignHour) {
     const [campaignId, hk] = key.split('/');
     const ref = db.doc(`${COLLECTIONS.stats}/campaigns/${campaignId}/${hk}`);
-    batch.set(
-      ref,
-      {
-        impressions: FieldValue.increment(b.impressions),
-        clicks: FieldValue.increment(b.clicks),
-      },
-      { merge: true },
-    );
+    const totalSpendIsk = Math.round((b.impressions / 1000) * FLAT_CPM_ISK);
+    const updateData: Record<string, any> = {
+      impressions: FieldValue.increment(b.impressions),
+      clicks: FieldValue.increment(b.clicks),
+      spendIsk: FieldValue.increment(totalSpendIsk),
+    };
+
+    for (const [pubId, pubStats] of Object.entries(b.byPublisher)) {
+      const pubSpendIsk = Math.round((pubStats.impressions / 1000) * FLAT_CPM_ISK);
+      updateData[`byPublisher.${pubId}.impressions`] = FieldValue.increment(pubStats.impressions);
+      updateData[`byPublisher.${pubId}.clicks`] = FieldValue.increment(pubStats.clicks);
+      updateData[`byPublisher.${pubId}.spendIsk`] = FieldValue.increment(pubSpendIsk);
+    }
+
+    batch.set(ref, updateData, { merge: true });
   }
   for (const [key, b] of creativeHour) {
     const [creativeId, hk] = key.split('/');

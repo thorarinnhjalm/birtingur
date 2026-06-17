@@ -9,7 +9,9 @@
       "Bash(pnpm --filter * lint)",
       "Bash(pnpm --filter * build)",
       "Bash(vercel whoami *)",
-      "Bash(npx skills *)"
+      "Bash(npx skills *)",
+      "Bash(pnpm --filter @ada/serving test -- tests/click-impression.test.ts)",
+      "Bash(pnpm format:check)"
     ]
   }
 }

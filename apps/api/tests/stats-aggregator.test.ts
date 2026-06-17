@@ -26,38 +26,34 @@ vi.mock('../src/lib/firebase', () => {
           commit: vi.fn(async () => {
             for (const op of batchOps) {
               const path = op.ref.path;
-              const existing = mockStatsDocs[path] ?? { impressions: 0, clicks: 0, pageviews: 0 };
+              const docData = mockStatsDocs[path] ?? { impressions: 0, clicks: 0, pageviews: 0 };
 
-              let impressionsInc = 0;
-              let clicksInc = 0;
-              let pageviewsInc = 0;
-
-              const impVal = op.data.impressions;
-              if (impVal && typeof impVal === 'object' && 'operand' in impVal) {
-                impressionsInc = (impVal as any).operand;
-              } else if (typeof impVal === 'number') {
-                impressionsInc = impVal;
-              }
-
-              const clickVal = op.data.clicks;
-              if (clickVal && typeof clickVal === 'object' && 'operand' in clickVal) {
-                clicksInc = (clickVal as any).operand;
-              } else if (typeof clickVal === 'number') {
-                clicksInc = clickVal;
-              }
-
-              const pvVal = op.data.pageviews;
-              if (pvVal && typeof pvVal === 'object' && 'operand' in pvVal) {
-                pageviewsInc = (pvVal as any).operand;
-              } else if (typeof pvVal === 'number') {
-                pageviewsInc = pvVal;
-              }
-
-              mockStatsDocs[path] = {
-                impressions: existing.impressions + impressionsInc,
-                clicks: existing.clicks + clicksInc,
-                pageviews: (existing.pageviews ?? 0) + pageviewsInc,
+              const getVal = (val: any) => {
+                if (val && typeof val === 'object' && 'operand' in val) {
+                  return (val as any).operand;
+                }
+                return typeof val === 'number' ? val : 0;
               };
+
+              for (const [key, value] of Object.entries(op.data)) {
+                const inc = getVal(value);
+                if (key.includes('.')) {
+                  const parts = key.split('.');
+                  let current = docData;
+                  for (let i = 0; i < parts.length - 1; i++) {
+                    const part = parts[i]!;
+                    if (!current[part]) {
+                      current[part] = {};
+                    }
+                    current = current[part];
+                  }
+                  const lastPart = parts[parts.length - 1]!;
+                  current[lastPart] = (current[lastPart] ?? 0) + inc;
+                } else {
+                  docData[key] = (docData[key] ?? 0) + inc;
+                }
+              }
+              mockStatsDocs[path] = docData;
             }
           }),
         };
@@ -117,6 +113,12 @@ describe('aggregateEvents', () => {
     expect(mockStatsDocs[cmpPath]).toBeDefined();
     expect(mockStatsDocs[cmpPath].impressions).toBe(2);
     expect(mockStatsDocs[cmpPath].clicks).toBe(1);
+    expect(mockStatsDocs[cmpPath].spendIsk).toBe(1); // Math.round((2 / 1000) * 550) = 1 ISK
+    expect(mockStatsDocs[cmpPath].byPublisher).toBeDefined();
+    expect(mockStatsDocs[cmpPath].byPublisher.pub_a).toBeDefined();
+    expect(mockStatsDocs[cmpPath].byPublisher.pub_a.impressions).toBe(2);
+    expect(mockStatsDocs[cmpPath].byPublisher.pub_a.clicks).toBe(1);
+    expect(mockStatsDocs[cmpPath].byPublisher.pub_a.spendIsk).toBe(1);
 
     // Check publisher daily stats
     const pubPath = `stats/publishers/pub_a/20260602`;

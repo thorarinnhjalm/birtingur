@@ -28,7 +28,18 @@ export function useCampaign(id: string | undefined) {
 export interface CampaignStatsResponse {
   impressions: number;
   clicks: number;
+  spendIsk?: number;
   hours: Array<{ hour: string; impressions: number; clicks: number }>;
+  byPublisher?: Record<
+    string,
+    {
+      impressions: number;
+      clicks: number;
+      spendIsk: number;
+      displayName: string;
+      domain: string;
+    }
+  >;
 }
 
 export function useCampaignStats(id: string | undefined) {
