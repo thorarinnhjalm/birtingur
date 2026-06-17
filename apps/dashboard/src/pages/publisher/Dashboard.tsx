@@ -409,25 +409,25 @@ function PublisherHome() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-surface-container-low border-b border-outline-variant">
                 <tr>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
                     Heiti pláss
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
                     Stærð
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider">
                     Staða
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Birtingar
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Smellir
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     CTR
                   </th>
-                  <th className="px-4 sm:px-6 md:px-8 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
+                  <th className="px-4 sm:px-5 py-4 font-semibold text-label-sm text-secondary uppercase tracking-wider text-right">
                     Tekjur
                   </th>
                 </tr>
@@ -441,7 +441,7 @@ function PublisherHome() {
                       <tr key={pub.id} className="bg-slate-50/50">
                         <td
                           colSpan={7}
-                          className="px-4 sm:px-6 md:px-8 py-4 text-xs font-semibold text-slate-400 font-mono"
+                          className="px-4 sm:px-5 py-4 text-xs font-semibold text-slate-400 font-mono"
                         >
                           🌐 {pub.domain} — Engin auglýsingapláss skráð.
                         </td>
@@ -454,7 +454,7 @@ function PublisherHome() {
                       <tr className="bg-slate-50/80 border-y border-outline-variant select-none">
                         <td
                           colSpan={7}
-                          className="px-4 sm:px-6 md:px-8 py-3 text-xs font-extrabold text-slate-800 tracking-wide"
+                          className="px-4 sm:px-5 py-3 text-xs font-extrabold text-slate-800 tracking-wide"
                         >
                           <span className="flex items-center gap-1.5 uppercase font-sans">
                             <span className="material-symbols-outlined text-[16px] text-slate-500">
@@ -470,7 +470,7 @@ function PublisherHome() {
                           className="hover:bg-surface-container transition-colors group cursor-pointer"
                           onClick={() => navigate(`/publisher/slots/${s.id}`)}
                         >
-                          <td className="px-4 sm:px-6 md:px-8 py-5">
+                          <td className="px-4 sm:px-5 py-4">
                             <div className="flex flex-col min-w-0">
                               <span className="font-body-md font-bold text-on-surface truncate max-w-[200px]">
                                 {s.name}
@@ -483,12 +483,12 @@ function PublisherHome() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5">
+                          <td className="px-4 sm:px-5 py-4">
                             <span className="bg-surface-container text-secondary px-3 py-1 rounded-md text-label-sm font-semibold whitespace-nowrap">
                               {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
                             </span>
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5">
+                          <td className="px-4 sm:px-5 py-4">
                             <div className="flex items-center gap-2">
                               <span
                                 className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
@@ -498,20 +498,20 @@ function PublisherHome() {
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5 text-right text-body-md text-on-surface font-semibold">
+                          <td className="px-4 sm:px-5 py-4 text-right text-body-md text-on-surface font-semibold">
                             {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5 text-right text-body-md text-on-surface font-semibold text-slate-650">
+                          <td className="px-4 sm:px-5 py-4 text-right text-body-md text-on-surface font-semibold text-slate-650">
                             {s.stats ? s.stats.clicks.toLocaleString('is-IS') : '0'}
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5 text-right text-body-md text-on-surface font-semibold text-slate-650">
+                          <td className="px-4 sm:px-5 py-4 text-right text-body-md text-on-surface font-semibold text-slate-650">
                             {s.stats && s.stats.impressions > 0
                               ? `${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
                                   .toFixed(2)
                                   .replace('.', ',')}%`
                               : '0,00%'}
                           </td>
-                          <td className="px-4 sm:px-6 md:px-8 py-5 text-right font-bold text-body-md text-primary">
+                          <td className="px-4 sm:px-5 py-4 text-right font-bold text-body-md text-primary">
                             {s.stats
                               ? formatIsk(
                                   Math.round(
@@ -535,7 +535,7 @@ function PublisherHome() {
           </div>
         )}
 
-        <div className="px-4 sm:px-6 md:px-8 py-4 bg-surface-container-low flex justify-center border-t border-outline-variant">
+        <div className="px-4 sm:px-5 py-4 bg-surface-container-low flex justify-center border-t border-outline-variant">
           <button
             onClick={() => navigate('/publisher/slots')}
             className="text-primary font-bold text-label-md flex items-center gap-2 hover:underline cursor-pointer border-none bg-transparent"

@@ -13,6 +13,16 @@ export interface SlotStats {
     spendIsk: number;
     pageviews: number;
   }[];
+  byCampaign?: Record<
+    string,
+    {
+      campaignName: string;
+      advertiserName: string;
+      impressions: number;
+      clicks: number;
+      earningsIsk: number;
+    }
+  >;
 }
 
 export function useSlotStats(slotId: string | undefined) {

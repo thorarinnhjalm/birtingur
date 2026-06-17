@@ -212,6 +212,63 @@ export default function SlotDetail() {
         )}
       </Card>
 
+      {/* Performance by Advertiser & Campaign Card */}
+      <Card className="p-6">
+        <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 mb-4">
+          Árangur eftir auglýsendum og herferðum
+        </h3>
+
+        {!slotStats || !slotStats.byCampaign || Object.keys(slotStats.byCampaign).length === 0 ? (
+          <div className="py-6 text-center text-xs font-semibold text-slate-400">
+            Engar virkar herferðir hafa birt auglýsingar á þessu plássi.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
+                  <th className="py-2.5 px-2">Auglýsandi</th>
+                  <th className="py-2.5 px-2">Herferð</th>
+                  <th className="py-2.5 px-2 text-right">Birtingar</th>
+                  <th className="py-2.5 px-2 text-right">Smellir</th>
+                  <th className="py-2.5 px-2 text-right">CTR</th>
+                  <th className="py-2.5 px-2 text-right">Áætlaðar tekjur</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                {Object.entries(slotStats.byCampaign).map(([campId, cStats]) => {
+                  const ctr =
+                    cStats.impressions > 0
+                      ? `${Math.min(100, (cStats.clicks / cStats.impressions) * 100)
+                          .toFixed(2)
+                          .replace('.', ',')}%`
+                      : '0,00%';
+
+                  return (
+                    <tr key={campId} className="hover:bg-slate-50/50 transition">
+                      <td className="py-3 px-2 font-bold text-slate-900">
+                        {cStats.advertiserName}
+                      </td>
+                      <td className="py-3 px-2 text-slate-500">{cStats.campaignName}</td>
+                      <td className="py-3 px-2 text-right">
+                        {cStats.impressions.toLocaleString('is-IS')}
+                      </td>
+                      <td className="py-3 px-2 text-right">
+                        {cStats.clicks.toLocaleString('is-IS')}
+                      </td>
+                      <td className="py-3 px-2 text-right text-amber-600 font-bold">{ctr}</td>
+                      <td className="py-3 px-2 text-right font-bold text-emerald-700">
+                        {formatIsk(cStats.earningsIsk)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Slot details */}
         <Card className="p-5 space-y-4">

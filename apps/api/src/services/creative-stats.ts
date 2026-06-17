@@ -65,7 +65,7 @@ export async function getCreativeStats(
     });
   }
 
-  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+  const ctr = impressions > 0 ? Math.min(100, (clicks / impressions) * 100) : 0;
 
   return { impressions, clicks, ctr, hours: out };
 }

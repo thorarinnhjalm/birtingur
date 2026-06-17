@@ -69,7 +69,7 @@ advertisersRouter.get('/me/ai-tips', async (c) => {
     getWallet(adv.id),
     listCampaignsForAdvertiser(adv.id),
   ]);
-  const ctr = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+  const ctr = stats.impressions > 0 ? Math.min(100, (stats.clicks / stats.impressions) * 100) : 0;
   const activeCampaigns = campaigns.filter((camp) => camp.status === 'active').length;
   const tips = await getAiTips({
     impressions: stats.impressions,

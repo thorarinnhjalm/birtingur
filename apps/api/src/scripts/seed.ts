@@ -159,6 +159,24 @@ async function seed() {
       updatedAt: now,
     });
 
+    // Seed slot-level statistics as well
+    const slotStatsRef = db.doc(
+      `${COLLECTIONS.stats}/publisher_slots/pub_demo_id_slot_demo_id/${dk}`,
+    );
+    await slotStatsRef.set({
+      impressions: Math.round(impressions * 0.9),
+      clicks: Math.round(clicks * 0.9),
+      spendIsk: Math.round(spendIsk * 0.9),
+      pageviews: Math.round(impressions * 1.5),
+      byCampaign: {
+        camp_demo_id: {
+          impressions: Math.round(impressions * 0.9),
+          clicks: Math.round(clicks * 0.9),
+        },
+      },
+      updatedAt: now,
+    });
+
     // Campaign stats daily breakdown
     // Each hourly document for the campaign
     for (let hour = 0; hour < 24; hour++) {

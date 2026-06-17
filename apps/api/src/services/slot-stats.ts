@@ -1,6 +1,8 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { FLAT_CPM_ISK } from '@ada/shared';
+import { getCampaign } from './campaigns.js';
+import { getAdvertiserById } from './advertisers.js';
 
 export interface SlotStatsResponse {
   impressions: number;
@@ -14,6 +16,16 @@ export interface SlotStatsResponse {
     spendIsk: number;
     pageviews: number;
   }[];
+  byCampaign?: Record<
+    string,
+    {
+      campaignName: string;
+      advertiserName: string;
+      impressions: number;
+      clicks: number;
+      earningsIsk: number;
+    }
+  >;
 }
 
 export async function getSlotStats(
@@ -46,6 +58,8 @@ export async function getSlotStats(
           clicks: (data?.clicks as number) || 0,
           spendIsk: (data?.spendIsk as number) || 0,
           pageviews: (data?.pageviews as number) || 0,
+          byCampaign:
+            (data?.byCampaign as Record<string, { impressions: number; clicks: number }>) || {},
           exists: true,
         };
       }
@@ -55,12 +69,15 @@ export async function getSlotStats(
         clicks: 0,
         spendIsk: 0,
         pageviews: 0,
+        byCampaign: {},
         exists: false,
       };
     });
   });
 
   const results = await Promise.all(promises);
+
+  const campaignAgg: Record<string, { impressions: number; clicks: number }> = {};
 
   for (const res of results) {
     if (res.exists) {
@@ -77,6 +94,14 @@ export async function getSlotStats(
     clicks += res.clicks;
     spendIsk += res.spendIsk;
     pageviews += res.pageviews;
+
+    for (const [campId, stats] of Object.entries(res.byCampaign)) {
+      if (!campaignAgg[campId]) {
+        campaignAgg[campId] = { impressions: 0, clicks: 0 };
+      }
+      campaignAgg[campId]!.impressions += stats.impressions || 0;
+      campaignAgg[campId]!.clicks += stats.clicks || 0;
+    }
   }
 
   // Fallback to mock data if empty and running in dev/emulator
@@ -95,7 +120,6 @@ export async function getSlotStats(
       const dateStr = d.toISOString().split('T')[0]!;
 
       const dayOfWeek = d.getDay();
-      // Use smaller base impressions per-slot compared to publisher-level (e.g. 2000-5000)
       const baseImpressions =
         3000 + Math.floor(Math.sin(i * 0.8) * 1000) + Math.floor(Math.random() * 800);
       const multiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 0.7 : 1.0;
@@ -120,14 +144,88 @@ export async function getSlotStats(
       mockTotalPageviews += dayPageviews;
     }
 
+    const mockByCampaign: NonNullable<SlotStatsResponse['byCampaign']> = {
+      cmp_matarhorn: {
+        campaignName: 'Sumargrill og veislufang',
+        advertiserName: 'Matarhorn ehf.',
+        impressions: Math.round(mockTotalImpressions * 0.6),
+        clicks: Math.round(mockTotalClicks * 0.65),
+        earningsIsk: Math.round(((mockTotalImpressions * 0.6) / 1000) * FLAT_CPM_ISK * 0.8),
+      },
+      cmp_origo_tech: {
+        campaignName: 'Nýjar fartölvur í skólann',
+        advertiserName: 'Origo ehf.',
+        impressions: Math.round(mockTotalImpressions * 0.4),
+        clicks: Math.round(mockTotalClicks * 0.35),
+        earningsIsk: Math.round(((mockTotalImpressions * 0.4) / 1000) * FLAT_CPM_ISK * 0.8),
+      },
+    };
+
     return {
       impressions: mockTotalImpressions,
       clicks: mockTotalClicks,
       spendIsk: mockTotalSpendIsk,
       pageviews: mockTotalPageviews,
       history: mockHistory,
+      byCampaign: mockByCampaign,
     };
   }
 
-  return { impressions, clicks, spendIsk, pageviews, history };
+  // Resolve metadata for real data
+  const byCampaign: NonNullable<SlotStatsResponse['byCampaign']> = {};
+  const campIds = Object.keys(campaignAgg);
+
+  await Promise.all(
+    campIds.map(async (campId) => {
+      if (campId === 'cmp_fallback') {
+        byCampaign[campId] = {
+          campaignName: 'Kynningarefni Birtings (Húsauglýsing)',
+          advertiserName: 'Birtingur',
+          impressions: campaignAgg[campId]!.impressions,
+          clicks: campaignAgg[campId]!.clicks,
+          earningsIsk: 0,
+        };
+        return;
+      }
+
+      try {
+        const camp = await getCampaign(campId);
+        let campaignName = 'Óþekkt herferð';
+        let advertiserName = 'Óþekktur auglýsandi';
+
+        if (camp) {
+          campaignName = camp.name || `Herferð ${camp.id.substring(4, 10)}`;
+          const adv = await getAdvertiserById(camp.advertiserId);
+          if (adv) {
+            advertiserName = adv.companyName;
+          }
+        }
+
+        const impressionsVal = campaignAgg[campId]!.impressions;
+        const clicksVal = campaignAgg[campId]!.clicks;
+        const earningsIsk = Math.round((impressionsVal / 1000) * FLAT_CPM_ISK * 0.8);
+
+        byCampaign[campId] = {
+          campaignName,
+          advertiserName,
+          impressions: impressionsVal,
+          clicks: clicksVal,
+          earningsIsk,
+        };
+      } catch (err) {
+        console.error(`Failed to resolve campaign metadata for ${campId}:`, err);
+        const impressionsVal = campaignAgg[campId]!.impressions;
+        const clicksVal = campaignAgg[campId]!.clicks;
+        byCampaign[campId] = {
+          campaignName: 'Óþekkt herferð',
+          advertiserName: 'Óþekktur auglýsandi',
+          impressions: impressionsVal,
+          clicks: clicksVal,
+          earningsIsk: Math.round((impressionsVal / 1000) * FLAT_CPM_ISK * 0.8),
+        };
+      }
+    }),
+  );
+
+  return { impressions, clicks, spendIsk, pageviews, history, byCampaign };
 }

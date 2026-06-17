@@ -43,16 +43,22 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     impressions: number;
     clicks: number;
     pageviews: number;
+    byCampaign: Record<string, { impressions: number; clicks: number }>;
   }
   interface CampaignBucket {
     impressions: number;
     clicks: number;
     byPublisher: Record<string, { impressions: number; clicks: number }>;
   }
+  interface CreativeStats {
+    impressions: number;
+    clicks: number;
+    pageviews: number;
+  }
   const campaignHour = new Map<string, CampaignBucket>();
   const publisherDay = new Map<string, Bucket>();
   const publisherSlotDay = new Map<string, Bucket>();
-  const creativeHour = new Map<string, Bucket>();
+  const creativeHour = new Map<string, CreativeStats>();
 
   for (const ev of events) {
     if (ev.type === 'pageview') {
@@ -60,7 +66,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
-        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0, byCampaign: {} };
         b.pageviews++;
         map.set(key, b);
       }
@@ -105,15 +111,26 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
 
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
-        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0, byCampaign: {} };
+        if (!b.byCampaign) {
+          b.byCampaign = {};
+        }
         if (ev.type === 'impression') {
           b.impressions++;
+          if (!b.byCampaign[ev.campaignId]) {
+            b.byCampaign[ev.campaignId] = { impressions: 0, clicks: 0 };
+          }
+          b.byCampaign[ev.campaignId]!.impressions++;
         } else if (ev.campaignId !== 'cmp_fallback') {
           // Only count clicks from real campaigns so publisher CTR stays meaningful.
           // Fallback/house-ad clicks are tracked in creative stats but must not
           // inflate publisher click totals — their "impressions" are pageviews, not
           // impressions, which would otherwise produce CTR > 100%.
           b.clicks++;
+          if (!b.byCampaign[ev.campaignId]) {
+            b.byCampaign[ev.campaignId] = { impressions: 0, clicks: 0 };
+          }
+          b.byCampaign[ev.campaignId]!.clicks++;
         }
         map.set(key, b);
       }
@@ -157,30 +174,40 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   for (const [key, b] of publisherDay) {
     const [publisherId, dk] = key.split('/');
     const ref = db.doc(`${COLLECTIONS.stats}/publishers/${publisherId}/${dk}`);
-    batch.set(
-      ref,
-      {
-        impressions: FieldValue.increment(b.impressions),
-        clicks: FieldValue.increment(b.clicks),
-        pageviews: FieldValue.increment(b.pageviews),
-        spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
-      },
-      { merge: true },
-    );
+    const updateData: Record<string, any> = {
+      impressions: FieldValue.increment(b.impressions),
+      clicks: FieldValue.increment(b.clicks),
+      pageviews: FieldValue.increment(b.pageviews),
+      spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
+    };
+    if (b.byCampaign) {
+      for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
+        updateData[`byCampaign.${campaignId}.impressions`] = FieldValue.increment(
+          campStats.impressions,
+        );
+        updateData[`byCampaign.${campaignId}.clicks`] = FieldValue.increment(campStats.clicks);
+      }
+    }
+    batch.set(ref, updateData, { merge: true });
   }
   for (const [key, b] of publisherSlotDay) {
     const [publisherId, slotId, dk] = key.split('/');
     const ref = db.doc(`${COLLECTIONS.stats}/publisher_slots/${publisherId}_${slotId}/${dk}`);
-    batch.set(
-      ref,
-      {
-        impressions: FieldValue.increment(b.impressions),
-        clicks: FieldValue.increment(b.clicks),
-        pageviews: FieldValue.increment(b.pageviews),
-        spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
-      },
-      { merge: true },
-    );
+    const updateData: Record<string, any> = {
+      impressions: FieldValue.increment(b.impressions),
+      clicks: FieldValue.increment(b.clicks),
+      pageviews: FieldValue.increment(b.pageviews),
+      spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
+    };
+    if (b.byCampaign) {
+      for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
+        updateData[`byCampaign.${campaignId}.impressions`] = FieldValue.increment(
+          campStats.impressions,
+        );
+        updateData[`byCampaign.${campaignId}.clicks`] = FieldValue.increment(campStats.clicks);
+      }
+    }
+    batch.set(ref, updateData, { merge: true });
   }
 
   await batch.commit();

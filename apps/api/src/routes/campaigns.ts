@@ -47,7 +47,8 @@ campaignsRouter.get('/', async (c) => {
     list.map(async (cmp) => {
       try {
         const stats = await getCampaignStats(cmp.id, 24 * 30); // 30 days
-        const ctr = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+        const ctr =
+          stats.impressions > 0 ? Math.min(100, (stats.clicks / stats.impressions) * 100) : 0;
         return {
           ...cmp,
           stats: {

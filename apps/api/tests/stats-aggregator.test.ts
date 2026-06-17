@@ -125,12 +125,20 @@ describe('aggregateEvents', () => {
     expect(mockStatsDocs[pubPath]).toBeDefined();
     expect(mockStatsDocs[pubPath].impressions).toBe(2);
     expect(mockStatsDocs[pubPath].clicks).toBe(1);
+    expect(mockStatsDocs[pubPath].byCampaign).toBeDefined();
+    expect(mockStatsDocs[pubPath].byCampaign.cmp_a).toBeDefined();
+    expect(mockStatsDocs[pubPath].byCampaign.cmp_a.impressions).toBe(2);
+    expect(mockStatsDocs[pubPath].byCampaign.cmp_a.clicks).toBe(1);
 
     // Check publisher slot daily stats
     const slotPath = `stats/publisher_slots/pub_a_s1/20260602`;
     expect(mockStatsDocs[slotPath]).toBeDefined();
     expect(mockStatsDocs[slotPath].impressions).toBe(2);
     expect(mockStatsDocs[slotPath].clicks).toBe(1);
+    expect(mockStatsDocs[slotPath].byCampaign).toBeDefined();
+    expect(mockStatsDocs[slotPath].byCampaign.cmp_a).toBeDefined();
+    expect(mockStatsDocs[slotPath].byCampaign.cmp_a.impressions).toBe(2);
+    expect(mockStatsDocs[slotPath].byCampaign.cmp_a.clicks).toBe(1);
 
     // Check creative hourly stats
     const crePath = `stats/creatives/cre_a/2026060214`;
