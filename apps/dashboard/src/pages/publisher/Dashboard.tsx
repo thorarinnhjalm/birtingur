@@ -11,6 +11,8 @@ import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from 'recharts';
+import { Card } from '@/components/ui/Card';
+import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
 
 import SlotCreate from './SlotCreate';
 import SlotList from './SlotList';
@@ -34,13 +36,14 @@ interface StatsResponse {
 }
 
 function PublisherHome() {
+  const [timeframe, setTimeframe] = React.useState<7 | 30>(30);
   const { data: publishers, isLoading: isPubsLoading } = usePublishers();
   const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(
     !!publishers && publishers.length > 0,
   );
   const { data: stats } = useQuery<StatsResponse>({
-    queryKey: ['publisher', 'stats'],
-    queryFn: () => apiFetch<StatsResponse>('/v1/publishers/stats?timeframe=30'),
+    queryKey: ['publisher', 'stats', timeframe],
+    queryFn: () => apiFetch<StatsResponse>(`/v1/publishers/stats?timeframe=${timeframe}`),
     enabled: !!publishers && publishers.length > 0,
   });
   const navigate = useNavigate();
@@ -70,9 +73,35 @@ function PublisherHome() {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Góðan dag, {firstPublisher?.displayName?.split(' ')[0] || 'útgefandi'}
           </h2>
-          <p className="text-slate-500 text-sm font-medium mt-1">
-            Hér er yfirlit yfir árangur og tekjur í dag.
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-slate-500 text-sm font-medium">
+              Hér er yfirlit yfir árangur og tekjur í dag.
+            </p>
+            <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setTimeframe(7)}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                  timeframe === 7
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                7 dagar
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe(30)}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                  timeframe === 30
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                30 dagar
+              </button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button
@@ -332,6 +361,19 @@ function PublisherHome() {
           </p>
         </div>
       </div>
+
+      {/* Performance Graph Card */}
+      {stats && stats.history && stats.history.length > 0 && (
+        <Card className="bg-white border border-outline-variant p-6 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in">
+          <div className="mb-4">
+            <h3 className="text-base font-bold text-slate-800">Árangursferill auglýsingaplássa</h3>
+            <p className="text-xs text-slate-400 font-semibold mt-0.5">
+              Birtingar, smellir og tekjur yfir síðustu {timeframe} daga
+            </p>
+          </div>
+          <AnalyticsChart data={stats.history} mode="publisher" />
+        </Card>
+      )}
 
       {/* Ad Slots Table */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">

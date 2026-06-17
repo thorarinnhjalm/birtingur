@@ -46,6 +46,7 @@ vi.mock('../src/lib/firebase', () => {
               return {
                 empty: filtered.length === 0,
                 docs: filtered.map((item) => ({
+                  id: item.id,
                   data: () => item,
                 })),
               };
@@ -70,11 +71,14 @@ vi.mock('../src/lib/firebase', () => {
                     filtered = filtered.filter((e) => e.relatedId === filter.val);
                   } else if (filter.prop === 'type') {
                     filtered = filtered.filter((e) => e.type === filter.val);
+                  } else if (filter.prop === 'ownerEmail') {
+                    filtered = filtered.filter((e: any) => e.ownerEmail === filter.val);
                   }
                 }
                 return {
                   empty: filtered.length === 0,
                   docs: filtered.map((item) => ({
+                    id: (item as any).id,
                     data: () => item,
                   })),
                 };
@@ -129,11 +133,16 @@ vi.mock('../src/lib/firebase', () => {
         };
       }),
     },
-    auth: {},
+    auth: {
+      verifyIdToken: vi.fn(),
+    },
     storage: {},
   };
 });
 
+import { app } from '../src/index';
+import { auth } from '../src/lib/firebase';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { createAdvertiser, getAdvertiserById } from '../src/services/advertisers';
 import {
   topUp,
@@ -213,5 +222,99 @@ describe('Wallet Service', () => {
     it('honors DEFAULT_PLATFORM_FEE_PERCENT', () => {
       expect(DEFAULT_PLATFORM_FEE_PERCENT).toBe(20);
     });
+  });
+});
+
+describe('Wallet API Router', () => {
+  beforeEach(() => {
+    mockLedgerEntries = [];
+    mockAdvertisers = [];
+    vi.clearAllMocks();
+  });
+
+  it('GET /v1/advertisers/me/wallet/transactions returns 401 when unauthenticated', async () => {
+    vi.mocked(auth.verifyIdToken).mockRejectedValue(new Error('Invalid token'));
+    const res = await app.request('/v1/advertisers/me/wallet/transactions', {
+      headers: { Authorization: 'Bearer invalid-token' },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /v1/advertisers/me/wallet/transactions returns 404 when advertiser not found', async () => {
+    vi.mocked(auth.verifyIdToken).mockResolvedValue({
+      uid: 'u1',
+      email: 'no-advertiser@example.is',
+      email_verified: true,
+    } as unknown as DecodedIdToken);
+
+    const res = await app.request('/v1/advertisers/me/wallet/transactions', {
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('GET /v1/advertisers/me/wallet/transactions returns transactions list for active advertiser', async () => {
+    vi.mocked(auth.verifyIdToken).mockResolvedValue({
+      uid: 'u1',
+      email: 'advertiser@example.is',
+      email_verified: true,
+    } as unknown as DecodedIdToken);
+
+    // Seed advertiser
+    const adv = {
+      id: 'adv_123',
+      ownerEmail: 'advertiser@example.is',
+      companyName: 'Bókaverzlun',
+      kennitala: '1234567890',
+      vatNumber: '111',
+      walletBalanceIsk: 0,
+      status: 'active',
+      createdAt: new Date(),
+    };
+    mockAdvertisers.push(adv);
+
+    // Seed ledger entries
+    mockLedgerEntries.push({
+      id: 'led_1',
+      party: { type: 'advertiser', id: 'adv_123' },
+      type: 'topup',
+      amountIsk: 10000,
+      relatedId: 'teya_sess_1',
+      createdAt: { toDate: () => new Date('2026-06-10T10:00:00Z') } as any,
+    });
+
+    mockLedgerEntries.push({
+      id: 'led_2',
+      party: { type: 'advertiser', id: 'adv_123' },
+      type: 'refund',
+      amountIsk: 2000,
+      relatedId: 'campaign_refund_1',
+      createdAt: { toDate: () => new Date('2026-06-11T12:00:00Z') } as any,
+    });
+
+    // A campaign_spend entry that should be filtered out
+    mockLedgerEntries.push({
+      id: 'led_3',
+      party: { type: 'advertiser', id: 'adv_123' },
+      type: 'campaign_spend',
+      amountIsk: -3000,
+      relatedId: 'campaign_1',
+      createdAt: { toDate: () => new Date('2026-06-12T09:00:00Z') } as any,
+    });
+
+    const res = await app.request('/v1/advertisers/me/wallet/transactions', {
+      headers: { Authorization: 'Bearer valid-token' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveLength(2);
+    // Ordered descending by createdAt
+    expect(body[0].id).toBe('led_2');
+    expect(body[0].type).toBe('refund');
+    expect(body[0].amountIsk).toBe(2000);
+    expect(body[1].id).toBe('led_1');
+    expect(body[1].type).toBe('topup');
+    expect(body[1].amountIsk).toBe(10000);
   });
 });

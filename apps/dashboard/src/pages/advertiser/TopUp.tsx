@@ -1,18 +1,30 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTopUp, useWallet } from '@/hooks/useWallet';
+import { useTopUp, useWallet, useWalletTransactions } from '@/hooks/useWallet';
+import { useAdvertiser } from '@/hooks/useAdvertiser';
+import { useAuth } from '@/lib/auth-context';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatIsk } from '@/lib/format';
 import { VAT_RATE, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
-import { AlertCircle, CreditCard, ShieldCheck, CheckCircle, AlertTriangle } from 'lucide-react';
+import {
+  AlertCircle,
+  CreditCard,
+  ShieldCheck,
+  CheckCircle,
+  AlertTriangle,
+  FileText,
+} from 'lucide-react';
 
 const PRESETS = [5000, 20000, 50000, 100000];
 
 export default function TopUp() {
   const wallet = useWallet();
   const topup = useTopUp();
+  const transactions = useWalletTransactions();
+  const advertiserQuery = useAdvertiser();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const success = searchParams.get('success') === 'true';
   const cancelled = searchParams.get('cancelled') === 'true';
@@ -42,6 +54,262 @@ export default function TopUp() {
   // VAT is calculated only on the platform brokerage fee.
   const platformFee = Math.round(amount * (DEFAULT_PLATFORM_FEE_PERCENT / 100));
   const platformFeeVat = Math.round(platformFee * VAT_RATE);
+
+  function printInvoice(tx: any) {
+    const adv = advertiserQuery.data;
+    if (!adv) return;
+
+    const txAmount = tx.amountIsk;
+    const deposit = Math.round(txAmount * 0.8);
+    const fee = Math.round(txAmount * 0.2);
+    const vat = Math.round(fee * 0.24);
+
+    const invoiceWindow = window.open('', '_blank');
+    if (!invoiceWindow) {
+      alert('Vinsamlegast leyfðu sprettiglugga (pop-ups) til að opna reikninginn.');
+      return;
+    }
+
+    const dateStr = new Date(tx.createdAt).toLocaleDateString('is-IS', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Birtingur - Reikningur ${tx.id}</title>
+        <meta charset="utf-8" />
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 26px;
+            font-weight: 900;
+            color: #2563eb;
+            letter-spacing: -0.03em;
+          }
+          .title {
+            text-align: right;
+          }
+          .title h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .title p {
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+          }
+          .details {
+            display: grid;
+            grid-template-cols: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+          }
+          .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 10px;
+          }
+          .company-info p {
+            margin: 4px 0;
+            font-size: 13px;
+            font-weight: 500;
+          }
+          .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 35px;
+          }
+          .table th {
+            border-bottom: 2px solid #cbd5e1;
+            text-align: left;
+            padding: 10px 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+          }
+          .table td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 0;
+            font-size: 13px;
+            font-weight: 500;
+          }
+          .table .right {
+            text-align: right;
+          }
+          .summary {
+            margin-left: auto;
+            width: 320px;
+            margin-bottom: 40px;
+          }
+          .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 550;
+            border-bottom: 1px solid #f1f5f9;
+          }
+          .summary-row.total {
+            font-size: 17px;
+            font-weight: 900;
+            border-bottom: none;
+            color: #0f172a;
+            padding-top: 12px;
+            border-top: 2px solid #e2e8f0;
+          }
+          .footnote {
+            font-size: 10.5px;
+            color: #64748b;
+            line-height: 1.6;
+            background: #f8fafc;
+            padding: 18px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-top: 60px;
+            border: 1px solid #f1f5f9;
+          }
+          @media print {
+            body {
+              padding: 20px;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+          .print-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(37,99,235,0.1), 0 2px 4px -1px rgba(37,99,235,0.06);
+          }
+          .print-btn:hover {
+            background-color: #1d4ed8;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="text-align: right;">
+          <button class="print-btn" onclick="window.print()">Prenta reikning</button>
+        </div>
+        <div class="header">
+          <div class="logo">Birtingur</div>
+          <div class="title">
+            <h1>Greiðslukvittun / Reikningur</h1>
+            <p>Færslunúmer: ${tx.id}</p>
+            <p>Dagsetning: ${dateStr}</p>
+          </div>
+        </div>
+        
+        <div class="details">
+          <div>
+            <div class="section-title">Seljandi</div>
+            <div class="company-info">
+              <p style="font-weight: 700; font-size: 14px;">Birtingur ehf.</p>
+              <p>Kennitala: 590124-0320</p>
+              <p>VSK-númer: 151234</p>
+              <p>Netfang: bokhald@birtingur.is</p>
+              <p>Vefur: birtingur.is</p>
+            </div>
+          </div>
+          <div>
+            <div class="section-title">Kaupandi</div>
+            <div class="company-info">
+              <p style="font-weight: 700; font-size: 14px;">${adv.companyName}</p>
+              <p>Kennitala: ${adv.kennitala || '-'}</p>
+              <p>VSK-númer: ${adv.vatNumber || '-'}</p>
+              <p>Netfang: ${adv.billingEmail || user?.email || '-'}</p>
+            </div>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Lýsing</th>
+              <th class="right">Magn</th>
+              <th class="right">Einingaverð</th>
+              <th class="right">Samtals</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Innborgun á veltureikning hjá Birtingi (Umboðssala - VSK-frítt)</td>
+              <td class="right">1</td>
+              <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
+              <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
+            </tr>
+            <tr>
+              <td>Umsýslu- og bókunarþóknun Birtingar (20% af innborgun)</td>
+              <td class="right">1</td>
+              <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
+              <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary">
+          <div class="summary-row">
+            <span>VSK-frjáls velta (Umboðssala 80%):</span>
+            <span>${deposit.toLocaleString('is-IS')} kr.</span>
+          </div>
+          <div class="summary-row">
+            <span>Gjaldstofn VSK (Þóknun 20%):</span>
+            <span>${fee.toLocaleString('is-IS')} kr.</span>
+          </div>
+          <div class="summary-row">
+            <span>Virðisaukaskattur (24% af þóknun):</span>
+            <span>${vat.toLocaleString('is-IS')} kr.</span>
+          </div>
+          <div class="summary-row total">
+            <span>Greidd heildarupphæð:</span>
+            <span>${txAmount.toLocaleString('is-IS')} kr.</span>
+          </div>
+        </div>
+
+        <div class="footnote">
+          * Samkvæmt 10. gr. laga nr. 50/1988 um virðisaukaskatt og sérreglum um umboðssölu er innlögn á veltureikning til auglýsingakaupa undanþegin virðisaukaskatti við innborgun. Birtingur ehf. innheimtir virðisaukaskatt (24%) eingöngu af eigin bókunarþóknun (20% af ráðstafaðri upphæð) jafnóðum og herferðir eru birtar. Þessi reikningur þjónar som staðfesting á kortagreiðslu og sundurliðun á áætlaðri þóknun og sköttum.
+        </div>
+      </body>
+      </html>
+    `;
+
+    invoiceWindow.document.write(htmlContent);
+    invoiceWindow.document.close();
+  }
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
@@ -166,6 +434,80 @@ export default function TopUp() {
           <ShieldCheck size={14} className="text-slate-300" />
           <span>Örugg greiðslugátt keyrð af Teya · Stuðningur við öll helstu kort</span>
         </div>
+      </Card>
+
+      {/* Transaction History & VAT Invoices Card */}
+      <Card className="p-6">
+        <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-xl">history</span>
+          Færslusaga & VSK Reikningar
+        </h3>
+
+        {transactions.isLoading ? (
+          <div className="py-8 text-center text-xs font-semibold text-slate-400">
+            Hleður færslusögu...
+          </div>
+        ) : !transactions.data || transactions.data.length === 0 ? (
+          <div className="py-8 text-center text-xs font-semibold text-slate-400">
+            Engar fyrri færslur fundust.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
+                  <th className="py-3 px-2">Dagsetning</th>
+                  <th className="py-3 px-2">Tegund</th>
+                  <th className="py-3 px-2 text-right">Upphæð</th>
+                  <th className="py-3 px-2 text-center">Aðgerð</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                {transactions.data.map((tx) => {
+                  const dateVal = new Date(tx.createdAt);
+                  const dateFormatted = isNaN(dateVal.getTime())
+                    ? 'Óþekkt'
+                    : dateVal.toLocaleDateString('is-IS', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      });
+
+                  return (
+                    <tr key={tx.id} className="hover:bg-slate-50/50 transition">
+                      <td className="py-3.5 px-2">{dateFormatted}</td>
+                      <td className="py-3.5 px-2">
+                        {tx.type === 'topup' ? (
+                          <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-[10px] font-bold">
+                            Innborgun
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 bg-amber-50 px-2 py-1 rounded-md text-[10px] font-bold">
+                            Endurgreiðsla
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-2 text-right font-bold text-slate-900">
+                        {formatIsk(tx.amountIsk)}
+                      </td>
+                      <td className="py-3.5 px-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => printInvoice(tx)}
+                          disabled={!advertiserQuery.data}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:text-sky-700 cursor-pointer bg-sky-50 hover:bg-sky-100 px-2.5 py-1.5 rounded-lg border border-sky-150 transition disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                          <FileText size={12} />
+                          <span>Reikningur</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

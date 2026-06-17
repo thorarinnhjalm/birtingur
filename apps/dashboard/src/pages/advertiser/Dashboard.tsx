@@ -10,6 +10,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { formatIsk } from '@/lib/format';
+import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import {
@@ -44,12 +45,13 @@ interface StatsResponse {
 }
 
 function AdvertiserHome() {
+  const [timeframe, setTimeframe] = useState<7 | 30>(30);
   const { data: advertiser, isLoading: isAdvLoading } = useAdvertiser();
   const { data: wallet, isLoading: isWalletLoading } = useWallet(!!advertiser);
   const { data: campaigns, isLoading: isCampaignsLoading } = useCampaigns(!!advertiser);
   const { data: stats } = useQuery<StatsResponse>({
-    queryKey: ['advertiser', 'stats'],
-    queryFn: () => apiFetch<StatsResponse>('/v1/advertisers/me/stats?timeframe=30'),
+    queryKey: ['advertiser', 'stats', timeframe],
+    queryFn: () => apiFetch<StatsResponse>(`/v1/advertisers/me/stats?timeframe=${timeframe}`),
     enabled: !!advertiser,
   });
 
@@ -127,9 +129,35 @@ function AdvertiserHome() {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Góðan dag, {advertiser?.companyName || 'auglýsandi'}
           </h2>
-          <p className="text-slate-500 text-sm font-medium mt-1">
-            Hér er yfirlit yfir árangur og stöðu herferða þinna í dag.
-          </p>
+          <div className="flex items-center gap-4 mt-1">
+            <p className="text-slate-500 text-sm font-medium">
+              Hér er yfirlit yfir árangur og stöðu herferða þinna í dag.
+            </p>
+            <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setTimeframe(7)}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                  timeframe === 7
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                7 dagar
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimeframe(30)}
+                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                  timeframe === 30
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                30 dagar
+              </button>
+            </div>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button
@@ -294,139 +322,13 @@ function AdvertiserHome() {
           {/* Performance Graph Card */}
           {stats && stats.history && stats.history.length > 0 && (
             <Card className="bg-white border border-outline-variant p-6 rounded-xl shadow-[0px_4px_12px_rgba(0,0,0,0.03)] animate-fade-in">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <div>
-                  <h3 className="text-base font-bold text-slate-800">Árangur herferða</h3>
-                  <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                    Birtingar og smellir yfir síðustu 30 daga
-                  </p>
-                </div>
-                <div className="flex gap-4 text-xs font-semibold text-slate-500">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 bg-blue-600 rounded-full"></span>
-                    <span>Birtingar</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
-                    <span>Smellir</span>
-                  </div>
-                </div>
+              <div className="mb-4">
+                <h3 className="text-base font-bold text-slate-800">Árangur herferða</h3>
+                <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                  Birtingar, smellir og eyðsla yfir síðustu {timeframe} daga
+                </p>
               </div>
-
-              <div className="h-72 w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={stats.history}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                  >
-                    <defs>
-                      <linearGradient id="impressionsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2563eb" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
-                      </linearGradient>
-                      <linearGradient id="clicksGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.15} />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) => {
-                        try {
-                          const d = new Date(val);
-                          return d.toLocaleDateString('is-IS', { day: '2-digit', month: 'short' });
-                        } catch {
-                          return val;
-                        }
-                      }}
-                    />
-                    <YAxis
-                      yAxisId="left"
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
-                    />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) => val}
-                    />
-                    <RechartsTooltip
-                      cursor={{ stroke: 'rgba(148, 163, 184, 0.1)', strokeWidth: 1 }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const imp = payload.find((p) => p.dataKey === 'impressions')
-                            ?.value as number;
-                          const clk = payload.find((p) => p.dataKey === 'clicks')?.value as number;
-                          const label = payload[0]!.payload.date;
-                          let formattedDate = label;
-                          try {
-                            const parsed = new Date(label);
-                            if (!isNaN(parsed.getTime())) {
-                              formattedDate = parsed.toLocaleDateString('is-IS', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                              });
-                            }
-                          } catch {}
-                          return (
-                            <div className="bg-slate-950/95 backdrop-blur text-white p-4 rounded-xl text-xs font-semibold shadow-xl border border-slate-800 space-y-2">
-                              <p className="text-slate-400 font-bold border-b border-slate-800 pb-1.5">
-                                {formattedDate}
-                              </p>
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center gap-6">
-                                  <span className="text-slate-400">Birtingar:</span>
-                                  <span className="font-bold text-blue-400 text-right">
-                                    {imp?.toLocaleString('is-IS')}
-                                  </span>
-                                </div>
-                                <div className="flex justify-between items-center gap-6">
-                                  <span className="text-slate-400">Smellir:</span>
-                                  <span className="font-bold text-emerald-400 text-right">
-                                    {clk?.toLocaleString('is-IS')}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Area
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="impressions"
-                      stroke="#2563eb"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#impressionsGrad)"
-                    />
-                    <Area
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="clicks"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#clicksGrad)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              <AnalyticsChart data={stats.history} mode="advertiser" />
             </Card>
           )}
 

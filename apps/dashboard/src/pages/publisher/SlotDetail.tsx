@@ -19,12 +19,49 @@ import { useState } from 'react';
 import { useSlotStats } from '@/hooks/useSlotStats';
 import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from 'recharts';
 
+const CATEGORY_PREVIEWS: Record<
+  string,
+  { title: string; desc: string; img: string; action: string }
+> = {
+  matur: {
+    title: 'Nýbakað og yndislegt',
+    desc: 'Pantaðu ljúffengar veitingar beint heim að dyrum. Fljótleg og bragðgóð heimsending.',
+    img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=60',
+    action: 'Panta núna',
+  },
+  taekni: {
+    title: 'Snjallari framtíð',
+    desc: 'Uppgötvaðu nýjustu græjurnar og tæknilausnirnar sem einfalda daglega lífið og vinnuna.',
+    img: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&auto=format&fit=crop&q=60',
+    action: 'Sjá meira',
+  },
+  lifsstill: {
+    title: 'Þinn persónulegi stíll',
+    desc: 'Nýjasta tískan, hönnunin og lífsstílsinnblásturinn. Gæði og stíll í fyrirrúmi.',
+    img: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&auto=format&fit=crop&q=60',
+    action: 'Skoða vörur',
+  },
+  ferdalog: {
+    title: 'Upplifðu Ísland',
+    desc: 'Bókaðu ógleymanlegar ferðir um stórbrotna náttúru Íslands. Ævintýrið bíður þín!',
+    img: 'https://images.unsplash.com/photo-1504829857797-ddff28127792?w=600&auto=format&fit=crop&q=60',
+    action: 'Bóka ferð',
+  },
+};
+
 export default function SlotDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: slot, isLoading, isError, refetch } = usePublisherSlot(id);
   const { data: slotStats } = useSlotStats(id);
   const [copied, setCopied] = useState(false);
+  const [previewCategory, setPreviewCategory] = useState<string>('matur');
+  const [simulationDetails, setSimulationDetails] = useState<{
+    ts: number;
+    sig: string;
+    creativeId: string;
+    targetUrl: string;
+  } | null>(null);
 
   if (isLoading) return <LoadingState />;
   if (isError || !slot) {
@@ -234,6 +271,179 @@ export default function SlotDetail() {
           </pre>
         </Card>
       </div>
+
+      {/* Live Preview and Test Sandbox */}
+      {(() => {
+        const mainSize = slot.sizes[0] || { width: 300, height: 250 };
+        const isHorizontal = mainSize.width >= 500;
+        const selectedPreview = CATEGORY_PREVIEWS[previewCategory] || CATEGORY_PREVIEWS.matur!;
+
+        return (
+          <Card className="p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-xl">auto_awesome</span>
+                Lifandi forskoðun og prófunarsandkassi
+              </h3>
+              <p className="text-xs text-slate-400 font-semibold mt-1">
+                Sjáðu hvernig auglýsingar munu líta út á þínum vef. Veldu flokk til að prófa
+                mismunandi efni.
+              </p>
+            </div>
+
+            {/* Category selector */}
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(CATEGORY_PREVIEWS).map(([key]) => {
+                const active = previewCategory === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setPreviewCategory(key);
+                      setSimulationDetails(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                      active
+                        ? 'bg-primary border-primary text-white shadow-sm'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {key === 'matur'
+                      ? 'Matarhorn'
+                      : key === 'taekni'
+                        ? 'Tækni'
+                        : key === 'lifsstill'
+                          ? 'Lífsstíll'
+                          : 'Ferðalög'}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Live Slot Container Mock */}
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-3">
+                Eftirlíking ({mainSize.width} × {mainSize.height} px)
+              </p>
+              <div
+                className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden relative group cursor-pointer select-none transition hover:shadow-lg"
+                style={{
+                  width: '100%',
+                  maxWidth: `${mainSize.width}px`,
+                  aspectRatio: `${mainSize.width} / ${mainSize.height}`,
+                }}
+                onClick={() => {
+                  const randHex = () => Math.floor(Math.random() * 16).toString(16);
+                  const mockSig = Array.from({ length: 32 }, randHex).join('');
+                  setSimulationDetails({
+                    ts: Date.now(),
+                    sig: mockSig,
+                    creativeId: `cre_mock_${previewCategory}_${slot.id.substring(4, 10)}`,
+                    targetUrl:
+                      previewCategory === 'matur'
+                        ? 'https://birtingur.app/matur'
+                        : previewCategory === 'taekni'
+                          ? 'https://birtingur.app/taekni'
+                          : previewCategory === 'lifsstill'
+                            ? 'https://birtingur.app/lifsstill'
+                            : 'https://birtingur.app/island',
+                  });
+                }}
+              >
+                {/* Banner Layout */}
+                <div className={`w-full h-full flex ${isHorizontal ? 'flex-row' : 'flex-col'}`}>
+                  {/* Image panel */}
+                  <div
+                    className={`${isHorizontal ? 'w-2/5 h-full' : 'w-full h-3/5'} bg-slate-100 relative overflow-hidden`}
+                  >
+                    <img
+                      src={selectedPreview.img}
+                      alt="Mock Ad"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
+                    />
+                  </div>
+                  {/* Content panel */}
+                  <div
+                    className={`flex-1 p-3 flex flex-col justify-between min-w-0 ${
+                      isHorizontal ? 'max-w-[60%]' : 'w-full'
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest text-primary bg-primary-container/20 px-1.5 py-0.5 rounded">
+                        Kynning
+                      </span>
+                      <h4
+                        className={`font-bold text-slate-900 ${isHorizontal ? 'text-sm' : 'text-xs'} leading-tight truncate`}
+                      >
+                        {selectedPreview.title}
+                      </h4>
+                      {mainSize.height >= 150 && (
+                        <p className="text-[10px] text-slate-500 font-semibold leading-relaxed line-clamp-2">
+                          {selectedPreview.desc}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-[9px] text-slate-400 font-medium">birtingur.is</span>
+                      <span className="px-3 py-1 bg-primary text-white text-[10px] font-bold rounded-lg group-hover:bg-primary-dim transition-colors">
+                        {selectedPreview.action}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/5 transition-colors duration-200"></div>
+              </div>
+            </div>
+
+            {/* Simulation Output Dashboard */}
+            {simulationDetails && (
+              <div className="p-5 bg-slate-900 rounded-2xl border border-slate-950 text-slate-100 font-mono text-[11px] leading-relaxed relative animate-fadeIn">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSimulationDetails(null);
+                  }}
+                  className="absolute top-3 right-3 text-slate-400 hover:text-white p-1 hover:bg-slate-800 rounded transition cursor-pointer border-none bg-transparent"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+                <div className="flex items-center gap-2 text-emerald-400 font-bold mb-3">
+                  <span className="material-symbols-outlined text-[16px] animate-pulse">
+                    check_circle
+                  </span>
+                  <span>[HERMUNA-MÆLING] Smellur skráður og rekjað undirritaður!</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p>
+                    <span className="text-sky-400">Atburður:</span> CLICK_EVENT
+                  </p>
+                  <p>
+                    <span className="text-sky-400">Tímaspjald:</span>{' '}
+                    {new Date(simulationDetails.ts).toLocaleTimeString('is-IS')} (ts:{' '}
+                    {simulationDetails.ts})
+                  </p>
+                  <p>
+                    <span className="text-sky-400">Creative ID:</span>{' '}
+                    {simulationDetails.creativeId}
+                  </p>
+                  <p>
+                    <span className="text-sky-400">Slot ID:</span> {slot.id}
+                  </p>
+                  <p>
+                    <span className="text-sky-400">Undirskrift:</span> {simulationDetails.sig}
+                  </p>
+                  <p className="truncate">
+                    <span className="text-sky-400">Slóð:</span> {simulationDetails.targetUrl}
+                    ?utm_source=birtingur&utm_medium=display&utm_campaign=mock&utm_content={slot.id}
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Quick Help Guide */}
       <Card className="bg-sky-50/20 border-sky-100 p-5 flex gap-4 text-xs font-semibold text-slate-600">

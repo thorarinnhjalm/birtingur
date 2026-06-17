@@ -395,7 +395,7 @@ export default function CampaignDetail() {
       {/* Analytics Chart */}
       <Card className="p-6">
         <h3 className="text-base font-bold text-slate-900">Birtingar og smellir yfir tíma</h3>
-        {isStatsLoading ? <LoadingState /> : <AnalyticsChart data={chartData} />}
+        {isStatsLoading ? <LoadingState /> : <AnalyticsChart data={chartData} mode="advertiser" />}
       </Card>
 
       {/* Widget Embedding for Campaign Stats */}

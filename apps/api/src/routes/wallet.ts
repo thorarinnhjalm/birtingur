@@ -7,6 +7,8 @@ import { getWallet } from '../services/wallet.js';
 import { StubTeyaClient, HttpTeyaClient } from '../services/teya/index.js';
 import type { TeyaClient } from '../services/teya/index.js';
 import { AppError } from '../lib/errors.js';
+import { db } from '../lib/firebase.js';
+import { COLLECTIONS } from '@ada/shared/firestore';
 
 function getTeya(): TeyaClient {
   if (process.env.TEYA_API_KEY) return new HttpTeyaClient(process.env.TEYA_API_KEY);
@@ -24,6 +26,32 @@ walletRouter.get('/', async (c) => {
   }
   const w = await getWallet(adv.id);
   return c.json(w);
+});
+
+walletRouter.get('/transactions', async (c) => {
+  const user = c.get('user');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+
+  const snap = await db.collection(COLLECTIONS.ledger).where('party.id', '==', adv.id).get();
+
+  const txs = snap.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        type: data.type,
+        amountIsk: data.amountIsk,
+        relatedId: data.relatedId,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      };
+    })
+    .filter((tx) => tx.type === 'topup' || tx.type === 'refund')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  return c.json(txs);
 });
 
 walletRouter.post('/topup', async (c) => {

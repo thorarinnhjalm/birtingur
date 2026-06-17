@@ -25,6 +25,23 @@ export function useTopUp() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wallet'] });
+      qc.invalidateQueries({ queryKey: ['wallet', 'transactions'] });
     },
+  });
+}
+
+export interface WalletTransaction {
+  id: string;
+  type: 'topup' | 'refund';
+  amountIsk: number;
+  relatedId: string;
+  createdAt: string;
+}
+
+export function useWalletTransactions(enabled = true) {
+  return useQuery({
+    queryKey: ['wallet', 'transactions'],
+    queryFn: () => apiFetch<WalletTransaction[]>('/v1/advertisers/me/wallet/transactions'),
+    enabled,
   });
 }
