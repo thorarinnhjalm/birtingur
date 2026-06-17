@@ -495,7 +495,9 @@ export default function CampaignDetail() {
                     };
                     const spendIsk = Math.round((cStats.impressions / 1000) * FLAT_CPM_ISK);
                     const ctr =
-                      cStats.impressions > 0 ? (cStats.clicks / cStats.impressions) * 100 : 0;
+                      cStats.impressions > 0
+                        ? Math.min(100, (cStats.clicks / cStats.impressions) * 100)
+                        : 0;
                     return (
                       <tr key={creative.id} className="hover:bg-slate-50/50">
                         <td
@@ -646,7 +648,10 @@ export default function CampaignDetail() {
                     .map(([id, pubStats]) => ({ id, ...pubStats }))
                     .sort((a, b) => b.impressions - a.impressions)
                     .map((pub) => {
-                      const ctr = pub.impressions > 0 ? (pub.clicks / pub.impressions) * 100 : 0;
+                      const ctr =
+                        pub.impressions > 0
+                          ? Math.min(100, (pub.clicks / pub.impressions) * 100)
+                          : 0;
                       return (
                         <tr key={pub.id} className="hover:bg-slate-50/50">
                           <td className="py-3">

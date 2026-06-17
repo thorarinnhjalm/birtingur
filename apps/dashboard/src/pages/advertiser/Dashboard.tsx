@@ -112,7 +112,9 @@ function AdvertiserHome() {
   const clicks = stats ? stats.clicks.toLocaleString('is-IS') : '0';
   const ctr =
     stats && stats.impressions > 0
-      ? `${((stats.clicks / stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+      ? `${Math.min(100, (stats.clicks / stats.impressions) * 100)
+          .toFixed(2)
+          .replace('.', ',')}%`
       : '0,00%';
 
   const aiTips = aiTipsData?.tips ?? ['Snjallráð hlaðast...'];
