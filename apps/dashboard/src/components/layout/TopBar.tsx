@@ -287,11 +287,17 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
               {userRoleLabel}
             </p>
           </div>
-          <img
-            alt="Notandaprúfíll"
-            className="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOjCL0GQ3D8wsYiRelKx2Usp5siUfVPOlf9qSlgle2zchiLMt7GJlWfWWzDAxGzdZjj939JWEB2SxnLV_cs7E5NzNSvpfUMt-fLvjC9SDw8hnSHvGCFRh_nPWn49Tqu91Ccou8gqYB7PZDa7BzJaL7bPGygEwuRkS34kGxDNq25ywnHO2h0z6YWOHxZ6IJ9SJa0hAEAMask_Z-UxEOT3YUFDBlMZSRtGhJGaEs7XtrhmaOlFLETjK2JR8PZhwHor4974N_ZcPAVmQ"
-          />
+          {user?.photoURL ? (
+            <img
+              alt="Notandaprúfíll"
+              className="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm object-cover"
+              src={user.photoURL}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm bg-primary text-white flex items-center justify-center font-bold text-sm select-none">
+              {formattedName.charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
 
         <div className="h-8 w-px bg-outline-variant mx-1"></div>
