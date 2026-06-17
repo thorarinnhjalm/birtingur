@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
-const lpush = vi.fn(async (_key: string, _payload: string) => 1);
+const lpush = vi.fn(async (key: string, payload?: string) => {
+  if (key || payload) return 1;
+  return 1;
+});
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({ lpush }),
 }));

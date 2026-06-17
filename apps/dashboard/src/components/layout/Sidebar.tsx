@@ -1,7 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { apiFetch } from '@/lib/api';
 import Logo from '@/components/ui/Logo';
 
 export interface SidebarItem {
@@ -9,25 +8,6 @@ export interface SidebarItem {
   label: string;
   icon: string | ReactNode;
 }
-
-const FAQS = [
-  {
-    q: 'Hvernig virka flokkatengd netkaup?',
-    a: 'Auglýsendur velja þá efnisflokka sem lýsa markhópnum best (t.d. Tækni, Íþróttir, Matur) í stað þess að velja stök pláss. Kerfið birtir auglýsingarnar sjálfkrafa á öllum viðeigandi plássum útgefenda í þeim flokkum.',
-  },
-  {
-    q: 'Hvert er verðlagið á birtingum?',
-    a: 'Birtingur styðst við fast verðlag upp á 550 kr. CPM (fyrir hverjar 1000 birtingar) fyrir allar herferðir og pláss á vettvangnum. Þetta tryggir gagnsæi og einfaldleika í reikningum.',
-  },
-  {
-    q: 'Hvernig virka greiðslur og veskið?',
-    a: 'Auglýsendur geta sett inn inneign í veskið sitt með greiðslukorti í gegnum örugga Teya-greiðslugátt. Útgefendur safna tekjum og fá greitt mánaðarlega inn á bankareikning þegar inneignin nær 5.000 kr.',
-  },
-  {
-    q: 'Hvernig eru auglýsingar samþykktar?',
-    a: 'Allt auglýsingaefni (creatives) fer í gegnum sjálfvirka gervigreindargreiningu við upphleðslu. Herferðir virkjast sjálfkrafa þegar efnið er samþykkt og herferðin á virka áætlun.',
-  },
-];
 
 export function Sidebar({
   items,

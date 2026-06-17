@@ -7,18 +7,13 @@ import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
 import {
   Sparkles,
-  Target,
   ShieldCheck,
-  Eye,
   ArrowRight,
   MessageSquare,
-  ExternalLink,
   Zap,
   Code2,
-  BarChart3,
   Users,
   Cpu,
-  Coins,
   ArrowUpRight,
 } from 'lucide-react';
 

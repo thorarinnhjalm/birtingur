@@ -57,7 +57,8 @@ function makeConverter<T extends { id: string }>(
 ): FirestoreDataConverter<T> {
   return {
     toFirestore(value: T): DocumentData {
-      const { id: _id, ...rest } = value;
+      const rest = { ...value } as Partial<T>;
+      delete rest.id;
       return datesToTimestamps(rest) as DocumentData;
     },
     fromFirestore(snapshot: QueryDocumentSnapshot): T {

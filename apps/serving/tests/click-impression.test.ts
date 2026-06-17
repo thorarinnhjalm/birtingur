@@ -268,35 +268,22 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(30);
   });
 
-  it('logs pageview even when slot cache is empty (uncached slot)', async () => {
+  it('drops pageview even when slot cache is empty (uncached slot)', async () => {
     const res = await app.request(
       '/v1/impression?s=slot_unknown&c=cre_fallback_birtingur&type=pageview',
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
 
-    // Before the fix, this was silently dropped because `if (slot)` guarded the logEvent.
-    // Now it logs with publisherId='' so the event is at least captured.
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'pageview',
-        slotId: 'slot_unknown',
-        publisherId: '',
-        creativeId: 'cre_fallback_birtingur',
-      }),
-    );
+    // Pageviews with an uncached slot are silently dropped to avoid writing to a garbage Firestore path.
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  it('logs pageview for cre_nocache creative (empty-response tracking pixel)', async () => {
+  it('drops pageview for cre_nocache creative (empty-response tracking pixel)', async () => {
     const res = await app.request('/v1/impression?s=slot_xyz&c=cre_nocache&type=pageview');
     expect(res.status).toBe(200);
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'pageview',
-        slotId: 'slot_xyz',
-        creativeId: 'cre_nocache',
-      }),
-    );
+    // Pageviews with an uncached slot are silently dropped to avoid writing to a garbage Firestore path.
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
   it('drops stale impression when slot cache expired between serve and view', async () => {

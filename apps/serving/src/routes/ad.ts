@@ -182,7 +182,7 @@ function generateHouseAdSvg(width: number, height: number): string {
     </g>
   `;
 
-  let content = '';
+  let content: string;
 
   if (isCompact) {
     // Mini layout (e.g. 120x60)

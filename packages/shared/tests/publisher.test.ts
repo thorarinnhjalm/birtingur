@@ -23,7 +23,8 @@ describe('PublisherSchema.categories', () => {
     expect(() => PublisherSchema.parse({ ...base, categories: ['nope'] })).toThrow();
   });
   it('requires categories explicitly (no silent default)', () => {
-    const { categories, ...without } = base;
+    const without = { ...base } as any;
+    delete without.categories;
     expect(() => PublisherSchema.parse(without)).toThrow();
   });
 });
