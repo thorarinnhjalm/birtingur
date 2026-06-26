@@ -12,11 +12,7 @@ export default function BlogPost() {
 
   useEffect(() => {
     if (post) {
-      updateSEO(
-        `${post.title} | Birtingur`,
-        post.description,
-        `/handbaekur/${post.slug}`
-      );
+      updateSEO(`${post.title} | Birtingur`, post.description, `/handbaekur/${post.slug}`);
       window.scrollTo({ top: 0 });
     }
 
@@ -32,11 +28,13 @@ export default function BlogPost() {
   // Simple share handler
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: post.title,
-        text: post.description,
-        url: window.location.href,
-      }).catch(() => {});
+      navigator
+        .share({
+          title: post.title,
+          text: post.description,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert('Tengill afritaður í klemmuspjald!');

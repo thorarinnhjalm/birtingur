@@ -298,25 +298,35 @@ export default function AdvertiserLanding() {
               </h4>
               <p className="text-xs text-slate-600 leading-relaxed font-semibold">
                 Kerfið okkar notar 100% lögmæta IP-staðsetningargreiningu (án nokkurra vafrakaka eða
-                notendasporunar). Þegar þú velur <strong>{activeRegion.name}</strong>, greinir kerfið
-                sjálfkrafa lesendur sem koma frá {activeRegion.parentName} og sýnir þeim auglýsinguna
-                þína á okkar íslenska samstarfsneti. Þú ert því aðeins að borga fyrir auglýsingar sem
-                fólk á þínu svæði sér í raun og veru.
+                notendasporunar). Þegar þú velur <strong>{activeRegion.name}</strong>, greinir
+                kerfið sjálfkrafa lesendur sem koma frá {activeRegion.parentName} og sýnir þeim
+                auglýsinguna þína á okkar íslenska samstarfsneti. Þú ert því aðeins að borga fyrir
+                auglýsingar sem fólk á þínu svæði sér í raun og veru.
               </p>
             </div>
 
             {/* Dynamic Local Stats Panel */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Íbúafjöldi ({activeRegion.name})</span>
-                <span className="text-lg font-extrabold text-slate-800">{activeRegion.population.toLocaleString('is-IS')}</span>
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
+                  Íbúafjöldi ({activeRegion.name})
+                </span>
+                <span className="text-lg font-extrabold text-slate-800">
+                  {activeRegion.population.toLocaleString('is-IS')}
+                </span>
               </div>
               <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Áætlaðar flettingar/mán</span>
-                <span className="text-lg font-extrabold text-slate-800">{activeRegion.potentialReach.toLocaleString('is-IS')}+</span>
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
+                  Áætlaðar flettingar/mán
+                </span>
+                <span className="text-lg font-extrabold text-slate-800">
+                  {activeRegion.potentialReach.toLocaleString('is-IS')}+
+                </span>
               </div>
               <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs col-span-2 sm:col-span-1">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Gagnsætt verð</span>
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
+                  Gagnsætt verð
+                </span>
                 <span className="text-lg font-extrabold text-emerald-600">550 kr. CPM</span>
               </div>
             </div>

@@ -4,7 +4,7 @@ import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import { BLOG_POSTS } from '@/lib/blog-data';
 import { updateSEO } from '@/lib/seo';
-import { BookOpen, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { Clock, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function BlogOverview() {
   useEffect(() => {
@@ -36,10 +36,14 @@ export default function BlogOverview() {
             <span>SEO & Vefaukning</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            Fræðslukerfi & <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Handbækur</span>
+            Fræðslukerfi &{' '}
+            <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Handbækur
+            </span>
           </h1>
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-550 leading-relaxed">
-            Hér finnurðu hagnýtar leiðbeiningar og greinar um hvernig þú getur hámarkað árangur vefauglýsinga, aukið tekjur af vefsvæðinu þínu og skilið kökulausa tækni.
+            Hér finnurðu hagnýtar leiðbeiningar og greinar um hvernig þú getur hámarkað árangur
+            vefauglýsinga, aukið tekjur af vefsvæðinu þínu og skilið kökulausa tækni.
           </p>
         </div>
 

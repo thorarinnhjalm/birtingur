@@ -188,17 +188,29 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
               Staðbundnar auglýsingar
             </h4>
             <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-slate-400 font-medium">
-              <a href="/auglysendur/reykjavik" className="hover:text-slate-700 transition">Reykjavík</a>
+              <a href="/auglysendur/reykjavik" className="hover:text-slate-700 transition">
+                Reykjavík
+              </a>
               <span>•</span>
-              <a href="/auglysendur/akureyri" className="hover:text-slate-700 transition">Akureyri</a>
+              <a href="/auglysendur/akureyri" className="hover:text-slate-700 transition">
+                Akureyri
+              </a>
               <span>•</span>
-              <a href="/auglysendur/selfoss" className="hover:text-slate-700 transition">Selfoss</a>
+              <a href="/auglysendur/selfoss" className="hover:text-slate-700 transition">
+                Selfoss
+              </a>
               <span>•</span>
-              <a href="/auglysendur/reykjanesbaer" className="hover:text-slate-700 transition">Reykjanesbær</a>
+              <a href="/auglysendur/reykjanesbaer" className="hover:text-slate-700 transition">
+                Reykjanesbær
+              </a>
               <span>•</span>
-              <a href="/auglysendur/isafjordur" className="hover:text-slate-700 transition">Ísafjörður</a>
+              <a href="/auglysendur/isafjordur" className="hover:text-slate-700 transition">
+                Ísafjörður
+              </a>
               <span>•</span>
-              <a href="/auglysendur/vestmannaeyjar" className="hover:text-slate-700 transition">Eyjar</a>
+              <a href="/auglysendur/vestmannaeyjar" className="hover:text-slate-700 transition">
+                Eyjar
+              </a>
             </div>
           </div>
         </div>
