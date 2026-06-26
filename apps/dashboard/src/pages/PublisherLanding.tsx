@@ -126,11 +126,11 @@ export default function PublisherLanding() {
   useEffect(() => {
     // Dynamic SEO Metadata setup
     const titleText = activeRegion
-      ? `Birtingar á vefsíðu ${activeRegion.dative} | Breyttu vefumferð í tekjur`
-      : 'Birtingar og vefauglýsingar: Breyttu vefumferð þinni í tekjur | Birtingur';
+      ? `Selja auglýsingar á vefsíðu ${activeRegion.dative} | Tekjur af vefnum`
+      : 'Selja auglýsingar á vefsíðu: Breyttu vefumferð í tekjur | Birtingur';
     const descriptionText = activeRegion
-      ? `Ertu með vefsíðu, fréttamiðil eða blogg ${activeRegion.dative}? Birtingur býður upp á einfaldar birtingar og sjálfvirka leið til að breyta heimsóknum í mánaðarlegar tekjur.`
-      : 'Birtingur býður upp á léttasta auglýsingabúnað á markaðnum. Hlutastu til um árangursríkar birtingar á þínum vef og breyttu vefumferð í tekjur með íslenskum auglýsingum á netinu.';
+      ? `Ertu með vefsíðu eða blogg ${activeRegion.dative}? Birtingur gerir þér kleift að sýna vandaðar íslenskar vefauglýsingar og fá 80% tekjuskiptingu. Byrjaðu núna!`
+      : 'Breyttu vefumferðinni þinni í tekjur. Sýndu öruggar, kökulausar íslenskar vefauglýsingar og fáðu 80% af öllum auglýsingatekjum. Sækja skriftu og byrja strax!';
 
     const path = region ? `/midlar/${region.toLowerCase()}` : '/midlar';
     updateSEO(titleText, descriptionText, path);

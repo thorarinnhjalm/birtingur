@@ -15,6 +15,8 @@ import AdvertiserLanding from '@/pages/AdvertiserLanding';
 import PublisherLanding from '@/pages/PublisherLanding';
 import FaqPage from '@/pages/FaqPage';
 import TermsPage from '@/pages/TermsPage';
+import BlogOverview from '@/pages/BlogOverview';
+import BlogPost from '@/pages/BlogPost';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -101,6 +103,8 @@ export default function App() {
       <Route path="/midlar/:region" element={<PublisherLanding />} />
       <Route path="/faq" element={<FaqPage />} />
       <Route path="/skilmalar" element={<TermsPage />} />
+      <Route path="/handbaekur" element={<BlogOverview />} />
+      <Route path="/handbaekur/:slug" element={<BlogPost />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

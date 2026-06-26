@@ -160,7 +160,7 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
             <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-3">
               Þjónusta
             </h4>
-            <ul className="space-y-2 text-xs text-slate-550">
+            <ul className="space-y-2 text-xs text-slate-550 mb-6">
               <li>
                 <button
                   onClick={() => {
@@ -183,6 +183,23 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
                 </button>
               </li>
             </ul>
+
+            <h4 className="text-xs uppercase font-extrabold tracking-wider text-slate-500 mb-2.5">
+              Staðbundnar auglýsingar
+            </h4>
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-slate-400 font-medium">
+              <a href="/auglysendur/reykjavik" className="hover:text-slate-700 transition">Reykjavík</a>
+              <span>•</span>
+              <a href="/auglysendur/akureyri" className="hover:text-slate-700 transition">Akureyri</a>
+              <span>•</span>
+              <a href="/auglysendur/selfoss" className="hover:text-slate-700 transition">Selfoss</a>
+              <span>•</span>
+              <a href="/auglysendur/reykjanesbaer" className="hover:text-slate-700 transition">Reykjanesbær</a>
+              <span>•</span>
+              <a href="/auglysendur/isafjordur" className="hover:text-slate-700 transition">Ísafjörður</a>
+              <span>•</span>
+              <a href="/auglysendur/vestmannaeyjar" className="hover:text-slate-700 transition">Eyjar</a>
+            </div>
           </div>
         </div>
 

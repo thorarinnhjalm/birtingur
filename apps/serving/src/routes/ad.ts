@@ -120,6 +120,7 @@ adRoute.get('/', async (c) => {
       height: size.height,
       impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
       ttl: 60,
+      showBacklink: true,
     });
   }
 
@@ -157,6 +158,7 @@ adRoute.get('/', async (c) => {
     height: creative.height,
     impressionPixel,
     ttl: 30,
+    showBacklink: true,
   });
 });
 

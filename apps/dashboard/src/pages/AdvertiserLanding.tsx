@@ -16,10 +16,17 @@ import {
   Target,
 } from 'lucide-react';
 
-// Icelandic dative & genitive declensions for natural Icelandic SEO text
 const REGIONS: Record<
   string,
-  { name: string; dative: string; genitive: string; parentName: string; regionLabel: string }
+  {
+    name: string;
+    dative: string;
+    genitive: string;
+    parentName: string;
+    regionLabel: string;
+    population: number;
+    potentialReach: number;
+  }
 > = {
   reykjavik: {
     name: 'Reykjavík',
@@ -27,6 +34,8 @@ const REGIONS: Record<
     genitive: 'Reykjavíkur',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 139875,
+    potentialReach: 1200000,
   },
   kopavogur: {
     name: 'Kópavogur',
@@ -34,6 +43,8 @@ const REGIONS: Record<
     genitive: 'Kópavogs',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 39810,
+    potentialReach: 350000,
   },
   hafnarfjordur: {
     name: 'Hafnarfjörður',
@@ -41,6 +52,8 @@ const REGIONS: Record<
     genitive: 'Hafnarfjarðar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 30568,
+    potentialReach: 280000,
   },
   gardabaer: {
     name: 'Garðabær',
@@ -48,6 +61,8 @@ const REGIONS: Record<
     genitive: 'Garðabæjar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 18891,
+    potentialReach: 160000,
   },
   mosfellsbaer: {
     name: 'Mosfellsbær',
@@ -55,6 +70,8 @@ const REGIONS: Record<
     genitive: 'Mosfellsbæjar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 13430,
+    potentialReach: 120000,
   },
   seltjarnarnes: {
     name: 'Seltjarnarnes',
@@ -62,6 +79,8 @@ const REGIONS: Record<
     genitive: 'Seltjarnarness',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
+    population: 4670,
+    potentialReach: 45000,
   },
   akureyri: {
     name: 'Akureyri',
@@ -69,6 +88,8 @@ const REGIONS: Record<
     genitive: 'Akureyrar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 19893,
+    potentialReach: 180000,
   },
   reykjanesbaer: {
     name: 'Reykjanesbær',
@@ -76,6 +97,8 @@ const REGIONS: Record<
     genitive: 'Reykjanesbæjar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 22014,
+    potentialReach: 200000,
   },
   selfoss: {
     name: 'Selfoss',
@@ -83,6 +106,8 @@ const REGIONS: Record<
     genitive: 'Selfoss',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 9600,
+    potentialReach: 90000,
   },
   akranes: {
     name: 'Akranes',
@@ -90,6 +115,8 @@ const REGIONS: Record<
     genitive: 'Akraness',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 7997,
+    potentialReach: 70000,
   },
   isafjordur: {
     name: 'Ísafjörður',
@@ -97,6 +124,8 @@ const REGIONS: Record<
     genitive: 'Ísafjarðar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 2736,
+    potentialReach: 25000,
   },
   egilsstadir: {
     name: 'Egilsstaðir',
@@ -104,6 +133,8 @@ const REGIONS: Record<
     genitive: 'Egilsstaða',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 2572,
+    potentialReach: 22000,
   },
   vestmannaeyjar: {
     name: 'Vestmannaeyjar',
@@ -111,6 +142,8 @@ const REGIONS: Record<
     genitive: 'Vestmannaeyja',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
+    population: 4523,
+    potentialReach: 40000,
   },
 };
 
@@ -125,11 +158,11 @@ export default function AdvertiserLanding() {
   useEffect(() => {
     // Dynamic SEO Metadata setup
     const titleText = activeRegion
-      ? `Auglýsingar á netinu ${activeRegion.dative} | Birtingar á íslenskum vefjum`
-      : 'Auglýsingar á netinu og birtingar á íslenskum vefsíðum | Birtingur';
+      ? `Auglýsa á netinu ${activeRegion.dative} | Einföld birtingaþjónusta`
+      : 'Auglýsa á netinu: Einföld birtingaþjónusta fyrir fyrirtæki | Birtingur';
     const descriptionText = activeRegion
-      ? `Koma á framfæri auglýsingum á netinu og ná til nýrra viðskiptavina ${activeRegion.dative}? Birtingur býður upp á einfaldar birtingar og kökulausar vefauglýsingar.`
-      : 'Birtingur gerir þér kleift að setja upp árangursríkar auglýsingar á netinu. Birtu auglýsingar á vönduðum íslenskum vefsíðum á nokkrum mínútum án flókinna kerfa.';
+      ? `Auglýstu ${activeRegion.dative} og náðu til staðbundinna viðskiptavina. Sjálfvirk og kökulaus birtingaþjónusta án dýrra milliliða. Stofna herferð hér!`
+      : 'Auglýstu á íslenskum vefsíðum á nokkrum mínútum. Engin lágmarksgjöld, engir milliliðir. Prófaðu sjálfvirka og árangursríka birtingaþjónustu fyrir þitt fyrirtæki!';
 
     const path = region ? `/auglysendur/${region.toLowerCase()}` : '/auglysendur';
     updateSEO(titleText, descriptionText, path);
@@ -257,18 +290,36 @@ export default function AdvertiserLanding() {
 
         {/* INTEGRITY AND GEO ACCURACY BOX */}
         {activeRegion && (
-          <section className="p-6 bg-blue-50/40 border border-blue-150 rounded-2xl space-y-3">
-            <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2">
-              <Target size={16} />
-              Hvernig virkar staðsetningin {activeRegion.dative}?
-            </h4>
-            <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-              Kerfið okkar notar 100% lögmæta IP-staðsetningargreiningu (án nokkurra vafrakaka eða
-              notendasporunar). Þegar þú velur <strong>{activeRegion.name}</strong>, greinir kerfið
-              sjálfkrafa lesendur sem koma frá {activeRegion.parentName} og sýnir þeim auglýsinguna
-              þína á okkar íslenska samstarfsneti. Þú ert því aðeins að borga fyrir auglýsingar sem
-              fólk á þínu svæði sér í raun og veru.
-            </p>
+          <section className="space-y-6">
+            <div className="p-6 bg-blue-50/40 border border-blue-150 rounded-2xl space-y-3">
+              <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                <Target size={16} />
+                Hvernig virkar staðsetningin {activeRegion.dative}?
+              </h4>
+              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                Kerfið okkar notar 100% lögmæta IP-staðsetningargreiningu (án nokkurra vafrakaka eða
+                notendasporunar). Þegar þú velur <strong>{activeRegion.name}</strong>, greinir kerfið
+                sjálfkrafa lesendur sem koma frá {activeRegion.parentName} og sýnir þeim auglýsinguna
+                þína á okkar íslenska samstarfsneti. Þú ert því aðeins að borga fyrir auglýsingar sem
+                fólk á þínu svæði sér í raun og veru.
+              </p>
+            </div>
+
+            {/* Dynamic Local Stats Panel */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Íbúafjöldi ({activeRegion.name})</span>
+                <span className="text-lg font-extrabold text-slate-800">{activeRegion.population.toLocaleString('is-IS')}</span>
+              </div>
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Áætlaðar flettingar/mán</span>
+                <span className="text-lg font-extrabold text-slate-800">{activeRegion.potentialReach.toLocaleString('is-IS')}+</span>
+              </div>
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs col-span-2 sm:col-span-1">
+                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">Gagnsætt verð</span>
+                <span className="text-lg font-extrabold text-emerald-600">550 kr. CPM</span>
+              </div>
+            </div>
           </section>
         )}
 

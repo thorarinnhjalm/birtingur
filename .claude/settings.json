@@ -11,7 +11,12 @@
       "Bash(vercel whoami *)",
       "Bash(npx skills *)",
       "Bash(pnpm --filter @ada/serving test -- tests/click-impression.test.ts)",
-      "Bash(pnpm format:check)"
+      "Bash(pnpm format:check)",
+      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada status)",
+      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada diff)",
+      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada add CLAUDE.md apps/serving/src/lib/analytics.ts)",
+      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada commit -m ' *)",
+      "Bash(git -C /Users/thorarinnhjalmarsson/Documents/Antigravity/ada push origin main)"
     ]
   }
 }

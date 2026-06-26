@@ -19,8 +19,14 @@ export default function FaqPage() {
     () => [
       // Pillar 1: Auglýsendur & Herferðir
       {
+        q: 'Hver er munurinn á Birtingi og hefðbundnu birtingahúsi (birtingaþjónustu)?',
+        a: 'Hefðbundið birtingahús (fjölmiðlaumboð) starfar sem milliliður sem stýrir auglýsingakaupum handvirkt, tekur háa þóknun og krefst oft mikilla lágmarksfjárhæða. Birtingur er hins vegar sjálfvirkt sjálfsafgreiðslukerfi á netinu. Þú stofnar herferð á 3 mínútum, velur þína flokka/landshluta og greiðir aðeins fast, lágt verð per 1.000 sýningar (CPM) án allra milliliða eða flókinna samninga.',
+        pillar: 'advertiser',
+        tags: ['birtingahús', 'birtingaþjónusta', 'samanburður', 'milliliðir'],
+      },
+      {
         q: 'Hvernig stofna ég herferð og birti auglýsingar á netinu?',
-        a: 'Að auglýsa á netinu með Birtingi er einstaklega einfalt. Þú stofnar herferð á 3 mínútum: <ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang og skráðu þig som auglýsanda.</li><li>Hladdu upp auglýsingaborða (PNG, JPEG eða WebP) og settu inn lendingarsíðu.</li><li>Veldu markflokka (t.d. matur, lífsstíll) og landsvæði.</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
+        a: 'Að auglýsa á netinu með Birtingi er einstaklega einfalt. Þú stofnar herferð á 3 mínútum: <ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang og skráðu þig sem auglýsanda.</li><li>Hladdu upp auglýsingaborða (PNG, JPEG eða WebP) og settu inn lendingarsíðu.</li><li>Veldu markflokka (t.d. matur, lífsstíll) og landsvæði.</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
         pillar: 'advertiser',
         tags: ['auglýsingar', 'herferð', 'skref', 'stofna'],
       },
@@ -98,9 +104,9 @@ export default function FaqPage() {
 
   // Dynamic SEO Metadata setup
   useEffect(() => {
-    const titleText = 'Algengar spurningar | Birtingur — Auglýsingar á netinu';
+    const titleText = 'Algengar spurningar um vefauglýsingar og birtingaþjónustu | Birtingur';
     const descriptionText =
-      'Fáðu svör við algengum spurningum um birtingar, auglýsingar á netinu, greiðslur og hvernig þú getur grætt á vefnum þínum með Birtingi.';
+      'Svör við helstu spurningum um hvernig á að auglýsa á netinu á íslenskum vefsíðum eða græða á eigin vefsíðu með sjálfvirku birtingakerfi. Kynntu þér málið!';
 
     updateSEO(titleText, descriptionText, '/faq');
 

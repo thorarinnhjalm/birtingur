@@ -9,4 +9,5 @@ export interface AdResponse {
   height?: number;
   impressionPixel?: string;
   ttl?: number;
+  showBacklink?: boolean;
 }

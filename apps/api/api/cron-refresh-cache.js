@@ -7,9 +7,16 @@ export async function GET(req) {
     return new Response('forbidden', { status: 403 });
   }
 
-  const refreshed = await refreshAllActiveSlotCaches();
-
-  return new Response(JSON.stringify({ refreshed }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  try {
+    const refreshed = await refreshAllActiveSlotCaches();
+    return new Response(JSON.stringify({ refreshed }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    console.error('[cron-refresh-cache] Failed:', err);
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }

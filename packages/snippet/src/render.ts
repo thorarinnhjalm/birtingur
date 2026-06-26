@@ -103,5 +103,27 @@ export function renderAd(el: HTMLElement, ad: AdResponse): void {
 
     a.appendChild(img);
     el.appendChild(a);
+
+    if (ad.showBacklink) {
+      const linkDiv = document.createElement('div');
+      linkDiv.style.textAlign = 'right';
+      linkDiv.style.marginTop = '3px';
+      linkDiv.style.lineHeight = '1';
+
+      const backlink = document.createElement('a');
+      backlink.href = 'https://www.birtingur.app?utm_source=widget';
+      backlink.target = '_blank';
+      backlink.rel = 'noopener';
+      backlink.textContent = 'Auglýsa hér ↗';
+      backlink.style.fontSize = '9px';
+      backlink.style.color = '#a1a1aa'; // zinc-400
+      backlink.style.textDecoration = 'none';
+      backlink.style.fontFamily = 'sans-serif';
+      backlink.style.display = 'inline-block';
+      backlink.style.opacity = '0.7';
+
+      linkDiv.appendChild(backlink);
+      el.appendChild(linkDiv);
+    }
   }
 }

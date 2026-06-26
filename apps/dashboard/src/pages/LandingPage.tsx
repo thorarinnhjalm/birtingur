@@ -30,9 +30,9 @@ export default function LandingPage() {
 
   // Dynamic SEO Metadata setup
   useEffect(() => {
-    const titleText = 'Birtingur — Einfaldar auglýsingar á netinu og birtingar | birtingur.app';
+    const titleText = 'Birtingur — Einföld birtingaþjónusta og auglýsingar á netinu';
     const descriptionText =
-      'Birtingur (birtingur.app) er sjálfvirkur, einfaldur og persónuverndarvænn vettvangur sem sérhæfir sig í árangursríkum auglýsingum á netinu og hröðum birtingum.';
+      'Viltu auglýsa á netinu eða selja auglýsingapláss? Birtingur er sjálfvirk og kökulaus birtingaþjónusta fyrir íslenskar vefauglýsingar. Stofnaðu herferð á 3 mín!';
 
     updateSEO(titleText, descriptionText, '');
 
