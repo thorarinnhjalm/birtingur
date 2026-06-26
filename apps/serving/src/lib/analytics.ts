@@ -45,9 +45,10 @@ export async function getRemainingBudgets(campaignIds: string[]): Promise<Record
   const vals = await redis.mget<(number | null)[]>(...campaignIds.map((id) => `budget:${id}`));
   const out: Record<string, number> = {};
   campaignIds.forEach((id, i) => {
-    // Treat null/undefined as Infinity (not seeded yet)
+    // Treat null/undefined as 0 (fail-closed): a missing key means the budget counter
+    // was never seeded or expired — don't serve until the next cron refresh restores it.
     const val = vals[i];
-    out[id] = val != null ? Number(val) : Number.POSITIVE_INFINITY;
+    out[id] = val != null ? Number(val) : 0;
   });
   return out;
 }
