@@ -106,6 +106,21 @@ adRoute.get('/', async (c) => {
     c.header('Cache-Control', 'private, no-store');
 
     const ts = Date.now();
+
+    if ((slot as any).fallbackType === 'transparent') {
+      const signature = createSignature('cre_fallback_transparent', slotId, token, ts);
+      return c.json({
+        creativeId: 'cre_fallback_transparent',
+        imageUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+        clickUrl: '',
+        width: size.width,
+        height: size.height,
+        impressionPixel: `/v1/impression?c=cre_fallback_transparent&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
+        ttl: 60,
+        showBacklink: false,
+      });
+    }
+
     const signature = createSignature('cre_fallback_birtingur', slotId, token, ts);
     const clickUrl =
       `/v1/click?c=cre_fallback_birtingur` +
@@ -118,7 +133,7 @@ adRoute.get('/', async (c) => {
       clickUrl,
       width: size.width,
       height: size.height,
-      impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
+      impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
       ttl: 60,
       showBacklink: true,
     });

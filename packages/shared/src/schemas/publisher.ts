@@ -98,5 +98,6 @@ export const SlotSchema = z.object({
   pricing: PricingSchema,
   placement: PlacementSchema,
   status: SlotStatusSchema,
+  fallbackType: z.enum(['house_ad', 'transparent']).default('house_ad'),
 });
 export type Slot = z.infer<typeof SlotSchema>;

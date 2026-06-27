@@ -30,6 +30,13 @@ vi.mock('../src/lib/cache', () => ({
   getSlotCache: vi.fn(async (id: string) => {
     if (id === 'slot_a') return mockSlot;
     if (id === 'slot_empty') return { ...mockSlot, slotId: 'slot_empty', activeCreatives: [] };
+    if (id === 'slot_transparent_empty')
+      return {
+        ...mockSlot,
+        slotId: 'slot_transparent_empty',
+        fallbackType: 'transparent',
+        activeCreatives: [],
+      };
     return null;
   }),
   pushSlotCache: vi.fn(),
@@ -96,6 +103,22 @@ describe('GET /v1/ad', () => {
     expect(body.width).toBe(728);
     expect(body.height).toBe(90);
     expect(body.clickUrl).toContain('/v1/click?c=cre_fallback_birtingur');
+    expect(body.impressionPixel).toContain('type=pageview');
+  });
+
+  it('returns transparent fallback when fallbackType is transparent and no matching creatives', async () => {
+    const res = await app.request('/v1/ad?slot=slot_transparent_empty&consent=none');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_transparent');
+    expect(body.imageUrl).toBe(
+      'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    expect(body.clickUrl).toBe('');
+    expect(body.width).toBe(728);
+    expect(body.height).toBe(90);
+    expect(body.showBacklink).toBe(false);
+    expect(body.impressionPixel).toContain('c=cre_fallback_transparent');
     expect(body.impressionPixel).toContain('type=pageview');
   });
 

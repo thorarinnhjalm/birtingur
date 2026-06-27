@@ -16,6 +16,7 @@ export default function SlotCreate() {
   const [selectedSizes, setSelectedSizes] = useState<Array<{ width: number; height: number }>>([]);
   const [categories, _setCategories] = useState<string[]>([]);
   const [autoApprove, setAutoApprove] = useState(true);
+  const [fallbackType, setFallbackType] = useState<'house_ad' | 'transparent'>('house_ad');
   const [selectedPublisherId, setSelectedPublisherId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -88,6 +89,7 @@ export default function SlotCreate() {
           categories: categories.length > 0 ? categories : undefined,
         },
         autoApprove,
+        fallbackType,
       });
       navigate('/publisher');
     } catch (e: unknown) {
@@ -290,6 +292,26 @@ export default function SlotCreate() {
               disabled={createSlotMutation.isPending}
               className="w-5 h-5 accent-primary cursor-pointer"
             />
+          </div>
+
+          {/* Fallback Type Selector */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Val þegar engin herferð finnst (Fallback) *
+            </label>
+            <select
+              value={fallbackType}
+              onChange={(e) => setFallbackType(e.target.value as 'house_ad' | 'transparent')}
+              disabled={createSlotMutation.isPending}
+              className="w-full rounded-lg border border-slate-200 p-2.5 text-xs bg-white font-bold text-slate-800 focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+            >
+              <option value="house_ad">
+                Kynna kerfið með sjálfgefnum auglýsingaborða (Birtingur Húsaauglýsing)
+              </option>
+              <option value="transparent">
+                Fela auglýsingaplássið alveg og gera það ósýnilegt (Gagnsætt fallback)
+              </option>
+            </select>
           </div>
 
           {error && (

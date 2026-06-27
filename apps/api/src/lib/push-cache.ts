@@ -75,6 +75,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
       activeCreatives: [],
       blockedCategories: blockedSensitiveCategories(publisher),
       refreshedAt: Date.now(),
+      fallbackType: slot.fallbackType,
     };
     await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });
     return;
@@ -237,6 +238,7 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     activeCreatives,
     blockedCategories,
     refreshedAt: Date.now(),
+    fallbackType: slot.fallbackType,
   };
 
   await redis.set(key(slotId), entry, { ex: SLOT_CACHE_TTL_SECONDS });

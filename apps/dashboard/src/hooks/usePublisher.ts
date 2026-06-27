@@ -75,6 +75,7 @@ export function useCreateSlot() {
         categories?: string[];
       };
       autoApprove: boolean;
+      fallbackType?: 'house_ad' | 'transparent';
     }) =>
       apiFetch<Slot>('/v1/publishers/me/slots', {
         method: 'POST',

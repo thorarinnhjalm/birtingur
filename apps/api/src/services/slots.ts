@@ -17,6 +17,7 @@ export async function createSlot(input: {
   sizes: any[];
   pricing: any;
   placement: any;
+  fallbackType?: 'house_ad' | 'transparent';
 }): Promise<Slot> {
   const id = generateId('slot');
   // Normalize pricing: frontend uses type/amountIsk, backend expects mode/cpmIsk (or slot/slotPriceIsk/slotPeriodDays)
@@ -47,6 +48,7 @@ export async function createSlot(input: {
     pricing,
     placement: input.placement || { pageMatcher: '/*', position: 'sidebar' as const },
     status: 'active' as const,
+    fallbackType: input.fallbackType || 'house_ad',
   };
 
   const validated = SlotSchema.parse(slotData);

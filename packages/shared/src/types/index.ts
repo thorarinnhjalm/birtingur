@@ -54,4 +54,5 @@ export interface SlotCacheEntry {
   activeCreatives: CachedCreative[];
   blockedCategories: string[];
   refreshedAt: number;
+  fallbackType?: 'house_ad' | 'transparent';
 }
