@@ -54,23 +54,48 @@ async function getSystemImpressionsLast7Days(): Promise<number> {
 
 export async function getAdvertiserStats(
   advertiserId: string,
-  timeframeDays: number = 7,
+  options?: number | { timeframeDays?: number; startDate?: string; endDate?: string },
 ): Promise<AdvertiserStatsResponse> {
   const campaigns = await listCampaignsForAdvertiser(advertiserId);
   const now = new Date();
   const systemImpressions7d = await getSystemImpressionsLast7Days();
 
+  let timeframeDays = 7;
+  let startDateStr: string | undefined;
+  let endDateStr: string | undefined;
+
+  if (typeof options === 'number') {
+    timeframeDays = options;
+  } else if (options) {
+    timeframeDays = options.timeframeDays ?? 7;
+    startDateStr = options.startDate;
+    endDateStr = options.endDate;
+  }
+
   // Initialize days map for historical roll-up
   const dailyMap = new Map<string, { impressions: number; clicks: number; spendIsk: number }>();
   const historyDays: string[] = [];
 
-  for (let i = timeframeDays - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0]!; // YYYY-MM-DD
-    const dk = dateStr.replace(/-/g, ''); // YYYYMMDD
-    dailyMap.set(dk, { impressions: 0, clicks: 0, spendIsk: 0 });
-    historyDays.push(dateStr);
+  if (startDateStr && endDateStr) {
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    const current = new Date(start);
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0]!;
+      const dk = dateStr.replace(/-/g, '');
+      dailyMap.set(dk, { impressions: 0, clicks: 0, spendIsk: 0 });
+      historyDays.push(dateStr);
+      current.setDate(current.getDate() + 1);
+    }
+  } else {
+    for (let i = timeframeDays - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0]!; // YYYY-MM-DD
+      const dk = dateStr.replace(/-/g, ''); // YYYYMMDD
+      dailyMap.set(dk, { impressions: 0, clicks: 0, spendIsk: 0 });
+      historyDays.push(dateStr);
+    }
   }
 
   let totalImpressions = 0;
@@ -112,18 +137,15 @@ export async function getAdvertiserStats(
   if (!hasRealData && isDevOrEmulator) {
     const history: AdvertiserStatsResponse['history'] = [];
 
-    for (let i = timeframeDays - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0]!;
-
+    for (const dateStr of historyDays) {
+      const d = new Date(dateStr);
       const dayOfWeek = d.getDay();
       const baseImpressions =
-        8000 + Math.floor(Math.sin(i * 0.8) * 3000) + Math.floor(Math.random() * 1500);
+        8000 + Math.floor(Math.sin(d.getDate() * 0.8) * 3000) + Math.floor(Math.random() * 1500);
       const multiplier = dayOfWeek === 0 || dayOfWeek === 6 ? 0.75 : 1.0;
       const dayImpressions = Math.floor(baseImpressions * multiplier);
 
-      const ctr = 0.022 + Math.sin(i * 0.5) * 0.004 + Math.random() * 0.005;
+      const ctr = 0.022 + Math.sin(d.getDate() * 0.5) * 0.004 + Math.random() * 0.005;
       const dayClicks = Math.floor(dayImpressions * ctr);
       const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
 

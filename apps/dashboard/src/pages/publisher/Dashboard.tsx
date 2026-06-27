@@ -48,6 +48,44 @@ function PublisherHome() {
   });
   const navigate = useNavigate();
 
+  const downloadSlotsCsv = () => {
+    if (!slots || slots.length === 0 || !publishers) return;
+    let csvContent = '\uFEFF'; // Add BOM for Excel UTF-8 compatibility
+    csvContent += 'Pláss,Lén,Stærðir,Staða,Birtingar,Smellir,CTR,Áætlaðar Tekjur\n';
+
+    for (const pub of publishers) {
+      const pubSlots = (slots as any[]).filter((s: any) => s.publisherId === pub.id) || [];
+      for (const s of pubSlots) {
+        const name = `"${s.name.replace(/"/g, '""')}"`;
+        const domain = pub.domain;
+        const sizes = `"${s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}"`;
+        const status = s.status === 'active' ? 'Virk' : 'Óvirk';
+        const impressions = s.stats ? s.stats.impressions : 0;
+        const clicks = s.stats ? s.stats.clicks : 0;
+        const ctr =
+          s.stats && s.stats.impressions > 0
+            ? `${((s.stats.clicks / s.stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
+            : '0,00%';
+        const earnings = s.stats ? Math.round(s.stats.spendIsk * 0.8) : 0;
+
+        csvContent += `${name},${domain},${sizes},${status},${impressions},${clicks},${ctr},${earnings} kr.\n`;
+      }
+    }
+
+    const blob = new window.Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `birtingur_ad_slots_${new Date().toISOString().split('T')[0]}.csv`,
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (isPubsLoading || isSlotsLoading) return <LoadingState />;
 
   if (!publishers || publishers.length === 0) {
@@ -383,7 +421,11 @@ function PublisherHome() {
             <button className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer bg-white">
               <span className="material-symbols-outlined text-[20px]">filter_list</span>
             </button>
-            <button className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer bg-white">
+            <button
+              onClick={downloadSlotsCsv}
+              className="p-2 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer bg-white"
+              title="Sækja CSV skýrslu"
+            >
               <span className="material-symbols-outlined text-[20px]">download</span>
             </button>
           </div>
@@ -489,13 +531,23 @@ function PublisherHome() {
                             </span>
                           </td>
                           <td className="px-4 sm:px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
-                              ></span>
-                              <span className="text-body-md font-medium">
-                                {s.status === 'active' ? 'Virk' : 'Óvirk'}
-                              </span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`w-2.5 h-2.5 rounded-full ${s.status === 'active' ? 'bg-green-500' : 'bg-slate-400'}`}
+                                ></span>
+                                <span className="text-body-md font-medium">
+                                  {s.status === 'active' ? 'Virk' : 'Óvirk'}
+                                </span>
+                              </div>
+                              {s.status === 'active' && (!s.stats || s.stats.pageviews === 0) && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-bold border border-amber-100 w-fit">
+                                  <span className="material-symbols-outlined text-[12px]">
+                                    warning
+                                  </span>
+                                  Engin virkni greind
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 sm:px-5 py-4 text-right text-body-md text-on-surface font-semibold">

@@ -53,8 +53,17 @@ advertisersRouter.get('/me/stats', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const queryTimeframe = c.req.query('timeframe');
-  const timeframe = queryTimeframe === '30' ? 30 : 7;
-  const stats = await getAdvertiserStats(adv.id, timeframe);
+  const startDate = c.req.query('startDate');
+  const endDate = c.req.query('endDate');
+
+  let stats;
+  if (startDate && endDate) {
+    stats = await getAdvertiserStats(adv.id, { startDate, endDate });
+  } else {
+    const parsedTimeframe = queryTimeframe ? parseInt(queryTimeframe, 10) : 7;
+    const timeframe = isNaN(parsedTimeframe) ? 7 : parsedTimeframe;
+    stats = await getAdvertiserStats(adv.id, { timeframeDays: timeframe });
+  }
   return c.json(stats);
 });
 

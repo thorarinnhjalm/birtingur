@@ -123,7 +123,19 @@ campaignsRouter.get('/:id/stats', async (c) => {
   if (cmp.advertiserId !== adv.id) {
     throw new AppError(403, 'Forbidden', 'FORBIDDEN');
   }
-  const stats = await getCampaignStats(id);
+
+  const queryTimeframe = c.req.query('timeframe');
+  const startDate = c.req.query('startDate');
+  const endDate = c.req.query('endDate');
+
+  let stats;
+  if (startDate && endDate) {
+    stats = await getCampaignStats(id, { startDate, endDate });
+  } else {
+    const parsedTimeframe = queryTimeframe ? parseInt(queryTimeframe, 10) : 30;
+    const timeframeDays = isNaN(parsedTimeframe) ? 30 : parsedTimeframe;
+    stats = await getCampaignStats(id, timeframeDays * 24);
+  }
   return c.json(stats);
 });
 

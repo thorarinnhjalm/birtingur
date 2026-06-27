@@ -51,8 +51,18 @@ const REGION_LABELS: Record<string, string> = {
 export default function CampaignDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const [datePreset, setDatePreset] = useState<'7' | '30' | '90' | 'custom'>('30');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [activeRange, setActiveRange] = useState<{
+    timeframeDays?: number;
+    startDate?: string;
+    endDate?: string;
+  }>({ timeframeDays: 30 });
+
   const { data: campaign, isLoading, isError, refetch } = useCampaign(id);
-  const { data: stats, isLoading: isStatsLoading } = useCampaignStats(id);
+  const { data: stats, isLoading: isStatsLoading } = useCampaignStats(id, activeRange);
 
   // Fetch advertiser creatives and bulk stats
   const { data: advertiserCreatives } = useQuery({
@@ -319,6 +329,91 @@ export default function CampaignDetail() {
         </div>
       )}
 
+      {/* Date Range Selector & eCPC/eCPM Quick Widget */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            Tímabil skýrslu
+          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              {(['7', '30', '90', 'custom'] as const).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => {
+                    setDatePreset(preset);
+                    if (preset !== 'custom') {
+                      setActiveRange({ timeframeDays: parseInt(preset, 10) });
+                    }
+                  }}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                    datePreset === preset
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {preset === 'custom' ? 'Sérsniðið' : `${preset} dagar`}
+                </button>
+              ))}
+            </div>
+
+            {datePreset === 'custom' && (
+              <div className="flex items-center gap-1.5 animate-fade-in bg-slate-50 border border-slate-200 p-1 rounded-lg">
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="bg-transparent border-none text-[10px] font-bold text-slate-700 focus:outline-none p-0.5"
+                />
+                <span className="text-[10px] text-slate-400 font-bold">til</span>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="bg-transparent border-none text-[10px] font-bold text-slate-700 focus:outline-none p-0.5"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customStart && customEnd) {
+                      setActiveRange({ startDate: customStart, endDate: customEnd });
+                    }
+                  }}
+                  disabled={!customStart || !customEnd}
+                  className="bg-primary text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md hover:bg-primary-dim transition cursor-pointer disabled:opacity-50"
+                >
+                  Sækja
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          <div className="bg-slate-50 border border-slate-100 px-4 py-2 rounded-lg">
+            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">
+              Herferð eCPC
+            </span>
+            <span className="text-sm font-black text-slate-900 mt-0.5 block">
+              {stats && stats.clicks > 0
+                ? formatIsk(Math.round((stats.spendIsk || 0) / stats.clicks))
+                : '0 kr.'}
+            </span>
+          </div>
+          <div className="bg-slate-50 border border-slate-100 px-4 py-2 rounded-lg">
+            <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">
+              Herferð eCPM
+            </span>
+            <span className="text-sm font-black text-slate-900 mt-0.5 block">
+              {stats && stats.impressions > 0
+                ? formatIsk(Math.round(((stats.spendIsk || 0) / stats.impressions) * 1000))
+                : '0 kr.'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Dashboard KPI cards */}
       <div className="grid sm:grid-cols-3 gap-6">
         <Card className="p-5">
@@ -476,13 +571,14 @@ export default function CampaignDetail() {
                   <th className="py-2.5">Birtingar</th>
                   <th className="py-2.5">Smellir</th>
                   <th className="py-2.5">CTR</th>
+                  <th className="py-2.5 text-right">eCPC</th>
                   <th className="py-2.5 text-right">Eytt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {campaignCreatives.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
                       Engar auglýsingar tengdar herferðinni.
                     </td>
                   </tr>
@@ -498,6 +594,8 @@ export default function CampaignDetail() {
                       cStats.impressions > 0
                         ? Math.min(100, (cStats.clicks / cStats.impressions) * 100)
                         : 0;
+                    const ecpc =
+                      cStats.clicks > 0 ? formatIsk(Math.round(spendIsk / cStats.clicks)) : '0 kr.';
                     return (
                       <tr key={creative.id} className="hover:bg-slate-50/50">
                         <td
@@ -510,6 +608,7 @@ export default function CampaignDetail() {
                         <td className="py-3">{cStats.impressions.toLocaleString('is-IS')}</td>
                         <td className="py-3">{cStats.clicks.toLocaleString('is-IS')}</td>
                         <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
+                        <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
                         <td className="py-3 text-right">{formatIsk(spendIsk)}</td>
                       </tr>
                     );
@@ -633,13 +732,14 @@ export default function CampaignDetail() {
                   <th className="py-2.5">Birtingar</th>
                   <th className="py-2.5">Smellir</th>
                   <th className="py-2.5">CTR</th>
+                  <th className="py-2.5 text-right">eCPC</th>
                   <th className="py-2.5 text-right">Eytt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {!stats?.byPublisher || Object.keys(stats.byPublisher).length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-slate-400">
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
                       Engar birtingar eða smellir skráðir eftir birtingavettvangi enn sem komið er.
                     </td>
                   </tr>
@@ -652,6 +752,8 @@ export default function CampaignDetail() {
                         pub.impressions > 0
                           ? Math.min(100, (pub.clicks / pub.impressions) * 100)
                           : 0;
+                      const ecpc =
+                        pub.clicks > 0 ? formatIsk(Math.round(pub.spendIsk / pub.clicks)) : '0 kr.';
                       return (
                         <tr key={pub.id} className="hover:bg-slate-50/50">
                           <td className="py-3">
@@ -661,6 +763,7 @@ export default function CampaignDetail() {
                           <td className="py-3">{pub.impressions.toLocaleString('is-IS')}</td>
                           <td className="py-3">{pub.clicks.toLocaleString('is-IS')}</td>
                           <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
+                          <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
                           <td className="py-3 text-right">{formatIsk(pub.spendIsk)}</td>
                         </tr>
                       );

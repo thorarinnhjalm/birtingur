@@ -21,20 +21,50 @@ export interface CampaignStatsResponse {
 
 export async function getCampaignStats(
   campaignId: string,
-  hours = 24 * 30,
+  options?: number | { hours?: number; startDate?: string; endDate?: string },
 ): Promise<CampaignStatsResponse> {
   const out: CampaignStatsResponse['hours'] = [];
   let impressions = 0;
   let clicks = 0;
   const now = new Date();
 
-  // Compute minimum hour key to filter in memory
-  const minDate = new Date(now.getTime() - hours * 3600_000);
+  let hours = 24 * 30;
+  let startDateStr: string | undefined;
+  let endDateStr: string | undefined;
+
+  if (typeof options === 'number') {
+    hours = options;
+  } else if (options) {
+    hours = options.hours ?? 24 * 30;
+    startDateStr = options.startDate;
+    endDateStr = options.endDate;
+  }
+
+  let minDate = new Date(now.getTime() - hours * 3600_000);
+  let maxDate = now;
+  let hoursCount = hours;
+
+  if (startDateStr && endDateStr) {
+    minDate = new Date(startDateStr);
+    minDate.setUTCHours(0, 0, 0, 0);
+
+    maxDate = new Date(endDateStr);
+    maxDate.setUTCHours(23, 59, 59, 999);
+
+    hoursCount = Math.ceil((maxDate.getTime() - minDate.getTime()) / 3600_000);
+  }
+
   const minHk =
     minDate.getUTCFullYear().toString() +
     String(minDate.getUTCMonth() + 1).padStart(2, '0') +
     String(minDate.getUTCDate()).padStart(2, '0') +
     String(minDate.getUTCHours()).padStart(2, '0');
+
+  const maxHk =
+    maxDate.getUTCFullYear().toString() +
+    String(maxDate.getUTCMonth() + 1).padStart(2, '0') +
+    String(maxDate.getUTCDate()).padStart(2, '0') +
+    String(maxDate.getUTCHours()).padStart(2, '0');
 
   // Fetch all documents from the subcollection in a single request
   const snap = await db.collection(`${COLLECTIONS.stats}/campaigns/${campaignId}`).get();
@@ -45,7 +75,7 @@ export async function getCampaignStats(
   >();
   for (const doc of snap.docs) {
     const hk = doc.id;
-    if (hk >= minHk) {
+    if (hk >= minHk && hk <= maxHk) {
       const data = doc.data();
       statsMap.set(hk, {
         impressions: (data.impressions as number) ?? 0,
@@ -60,8 +90,8 @@ export async function getCampaignStats(
     { impressions: number; clicks: number; spendIsk: number }
   > = {};
 
-  for (let i = 0; i < hours; i++) {
-    const d = new Date(now.getTime() - i * 3600_000);
+  for (let i = 0; i < hoursCount; i++) {
+    const d = new Date(maxDate.getTime() - i * 3600_000);
     const hk =
       d.getUTCFullYear().toString() +
       String(d.getUTCMonth() + 1).padStart(2, '0') +

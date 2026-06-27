@@ -105,6 +105,40 @@ export default function SlotDetail() {
         </div>
       </div>
 
+      {/* Integration Status Card */}
+      {slot.status === 'active' && (
+        <>
+          {!slotStats || slotStats.pageviews === 0 ? (
+            <div className="p-5 flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm animate-fade-in text-xs font-semibold text-slate-700">
+              <span className="material-symbols-outlined text-amber-600 text-[24px] shrink-0">
+                warning
+              </span>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-900 text-sm">Samþættingu ekki lokið</h4>
+                <p className="leading-relaxed text-slate-500 font-medium">
+                  Við höfum ekki greint neinar beiðnir (pageviews) á þessu auglýsingaplássi ennþá.
+                  Gakktu úr skugga um að þú hafir fellt inn HTML kóðabútinn rétt á síðuna þína og að
+                  hún sé að fá umferð.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-5 flex items-start gap-4 bg-green-50/50 border border-green-200 rounded-xl shadow-sm animate-fade-in text-xs font-semibold text-slate-700">
+              <span className="material-symbols-outlined text-green-600 text-[24px] shrink-0">
+                check_circle
+              </span>
+              <div className="space-y-1">
+                <h4 className="font-bold text-slate-900 text-sm">Samþætting virk og heilbrigð</h4>
+                <p className="leading-relaxed text-slate-500 font-medium">
+                  Tengingin er virk! Plássið er að fá beiðnir og auglýsingar birtast sjálfkrafa
+                  þegar herferðir passa við síðuna þína.
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Mælikvarðar (Stats Cards) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 flex items-center gap-5 shadow-sm">

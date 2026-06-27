@@ -42,10 +42,31 @@ export interface CampaignStatsResponse {
   >;
 }
 
-export function useCampaignStats(id: string | undefined) {
+export function useCampaignStats(
+  id: string | undefined,
+  options?: { timeframeDays?: number; startDate?: string; endDate?: string },
+) {
+  const timeframeDays = options?.timeframeDays;
+  const startDate = options?.startDate;
+  const endDate = options?.endDate;
+
   return useQuery({
-    queryKey: ['campaigns', id, 'stats'],
-    queryFn: () => apiFetch<CampaignStatsResponse>(`/v1/campaigns/${id}/stats`),
+    queryKey: ['campaigns', id, 'stats', { timeframeDays, startDate, endDate }],
+    queryFn: () => {
+      let url = `/v1/campaigns/${id}/stats`;
+      const params = new URLSearchParams();
+      if (startDate && endDate) {
+        params.set('startDate', startDate);
+        params.set('endDate', endDate);
+      } else if (timeframeDays) {
+        params.set('timeframe', timeframeDays.toString());
+      }
+      const qStr = params.toString();
+      if (qStr) {
+        url += `?${qStr}`;
+      }
+      return apiFetch<CampaignStatsResponse>(url);
+    },
     enabled: !!id,
   });
 }

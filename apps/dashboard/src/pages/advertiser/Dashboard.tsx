@@ -13,15 +13,6 @@ import { formatIsk } from '@/lib/format';
 import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  CartesianGrid,
-} from 'recharts';
 
 import TopUp from './TopUp';
 import CampaignCreate from './CampaignCreate';
@@ -45,13 +36,33 @@ interface StatsResponse {
 }
 
 function AdvertiserHome() {
-  const [timeframe, setTimeframe] = useState<7 | 30>(30);
+  const [datePreset, setDatePreset] = useState<'7' | '30' | '90' | 'custom'>('30');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [activeRange, setActiveRange] = useState<{
+    timeframe?: number;
+    startDate?: string;
+    endDate?: string;
+  }>({ timeframe: 30 });
+
   const { data: advertiser, isLoading: isAdvLoading } = useAdvertiser();
   const { data: wallet, isLoading: isWalletLoading } = useWallet(!!advertiser);
   const { data: campaigns, isLoading: isCampaignsLoading } = useCampaigns(!!advertiser);
   const { data: stats } = useQuery<StatsResponse>({
-    queryKey: ['advertiser', 'stats', timeframe],
-    queryFn: () => apiFetch<StatsResponse>(`/v1/advertisers/me/stats?timeframe=${timeframe}`),
+    queryKey: ['advertiser', 'stats', activeRange],
+    queryFn: () => {
+      let url = '/v1/advertisers/me/stats';
+      const params = new URLSearchParams();
+      if (activeRange.startDate && activeRange.endDate) {
+        params.set('startDate', activeRange.startDate);
+        params.set('endDate', activeRange.endDate);
+      } else if (activeRange.timeframe) {
+        params.set('timeframe', activeRange.timeframe.toString());
+      }
+      const qStr = params.toString();
+      if (qStr) url += `?${qStr}`;
+      return apiFetch<StatsResponse>(url);
+    },
     enabled: !!advertiser,
   });
 
@@ -62,32 +73,42 @@ function AdvertiserHome() {
       setLiveSystemImpressions(stats.systemImpressions7d);
     }
   }, [stats?.systemImpressions7d]);
-  const { data: bulkCreativeStats } = useBulkCreativeStats(!!advertiser);
   const navigate = useNavigate();
 
   // Compute percentage changes from stats.history (compare last 7 days vs previous 7 days)
   const pctChanges = useMemo(() => {
     if (!stats?.history || stats.history.length < 2)
-      return { impressions: null, clicks: null, ctr: null };
+      return { impressions: null, clicks: null, ctr: null, ecpc: null, ecpm: null };
     const half = Math.floor(stats.history.length / 2);
     const recent = stats.history.slice(half);
     const older = stats.history.slice(0, half);
-    const sumRecent = { imp: 0, clk: 0 };
-    const sumOlder = { imp: 0, clk: 0 };
+    const sumRecent = { imp: 0, clk: 0, spend: 0 };
+    const sumOlder = { imp: 0, clk: 0, spend: 0 };
     for (const h of recent) {
       sumRecent.imp += h.impressions;
       sumRecent.clk += h.clicks;
+      sumRecent.spend += h.spendIsk;
     }
     for (const h of older) {
       sumOlder.imp += h.impressions;
       sumOlder.clk += h.clicks;
+      sumOlder.spend += h.spendIsk;
     }
     const pctImp = sumOlder.imp > 0 ? ((sumRecent.imp - sumOlder.imp) / sumOlder.imp) * 100 : null;
     const pctClk = sumOlder.clk > 0 ? ((sumRecent.clk - sumOlder.clk) / sumOlder.clk) * 100 : null;
     const ctrRecent = sumRecent.imp > 0 ? (sumRecent.clk / sumRecent.imp) * 100 : 0;
     const ctrOlder = sumOlder.imp > 0 ? (sumOlder.clk / sumOlder.imp) * 100 : 0;
     const pctCtr = ctrOlder > 0 ? ((ctrRecent - ctrOlder) / ctrOlder) * 100 : null;
-    return { impressions: pctImp, clicks: pctClk, ctr: pctCtr };
+
+    const ecpcRecent = sumRecent.clk > 0 ? sumRecent.spend / sumRecent.clk : 0;
+    const ecpcOlder = sumOlder.clk > 0 ? sumOlder.spend / sumOlder.clk : 0;
+    const pctEcpc = ecpcOlder > 0 ? ((ecpcRecent - ecpcOlder) / ecpcOlder) * 100 : null;
+
+    const ecpmRecent = sumRecent.imp > 0 ? (sumRecent.spend / sumRecent.imp) * 1000 : 0;
+    const ecpmOlder = sumOlder.imp > 0 ? (sumOlder.spend / sumOlder.imp) * 1000 : 0;
+    const pctEcpm = ecpmOlder > 0 ? ((ecpmRecent - ecpmOlder) / ecpmOlder) * 100 : null;
+
+    return { impressions: pctImp, clicks: pctClk, ctr: pctCtr, ecpc: pctEcpc, ecpm: pctEcpm };
   }, [stats]);
 
   // Fetch AI tips from Gemini-powered API
@@ -119,6 +140,26 @@ function AdvertiserHome() {
           .replace('.', ',')}%`
       : '0,00%';
 
+  const eCPC =
+    stats && stats.clicks > 0 ? formatIsk(Math.round(stats.spendIsk / stats.clicks)) : '0 kr.';
+  const eCPM =
+    stats && stats.impressions > 0
+      ? formatIsk(Math.round((stats.spendIsk / stats.impressions) * 1000))
+      : '0 kr.';
+
+  const renderCostBadge = (pct: number | null) => {
+    if (pct === null) return null;
+    const isDecrease = pct < 0;
+    const label = `${isDecrease ? '' : '+'}${pct.toFixed(0)}%`;
+    return (
+      <span
+        className={`${isDecrease ? 'text-green-600 bg-green-55 font-black' : 'text-red-650 bg-red-55 font-bold'} px-1.5 py-0.5 rounded text-[10px] flex items-center gap-0.5`}
+      >
+        {label}
+      </span>
+    );
+  };
+
   const aiTips = aiTipsData?.tips ?? ['Snjallráð hlaðast...'];
 
   return (
@@ -129,34 +170,63 @@ function AdvertiserHome() {
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             Góðan dag, {advertiser?.companyName || 'auglýsandi'}
           </h2>
-          <div className="flex items-center gap-4 mt-1">
+          <div className="flex flex-col gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                {(['7', '30', '90', 'custom'] as const).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setDatePreset(preset);
+                      if (preset !== 'custom') {
+                        setActiveRange({ timeframe: parseInt(preset, 10) });
+                      }
+                    }}
+                    className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
+                      datePreset === preset
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {preset === 'custom' ? 'Sérsniðið' : `${preset} dagar`}
+                  </button>
+                ))}
+              </div>
+
+              {datePreset === 'custom' && (
+                <div className="flex items-center gap-1.5 animate-fade-in bg-slate-50 border border-slate-200 p-1 rounded-lg">
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-bold text-slate-700 focus:outline-none p-0.5"
+                  />
+                  <span className="text-[10px] text-slate-400 font-bold">til</span>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-bold text-slate-700 focus:outline-none p-0.5"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customStart && customEnd) {
+                        setActiveRange({ startDate: customStart, endDate: customEnd });
+                      }
+                    }}
+                    disabled={!customStart || !customEnd}
+                    className="bg-primary text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md hover:bg-primary-dim transition cursor-pointer disabled:opacity-50"
+                  >
+                    Sækja
+                  </button>
+                </div>
+              )}
+            </div>
             <p className="text-slate-500 text-sm font-medium">
               Hér er yfirlit yfir árangur og stöðu herferða þinna í dag.
             </p>
-            <div className="inline-flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setTimeframe(7)}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                  timeframe === 7
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                7 dagar
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeframe(30)}
-                className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                  timeframe === 30
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                30 dagar
-              </button>
-            </div>
           </div>
         </div>
         <div className="flex gap-3">
@@ -222,7 +292,7 @@ function AdvertiserHome() {
           </div>
 
           {/* Performance Stats Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* Stat 1 */}
             <div className="glass-card rounded-xl p-4 hover:border-primary transition-all group animate-fade-in bg-white border border-slate-200">
               <div className="flex items-center justify-between mb-2">
@@ -231,7 +301,7 @@ function AdvertiserHome() {
                 </div>
                 {pctChanges.impressions !== null && (
                   <span
-                    className={`${pctChanges.impressions >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
+                    className={`${pctChanges.impressions >= 0 ? 'text-green-600 bg-green-55' : 'text-red-650 bg-red-55'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
                   >
                     {pctChanges.impressions >= 0 ? '+' : ''}
                     {pctChanges.impressions.toFixed(0)}%
@@ -255,7 +325,7 @@ function AdvertiserHome() {
                 </div>
                 {pctChanges.clicks !== null && (
                   <span
-                    className={`${pctChanges.clicks >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
+                    className={`${pctChanges.clicks >= 0 ? 'text-green-600 bg-green-55' : 'text-red-650 bg-red-55'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
                   >
                     {pctChanges.clicks >= 0 ? '+' : ''}
                     {pctChanges.clicks.toFixed(0)}%
@@ -279,7 +349,7 @@ function AdvertiserHome() {
                 </div>
                 {pctChanges.ctr !== null && (
                   <span
-                    className={`${pctChanges.ctr >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
+                    className={`${pctChanges.ctr >= 0 ? 'text-green-600 bg-green-55' : 'text-red-650 bg-red-55'} px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center gap-0.5`}
                   >
                     {pctChanges.ctr >= 0 ? '+' : ''}
                     {pctChanges.ctr.toFixed(0)}%
@@ -290,7 +360,37 @@ function AdvertiserHome() {
               <p className="text-slate-900 text-lg font-bold mt-0.5">{ctr}</p>
             </div>
 
-            {/* Stat 4 */}
+            {/* Stat 4 (eCPC) */}
+            <div
+              className="glass-card rounded-xl p-4 hover:border-primary transition-all group animate-fade-in bg-white border border-slate-200"
+              style={{ animationDelay: '0.12s' }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">monetization_on</span>
+                </div>
+                {renderCostBadge(pctChanges.ecpc)}
+              </div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">eCPC</p>
+              <p className="text-slate-900 text-lg font-bold mt-0.5">{eCPC}</p>
+            </div>
+
+            {/* Stat 5 (eCPM) */}
+            <div
+              className="glass-card rounded-xl p-4 hover:border-primary transition-all group animate-fade-in bg-white border border-slate-200"
+              style={{ animationDelay: '0.14s' }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="p-2 bg-teal-50 text-teal-650 rounded-lg group-hover:bg-teal-650 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">price_check</span>
+                </div>
+                {renderCostBadge(pctChanges.ecpm)}
+              </div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">eCPM</p>
+              <p className="text-slate-900 text-lg font-bold mt-0.5">{eCPM}</p>
+            </div>
+
+            {/* Stat 6 */}
             <div
               className="glass-card rounded-xl p-4 hover:border-primary transition-all group animate-fade-in bg-white border border-slate-200"
               style={{ animationDelay: '0.15s' }}
@@ -325,7 +425,7 @@ function AdvertiserHome() {
               <div className="mb-4">
                 <h3 className="text-base font-bold text-slate-800">Árangur herferða</h3>
                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
-                  Birtingar, smellir og eyðsla yfir síðustu {timeframe} daga
+                  Birtingar, smellir og eyðsla yfir valið tímabil
                 </p>
               </div>
               <AnalyticsChart data={stats.history} mode="advertiser" />
