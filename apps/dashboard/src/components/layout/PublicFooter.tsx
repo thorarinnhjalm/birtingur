@@ -367,3 +367,5 @@ export default function PublicFooter({ onTabChange }: PublicFooterProps) {
     </footer>
   );
 }
+
+export { PublicFooter };

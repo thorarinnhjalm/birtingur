@@ -1,0 +1,40 @@
+{
+  "projectId": "8f5fa872-7e15-42a4-95be-10e2578a487d",
+  "shape": "package",
+  "pkg": "@ada/dashboard",
+  "entry": "apps/dashboard/dist-ds/index.js",
+  "globalName": "Birtingur",
+  "srcDir": "src/components",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": ".ds-styles.css",
+  "buildCmd": "cd apps/dashboard && node ../../.ds-sync/node_modules/.bin/tailwindcss -i .design-sync-styles.css -o .ds-styles.css",
+  "extraEntries": ["../../.design-sync/ds-provider.tsx"],
+  "provider": { "component": "DSProvider" },
+  "readmeHeader": ".design-sync/conventions.md",
+  "dtsPropsFor": {
+    "Badge": "variant: 'success' | 'pending' | 'danger' | 'info' | 'neutral'; children?: React.ReactNode;",
+    "Button": "variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; loading?: boolean; disabled?: boolean; type?: 'button' | 'submit' | 'reset'; onClick?: React.MouseEventHandler<HTMLButtonElement>; className?: string; children?: React.ReactNode;",
+    "Card": "className?: string; children?: React.ReactNode;",
+    "Input": "label?: string; error?: string; placeholder?: string; value?: string; defaultValue?: string; type?: string; disabled?: boolean; onChange?: React.ChangeEventHandler<HTMLInputElement>; className?: string;",
+    "StatCard": "label: string; value: string | number; delta?: { value: string; positive: boolean };",
+    "EmptyState": "icon?: React.ReactNode; title: string; description?: string; action?: React.ReactNode;",
+    "ErrorState": "message: string; onRetry?: () => void;",
+    "LoadingState": "",
+    "Logo": "size?: number; className?: string;",
+    "AnalyticsChart": "data: { date: string; impressions: number; clicks: number; spendIsk?: number; pageviews?: number }[]; mode: 'publisher' | 'advertiser';",
+    "Sidebar": "items: { to: string; label: string; icon: string | React.ReactNode }[]; title?: string; isOpen?: boolean; onClose?: () => void; onHelpClick?: () => void;",
+    "TopBar": "onMenuClick?: () => void;",
+    "AppShell": "items: { to: string; label: string; icon: string | React.ReactNode }[]; children: React.ReactNode; title?: string;",
+    "PublicHeader": "currentTab?: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms'; onTabChange?: (tab: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms') => void; activeRegion?: { name: string; dative: string; genitive: string; parentName: string; regionLabel: string } | null;",
+    "PublicFooter": "onTabChange?: (tab: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms') => void;"
+  },
+  "overrides": {
+    "AnalyticsChart": { "cardMode": "column" },
+    "StatCard": { "cardMode": "column" },
+    "Sidebar": { "cardMode": "single", "primaryStory": "PublisherNav" },
+    "PublicHeader": { "cardMode": "column" },
+    "PublicFooter": { "cardMode": "column" },
+    "TopBar": { "cardMode": "column" },
+    "AppShell": { "cardMode": "single", "primaryStory": "PublisherDashboard", "viewport": "1440x800" }
+  }
+}

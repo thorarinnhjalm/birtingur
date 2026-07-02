@@ -1,0 +1,8 @@
+/* design-sync Tailwind entry: compiles the dashboard's Tailwind 4 theme +
+   utilities for the DS preview bundle. Sources: the app's own src (auto-
+   detected from cwd) plus the authored DS previews. Output .ds-styles.css
+   is generated (gitignored) — see .design-sync/config.json buildCmd. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import './src/styles.css';
+@source '../../.design-sync/previews';
