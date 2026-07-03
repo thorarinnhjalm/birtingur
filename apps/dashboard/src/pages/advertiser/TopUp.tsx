@@ -6,16 +6,11 @@ import { useAuth } from '@/lib/auth-context';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
 import { VAT_RATE, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
-import {
-  AlertCircle,
-  CreditCard,
-  ShieldCheck,
-  CheckCircle,
-  AlertTriangle,
-  FileText,
-} from 'lucide-react';
+import { AlertCircle, CreditCard, Lock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 
 const PRESETS = [5000, 20000, 50000, 100000];
 
@@ -311,21 +306,49 @@ export default function TopUp() {
     invoiceWindow.document.close();
   }
 
-  return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Setja inn inneign</h1>
-        <p className="text-slate-500 text-sm font-medium mt-1">
-          Bættu inneign á auglýsendaaðganginn þinn til að halda herferðum gangandi.
-        </p>
-      </div>
+  // Icelandic dot-grouped integer — same local-fmtNum convention as the other
+  // redesigned advertiser pages (CampaignCreate/CampaignList/CreativeLibrary),
+  // used only for the per-row VSK figure below where formatIsk's "kr." suffix
+  // would be redundant next to the "VSK (24%)" column header.
+  function fmtNum(n: number): string {
+    return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  }
 
+  return (
+    // Constrained to a moderate single-column width (same max-w-[760px]
+    // convention CampaignCreate.tsx uses for its own money-flow content)
+    // rather than the full AppShell max-w-7xl the list/grid pages use — the
+    // amount picker and VSK breakdown are a narrow form, and the pre-redesign
+    // page was narrower still (max-w-xl). The invoice table below gained two
+    // columns (VSK, Staða) versus the pre-redesign version, so it needs more
+    // room than the old max-w-xl gave it; 760px plus the existing
+    // overflow-x-auto safety net covers both without going full-bleed.
+    <div
+      className="mx-auto max-w-[760px]"
+      style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(32px,4vw,48px)' }}
+    >
+      {/* ===== PAGE HEADER =====
+          Title/subtitle copied verbatim from billing.dc.html. Renamed from the
+          pre-redesign "Setja inn inneign" — "Greiðslur" already matches this
+          route's own sidebar label (AdvertiserDashboard.tsx's sidebarItems),
+          and better describes what the page now shows end to end: balance,
+          top-up, and invoice history. */}
+      <header>
+        <EditorialH1>Greiðslur</EditorialH1>
+        <p className="mt-3 text-[15px] text-slate-500">Veskið þitt, greiðslusaga og reikningar</p>
+      </header>
+
+      {/* Success/cancelled return banners — not in the template (a static
+          mock has no redirect-return state), kept because the Teya checkout
+          redirects back here with ?success=true/?cancelled=true and the
+          advertiser needs that confirmation. Unchanged logic, restyled to
+          rounded-card for consistency with the rest of this pass. */}
       {success && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 flex items-start gap-3 shadow-sm">
-          <CheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={18} />
+        <div className="flex items-start gap-3 rounded-card border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 shadow-sm">
+          <CheckCircle className="mt-0.5 shrink-0 text-emerald-500" size={18} />
           <div>
-            <h4 className="font-bold text-emerald-900 text-sm">Innborgun tókst!</h4>
-            <p className="text-emerald-700 text-xs font-medium mt-0.5">
+            <h4 className="text-sm font-bold text-emerald-900">Innborgun tókst!</h4>
+            <p className="mt-0.5 text-xs font-medium text-emerald-700">
               Greiðslan hefur verið staðfest og inneignin hefur verið uppfærð á aðgangi þínum.
             </p>
           </div>
@@ -333,27 +356,59 @@ export default function TopUp() {
       )}
 
       {cancelled && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 flex items-start gap-3 shadow-sm">
-          <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+        <div className="flex items-start gap-3 rounded-card border border-amber-200 bg-amber-50 p-4 text-amber-800 shadow-sm">
+          <AlertTriangle className="mt-0.5 shrink-0 text-amber-500" size={18} />
           <div>
-            <h4 className="font-bold text-amber-900 text-sm">Hætt við greiðslu</h4>
-            <p className="text-amber-700 text-xs font-medium mt-0.5">
+            <h4 className="text-sm font-bold text-amber-900">Hætt við greiðslu</h4>
+            <p className="mt-0.5 text-xs font-medium text-amber-700">
               Hætt var við greiðsluferlið. Engir peningar voru dregnir af kortinu þínu.
             </p>
           </div>
         </div>
       )}
 
+      {/* ===== WALLET SUMMARY =====
+          Balance row + description copied in shape from billing.dc.html's
+          wallet-summary card. The template's own "Bæta við inneign" button
+          navigates elsewhere; there is no separate destination here since
+          this page already *is* the top-up flow (the amount picker sits
+          immediately below), so the button is dropped rather than wired to
+          a no-op. Copy is adapted (not verbatim) for the same reason —
+          the template's line assumes a card auto-fills the wallet elsewhere
+          ("...á þegar hana þrýtur" implying automatic refill), which doesn't
+          exist in this product; see the STAT CARDS and PAYMENT METHOD notes
+          below for the fuller no-invented-claims rationale. */}
       <Card className="p-6">
-        <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-          <span className="text-sm font-semibold text-slate-500">Núverandi inneign:</span>
-          <span className="text-lg font-bold text-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          <span className="text-sm font-semibold text-slate-500">
+            Núverandi inneign í veskinu þínu:
+          </span>
+          <span className="text-[22px] font-extrabold tracking-[-0.02em] text-slate-900 tabular-nums">
             {wallet.isLoading ? 'Hleður...' : formatIsk(wallet.data?.balanceIsk ?? 0)}
           </span>
         </div>
+        <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-slate-500">
+          Inneignin er notuð til að greiða fyrir birtingar herferða þinna. Veldu upphæð hér að neðan
+          til að fylla á.
+        </p>
+      </Card>
 
+      {/* ===== ADD FUNDS =====
+          Amount picker, VSK breakdown, submit and trust line — not pictured
+          in billing.dc.html at all (the template assumes a stored card
+          auto-refills the wallet; this product only ever tops up manually via
+          a Teya checkout redirect chosen here). Kept in full because this is
+          the page's actual reason to exist; every handler, state variable and
+          the platformFee/platformFeeVat math above are untouched from the
+          pre-redesign implementation. Restyled with the same Card, tabular
+          numerals and VAT_RATE-driven label used on CampaignCreate's
+          equivalent "Greiðsla" breakdown, and the buy-flow spec's Lock-icon
+          trust line convention (billing.dc.html has no trust line of its
+          own), so this money screen matches its sibling rather than the
+          template's mismatched mock. */}
+      <Card className="p-6">
         <div>
-          <span className="block text-sm font-medium text-slate-700 mb-2">Veldu upphæð</span>
+          <span className="mb-2 block text-sm font-medium text-slate-700">Veldu upphæð</span>
           <div className="grid grid-cols-4 gap-2">
             {PRESETS.map((p) => (
               <button
@@ -363,10 +418,10 @@ export default function TopUp() {
                   setAmount(p);
                   setError(null);
                 }}
-                className={`py-3 rounded-lg border text-sm font-bold transition-all cursor-pointer ${
+                className={`cursor-pointer rounded-lg border py-3 text-sm font-bold transition-all ${
                   amount === p
-                    ? 'bg-primary border-primary text-white shadow-[0_2px_4px_rgba(30,58,138,0.15)]'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                    ? 'border-primary bg-primary text-white shadow-[0_2px_4px_rgba(30,58,138,0.15)]'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 {formatIsk(p)}
@@ -389,40 +444,43 @@ export default function TopUp() {
           />
         </div>
 
-        {/* Pricing breakdown */}
-        <div className="mt-6 pt-6 border-t border-slate-200 space-y-3 text-sm">
-          <div className="flex justify-between text-slate-600 font-medium">
+        {/* Pricing breakdown — unchanged formulas (platformFee/platformFeeVat
+            computed above from DEFAULT_PLATFORM_FEE_PERCENT and VAT_RATE),
+            restyled to tabular numerals; the "(24%)" label is now derived
+            from VAT_RATE instead of a hardcoded string. */}
+        <div className="mt-6 space-y-3 border-t border-slate-200 pt-6 text-sm">
+          <div className="flex justify-between font-medium text-slate-600">
             <span>Innlögn á veltureikning (VSK-frítt)</span>
-            <span>{formatIsk(amount)}</span>
+            <span className="tabular-nums">{formatIsk(amount)}</span>
           </div>
-          <div className="flex justify-between text-slate-500 font-medium text-xs pl-2 border-l-2 border-slate-200">
-            <span>Áætluð þóknun Birtingar (20%)</span>
-            <span>{formatIsk(platformFee)}</span>
+          <div className="flex justify-between border-l-2 border-slate-200 pl-2 text-xs font-medium text-slate-500">
+            <span>Áætluð þóknun Birtingar ({DEFAULT_PLATFORM_FEE_PERCENT}%)</span>
+            <span className="tabular-nums">{formatIsk(platformFee)}</span>
           </div>
-          <div className="flex justify-between text-slate-500 font-medium text-xs pl-2 border-l-2 border-slate-200">
-            <span>Áætlaður VSK af þóknun (24%)</span>
-            <span>{formatIsk(platformFeeVat)}</span>
+          <div className="flex justify-between border-l-2 border-slate-200 pl-2 text-xs font-medium text-slate-500">
+            <span>Áætlaður VSK af þóknun ({Math.round(VAT_RATE * 100)}%)</span>
+            <span className="tabular-nums">{formatIsk(platformFeeVat)}</span>
           </div>
-          <div className="flex justify-between text-slate-900 font-extrabold text-base border-t border-slate-100 pt-3">
+          <div className="flex justify-between border-t border-slate-100 pt-3 text-base font-extrabold text-slate-900">
             <span>Heildargreiðsla</span>
-            <span>{formatIsk(amount)}</span>
+            <span className="tabular-nums">{formatIsk(amount)}</span>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2">
+          <p className="mt-2 text-[10px] leading-relaxed font-medium text-slate-400">
             * Samkvæmt lögum um umboðssölu er innlögnin sjálf VSK-frjáls innlögn á veltureikning.
-            Virðisaukaskattur (24%) reiknast eingöngu af þjónustuþóknun Birtingar (20%) þegar
-            auglýsingar eru sýndar.
+            Virðisaukaskattur ({Math.round(VAT_RATE * 100)}%) reiknast eingöngu af þjónustuþóknun
+            Birtingar ({DEFAULT_PLATFORM_FEE_PERCENT}%) þegar auglýsingar eru sýndar.
           </p>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
             <AlertCircle size={14} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <Button
-          className="w-full mt-6 justify-center gap-2 font-bold py-3.5 shadow-md shadow-primary/10 cursor-pointer"
+          className="mt-6 w-full justify-center gap-2 py-3.5 font-bold"
           loading={topup.isPending}
           onClick={submit}
         >
@@ -430,18 +488,49 @@ export default function TopUp() {
           <span>Greiða með korti</span>
         </Button>
 
-        <div className="flex items-center justify-center gap-1.5 mt-4 text-xs text-slate-400 font-medium">
-          <ShieldCheck size={14} className="text-slate-300" />
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
+          <Lock size={14} className="shrink-0 text-primary" />
           <span>Örugg greiðslugátt keyrð af Teya · Stuðningur við öll helstu kort</span>
-        </div>
+        </p>
       </Card>
 
-      {/* Transaction History & VAT Invoices Card */}
-      <Card className="p-6">
-        <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-xl">history</span>
-          Færslusaga & VSK Reikningar
-        </h3>
+      {/* ===== INVOICE HISTORY =====
+          Section title + subtitle copied verbatim from billing.dc.html. Table
+          shape (Dagsetning / ... / Fjárhæð / VSK (24%) / Staða / Reikningur)
+          and row treatment (22px vertical padding, hairline dividers, tabular
+          numerals) follow the template with two honest substitutions:
+            - "Herferð" (campaign name) → "Tegund" (Innborgun/Endurgreiðsla).
+              A WalletTransaction has no campaign relation to display (its
+              relatedId is a Teya session/campaign id depending on type, never
+              fetched or joined against campaign data here) — showing the
+              type that the pre-redesign table already surfaced is the honest
+              equivalent, not a fabricated campaign name.
+            - "Staða" (Greitt/Í vinnslu) always renders "Greitt". Ledger
+              entries (apps/api/src/services/wallet.ts topUp/refundCampaign)
+              are only ever written after the Teya payment/refund has already
+              settled — there is no pending WalletTransaction state in this
+              data model, so always-paid is factually true, not invented.
+          The "VSK greitt á árinu" and "Eytt í mánuðinum" stat cards and the
+          "Payment method" card from the template are both dropped:
+            - Stat cards: this page's hooks (useWallet/useWalletTransactions/
+              useAdvertiser) never fetch ad-spend or year-to-date VAT figures
+              — computing them would need a new API call (not permitted) or
+              would misrepresent wallet top-up totals as spend/VAT, which is
+              exactly the kind of invented financial claim the task brief
+              rules out on a money screen.
+            - Payment method card: the template's "Kort •••• 4242 ... Notad
+              til að fylla sjálfkrafa á veskið þitt" describes a stored card
+              that auto-refills the wallet. No such stored payment method or
+              auto-refill exists — every top-up is an explicit amount chosen
+              above and paid via a fresh Teya checkout redirect. Reproducing
+              this copy would be exactly the "nothing implying automatic/
+              recurring charges that don't exist" case the brief calls out,
+              so the section is omitted rather than adapted. */}
+      <section>
+        <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Reikningar</h2>
+        <p className="m-0 mt-1.5 mb-5 max-w-[56ch] text-sm leading-relaxed text-slate-500">
+          Löglegur VSK-reikningur fylgir hverri áfyllingu á veskið.
+        </p>
 
         {transactions.isLoading ? (
           <div className="py-8 text-center text-xs font-semibold text-slate-400">
@@ -453,17 +542,31 @@ export default function TopUp() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
-                  <th className="py-3 px-2">Dagsetning</th>
-                  <th className="py-3 px-2">Tegund</th>
-                  <th className="py-3 px-2 text-right">Upphæð</th>
-                  <th className="py-3 px-2 text-center">Aðgerð</th>
+                <tr>
+                  <th className="border-b border-outline-variant py-3.5 pr-4 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    Dagsetning
+                  </th>
+                  <th className="border-b border-outline-variant px-4 py-3.5 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    Tegund
+                  </th>
+                  <th className="border-b border-outline-variant px-4 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    Fjárhæð
+                  </th>
+                  <th className="border-b border-outline-variant px-4 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    VSK ({Math.round(VAT_RATE * 100)}%)
+                  </th>
+                  <th className="border-b border-outline-variant px-4 py-3.5 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    Staða
+                  </th>
+                  <th className="border-b border-outline-variant py-3.5 pl-4 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                    Reikningur
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                {transactions.data.map((tx) => {
+              <tbody>
+                {transactions.data.map((tx, i) => {
                   const dateVal = new Date(tx.createdAt);
                   const dateFormatted = isNaN(dateVal.getTime())
                     ? 'Óþekkt'
@@ -472,32 +575,50 @@ export default function TopUp() {
                         month: '2-digit',
                         year: 'numeric',
                       });
+                  const isLast = i === transactions.data!.length - 1;
+                  // VSK column: same platformFee/platformFeeVat formula as the
+                  // top-up breakdown above, applied to this row's amount.
+                  // Only meaningful for top-ups (the deposit that carries a
+                  // brokerage fee); refunds show an em dash rather than a
+                  // fabricated VAT figure.
+                  const rowVat =
+                    tx.type === 'topup'
+                      ? Math.round(
+                          Math.round(tx.amountIsk * (DEFAULT_PLATFORM_FEE_PERCENT / 100)) *
+                            VAT_RATE,
+                        )
+                      : null;
 
                   return (
-                    <tr key={tx.id} className="hover:bg-slate-50/50 transition">
-                      <td className="py-3.5 px-2">{dateFormatted}</td>
-                      <td className="py-3.5 px-2">
-                        {tx.type === 'topup' ? (
-                          <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                            Innborgun
-                          </span>
-                        ) : (
-                          <span className="text-amber-700 bg-amber-50 px-2 py-1 rounded-md text-[10px] font-bold">
-                            Endurgreiðsla
-                          </span>
-                        )}
+                    <tr
+                      key={tx.id}
+                      className={`transition-colors hover:bg-slate-50 ${isLast ? '' : 'border-b border-surface-container'}`}
+                    >
+                      <td className="py-[22px] pr-4 align-middle text-[15px] text-slate-700">
+                        {dateFormatted}
                       </td>
-                      <td className="py-3.5 px-2 text-right font-bold text-slate-900">
+                      <td className="px-4 py-[22px] align-middle">
+                        <Badge variant={tx.type === 'topup' ? 'success' : 'pending'}>
+                          {tx.type === 'topup' ? 'Innborgun' : 'Endurgreiðsla'}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-[22px] text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
                         {formatIsk(tx.amountIsk)}
                       </td>
-                      <td className="py-3.5 px-2 text-center">
+                      <td className="px-4 py-[22px] text-right align-middle text-[15px] text-slate-500 tabular-nums">
+                        {rowVat !== null ? `${fmtNum(rowVat)} kr.` : '—'}
+                      </td>
+                      <td className="px-4 py-[22px] align-middle">
+                        <Badge variant="success">Greitt</Badge>
+                      </td>
+                      <td className="py-[22px] pl-4 text-right align-middle">
                         <button
                           type="button"
                           onClick={() => printInvoice(tx)}
                           disabled={!advertiserQuery.data}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-600 hover:text-sky-700 cursor-pointer bg-sky-50 hover:bg-sky-100 px-2.5 py-1.5 rounded-lg border border-sky-150 transition disabled:opacity-50 disabled:pointer-events-none"
+                          className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-primary transition hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
                         >
-                          <FileText size={12} />
+                          <FileText size={14} />
                           <span>Reikningur</span>
                         </button>
                       </td>
@@ -508,7 +629,7 @@ export default function TopUp() {
             </table>
           </div>
         )}
-      </Card>
+      </section>
     </div>
   );
 }
