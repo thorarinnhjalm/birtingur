@@ -4,21 +4,19 @@ import { useCreateCampaign } from '@/hooks/useCampaigns';
 import { useCategoryInventory } from '@/hooks/useCategoryInventory';
 import { useWallet } from '@/hooks/useWallet';
 import { apiFetch } from '@/lib/api';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
-import { formatIsk } from '@/lib/format';
 import {
-  AlertTriangle,
-  ShieldCheck,
-  Upload,
-  Check,
-  AlertCircle,
-  Info,
-  Sparkles,
-} from 'lucide-react';
-import { AD_CATEGORIES, FLAT_CPM_ISK } from '@ada/shared';
+  Eyebrow,
+  EditorialH1,
+  NumberedSection,
+  BigFigure,
+  PillButton,
+  StepIndicator,
+} from '@/components/ui/editorial';
+import { AlertTriangle, Upload, Check, AlertCircle, Info, Lock } from 'lucide-react';
+import { AD_CATEGORIES, FLAT_CPM_ISK, VAT_RATE } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -41,6 +39,13 @@ const REGION_LABELS: Record<string, string> = {
   egilsstadir: 'Egilsstaðir',
   vestmannaeyjar: 'Vestmannaeyjar',
 };
+
+// Icelandic dot-grouped integer (no currency suffix — the buy-flow spec renders
+// "kr."/"kr" as a separate, differently-styled span next to the numeral).
+// Uses the same Intl grouping @ada/shared's formatIsk relies on internally.
+function fmtNum(n: number): string {
+  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+}
 
 export default function CampaignCreate() {
   const navigate = useNavigate();
@@ -196,7 +201,19 @@ export default function CampaignCreate() {
   };
 
   const walletBalance = walletQuery.data?.balanceIsk ?? 0;
-  const isInsufficientFunds = walletBalance < totalBudget;
+
+  // Live forecast — math per the buy-flow spec's renderVals(): flat CPM, 30-day
+  // flight, 24% VAT. Uses the shared constants instead of the spec's magic numbers.
+  const totalImpressions = Math.round((totalBudget / FLAT_CPM_ISK) * 1000);
+  const perDayImpressions = Math.round(totalImpressions / 30);
+  const vsk = Math.round(totalBudget * VAT_RATE);
+  const grandTotal = totalBudget + vsk;
+  const walletSufficient = walletBalance >= grandTotal;
+  const topUpNeeded = Math.max(0, grandTotal - walletBalance);
+  const selectedDailyInventory = selectedCategories.reduce((sum, slug) => {
+    const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
+    return sum + (forecast?.availableDailyImpressions ?? 0);
+  }, 0);
 
   // Soft oversell warning: campaign needs more daily impressions than the selected
   // categories have available. Informational only — submission is never blocked.
@@ -206,36 +223,39 @@ export default function CampaignCreate() {
     const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
     const flightDays = Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
     const neededDaily = Math.round(((totalBudget / FLAT_CPM_ISK) * 1000) / flightDays);
-    const availableDaily = selectedCategories.reduce((sum, slug) => {
-      const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
-      return sum + (forecast?.availableDailyImpressions ?? 0);
-    }, 0);
+    const availableDaily = selectedDailyInventory;
     if (neededDaily <= availableDaily) return null;
     return { neededDaily, availableDaily };
   })();
 
-  return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 font-sans">Ný auglýsingaherferð</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex-1 bg-slate-200 h-1 rounded-full overflow-hidden">
-            <div
-              className="bg-primary h-1 rounded-full transition-all"
-              style={{ width: `${(step / 4) * 100}%` }}
-            />
-          </div>
-          <span className="text-xs font-bold text-slate-500 shrink-0">Skref {step} af 4</span>
-        </div>
-      </div>
+  const stepLabels = ['Grunnur', 'Efni', 'Kaup'];
 
-      <Card className="p-6">
-        {/* Step 1: Basics */}
-        {step === 1 && (
-          <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Herferðarupplýsingar
-            </h3>
+  return (
+    // Nested inside the advertiser AppShell (Sidebar + TopBar are already
+    // rendered by the router) — the buy-flow spec's own full-viewport header
+    // strip is intentionally not reproduced here to avoid a duplicate chrome
+    // bar; "Hætta við" is preserved as the ghost button on step 1 instead.
+    <div className="max-w-[760px] mx-auto pb-[110px]">
+      <Eyebrow>Ný herferð</Eyebrow>
+      <div className="mt-4">
+        <EditorialH1>Stofna herferð</EditorialH1>
+      </div>
+      <StepIndicator steps={stepLabels} current={step - 1} />
+
+      {error && (
+        <div className="mt-8 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-2">
+          <AlertCircle size={14} className="shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Step 1: Basics — not covered by the buy-flow spec (name/dates are
+            required before a creative can be scanned), kept functional and
+            restyled to the same editorial rhythm. */}
+      {step === 1 && (
+        <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+          <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Herferðarupplýsingar</h2>
+          <div className="mt-6 space-y-5">
             <Input
               label="Heiti herferðar *"
               placeholder="Dæmi: Sumarútsala 2026"
@@ -259,49 +279,39 @@ export default function CampaignCreate() {
               />
             </div>
 
-            <div className="p-4 bg-slate-50/50 border border-slate-200 rounded-xl flex items-start gap-3">
-              <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-start gap-3">
+              <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-xs font-bold text-slate-800">
                   Greiðslukerfi: Flöt CPM birting
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                   Birtingar eru verðlagðar samkvæmt flötu gjaldskrá kerfisins á{' '}
-                  <strong>550 kr. pr. 1.000 birtingar</strong> (CPM). Greitt er úr veskinu þínu í
-                  rauntíma eftir því sem auglýsingar birtast.
+                  <strong>{fmtNum(FLAT_CPM_ISK)} kr. pr. 1.000 birtingar</strong> (CPM). Greitt er
+                  úr veskinu þínu í rauntíma eftir því sem auglýsingar birtast.
                 </p>
               </div>
             </div>
-
-            <Input
-              label="Fjárhagsáætlun (ISK) *"
-              type="number"
-              min="5000"
-              step="5000"
-              value={totalBudget}
-              onChange={(e) => setTotalBudget(Number(e.target.value) || 0)}
-              required
-            />
-
-            <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => navigate('/advertiser')}>
-                Hætta við
-              </Button>
-              <Button disabled={!name || !startDate} onClick={() => setStep(2)}>
-                Næsta skref →
-              </Button>
-            </div>
           </div>
-        )}
 
-        {/* Step 2: Creative */}
-        {step === 2 && (
-          <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Auglýsingaefni
-            </h3>
+          <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+            <Button variant="ghost" onClick={() => navigate('/advertiser')}>
+              Hætta við
+            </Button>
+            <Button disabled={!name || !startDate} onClick={() => setStep(2)}>
+              Næsta skref →
+            </Button>
+          </div>
+        </section>
+      )}
 
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition">
+      {/* Step 2: Creative — not covered by the buy-flow spec, kept functional
+            and restyled to the same editorial rhythm. */}
+      {step === 2 && (
+        <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+          <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Auglýsingaefni</h2>
+          <div className="mt-6 space-y-5">
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-white transition">
               <Upload size={32} className="mx-auto text-slate-400 mb-2" />
               <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
               <p className="text-xs text-slate-500 mt-1">PNG, JPG eða JPEG upp að 2 MB stærð</p>
@@ -323,8 +333,8 @@ export default function CampaignCreate() {
             </div>
 
             {imageUrl && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-4">
-                <div className="w-16 h-16 bg-slate-200 rounded overflow-hidden flex items-center justify-center shrink-0">
+              <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4">
+                <div className="w-16 h-16 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
                   <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
                 </div>
                 <div className="text-xs text-slate-600 font-semibold space-y-0.5">
@@ -351,43 +361,37 @@ export default function CampaignCreate() {
               value={ocrTextHint}
               onChange={(e) => setOcrTextHint(e.target.value)}
             />
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-2">
-                <AlertCircle size={14} className="shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => setStep(1)}>
-                Til baka
-              </Button>
-              <Button
-                loading={scanning}
-                disabled={!clickUrl.startsWith('https://') || !imageUrl}
-                onClick={runCreativeScan}
-              >
-                Skanna og halda áfram
-              </Button>
-            </div>
           </div>
-        )}
 
-        {/* Step 3: Category Targeting */}
-        {step === 3 && (
-          <div className="space-y-5">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Veldu efnisflokka til að kaupa birtingar í *
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">
-              Herferðin þín verður birt á öllum útgefendasíðum sem tilheyra völdum flokkum.
-            </p>
+          <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+            <Button variant="ghost" onClick={() => setStep(1)}>
+              Til baka
+            </Button>
+            <Button
+              loading={scanning}
+              disabled={!clickUrl.startsWith('https://') || !imageUrl}
+              onClick={runCreativeScan}
+            >
+              Skanna og halda áfram
+            </Button>
+          </div>
+        </section>
+      )}
 
+      {/* Step 3: the buy flow proper — categories, budget, payment — laid out
+            exactly per the spec as one continuous page of three numbered
+            sections (01/02/03), ending in the submit CTA. */}
+      {step === 3 && (
+        <>
+          <NumberedSection
+            n="01"
+            title="Veldu flokka"
+            lede="Veldu efnisflokkana sem henta vörumerkinu. Við dreifum birtingunum á alla íslenska vefi í völdum flokkum."
+          >
             {categoriesInventoryQuery.isLoading ? (
               <LoadingState />
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
+              <div className="grid grid-cols-3 gap-3.5">
                 {AD_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategories.includes(cat.slug);
                   const forecast = categoriesInventoryQuery.data?.find(
@@ -405,18 +409,21 @@ export default function CampaignCreate() {
                             : [...prev, cat.slug],
                         );
                       }}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col justify-between select-none ${
-                        isSelected
-                          ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
+                      className="relative border-[1.5px] border-slate-200 bg-white rounded-[14px] px-[22px] py-5 cursor-pointer flex flex-col gap-2 transition-colors select-none"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-900 text-xs">{cat.label}</span>
-                        {isSelected && <Check size={14} className="text-primary animate-scaleIn" />}
+                      {isSelected && (
+                        <span className="absolute -inset-[1.5px] border-[1.5px] border-primary rounded-[14px] bg-primary/[0.06] pointer-events-none" />
+                      )}
+                      <div className="relative flex justify-between items-center gap-2.5">
+                        <span className="text-base font-bold text-slate-900">{cat.label}</span>
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-primary text-white text-xs flex items-center justify-center shrink-0">
+                            ✓
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[10px] text-slate-500 font-semibold mt-3">
-                        ≈ {availableDaily.toLocaleString('is-IS')} lausar birtingar/dag
+                      <span className="relative text-[13px] text-slate-500">
+                        ~{fmtNum(availableDaily)} á dag í boði
                       </span>
                     </div>
                   );
@@ -424,47 +431,36 @@ export default function CampaignCreate() {
               </div>
             )}
 
-            {/* Region Targeting Selector */}
-            <div className="space-y-4 pt-4 border-t border-slate-100">
+            {/* Region targeting — not covered by the buy-flow spec, kept
+                  functional and restyled to fit the section. */}
+            <div className="mt-8 pt-6 border-t border-slate-200">
               <h4 className="text-sm font-bold text-slate-900">Landshlutamarkun (Valfrjálst)</h4>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs text-slate-500 font-medium mt-1.5">
                 Sýndu auglýsinguna aðeins notendum á ákveðnum landsvæðum. Sjálfgefið er allt landið.
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                <div
-                  onClick={() => toggleRegion('all')}
-                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegions.includes('all')
-                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
-                  }`}
-                >
-                  🌐 Allt landið
-                </div>
-                <div
-                  onClick={() => toggleRegion('capital')}
-                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegions.includes('capital')
-                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
-                  }`}
-                >
-                  Höfuðborgarsvæðið
-                </div>
-                <div
-                  onClick={() => toggleRegion('countryside')}
-                  className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-all duration-200 ${
-                    selectedRegions.includes('countryside')
-                      ? 'border-primary bg-blue-50/20 ring-1 ring-primary font-bold text-slate-900 text-xs'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 font-semibold text-slate-600 text-xs'
-                  }`}
-                >
-                  Landsbyggðin
-                </div>
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {(
+                  [
+                    { key: 'all', label: '🌐 Allt landið' },
+                    { key: 'capital', label: 'Höfuðborgarsvæðið' },
+                    { key: 'countryside', label: 'Landsbyggðin' },
+                  ] as const
+                ).map((region) => (
+                  <div
+                    key={region.key}
+                    onClick={() => toggleRegion(region.key)}
+                    className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-colors text-xs ${
+                      selectedRegions.includes(region.key)
+                        ? 'border-primary bg-primary/[0.06] font-bold text-slate-900'
+                        : 'border-slate-200 bg-white font-semibold text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    {region.label}
+                  </div>
+                ))}
               </div>
 
-              {/* Specific City Multi-Selector */}
-              <div className="pt-3 space-y-2">
+              <div className="pt-4 mt-4 space-y-2">
                 <label className="block text-xs font-bold text-slate-700">
                   Eða velja ákveðna bæi / bæjarfélög:
                 </label>
@@ -489,10 +485,10 @@ export default function CampaignCreate() {
                       <div
                         key={city.key}
                         onClick={() => toggleRegion(city.key)}
-                        className={`p-2.5 rounded-lg border cursor-pointer transition-all duration-150 flex items-center justify-between select-none ${
+                        className={`p-2.5 rounded-lg border cursor-pointer transition-colors flex items-center justify-between select-none ${
                           isChecked
-                            ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
-                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                            ? 'border-primary bg-primary/[0.06]'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
                         <span className="font-bold text-slate-800 text-[11px]">{city.label}</span>
@@ -502,11 +498,11 @@ export default function CampaignCreate() {
                   })}
                 </div>
                 {!selectedRegions.includes('all') && (
-                  <div className="p-3 bg-blue-50/40 border border-blue-100 rounded-xl mt-3 flex items-start gap-2">
+                  <div className="p-3 bg-primary/[0.04] border border-primary/20 rounded-xl mt-3 flex items-start gap-2">
                     <Info size={14} className="text-primary shrink-0 mt-0.5" />
                     <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
                       Valin svæði:{' '}
-                      <span className="text-blue-600 font-bold">
+                      <span className="text-primary font-bold">
                         {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
                       </span>
                     </p>
@@ -514,196 +510,210 @@ export default function CampaignCreate() {
                 )}
               </div>
             </div>
+          </NumberedSection>
 
-            {/* Reach Forecast Panel */}
-            {selectedCategories.length > 0 && !categoriesInventoryQuery.isLoading && (
-              <div className="p-5 bg-linear-to-r from-blue-50/30 to-sky-50/30 border border-blue-100 rounded-xl space-y-4 shadow-sm">
-                <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-primary animate-pulse" />
-                  <span>Áætlað ná herferðar (Reach & Delivery Forecast)</span>
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Daglegt áhorf í boði
-                    </span>
-                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
-                      {selectedCategories
-                        .reduce((sum, slug) => {
-                          const forecast = categoriesInventoryQuery.data?.find(
-                            (f) => f.category === slug,
-                          );
-                          return sum + (forecast?.availableDailyImpressions ?? 0);
-                        }, 0)
-                        .toLocaleString('is-IS')}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Samanlagðar birtingar á dag
-                    </span>
-                  </div>
+          <NumberedSection
+            n="02"
+            title="Fjárhæð"
+            lede="Þú borgar aldrei meira. Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð."
+          >
+            <BigFigure value={fmtNum(totalBudget)} suffix="kr." />
+            <input
+              type="range"
+              min={10000}
+              max={500000}
+              step={5000}
+              value={totalBudget}
+              onChange={(e) => setTotalBudget(Number(e.target.value))}
+              className="w-full mt-8 h-1 cursor-pointer accent-primary"
+            />
+            <div className="flex justify-between text-xs text-slate-400 mt-2.5 tabular-nums">
+              <span>10.000 kr.</span>
+              <span>500.000 kr.</span>
+            </div>
+            <div className="flex flex-wrap gap-2.5 mt-6">
+              <PillButton active={totalBudget === 25000} onClick={() => setTotalBudget(25000)}>
+                25.000 kr.
+              </PillButton>
+              <PillButton active={totalBudget === 50000} onClick={() => setTotalBudget(50000)}>
+                50.000 kr.
+              </PillButton>
+              <PillButton active={totalBudget === 100000} onClick={() => setTotalBudget(100000)}>
+                100.000 kr.
+              </PillButton>
+              <PillButton active={totalBudget === 200000} onClick={() => setTotalBudget(200000)}>
+                200.000 kr.
+              </PillButton>
+            </div>
 
-                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Áætlaðar heildarbirtingar
-                    </span>
-                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
-                      {Math.round((totalBudget / 550) * 1000).toLocaleString('is-IS')}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Miðað við 550 kr. flatt CPM verð
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-3.5 rounded-lg border border-blue-50/60 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Áætlaður líftími herferðar
-                    </span>
-                    <span className="block text-lg font-extrabold text-slate-900 mt-1">
-                      {(() => {
-                        const totalDaily = selectedCategories.reduce((sum, slug) => {
-                          const forecast = categoriesInventoryQuery.data?.find(
-                            (f) => f.category === slug,
-                          );
-                          return sum + (forecast?.availableDailyImpressions ?? 0);
-                        }, 0);
-                        const totalCamp = Math.round((totalBudget / 550) * 1000);
-                        return totalDaily > 0
-                          ? `${(totalCamp / totalDaily).toFixed(1)} dagar`
-                          : 'N/A';
-                      })()}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      Hversu hratt fjárhagsáætlun klárast
-                    </span>
-                  </div>
-                </div>
+            <div className="mt-[34px] bg-[#f1f5fd] border border-[#dbe4f7] rounded-[18px] px-8 py-[30px]">
+              <Eyebrow>Áætluð birting</Eyebrow>
+              <div className="flex items-baseline gap-3.5 mt-3">
+                <span
+                  className="font-extrabold text-primary tabular-nums leading-none tracking-[-0.025em]"
+                  style={{ fontSize: 'clamp(36px,6vw,50px)' }}
+                >
+                  {fmtNum(perDayImpressions)}
+                </span>
+                <span className="text-base text-slate-700 font-medium">birtingar á dag</span>
               </div>
-            )}
+              <p className="mt-3.5 text-slate-600 text-sm leading-[1.55]">
+                ≈ {fmtNum(totalImpressions)} birtingar alls yfir ~30 daga, reiknað á föstu{' '}
+                <strong className="text-primary font-bold">{fmtNum(FLAT_CPM_ISK)} kr. CPM</strong>{' '}
+                verði.
+              </p>
+              {selectedCategories.length > 0 && (
+                <div className="mt-[18px] pt-[18px] border-t border-[#dbe4f7] text-sm text-slate-600">
+                  Laust pláss í {selectedCategories.length} völdum flokkum:{' '}
+                  <strong className="text-slate-900 font-bold tabular-nums">
+                    ~{fmtNum(selectedDailyInventory)}
+                  </strong>{' '}
+                  birtingar á dag.
+                </div>
+              )}
+            </div>
 
             {deliveryWarning && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700 flex items-start gap-2">
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-700 flex items-start gap-2">
                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                 <span>
                   Herferðin gæti afhent hægar en áætlað — valdir flokkar hafa um{' '}
-                  {deliveryWarning.availableDaily.toLocaleString('is-IS')} lausar birtingar á dag en
-                  herferðin þarf um {deliveryWarning.neededDaily.toLocaleString('is-IS')}.
+                  {fmtNum(deliveryWarning.availableDaily)} lausar birtingar á dag en herferðin þarf
+                  um {fmtNum(deliveryWarning.neededDaily)}.
                 </span>
               </div>
             )}
+          </NumberedSection>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
-                {error}
+          <NumberedSection
+            n="03"
+            title="Greiðsla"
+            lede="Fjárhæðin er sótt af inneigninni í veskinu þínu. Ef inneign nægir ekki er sjálfkrafa fyllt á með kortinu þínu."
+          >
+            {/* Campaign summary — not in the spec, kept so the advertiser can
+                  review name/dates/region before paying. */}
+            {selectedCategories.length > 0 && (
+              <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 text-sm space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-500">
+                      Heiti herferðar
+                    </span>
+                    <span className="font-bold text-slate-900">{name}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-500">Upphaf</span>
+                    <span className="font-bold text-slate-900">
+                      {startDate ? new Date(startDate).toLocaleDateString('is-IS') : '—'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-500">Lokadagur</span>
+                    <span className="font-bold text-slate-900">
+                      {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold text-slate-500">Landshlutar</span>
+                    <span className="font-bold text-slate-900">
+                      {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-3 border-t border-slate-200">
+                  <span className="block text-xs font-semibold text-slate-500 mb-1">
+                    Valdir flokkar ({selectedCategories.length})
+                  </span>
+                  <span className="font-semibold text-slate-800 text-sm">
+                    {selectedCategories
+                      .map((slug) => AD_CATEGORIES.find((c) => c.slug === slug)?.label || slug)
+                      .join(', ')}
+                  </span>
+                </div>
               </div>
             )}
 
-            <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
+            <div className="bg-background border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
+                  Núverandi inneign í veskinu þínu
+                </div>
+                <div className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em] mt-1.5 tabular-nums">
+                  {fmtNum(walletBalance)} kr.
+                </div>
+              </div>
+              {walletSufficient ? (
+                <span className="text-sm text-slate-900 font-semibold">
+                  Nóg inneign — engin áfylling þarf
+                </span>
+              ) : (
+                <span className="text-sm text-primary font-semibold">
+                  Vantar {fmtNum(topUpNeeded)} kr. — fyllt á með korti
+                </span>
+              )}
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap mt-4">
+              <div className="flex items-center gap-4">
+                <div className="w-[46px] h-8 rounded-[7px] bg-primary text-white flex items-center justify-center text-xs font-bold tracking-[0.02em] shrink-0">
+                  Teya
+                </div>
+                <div>
+                  <div className="text-[15px] font-semibold text-slate-900">Kort •••• 4242</div>
+                  <div className="text-[13px] text-slate-500 mt-0.5">
+                    Notað til að fylla á veskið þegar inneign nægir ekki
+                  </div>
+                </div>
+              </div>
+              <span className="text-sm font-semibold text-primary cursor-pointer">Breyta</span>
+            </div>
+
+            <div className="mt-[26px] flex flex-col gap-[15px]">
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-slate-600">Fjárhæð herferðar</span>
+                <span className="text-[15px] text-slate-900 tabular-nums">
+                  {fmtNum(totalBudget)} kr.
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[15px] text-slate-600">
+                  VSK ({Math.round(VAT_RATE * 100)}%)
+                </span>
+                <span className="text-[15px] text-slate-900 tabular-nums">{fmtNum(vsk)} kr.</span>
+              </div>
+              <div className="h-px bg-slate-200 my-0.5" />
+              <div className="flex justify-between items-baseline">
+                <span className="text-[17px] font-bold text-slate-900">Samtals</span>
+                <span className="text-2xl font-extrabold text-slate-900 tracking-[-0.02em] tabular-nums">
+                  {fmtNum(grandTotal)} kr.
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-[30px]">
+              <Button
+                className="w-full"
+                style={{ height: 52 }}
+                loading={submitting}
+                disabled={selectedCategories.length === 0}
+                onClick={handleFinalSubmit}
+              >
+                {walletSufficient ? 'Hefja birtingu af inneign' : 'Fylla á veski og hefja birtingu'}
+              </Button>
+            </div>
+            <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-[1.5]">
+              <Lock size={17} className="text-primary shrink-0" />
+              Örugg greiðsla í gegnum Teya · VSK-reikningur berst strax · stöðvaðu hvenær sem er
+            </p>
+
+            <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
               <Button variant="ghost" onClick={() => setStep(2)}>
                 Til baka
               </Button>
-              <Button disabled={selectedCategories.length === 0} onClick={() => setStep(4)}>
-                Næsta skref (Yfirlit) →
-              </Button>
             </div>
-          </div>
-        )}
-
-        {/* Step 4: Review & Confirm */}
-        {step === 4 && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Staðfesta og senda
-            </h3>
-
-            {/* Campaign Summary grid */}
-            <div className="bg-slate-50 rounded-lg p-5 border border-slate-200/60 text-sm space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="block text-slate-500 font-medium text-xs">Heiti herferðar:</span>
-                  <span className="font-bold text-slate-950 text-sm">{name}</span>
-                </div>
-                <div>
-                  <span className="block text-slate-500 font-medium text-xs">
-                    Tegund og áætlun:
-                  </span>
-                  <span className="font-bold text-slate-950 text-sm">
-                    {formatIsk(totalBudget)} (CPM flöt verðlagning)
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-slate-500 font-medium text-xs">Upphaf:</span>
-                  <span className="font-bold text-slate-950 text-sm">
-                    {new Date(startDate).toLocaleDateString('is-IS')}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-slate-500 font-medium text-xs">Lokadagur:</span>
-                  <span className="font-bold text-slate-950 text-sm">
-                    {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-slate-500 font-medium text-xs">Landshlutar:</span>
-                  <span className="font-bold text-slate-950 text-sm">
-                    {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200/80 pt-3">
-                <span className="block text-slate-500 font-medium text-xs mb-1">
-                  Valdir flokkar herferðar ({selectedCategories.length}):
-                </span>
-                <span className="font-semibold text-slate-800 text-xs">
-                  {selectedCategories
-                    .map((slug) => AD_CATEGORIES.find((c) => c.slug === slug)?.label || slug)
-                    .join(', ')}
-                </span>
-              </div>
-            </div>
-
-            {/* Wallet checks */}
-            {isInsufficientFunds ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 text-sm text-amber-800 font-medium leading-relaxed">
-                <AlertTriangle size={20} className="shrink-0 text-amber-600" />
-                <div className="space-y-2">
-                  <p>
-                    <strong>Ónóg inneign í veski!</strong> Inneign þín ({formatIsk(walletBalance)})
-                    dugar ekki fyrir áætluðum herferðarkostnaði ({formatIsk(totalBudget)}).
-                  </p>
-                  <p className="text-xs text-amber-700">
-                    Þú getur samt sem áður stofnað herferðina, en hún mun verða í biðstöðu uns þú
-                    bætir við inneign.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3 text-sm text-green-800 font-medium">
-                <ShieldCheck size={20} className="shrink-0 text-green-600" />
-                <p>
-                  <strong>Inneign staðfest!</strong> Veskið þitt inniheldur nægilegt fjármagn (
-                  {formatIsk(walletBalance)}) til að keyra þessa herferð.
-                </p>
-              </div>
-            )}
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
-                {error}
-              </div>
-            )}
-
-            <div className="flex justify-between border-t border-slate-100 pt-5 mt-6">
-              <Button variant="ghost" onClick={() => setStep(3)}>
-                Til baka
-              </Button>
-              <Button loading={submitting} className="font-bold" onClick={handleFinalSubmit}>
-                Stofna og senda í yfirferð
-              </Button>
-            </div>
-          </div>
-        )}
-      </Card>
+          </NumberedSection>
+        </>
+      )}
     </div>
   );
 }
