@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { EditorialH1 } from '@/components/ui/editorial';
 import {
   AlertCircle,
   Image as ImageIcon,
@@ -22,13 +23,34 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 
-// Force redeploy to trigger Vercel build after lockfile fix
+// Filter-tab grouping — creative-library.dc.html's groupOf() operates on mock
+// campaign-like statuses (active / review|pending / draft|paused|rejected).
+// The real Creative type has no "active" state of its own — only
+// reviewStatus: pending | auto_approved | manual_approved | rejected (see
+// packages/shared/src/schemas/advertiser.ts). Mapped the closest honest
+// equivalent: approved creatives are usable ("Virkar"), pending is the
+// template's review/progress group, rejected is "Óvirkar". Same style of
+// best-effort status mapping as CampaignList.tsx's groupOf().
+type FilterKey = 'all' | 'active' | 'progress' | 'inactive';
+function groupOf(status: Creative['reviewStatus']): 'active' | 'progress' | 'inactive' {
+  if (status === 'auto_approved' || status === 'manual_approved') return 'active';
+  if (status === 'pending') return 'progress';
+  return 'inactive'; // rejected
+}
+
 export default function CreativeLibrary() {
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: bulkStats } = useBulkCreativeStats();
   const { data: advertiser } = useAdvertiser();
+
+  // Search + filter — not in the pre-redesign page, added to match
+  // creative-library.dc.html's search box and status pills. Both are
+  // client-side filters over the already-fetched `creatives` list below, so
+  // no new API calls are introduced.
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<FilterKey>('all');
 
   // Upload Form State
   const [clickUrl, setClickUrl] = useState('https://');
@@ -236,31 +258,117 @@ export default function CreativeLibrary() {
 
   if (isLoading) return <LoadingState />;
 
-  return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Mínar auglýsingar</h1>
-          <p className="text-slate-500 text-sm font-medium mt-1">
-            Stjórnaðu og hlaðið upp auglýsingaborðum í Birtingur-vettvanginn.
-          </p>
-        </div>
-        <Button onClick={() => setShowAddModal(true)} className="font-bold text-sm py-2.5 gap-1.5">
-          <Plus size={16} />
-          <span>Hlaða upp auglýsingu</span>
-        </Button>
-      </div>
-
-      {!creatives || creatives.length === 0 ? (
+  // Pre-redesign page treated "no creatives yet" as its own onboarding empty
+  // state. Kept as an early return (same pattern as CampaignList.tsx) so the
+  // search/filter row never renders over an empty library.
+  if (!creatives || creatives.length === 0) {
+    return (
+      <div className="w-full" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <EditorialH1>Auglýsingasafn</EditorialH1>
         <EmptyState
           icon={<ImageIcon size={44} />}
-          title="Engar auglýsingar í safninu"
-          description="Hlaða upp fyrsta auglýsingaborðinu þínu til að geta valið það inn í herferðir."
+          title="Engar auglýsingar fundust"
+          description="Prófaðu aðra leit eða veldu annan flokk."
           action={<Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>}
         />
+        {showAddModal && (
+          <AddCreativeModal
+            clickUrl={clickUrl}
+            setClickUrl={setClickUrl}
+            imageUrl={imageUrl}
+            imageWidth={imageWidth}
+            imageHeight={imageHeight}
+            ocrTextHint={ocrTextHint}
+            setOcrTextHint={setOcrTextHint}
+            error={error}
+            uploading={uploading}
+            onFileChange={handleFileChange}
+            onSubmit={handleUploadSubmit}
+            onClose={() => setShowAddModal(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  const counts = { all: creatives.length, active: 0, progress: 0, inactive: 0 };
+  creatives.forEach((c) => {
+    counts[groupOf(c.reviewStatus)]++;
+  });
+
+  // Search matches the only free-text fields Creative actually has (id,
+  // click URL, OCR text hint) — the template's mock search matches
+  // headline/category, neither of which exists on the real Creative type.
+  const q = query.trim().toLowerCase();
+  const visible = creatives.filter((c) => {
+    const matchesFilter = filter === 'all' || groupOf(c.reviewStatus) === filter;
+    const matchesQuery =
+      !q ||
+      c.id.toLowerCase().includes(q) ||
+      c.clickUrl.toLowerCase().includes(q) ||
+      (c.ocrTextHint ?? '').toLowerCase().includes(q);
+    return matchesFilter && matchesQuery;
+  });
+
+  const tabs: { key: FilterKey; label: string; count: number }[] = [
+    { key: 'all', label: 'Allar', count: counts.all },
+    { key: 'active', label: 'Virkar', count: counts.active },
+    { key: 'progress', label: 'Í vinnslu', count: counts.progress },
+    { key: 'inactive', label: 'Óvirkar', count: counts.inactive },
+  ];
+
+  return (
+    <div
+      className="w-full"
+      style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(32px,4vw,48px)' }}
+    >
+      {/* ===== PAGE HEADER ===== */}
+      <header className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <EditorialH1>Auglýsingasafn</EditorialH1>
+          <p className="mt-3 text-[15px] text-slate-500">{creatives.length} auglýsingar samtals</p>
+        </div>
+        <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
+          <Plus size={16} />
+          <span>Búa til auglýsingu</span>
+        </Button>
+      </header>
+
+      {/* ===== SEARCH + FILTER ===== */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-[220px] max-w-[320px] flex-1">
+          <Input
+            placeholder="Leita að auglýsingu..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setFilter(tab.key)}
+              className={`cursor-pointer rounded-full px-[18px] py-[9px] text-sm font-semibold transition-colors ${
+                filter === tab.key ? 'bg-primary text-white' : 'text-slate-600'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ===== EMPTY / GRID ===== */}
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={<ImageIcon size={44} />}
+          title="Engar auglýsingar fundust"
+          description="Prófaðu aðra leit eða veldu annan flokk."
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {creatives.map((c) => {
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {visible.map((c) => {
             let statusText: string = c.reviewStatus;
             let statusVariant: 'success' | 'pending' | 'danger' | 'info' | 'neutral' = 'neutral';
 
@@ -275,75 +383,88 @@ export default function CreativeLibrary() {
               statusVariant = 'danger';
             }
 
+            const cs = bulkStats?.[c.id];
+            const ctrLabel = cs ? `${cs.ctr.toFixed(1).replace('.', ',')}%` : '—';
+
             return (
-              <Card
-                key={c.id}
-                className="flex flex-col justify-between overflow-hidden p-4 space-y-3"
-              >
-                <div className="border border-slate-200 rounded-md overflow-hidden bg-slate-50 h-40 flex items-center justify-center relative group">
-                  <img src={c.imageUrl} alt="Creative" className="object-contain w-full h-full" />
-                  <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Card key={c.id} className="flex flex-col overflow-hidden">
+                {/* Image — the template shows a generic placeholder box here;
+                    we already fetch the real creative image (c.imageUrl), so
+                    it's rendered instead of the mock icon, inside the same
+                    16:9 rounded frame the template specifies. */}
+                <div className="group relative flex aspect-video items-center justify-center overflow-hidden rounded-[10px] bg-slate-100">
+                  <img
+                    src={c.imageUrl}
+                    alt="Auglýsingamynd"
+                    className="h-full w-full object-contain"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/60 opacity-0 transition-opacity group-hover:opacity-100">
                     <a
                       href={c.clickUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 bg-white rounded-full text-slate-800 hover:text-primary transition"
+                      className="rounded-full bg-white p-2 text-slate-800 transition hover:text-primary"
                     >
                       <ExternalLink size={16} />
                     </a>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase">{c.id}</span>
-                    <Badge variant={statusVariant}>{statusText}</Badge>
-                  </div>
-                  <div className="text-xs text-slate-600 font-semibold space-y-1">
-                    <p>
-                      Víddir: {c.width} × {c.height} px
-                    </p>
-                    <p className="truncate">Smellur: {c.clickUrl}</p>
-                    {(() => {
-                      const cs = bulkStats?.[c.id];
-                      return cs ? (
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1 mt-1">
-                          <span>
-                            Birtingar:{' '}
-                            <span className="text-slate-800">
-                              {cs.impressions.toLocaleString('is-IS')}
-                            </span>
-                          </span>
-                          <span className="text-slate-300">·</span>
-                          <span>
-                            Smellir:{' '}
-                            <span className="text-slate-800">
-                              {cs.clicks.toLocaleString('is-IS')}
-                            </span>
-                          </span>
-                          <span className="text-slate-300">·</span>
-                          <span>
-                            CTR:{' '}
-                            <span className="text-slate-800">
-                              {cs.ctr.toFixed(1).replace('.', ',')}%
-                            </span>
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="text-[10px] text-slate-400 italic mt-1">Engin tölfræði</div>
-                      );
-                    })()}
-                    {c.reviewStatus === 'rejected' && c.reviewLog && c.reviewLog[0] && (
-                      <p className="text-red-600 font-bold mt-1 text-[10px] bg-red-50 p-1.5 rounded">
-                        Ástæða: {c.reviewLog[0].reason}
-                      </p>
-                    )}
-                  </div>
+                {/* Title / body — the template's headline+body slots have no
+                    real counterpart on Creative (no ad copy is fetched), so
+                    the title falls back to an id-based label (same pattern as
+                    CampaignList's unnamed-item fallback) and the body slot
+                    honestly shows the OCR text hint we do have, or discloses
+                    that none was recorded. */}
+                <div className="mt-4 truncate text-base font-bold text-slate-900">
+                  Auglýsing {c.id.substring(0, 8)}
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 mt-2">
+                <p
+                  className="mt-2 text-sm leading-normal text-slate-500"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {c.ocrTextHint || 'Engin textalýsing skráð.'}
+                </p>
+
+                {/* Meta — dimensions + click URL substitute for the template's
+                    category · campaignName line, neither of which Creative
+                    has. */}
+                <div className="mt-3.5 truncate text-[13px] text-slate-400">
+                  {c.width} × {c.height} px · {c.clickUrl}
+                </div>
+
+                {cs && (
+                  <div className="mt-2 text-[13px] text-slate-400 tabular-nums">
+                    {cs.impressions.toLocaleString('is-IS')} birtingar ·{' '}
+                    {cs.clicks.toLocaleString('is-IS')} smellir
+                  </div>
+                )}
+
+                {c.reviewStatus === 'rejected' && c.reviewLog && c.reviewLog[0] && (
+                  <p className="mt-2 rounded bg-red-50 p-1.5 text-[11px] font-bold text-red-600">
+                    Ástæða: {c.reviewLog[0].reason}
+                  </p>
+                )}
+
+                {/* ===== FOOTER ===== status + CTR, copied verbatim in shape
+                    from the template's card footer. */}
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+                  <Badge variant={statusVariant}>{statusText}</Badge>
+                  <span className="text-[13px] text-slate-500 tabular-nums">CTR {ctrLabel}</span>
+                </div>
+
+                {/* Edit/delete actions — not pictured in the template (a
+                    read-only mock), kept because handleStartEdit and
+                    setDeleteConfirmCreative must stay reachable. */}
+                <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
                   <Button
                     variant="ghost"
-                    className="text-slate-600 hover:text-slate-900 px-3 py-1.5 h-auto text-xs gap-1.5 font-bold"
+                    className="h-auto gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900"
                     onClick={() => handleStartEdit(c)}
                   >
                     <Edit2 size={13} />
@@ -351,7 +472,7 @@ export default function CreativeLibrary() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 h-auto text-xs gap-1.5 font-bold"
+                    className="h-auto gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={() => setDeleteConfirmCreative(c)}
                   >
                     <Trash2 size={13} />
@@ -366,108 +487,36 @@ export default function CreativeLibrary() {
 
       {/* Add Creative Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full bg-white shadow-2xl overflow-hidden p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
-              Hlaða upp auglýsingaefni
-            </h3>
-
-            <form onSubmit={handleUploadSubmit} className="space-y-4">
-              <div className="border-2 border-dashed border-slate-200 rounded-lg p-5 text-center hover:bg-slate-50 transition">
-                <Upload size={28} className="mx-auto text-slate-400 mb-1" />
-                <p className="text-xs font-bold text-slate-700">Veldu skrá í tölvunni</p>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg"
-                  className="hidden"
-                  id="modal-file-upload"
-                  onChange={handleFileChange}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="mt-2.5 text-[10px] py-1.5 px-3"
-                  onClick={() => document.getElementById('modal-file-upload')?.click()}
-                >
-                  Velja mynd
-                </Button>
-              </div>
-
-              {imageUrl && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600 flex items-center gap-3">
-                  <img
-                    src={imageUrl}
-                    alt="preview"
-                    className="w-10 h-10 object-cover bg-white rounded border"
-                  />
-                  <div>
-                    <p className="font-bold text-slate-900">Uppgötvuð stærð:</p>
-                    <p>
-                      {imageWidth} × {imageHeight} dílar
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <Input
-                label="Slóð smella (Click URL) *"
-                type="url"
-                placeholder="https://fyrirtæki.is/tilbod"
-                value={clickUrl}
-                onChange={(e) => setClickUrl(e.target.value)}
-                required
-              />
-
-              <Input
-                label="Textahjálp (OCR lýsing) - Valfrjálst"
-                placeholder="Dæmi: 20% AFSLÁTTUR AF ÖLLUM VÖRUM Í JÚNÍ!"
-                value={ocrTextHint}
-                onChange={(e) => setOcrTextHint(e.target.value)}
-              />
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5">
-                  <AlertCircle size={14} className="shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setShowAddModal(false)}
-                  disabled={uploading}
-                >
-                  Hætta við
-                </Button>
-                <Button
-                  type="submit"
-                  loading={uploading}
-                  disabled={!clickUrl.startsWith('https://') || !imageUrl}
-                >
-                  Hlaða upp & skanna
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </div>
+        <AddCreativeModal
+          clickUrl={clickUrl}
+          setClickUrl={setClickUrl}
+          imageUrl={imageUrl}
+          imageWidth={imageWidth}
+          imageHeight={imageHeight}
+          ocrTextHint={ocrTextHint}
+          setOcrTextHint={setOcrTextHint}
+          error={error}
+          uploading={uploading}
+          onFileChange={handleFileChange}
+          onSubmit={handleUploadSubmit}
+          onClose={() => setShowAddModal(false)}
+        />
       )}
 
       {/* Edit Creative Modal */}
       {showEditModal && editingCreative && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full bg-white shadow-2xl overflow-hidden p-6 space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md space-y-4 overflow-hidden bg-white p-6 shadow-2xl">
+            <h3 className="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">
               Breyta auglýsingaefni
             </h3>
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600 flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
                 <img
                   src={editingCreative.imageUrl}
                   alt="creative-preview"
-                  className="w-10 h-10 object-cover bg-white rounded border"
+                  className="h-10 w-10 rounded border bg-white object-cover"
                 />
                 <div>
                   <p className="font-bold text-slate-900">Auglýsing: {editingCreative.id}</p>
@@ -494,13 +543,13 @@ export default function CreativeLibrary() {
               />
 
               {editError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
                   <AlertCircle size={14} className="shrink-0" />
                   <span>{editError}</span>
                 </div>
               )}
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
                 <Button
                   type="button"
                   variant="ghost"
@@ -527,32 +576,32 @@ export default function CreativeLibrary() {
 
       {/* Delete Confirm Modal */}
       {deleteConfirmCreative && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-md w-full bg-white shadow-2xl overflow-hidden p-6 space-y-4">
-            <h3 className="text-lg font-bold text-red-600 border-b border-red-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md space-y-4 overflow-hidden bg-white p-6 shadow-2xl">
+            <h3 className="border-b border-red-100 pb-3 text-lg font-bold text-red-600">
               Eyða auglýsingu
             </h3>
 
             <div className="space-y-3">
-              <p className="text-sm text-slate-600 font-medium">
+              <p className="text-sm font-medium text-slate-600">
                 Ertu viss um að þú viljir eyða auglýsingunni{' '}
                 <strong>{deleteConfirmCreative.id}</strong>? Ekki er hægt að afturkalla þessa
                 aðgerð.
               </p>
-              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-3 font-semibold">
+              <p className="rounded border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
                 Athugaðu: Aðeins er hægt að eyða auglýsingum sem eru ekki í notkun í virkum
                 herferðum eða herferðum í yfirferð/pásu.
               </p>
             </div>
 
             {deleteError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600 flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
                 <AlertCircle size={14} className="shrink-0" />
                 <span>{deleteError}</span>
               </div>
             )}
 
-            <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
               <Button
                 type="button"
                 variant="ghost"
@@ -576,6 +625,121 @@ export default function CreativeLibrary() {
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+// Add Creative modal — factored out only so it can render from both the
+// true-empty-state early return and the normal grid view without duplicating
+// markup; behaviour/props are the same handlers/state from the parent.
+function AddCreativeModal({
+  clickUrl,
+  setClickUrl,
+  imageUrl,
+  imageWidth,
+  imageHeight,
+  ocrTextHint,
+  setOcrTextHint,
+  error,
+  uploading,
+  onFileChange,
+  onSubmit,
+  onClose,
+}: {
+  clickUrl: string;
+  setClickUrl: (v: string) => void;
+  imageUrl: string;
+  imageWidth: number;
+  imageHeight: number;
+  ocrTextHint: string;
+  setOcrTextHint: (v: string) => void;
+  error: string | null;
+  uploading: boolean;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-md space-y-4 overflow-hidden bg-white p-6 shadow-2xl">
+        <h3 className="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">
+          Hlaða upp auglýsingaefni
+        </h3>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="rounded-lg border-2 border-dashed border-slate-200 p-5 text-center transition hover:bg-slate-50">
+            <Upload size={28} className="mx-auto mb-1 text-slate-400" />
+            <p className="text-xs font-bold text-slate-700">Veldu skrá í tölvunni</p>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg"
+              className="hidden"
+              id="modal-file-upload"
+              onChange={onFileChange}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="mt-2.5 px-3 py-1.5 text-[10px]"
+              onClick={() => document.getElementById('modal-file-upload')?.click()}
+            >
+              Velja mynd
+            </Button>
+          </div>
+
+          {imageUrl && (
+            <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <img
+                src={imageUrl}
+                alt="preview"
+                className="h-10 w-10 rounded border bg-white object-cover"
+              />
+              <div>
+                <p className="font-bold text-slate-900">Uppgötvuð stærð:</p>
+                <p>
+                  {imageWidth} × {imageHeight} dílar
+                </p>
+              </div>
+            </div>
+          )}
+
+          <Input
+            label="Slóð smella (Click URL) *"
+            type="url"
+            placeholder="https://fyrirtæki.is/tilbod"
+            value={clickUrl}
+            onChange={(e) => setClickUrl(e.target.value)}
+            required
+          />
+
+          <Input
+            label="Textahjálp (OCR lýsing) - Valfrjálst"
+            placeholder="Dæmi: 20% AFSLÁTTUR AF ÖLLUM VÖRUM Í JÚNÍ!"
+            value={ocrTextHint}
+            onChange={(e) => setOcrTextHint(e.target.value)}
+          />
+
+          {error && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-600">
+              <AlertCircle size={14} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <Button type="button" variant="ghost" onClick={onClose} disabled={uploading}>
+              Hætta við
+            </Button>
+            <Button
+              type="submit"
+              loading={uploading}
+              disabled={!clickUrl.startsWith('https://') || !imageUrl}
+            >
+              Hlaða upp & skanna
+            </Button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }
