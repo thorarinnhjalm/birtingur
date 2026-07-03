@@ -214,12 +214,13 @@ export default function PublisherOnboarding() {
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-[760px] mx-auto px-6 py-[18px] flex items-center justify-between">
           <span className="font-extrabold tracking-[-0.01em] text-slate-900">Birtingur</span>
-          <span
+          <button
+            type="button"
             onClick={handleCancel}
-            className="text-sm text-slate-500 cursor-pointer hover:text-slate-700"
+            className="text-sm text-slate-500 cursor-pointer hover:text-slate-700 bg-transparent border-0 p-0"
           >
             Hætta við
-          </span>
+          </button>
         </div>
       </div>
 
@@ -256,7 +257,7 @@ export default function PublisherOnboarding() {
 
             <form onSubmit={handleStartScrape} className="max-w-[420px] space-y-4">
               <Input
-                label="Vefslóð"
+                label="Vefslóð *"
                 placeholder="t.d. matarbloggid.is"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
@@ -637,7 +638,7 @@ export default function PublisherOnboarding() {
               </div>
               <p className="mt-5 flex items-center justify-center gap-2 text-center text-[13px] leading-relaxed text-slate-500">
                 <Lock className="h-[17px] w-[17px] shrink-0 text-primary" />
-                Greiðsluupplýsingar eru dulkóðaðar og aðeins notaðar til útgreiðslna
+                Greiðsluupplýsingar eru aðeins notaðar til útgreiðslna
               </p>
             </NumberedSection>
           </form>
