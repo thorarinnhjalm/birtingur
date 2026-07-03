@@ -26,7 +26,13 @@
     "TopBar": "onMenuClick?: () => void;",
     "AppShell": "items: { to: string; label: string; icon: string | React.ReactNode }[]; children: React.ReactNode; title?: string;",
     "PublicHeader": "currentTab?: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms'; onTabChange?: (tab: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms') => void; activeRegion?: { name: string; dative: string; genitive: string; parentName: string; regionLabel: string } | null;",
-    "PublicFooter": "onTabChange?: (tab: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms') => void;"
+    "PublicFooter": "onTabChange?: (tab: 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms') => void;",
+    "Eyebrow": "children?: React.ReactNode; className?: string;",
+    "EditorialH1": "children?: React.ReactNode;",
+    "NumberedSection": "n: string; title: string; lede?: string; children?: React.ReactNode;",
+    "BigFigure": "value: string; suffix?: string;",
+    "PillButton": "active?: boolean; children?: React.ReactNode; onClick?: () => void;",
+    "StepIndicator": "steps: string[]; current: number;"
   },
   "overrides": {
     "AnalyticsChart": { "cardMode": "column" },

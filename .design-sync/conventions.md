@@ -25,6 +25,10 @@ Style with Tailwind utility classes. The theme tokens (defined in `styles.css` `
 
 **Constraint:** the shipped stylesheet is a compiled subset — standard utilities (layout, flex/grid, gap/p/m scales, the families above) are available, but **arbitrary-value classes like `w-[437px]` may not exist**. For one-off dimensions use inline styles.
 
+## Editorial primitives — the page-layout idiom
+
+Screens follow a Nordic-editorial layout built from six primitives (all exported): **`Eyebrow`** (uppercase tracked label above headings), **`EditorialH1`** (oversized clamp() page title), **`NumberedSection`** (`n`/`title`/`lede` — the "01 Veldu flokka" section header), **`BigFigure`** (hero number with small suffix, e.g. budgets), **`PillButton`** (rounded preset/filter chips with `active`), **`StepIndicator`** (`steps`/`current` for multi-step flows). Compose pages as: `Eyebrow` + `EditorialH1`, then `NumberedSection`s with generous whitespace (`clamp(48px,6vw,72px)` between sections), figures in `tabular-nums`. Prefer these over hand-rolling the same patterns.
+
 ## Where the truth lives
 
 Read `styles.css` (the `@theme` block at the top enumerates every token) before inventing styles; per-component API is in each `<Name>.d.ts` and usage notes in `<Name>.prompt.md`. Badge's `variant` is **required** (`success | pending | danger | info | neutral`). Input has built-in `label` and `error` props — don't hand-roll field wrappers. ErrorState hardcodes its "Villa kom upp" heading; you supply only `message`.
