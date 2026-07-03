@@ -654,10 +654,13 @@ function PublisherHome() {
   );
 }
 
+// Labels aligned with the redesigned pages' own H1s (Mælaborð / Vefir /
+// Greiðslur) and the templates' shared navItems — the pre-redesign labels
+// (Yfirlit / Auglýsingapláss / Tekjur) no longer matched the page titles.
 const sidebarItems = [
-  { to: '/publisher', label: 'Yfirlit', icon: 'dashboard' },
-  { to: '/publisher/slots', label: 'Auglýsingapláss', icon: 'grid_view' },
-  { to: '/publisher/earnings', label: 'Tekjur', icon: 'payments' },
+  { to: '/publisher', label: 'Mælaborð', icon: 'dashboard' },
+  { to: '/publisher/slots', label: 'Vefir', icon: 'grid_view' },
+  { to: '/publisher/earnings', label: 'Greiðslur', icon: 'payments' },
 ];
 
 export default function PublisherDashboard() {

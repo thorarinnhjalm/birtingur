@@ -4,7 +4,9 @@ test.describe('Birtingur E2E Onboarding & Login Flow', () => {
   test('should sign in using Demo credentials and select role', async ({ page }) => {
     // 1. Open login page
     await page.goto('/sign-in');
-    await expect(page.locator('h1')).toContainText('Birtingur');
+    // Redesigned sign-in (auth.dc.html): the h1 is now "Skráðu þig inn";
+    // "Birtingur" moved to the logo lockup above the card.
+    await expect(page.locator('h1')).toContainText('Skráðu þig inn');
 
     // 2. Fill login details for Demo account
     await page.fill('label:has-text("Netfang") input, input[type="text"]', 'DemoA');
