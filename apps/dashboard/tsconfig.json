@@ -7,6 +7,7 @@
     "moduleResolution": "Bundler",
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }

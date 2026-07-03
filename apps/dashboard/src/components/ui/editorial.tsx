@@ -1,0 +1,135 @@
+import clsx from 'clsx';
+import type { ReactNode } from 'react';
+
+/**
+ * Nordic-editorial primitives shared by the redesigned screens. Metrics are
+ * copied verbatim from docs/superpowers/specs/2026-07-03-redesign-templates/buy-flow.dc.html
+ * so every screen inherits the same numerals, tracking, and rhythm.
+ */
+
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span
+      className={clsx(
+        'inline-block text-[13px] font-semibold uppercase tracking-[0.16em] text-primary',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function EditorialH1({ children }: { children: ReactNode }) {
+  return (
+    <h1
+      className="m-0 font-extrabold"
+      style={{ fontSize: 'clamp(32px,5vw,48px)', letterSpacing: '-0.03em', lineHeight: 1.0 }}
+    >
+      {children}
+    </h1>
+  );
+}
+
+export function NumberedSection({
+  n,
+  title,
+  lede,
+  children,
+}: {
+  n: string;
+  title: string;
+  lede?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+      <div className="flex items-baseline gap-3.5">
+        <span className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-primary tabular-nums">
+          {n}
+        </span>
+        <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">{title}</h2>
+      </div>
+      {lede && (
+        <p className="mt-3 mb-[26px] max-w-[52ch] text-[15px] leading-normal text-slate-500">
+          {lede}
+        </p>
+      )}
+      {children}
+    </section>
+  );
+}
+
+export function BigFigure({ value, suffix }: { value: string; suffix?: string }) {
+  return (
+    <div
+      className="font-extrabold leading-none text-slate-900 tabular-nums"
+      style={{ fontSize: 'clamp(44px,8vw,64px)', letterSpacing: '-0.035em' }}
+    >
+      {value}
+      {suffix && (
+        <span
+          className="ml-3 font-semibold text-slate-500"
+          style={{ fontSize: '0.36em', letterSpacing: 0 }}
+        >
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function PillButton({
+  active,
+  children,
+  onClick,
+}: {
+  active?: boolean;
+  children: ReactNode;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={clsx(
+        'cursor-pointer rounded-full border px-4.5 py-[9px] text-[14px] font-semibold tabular-nums transition-colors',
+        active
+          ? 'border-primary bg-primary/[0.06] text-primary'
+          : 'border-slate-200 bg-white text-slate-700',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
+  return (
+    <div className="mt-8 flex flex-wrap items-center gap-[18px]">
+      {steps.map((step, i) => (
+        <div className="contents" key={step}>
+          {i > 0 && <div className="h-px w-[26px] bg-outline-variant" />}
+          <div className="flex items-baseline gap-[9px]">
+            <span
+              className={clsx(
+                'text-[13px] font-extrabold tabular-nums',
+                i <= current ? 'text-primary' : 'text-slate-400',
+              )}
+            >
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <span
+              className={clsx(
+                'text-sm font-semibold',
+                i <= current ? 'text-slate-900' : 'text-slate-400',
+              )}
+            >
+              {step}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
