@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Innskráning / Nýskráning" description="Nordic editorial auth screen — login/signup tabs with advertiser/publisher workspace choice" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#f6f7f9;font-family:'Inter',system-ui,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center;padding:40px 24px" data-screen-label="Innskráning">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="440px,600px">
+    <div style="width:100%;max-width:400px">
+
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:40px">
+        <x-import component-from-global-scope="Birtingur.Logo" size="36" hint-size="36px,36px"></x-import>
+        <span style="font-size:19px;font-weight:800;letter-spacing:-0.01em;color:#0f172a">Birtingur</span>
+      </div>
+
+      <!-- ===== TAB SWITCH ===== -->
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:28px">
+        <div style="position:relative;border-radius:999px;padding:9px 20px;cursor:pointer" onClick="{{selectLogin}}">
+          <sc-if value="{{tabIsLogin}}" hint-placeholder-val="{{true}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+          <sc-if value="{{tabIsLogin}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Innskráning</span></sc-if>
+          <sc-if value="{{tabIsSignup}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Innskráning</span></sc-if>
+        </div>
+        <div style="position:relative;border-radius:999px;padding:9px 20px;cursor:pointer" onClick="{{selectSignup}}">
+          <sc-if value="{{tabIsSignup}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+          <sc-if value="{{tabIsSignup}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Nýskráning</span></sc-if>
+          <sc-if value="{{tabIsLogin}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Nýskráning</span></sc-if>
+        </div>
+      </div>
+
+      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:32px">
+
+        <!-- ===== LOGIN FORM ===== -->
+        <sc-if value="{{tabIsLogin}}" hint-placeholder-val="{{true}}">
+          <div>
+            <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0 0 22px">Skráðu þig inn</h1>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <x-import component-from-global-scope="Birtingur.Input" label="Netfang" placeholder="netfang@fyrirtaeki.is" type="email" value="{{email}}" onChange="{{onEmail}}" hint-size="100%,74px"></x-import>
+              <x-import component-from-global-scope="Birtingur.Input" label="Lykilorð" placeholder="••••••••" type="password" value="{{password}}" onChange="{{onPassword}}" hint-size="100%,74px"></x-import>
+            </div>
+            <div style="text-align:right;margin-top:10px">
+              <span style="font-size:13px;color:#1e3a8a;font-weight:600;cursor:pointer">Gleymt lykilorð?</span>
+            </div>
+            <div style="margin-top:22px">
+              <x-import component-from-global-scope="Birtingur.Button" class="w-full" onClick="{{onLogin}}" hint-size="100%,48px">Skrá inn</x-import>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ===== SIGNUP FORM ===== -->
+        <sc-if value="{{tabIsSignup}}" hint-placeholder-val="{{false}}">
+          <div>
+            <h1 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0 0 22px">Stofna aðgang</h1>
+
+            <p style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8;margin:0 0 10px">Ég er</p>
+            <div style="display:flex;gap:10px;margin-bottom:20px">
+              <div style="position:relative;flex:1;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center" onClick="{{selectAdvertiser}}">
+                <sc-if value="{{wsIsAdvertiser}}" hint-placeholder-val="{{true}}"><span style="position:absolute;inset:-1.5px;border:1.5px solid #1e3a8a;border-radius:12px;background:rgba(30,58,138,0.06);pointer-events:none"></span></sc-if>
+                <span style="position:relative;font-size:14px;font-weight:600;color:#0f172a">Auglýsandi</span>
+              </div>
+              <div style="position:relative;flex:1;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center" onClick="{{selectPublisher}}">
+                <sc-if value="{{wsIsPublisher}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:-1.5px;border:1.5px solid #1e3a8a;border-radius:12px;background:rgba(30,58,138,0.06);pointer-events:none"></span></sc-if>
+                <span style="position:relative;font-size:14px;font-weight:600;color:#0f172a">Útgefandi</span>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <x-import component-from-global-scope="Birtingur.Input" label="Nafn fyrirtækis" placeholder="t.d. Kaffihúsið Mokka ehf." value="{{name}}" onChange="{{onName}}" hint-size="100%,74px"></x-import>
+              <x-import component-from-global-scope="Birtingur.Input" label="Netfang" placeholder="netfang@fyrirtaeki.is" type="email" value="{{email}}" onChange="{{onEmail}}" hint-size="100%,74px"></x-import>
+              <x-import component-from-global-scope="Birtingur.Input" label="Lykilorð" placeholder="Að lágmarki 8 stafir" type="password" value="{{password}}" onChange="{{onPassword}}" hint-size="100%,74px"></x-import>
+            </div>
+            <div style="margin-top:22px">
+              <x-import component-from-global-scope="Birtingur.Button" class="w-full" onClick="{{onSignup}}" hint-size="100%,48px">Stofna aðgang</x-import>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <p style="font-size:13px;color:#94a3b8;text-align:center;margin:22px 0 0;line-height:1.5">Með því að halda áfram samþykkir þú skilmála og persónuverndarstefnu Birtings.</p>
+    </div>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: 'login', workspace: 'advertiser', email: '', password: '', name: '' };
+
+  renderVals() {
+    const s = this.state;
+    const dest = s.workspace === 'advertiser' ? '../dashboard/Dashboard.dc.html' : '../publisher-dashboard/PublisherDashboard.dc.html';
+    return {
+      tabIsLogin: s.tab === 'login', tabIsSignup: s.tab === 'signup',
+      selectLogin: () => this.setState({ tab: 'login' }),
+      selectSignup: () => this.setState({ tab: 'signup' }),
+      wsIsAdvertiser: s.workspace === 'advertiser', wsIsPublisher: s.workspace === 'publisher',
+      selectAdvertiser: () => this.setState({ workspace: 'advertiser' }),
+      selectPublisher: () => this.setState({ workspace: 'publisher' }),
+      email: s.email, onEmail: (e) => this.setState({ email: e.target.value }),
+      password: s.password, onPassword: (e) => this.setState({ password: e.target.value }),
+      name: s.name, onName: (e) => this.setState({ name: e.target.value }),
+      onLogin: () => { window.location.href = dest; },
+      onSignup: () => { window.location.href = s.workspace === 'advertiser' ? '../buy-flow/BuyFlow.dc.html' : '../publisher-onboarding/PublisherOnboarding.dc.html'; },
+    };
+  }
+}
+</script>
+</body>
+</html>

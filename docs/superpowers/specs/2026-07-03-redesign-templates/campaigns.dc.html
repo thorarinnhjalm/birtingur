@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Herferðir" description="Nordic editorial campaign management — filterable list, budget pacing, expandable detail with pause/resume" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,900px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur" hint-size="100%,900px">
+
+      <div data-screen-label="Herferðir" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Herferðir</h1>
+            <p style="font-size:15px;color:#64748b;margin:12px 0 0">{{totalLabel}} herferðir samtals</p>
+          </div>
+          <x-import component-from-global-scope="Birtingur.Button" hint-size="130px,42px">Ný herferð</x-import>
+        </header>
+
+        <!-- ===== FILTER TABS ===== -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterAll}}">
+            <sc-if value="{{filterIsAll}}" hint-placeholder-val="{{true}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+            <sc-if value="{{filterIsAll}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Allar ({{countAll}})</span></sc-if>
+            <sc-if value="{{filterNotAll}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Allar ({{countAll}})</span></sc-if>
+          </div>
+          <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterActive}}">
+            <sc-if value="{{filterIsActive}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+            <sc-if value="{{filterIsActive}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Virkar ({{countActive}})</span></sc-if>
+            <sc-if value="{{filterNotActive}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Virkar ({{countActive}})</span></sc-if>
+          </div>
+          <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterProgress}}">
+            <sc-if value="{{filterIsProgress}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+            <sc-if value="{{filterIsProgress}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Í vinnslu ({{countProgress}})</span></sc-if>
+            <sc-if value="{{filterNotProgress}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Í vinnslu ({{countProgress}})</span></sc-if>
+          </div>
+          <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterInactive}}">
+            <sc-if value="{{filterIsInactive}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+            <sc-if value="{{filterIsInactive}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Óvirkar ({{countInactive}})</span></sc-if>
+            <sc-if value="{{filterNotInactive}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Óvirkar ({{countInactive}})</span></sc-if>
+          </div>
+        </div>
+
+        <!-- ===== CAMPAIGN LIST ===== -->
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:14px 16px 14px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Herferð</th>
+              <th style="text-align:left;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Staða</th>
+              <th style="text-align:left;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3;width:180px">Framvinda</th>
+              <th style="text-align:right;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Birtingar</th>
+              <th style="text-align:right;padding:14px 0 14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Eytt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{campaigns}}" as="camp" hint-placeholder-count="8">
+              <tr onClick="{{camp.toggle}}" style="cursor:pointer">
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">{{camp.name}}</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">{{camp.category}}</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <x-import component-from-global-scope="Birtingur.Badge" variant="{{camp.statusVariant}}" hint-size="80px,24px">{{camp.statusLabel}}</x-import>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <sc-if value="{{camp.hasProgress}}" hint-placeholder-val="{{false}}">
+                    <div>
+                      <div style="height:5px;background:#eceef2;border-radius:999px;overflow:hidden">
+                        <div style="height:100%;background:#1e3a8a;border-radius:999px;width:{{camp.progressWidth}}"></div>
+                      </div>
+                      <div style="font-size:12px;color:#94a3b8;margin-top:6px;font-variant-numeric:tabular-nums">{{camp.progressLabel}}</div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{camp.noProgress}}" hint-placeholder-val="{{true}}"><span style="font-size:14px;color:#94a3b8">—</span></sc-if>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">{{camp.impressionsLabel}}</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">{{camp.spentLabel}}</td>
+              </tr>
+              <sc-if value="{{camp.expanded}}" hint-placeholder-val="{{false}}">
+                <tr>
+                  <td colspan="5" style="padding:0 0 30px;border-bottom:1px solid #eceef2">
+                    <div style="background:#f6f7f9;border-radius:14px;padding:26px 28px;display:flex;flex-wrap:wrap;gap:32px;align-items:center;justify-content:space-between">
+                      <div style="display:flex;gap:36px;flex-wrap:wrap">
+                        <div>
+                          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Tímabil</div>
+                          <div style="font-size:15px;color:#0f172a;margin-top:6px">{{camp.dateRange}}</div>
+                        </div>
+                        <div>
+                          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Smellir</div>
+                          <div style="font-size:15px;color:#0f172a;margin-top:6px;font-variant-numeric:tabular-nums">{{camp.clicksLabel}}</div>
+                        </div>
+                        <div>
+                          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">CTR</div>
+                          <div style="font-size:15px;color:#0f172a;margin-top:6px;font-variant-numeric:tabular-nums">{{camp.ctrLabel}}</div>
+                        </div>
+                        <div>
+                          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Fjárhæð</div>
+                          <div style="font-size:15px;color:#0f172a;margin-top:6px;font-variant-numeric:tabular-nums">{{camp.budgetLabel}}</div>
+                        </div>
+                      </div>
+                      <sc-if value="{{camp.hasNote}}" hint-placeholder-val="{{false}}">
+                        <p style="font-size:14px;color:#b91c1c;margin:0;max-width:32ch;line-height:1.5">{{camp.note}}</p>
+                      </sc-if>
+                      <div style="display:flex;gap:10px">
+                        <sc-if value="{{camp.canPause}}" hint-placeholder-val="{{false}}">
+                          <x-import component-from-global-scope="Birtingur.Button" variant="secondary" onClick="{{camp.onPause}}" hint-size="120px,42px">Setja í hlé</x-import>
+                        </sc-if>
+                        <sc-if value="{{camp.canResume}}" hint-placeholder-val="{{false}}">
+                          <x-import component-from-global-scope="Birtingur.Button" onClick="{{camp.onResume}}" hint-size="120px,42px">Halda áfram</x-import>
+                        </sc-if>
+                        <x-import component-from-global-scope="Birtingur.Button" variant="ghost" hint-size="120px,42px">Breyta fjárhæð</x-import>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </sc-if>
+            </sc-for>
+          </tbody>
+        </table>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  CAMPAIGNS = [
+    { id: 'c1', name: 'Sumartilboð', category: 'Matur', status: 'active', budget: 400000, spent: 267410, impressions: 486200, clicks: 3910, dateRange: '1.–30. júní 2026' },
+    { id: 'c2', name: 'Ferðasumar 2026', category: 'Ferðalög', status: 'active', budget: 250000, spent: 188500, impressions: 342760, clicks: 2400, dateRange: '1. júní – 15. júlí 2026' },
+    { id: 'c3', name: 'Nýjar græjur', category: 'Tækni', status: 'active', budget: 300000, spent: 250600, impressions: 455970, clicks: 3330, dateRange: '5.–30. júní 2026' },
+    { id: 'c4', name: 'Heilsuátak haust', category: 'Heilsa', status: 'review', budget: 150000, spent: 0, impressions: 0, clicks: 0, dateRange: 'Hefst 1. júlí 2026', note: 'Í yfirferð — svar innan sólarhrings.' },
+    { id: 'c5', name: 'Fjármálavika', category: 'Fjármál', status: 'pending', budget: 120000, spent: 0, impressions: 0, clicks: 0, dateRange: 'Hefst þegar greiðsla er staðfest' },
+    { id: 'c6', name: 'Haustlína', category: 'Tíska', status: 'draft', budget: 200000, spent: 0, impressions: 0, clicks: 0, dateRange: 'Ódagsett drög' },
+    { id: 'c7', name: 'Vorhreingerning', category: 'Lífsstíll', status: 'paused', budget: 180000, spent: 96200, impressions: 175000, clicks: 1220, dateRange: '1.–30. maí 2026' },
+    { id: 'c8', name: 'Bílasala vor', category: 'Bílar', status: 'rejected', budget: 90000, spent: 0, impressions: 0, clicks: 0, dateRange: '—', note: 'Hafnað: auglýsingaefni uppfyllti ekki reglur um bílaauglýsingar.' },
+  ];
+  state = { filter: 'all', expandedId: null };
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  statusMeta(status) {
+    switch (status) {
+      case 'active': return { variant: 'success', label: 'Virk' };
+      case 'review': return { variant: 'info', label: 'Í yfirferð' };
+      case 'pending': return { variant: 'pending', label: 'Í bið' };
+      case 'draft': return { variant: 'neutral', label: 'Drög' };
+      case 'paused': return { variant: 'neutral', label: 'Í hléi' };
+      case 'rejected': return { variant: 'danger', label: 'Hafnað' };
+      default: return { variant: 'neutral', label: status };
+    }
+  }
+
+  renderVals() {
+    const st = this.state;
+    const f = this.fmt.bind(this);
+    const groupOf = (status) => status === 'active' ? 'active' : (status === 'review' || status === 'pending') ? 'progress' : 'inactive';
+    const counts = { all: this.CAMPAIGNS.length, active: 0, progress: 0, inactive: 0 };
+    this.CAMPAIGNS.forEach(c => { counts[groupOf(c.status)]++; });
+
+    const visible = this.CAMPAIGNS.filter(c => st.filter === 'all' || groupOf(c.status) === st.filter);
+
+    const campaigns = visible.map(c => {
+      const meta = this.statusMeta(c.status);
+      const hasProgress = c.status === 'active' || c.status === 'paused';
+      const pct = hasProgress ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
+      return {
+        id: c.id, name: c.name, category: c.category,
+        statusVariant: meta.variant, statusLabel: meta.label,
+        hasProgress, noProgress: !hasProgress,
+        progressWidth: pct + '%',
+        progressLabel: f(c.spent) + ' / ' + f(c.budget) + ' kr.',
+        impressionsLabel: c.impressions ? f(c.impressions) : '—',
+        spentLabel: c.spent ? f(c.spent) + ' kr.' : '—',
+        clicksLabel: c.clicks ? f(c.clicks) : '—',
+        ctrLabel: c.impressions ? (Math.round((c.clicks / c.impressions) * 10000) / 100).toString().replace('.', ',') + '%' : '—',
+        budgetLabel: f(c.budget) + ' kr.', dateRange: c.dateRange,
+        hasNote: !!c.note, note: c.note || '',
+        canPause: c.status === 'active', canResume: c.status === 'paused',
+        expanded: st.expandedId === c.id,
+        toggle: () => this.setState({ expandedId: st.expandedId === c.id ? null : c.id }),
+        onPause: (e) => { e.stopPropagation(); this._setStatus(c.id, 'paused'); },
+        onResume: (e) => { e.stopPropagation(); this._setStatus(c.id, 'active'); },
+      };
+    });
+
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/herferdir', label: 'Herferðir', icon: 'campaign' },
+      { to: '/auglysingasafn', label: 'Auglýsingasafn', icon: 'collections_bookmark' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+
+    return {
+      navItems, campaigns,
+      totalLabel: this.CAMPAIGNS.length,
+      countAll: counts.all, countActive: counts.active, countProgress: counts.progress, countInactive: counts.inactive,
+      filterIsAll: st.filter === 'all', filterIsActive: st.filter === 'active', filterIsProgress: st.filter === 'progress', filterIsInactive: st.filter === 'inactive',
+      filterNotAll: st.filter !== 'all', filterNotActive: st.filter !== 'active', filterNotProgress: st.filter !== 'progress', filterNotInactive: st.filter !== 'inactive',
+      setFilterAll: () => this.setState({ filter: 'all' }),
+      setFilterActive: () => this.setState({ filter: 'active' }),
+      setFilterProgress: () => this.setState({ filter: 'progress' }),
+      setFilterInactive: () => this.setState({ filter: 'inactive' }),
+    };
+  }
+
+  _setStatus(id, status) {
+    const c = this.CAMPAIGNS.find(x => x.id === id);
+    if (c) c.status = status;
+    this.forceUpdate();
+  }
+}
+</script>
+</body>
+</html>

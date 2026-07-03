@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Auglýsingasafn" description="Nordic editorial ad creative library — searchable, filterable grid with usage and performance per creative" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,900px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur" hint-size="100%,900px">
+
+      <div data-screen-label="Auglýsingasafn" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Auglýsingasafn</h1>
+            <p style="font-size:15px;color:#64748b;margin:12px 0 0">{{totalLabel}} auglýsingar samtals</p>
+          </div>
+          <x-import component-from-global-scope="Birtingur.Button" hint-size="160px,42px">Búa til auglýsingu</x-import>
+        </header>
+
+        <!-- ===== SEARCH + FILTER ===== -->
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+          <div style="max-width:320px;flex:1;min-width:220px">
+            <x-import component-from-global-scope="Birtingur.Input" placeholder="Leita að auglýsingu..." value="{{query}}" onChange="{{onQuery}}" hint-size="100%,44px"></x-import>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterAll}}">
+              <sc-if value="{{filterIsAll}}" hint-placeholder-val="{{true}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{filterIsAll}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Allar ({{countAll}})</span></sc-if>
+              <sc-if value="{{filterNotAll}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Allar ({{countAll}})</span></sc-if>
+            </div>
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterActive}}">
+              <sc-if value="{{filterIsActive}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{filterIsActive}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Virkar ({{countActive}})</span></sc-if>
+              <sc-if value="{{filterNotActive}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Virkar ({{countActive}})</span></sc-if>
+            </div>
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterProgress}}">
+              <sc-if value="{{filterIsProgress}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{filterIsProgress}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Í vinnslu ({{countProgress}})</span></sc-if>
+              <sc-if value="{{filterNotProgress}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Í vinnslu ({{countProgress}})</span></sc-if>
+            </div>
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{setFilterInactive}}">
+              <sc-if value="{{filterIsInactive}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{filterIsInactive}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Óvirkar ({{countInactive}})</span></sc-if>
+              <sc-if value="{{filterNotInactive}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Óvirkar ({{countInactive}})</span></sc-if>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== EMPTY STATE ===== -->
+        <sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+          <x-import component-from-global-scope="Birtingur.EmptyState" title="Engar auglýsingar fundust" description="Prófaðu aðra leit eða veldu annan flokk." hint-size="100%,220px"></x-import>
+        </sc-if>
+
+        <!-- ===== CREATIVE GRID ===== -->
+        <sc-if value="{{isNotEmpty}}" hint-placeholder-val="{{true}}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:22px">
+            <sc-for list="{{creatives}}" as="cr" hint-placeholder-count="8">
+              <x-import component-from-global-scope="Birtingur.Card" hint-size="100%,320px">
+                <div style="width:100%;aspect-ratio:16/9;background:#eef1f6;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px">
+                  <span class="material-symbols-outlined" style="font-size:20px;color:#94a3b8">image</span>
+                  <span style="font-size:13px;color:#94a3b8;font-weight:500">Auglýsingamynd</span>
+                </div>
+                <div style="font-size:16px;font-weight:700;color:#0f172a;line-height:1.3">{{cr.headline}}</div>
+                <p style="font-size:14px;color:#64748b;margin:8px 0 0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{cr.body}}</p>
+                <div style="font-size:13px;color:#94a3b8;margin-top:14px">{{cr.category}} · {{cr.campaignName}}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:16px;border-top:1px solid #f1f5f9">
+                  <x-import component-from-global-scope="Birtingur.Badge" variant="{{cr.statusVariant}}" hint-size="80px,24px">{{cr.statusLabel}}</x-import>
+                  <span style="font-size:13px;color:#64748b;font-variant-numeric:tabular-nums">CTR {{cr.ctrLabel}}</span>
+                </div>
+              </x-import>
+            </sc-for>
+          </div>
+        </sc-if>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  CREATIVES = [
+    { id: 'a1', headline: 'Sumartilboð — 20% afsláttur', body: 'Njóttu sumarsins með glænýjum tilboðum í matvöruversluninni.', category: 'Matur', campaignName: 'Sumartilboð', status: 'active', impressions: 486200, clicks: 3910 },
+    { id: 'a2', headline: 'Kannaðu Ísland í sumar', body: 'Bókaðu draumaferðina þína í sumar með sérstökum afslætti.', category: 'Ferðalög', campaignName: 'Ferðasumar 2026', status: 'active', impressions: 342760, clicks: 2400 },
+    { id: 'a3', headline: 'Nýja símalínan er komin', body: 'Uppgötvaðu nýjustu tæknina — nú fáanleg í öllum verslunum.', category: 'Tækni', campaignName: 'Nýjar græjur', status: 'active', impressions: 455970, clicks: 3330 },
+    { id: 'a4', headline: 'Náttúrulegar vörur fyrir haustið', body: 'Hugsaðu vel um heilsuna með nýrri vörulínu úr náttúrulegum efnum.', category: 'Heilsa', campaignName: 'Heilsuátak haust', status: 'review', impressions: 0, clicks: 0 },
+    { id: 'a5', headline: 'Sparaðu með nýjum reikningi', body: 'Fáðu betri kjör og lægri þjónustugjöld með nýjum sparireikningi.', category: 'Fjármál', campaignName: 'Fjármálavika', status: 'pending', impressions: 0, clicks: 0 },
+    { id: 'a6', headline: 'Haustlínan 2026', body: 'Fyrstu drög að nýrri fatalínu fyrir haustið — kynntu þér vöruúrvalið.', category: 'Tíska', campaignName: 'Haustlína', status: 'draft', impressions: 0, clicks: 0 },
+    { id: 'a7', headline: 'Vorhreinsun heimilisins', body: 'Allt sem þarf til að taka til heima fyrir á einum stað.', category: 'Lífsstíll', campaignName: 'Vorhreingerning', status: 'paused', impressions: 175000, clicks: 1220 },
+    { id: 'a8', headline: 'Nýir og notaðir bílar', body: 'Skoðaðu úrvalið af bílum frá traustum söluaðilum um land allt.', category: 'Bílar', campaignName: 'Bílasala vor', status: 'rejected', impressions: 0, clicks: 0 },
+  ];
+  state = { filter: 'all', query: '' };
+
+  statusMeta(status) {
+    switch (status) {
+      case 'active': return { variant: 'success', label: 'Virk' };
+      case 'review': return { variant: 'info', label: 'Í yfirferð' };
+      case 'pending': return { variant: 'pending', label: 'Í bið' };
+      case 'draft': return { variant: 'neutral', label: 'Drög' };
+      case 'paused': return { variant: 'neutral', label: 'Í hléi' };
+      case 'rejected': return { variant: 'danger', label: 'Hafnað' };
+      default: return { variant: 'neutral', label: status };
+    }
+  }
+
+  renderVals() {
+    const st = this.state;
+    const groupOf = (status) => status === 'active' ? 'active' : (status === 'review' || status === 'pending') ? 'progress' : 'inactive';
+    const counts = { all: this.CREATIVES.length, active: 0, progress: 0, inactive: 0 };
+    this.CREATIVES.forEach(c => { counts[groupOf(c.status)]++; });
+
+    const q = st.query.trim().toLowerCase();
+    const visible = this.CREATIVES.filter(c =>
+      (st.filter === 'all' || groupOf(c.status) === st.filter) &&
+      (!q || c.headline.toLowerCase().includes(q) || c.category.toLowerCase().includes(q))
+    );
+
+    const creatives = visible.map(c => {
+      const meta = this.statusMeta(c.status);
+      return {
+        id: c.id, headline: c.headline, body: c.body, category: c.category, campaignName: c.campaignName,
+        statusVariant: meta.variant, statusLabel: meta.label,
+        ctrLabel: c.impressions ? (Math.round((c.clicks / c.impressions) * 10000) / 100).toString().replace('.', ',') + '%' : '—',
+      };
+    });
+
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/herferdir', label: 'Herferðir', icon: 'campaign' },
+      { to: '/auglysingasafn', label: 'Auglýsingasafn', icon: 'collections_bookmark' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+
+    return {
+      navItems, creatives,
+      totalLabel: this.CREATIVES.length,
+      isEmpty: creatives.length === 0, isNotEmpty: creatives.length > 0,
+      query: st.query, onQuery: (e) => this.setState({ query: e.target.value }),
+      countAll: counts.all, countActive: counts.active, countProgress: counts.progress, countInactive: counts.inactive,
+      filterIsAll: st.filter === 'all', filterIsActive: st.filter === 'active', filterIsProgress: st.filter === 'progress', filterIsInactive: st.filter === 'inactive',
+      filterNotAll: st.filter !== 'all', filterNotActive: st.filter !== 'active', filterNotProgress: st.filter !== 'progress', filterNotInactive: st.filter !== 'inactive',
+      setFilterAll: () => this.setState({ filter: 'all' }),
+      setFilterActive: () => this.setState({ filter: 'active' }),
+      setFilterProgress: () => this.setState({ filter: 'progress' }),
+      setFilterInactive: () => this.setState({ filter: 'inactive' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

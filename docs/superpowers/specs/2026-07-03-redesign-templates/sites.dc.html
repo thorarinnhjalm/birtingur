@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Vefir" description="Nordic editorial publisher site management — per-site ad-slot placements, performance, and actions" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,900px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur Útgefandi" hint-size="100%,900px">
+
+      <div data-screen-label="Vefir" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Vefir</h1>
+            <p style="font-size:15px;color:#64748b;margin:12px 0 0">{{siteCountLabel}} vefir skráðir</p>
+          </div>
+          <a href="../publisher-onboarding/PublisherOnboarding.dc.html" style="text-decoration:none">
+            <x-import component-from-global-scope="Birtingur.Button" hint-size="150px,42px">Skrá nýjan vef</x-import>
+          </a>
+        </header>
+
+        <!-- ===== SITE CARDS ===== -->
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <sc-for list="{{sites}}" as="site" hint-placeholder-count="3">
+            <x-import component-from-global-scope="Birtingur.Card" hint-size="100%,220px">
+              <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:20px">
+
+                <div style="display:flex;flex-direction:column;gap:6px;min-width:200px">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <h3 style="font-size:17px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#0f172a">{{site.domain}}</h3>
+                    <x-import component-from-global-scope="Birtingur.Badge" variant="{{site.statusVariant}}" hint-size="70px,24px">{{site.statusLabel}}</x-import>
+                  </div>
+                  <span style="font-size:13px;color:#64748b">{{site.category}}</span>
+                </div>
+
+                <div style="display:flex;gap:36px;flex-wrap:wrap">
+                  <div>
+                    <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Birtingar</div>
+                    <div style="font-size:17px;font-weight:700;color:#0f172a;margin-top:6px;font-variant-numeric:tabular-nums">{{site.impressionsLabel}}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Tekjur</div>
+                    <div style="font-size:17px;font-weight:700;color:#0f172a;margin-top:6px;font-variant-numeric:tabular-nums">{{site.revenueLabel}}</div>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:10px">
+                  <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="110px,40px">Skoða kóða</x-import>
+                  <x-import component-from-global-scope="Birtingur.Button" variant="ghost" hint-size="100px,40px">Fjarlægja</x-import>
+                </div>
+              </div>
+
+              <div style="margin-top:22px;padding-top:20px;border-top:1px solid #f1f5f9">
+                <p style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8;margin:0 0 12px">Auglýsingapláss</p>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <sc-for list="{{site.slots}}" as="slot" hint-placeholder-count="2">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                      <span style="font-size:14px;color:#334155">{{slot.label}}</span>
+                      <x-import component-from-global-scope="Birtingur.Badge" variant="{{slot.statusVariant}}" hint-size="60px,24px">{{slot.statusLabel}}</x-import>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </x-import>
+          </sc-for>
+        </div>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  SITES = [
+    {
+      domain: 'matarbloggid.is', category: 'Matur', status: 'active', impressions: 412600, revenue: 181500,
+      slots: [
+        { label: 'Haus — 728×90', status: 'active' },
+        { label: 'Hliðarstika — 300×250', status: 'active' },
+        { label: 'Grein — innfellt', status: 'active' },
+      ],
+    },
+    {
+      domain: 'ferdafrettir.is', category: 'Ferðalög', status: 'active', impressions: 298900, revenue: 131600,
+      slots: [
+        { label: 'Haus — 728×90', status: 'active' },
+        { label: 'Hliðarstika — 300×250', status: 'pending' },
+      ],
+    },
+    {
+      domain: 'taeknivaktin.is', category: 'Tækni', status: 'review', impressions: 0, revenue: 0,
+      slots: [
+        { label: 'Haus — 728×90', status: 'pending' },
+      ],
+    },
+  ];
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  statusMeta(status) {
+    switch (status) {
+      case 'active': return { variant: 'success', label: 'Virkt' };
+      case 'review': return { variant: 'info', label: 'Í yfirferð' };
+      case 'pending': return { variant: 'pending', label: 'Í bið' };
+      default: return { variant: 'neutral', label: status };
+    }
+  }
+
+  siteStatusMeta(status) {
+    switch (status) {
+      case 'active': return { variant: 'success', label: 'Virkur' };
+      case 'review': return { variant: 'info', label: 'Í yfirferð' };
+      default: return { variant: 'neutral', label: status };
+    }
+  }
+
+  renderVals() {
+    const f = this.fmt.bind(this);
+    const sites = this.SITES.map(s => {
+      const meta = this.siteStatusMeta(s.status);
+      return {
+        domain: s.domain, category: s.category,
+        statusVariant: meta.variant, statusLabel: meta.label,
+        impressionsLabel: s.impressions ? f(s.impressions) : '—',
+        revenueLabel: s.revenue ? f(s.revenue) + ' kr.' : '—',
+        slots: s.slots.map(sl => {
+          const sm = this.statusMeta(sl.status);
+          return { label: sl.label, statusVariant: sm.variant, statusLabel: sm.label };
+        }),
+      };
+    });
+
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/vefir', label: 'Vefir', icon: 'language' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+
+    return { navItems, sites, siteCountLabel: this.SITES.length };
+  }
+}
+</script>
+</body>
+</html>

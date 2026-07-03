@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Editorial Landing" description="Nordic editorial landing page for advertisers — hero, how-it-works, stats band, trust, footer" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:#ffffff}
+  ::selection{background:#1e3a8a;color:#fff}
+  /* hide the "birtingur.app" badge inside the read-only PublicHeader */
+  #dc-root span.bg-blue-50.text-blue-600{display:none !important}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;background:#ffffff;color:#0f172a;width:100%;-webkit-font-smoothing:antialiased">
+
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,80px">
+    <x-import component-from-global-scope="Birtingur.PublicHeader" current-tab="advertisers" hint-size="100%,80px"></x-import>
+  </x-import>
+
+  <!-- ============ HERO ============ -->
+  <section style="padding:clamp(72px,10vw,132px) 0 clamp(56px,8vw,96px)">
+    <div style="max-width:1180px;margin:0 auto;padding:0 clamp(24px,5vw,72px)">
+      <h1 style="font-size:clamp(46px,8vw,108px);font-weight:800;letter-spacing:-0.035em;line-height:0.96;margin:0;max-width:16ch;text-wrap:balance">Auglýstu eftir áhuga, ekki eftir vefjum</h1>
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:40px;margin-top:clamp(36px,5vw,64px)">
+        <div style="max-width:560px">
+          <p style="font-size:clamp(18px,2vw,22px);line-height:1.55;color:#334155;margin:0;font-weight:400">Kauptu auglýsingar eftir efnisflokkum — ekki eftir stökum vefjum. Náðu til lesenda á íslenskum miðlum í kringum matinn, ferðalögin og tæknina sem þeir lesa um hvern dag.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:36px">
+            <x-import component-from-global-scope="Birtingur.Button" hint-size="150px,44px">Stofna herferð</x-import>
+            <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="120px,44px">Skrá vef</x-import>
+          </div>
+        </div>
+        <div style="border-left:2px solid #1e3a8a;padding-left:22px;margin-bottom:6px">
+          <div style="font-size:clamp(40px,5vw,60px);font-weight:800;letter-spacing:-0.03em;line-height:1;color:#0f172a">550<span style="font-size:0.42em;font-weight:600;color:#64748b;margin-left:6px">kr. CPM</span></div>
+          <div style="font-size:14px;color:#64748b;margin-top:10px;max-width:15ch">Eitt fast verð fyrir hverjar 1.000 birtingar</div>
+        </div>
+      </div>
+      <div style="margin-top:clamp(52px,7vw,92px);border-top:1px solid #e2e8f0;padding-top:clamp(36px,4vw,48px);display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,56px)">
+        <div>
+          <div style="width:30px;height:3px;background:#1e3a8a;margin-bottom:18px"></div>
+          <div style="font-size:clamp(21px,2.4vw,30px);font-weight:700;letter-spacing:-0.02em;line-height:1.05;color:#0f172a">Fast verð</div>
+          <p style="font-size:15px;line-height:1.55;color:#64748b;margin:12px 0 0;max-width:26ch">Sama CPM verð alltaf. Engin uppboð og engir faldir kostnaðir.</p>
+        </div>
+        <div>
+          <div style="width:30px;height:3px;background:#1e3a8a;margin-bottom:18px"></div>
+          <div style="font-size:clamp(21px,2.4vw,30px);font-weight:700;letter-spacing:-0.02em;line-height:1.05;color:#0f172a">Engin binding</div>
+          <p style="font-size:15px;line-height:1.55;color:#64748b;margin:12px 0 0;max-width:26ch">Kveiktu og slökktu á herferðum hvenær sem er, án samninga.</p>
+        </div>
+        <div>
+          <div style="width:30px;height:3px;background:#1e3a8a;margin-bottom:18px"></div>
+          <div style="font-size:clamp(21px,2.4vw,30px);font-weight:700;letter-spacing:-0.02em;line-height:1.05;color:#0f172a">Íslensk þjónusta</div>
+          <p style="font-size:15px;line-height:1.55;color:#64748b;margin:12px 0 0;max-width:26ch">Fólk á Íslandi svarar — á íslensku og með skilningi á markaðnum.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CATEGORY TICKER ============ -->
+  <div style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0">
+    <div style="max-width:1180px;margin:0 auto;padding:22px clamp(24px,5vw,72px);display:flex;flex-wrap:wrap;align-items:center;gap:14px 26px;font-size:13px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#64748b">
+      <span>Matur</span><span style="color:#cbd5e1">/</span>
+      <span>Ferðalög</span><span style="color:#cbd5e1">/</span>
+      <span>Tækni</span><span style="color:#cbd5e1">/</span>
+      <span>Heilsa</span><span style="color:#cbd5e1">/</span>
+      <span>Fjármál</span><span style="color:#cbd5e1">/</span>
+      <span>Menning</span><span style="color:#cbd5e1">/</span>
+      <span>Íþróttir</span>
+    </div>
+  </div>
+
+  <!-- ============ SVONA VIRKAR ÞAÐ ============ -->
+  <section style="padding:clamp(80px,11vw,148px) 0">
+    <div style="max-width:1180px;margin:0 auto;padding:0 clamp(24px,5vw,72px)">
+      <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#1e3a8a;margin:0 0 22px">Svona virkar það</span>
+      <h2 style="font-size:clamp(30px,4.2vw,52px);font-weight:800;letter-spacing:-0.025em;line-height:1.02;margin:0 0 clamp(44px,6vw,72px);max-width:18ch">Frá hugmynd að birtingu í þremur skrefum</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+        <x-import component-from-global-scope="Birtingur.Card" style="height:100%" hint-size="100%,280px">
+          <div style="display:flex;flex-direction:column;gap:18px;min-height:236px;padding:6px 4px">
+            <span style="font-size:44px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:#1e3a8a;font-variant-numeric:tabular-nums">01</span>
+            <div style="height:1px;background:#e2e8f0"></div>
+            <h3 style="font-size:19px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#0f172a">Veldu flokka</h3>
+            <p style="font-size:15px;line-height:1.6;color:#475569;margin:0">Veldu þá efnisflokka sem lesendur þínir dvelja í — matur, ferðalög, tækni og fleira. Við sjáum um að finna réttu miðlana.</p>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="Birtingur.Card" style="height:100%" hint-size="100%,280px">
+          <div style="display:flex;flex-direction:column;gap:18px;min-height:236px;padding:6px 4px">
+            <span style="font-size:44px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:#1e3a8a;font-variant-numeric:tabular-nums">02</span>
+            <div style="height:1px;background:#e2e8f0"></div>
+            <h3 style="font-size:19px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#0f172a">Stilltu herferð</h3>
+            <p style="font-size:15px;line-height:1.6;color:#475569;margin:0">Ákveddu fjárhæð og tímabil. Fast CPM verð, engin uppboð og engir faldir kostnaðir — þú veist alltaf hvað þú borgar.</p>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="Birtingur.Card" style="height:100%" hint-size="100%,280px">
+          <div style="display:flex;flex-direction:column;gap:18px;min-height:236px;padding:6px 4px">
+            <span style="font-size:44px;font-weight:800;letter-spacing:-0.03em;line-height:1;color:#1e3a8a;font-variant-numeric:tabular-nums">03</span>
+            <div style="height:1px;background:#e2e8f0"></div>
+            <h3 style="font-size:19px;font-weight:700;letter-spacing:-0.01em;margin:0;color:#0f172a">Fylgstu með</h3>
+            <p style="font-size:15px;line-height:1.6;color:#475569;margin:0">Sjáðu birtingar og smelli í rauntíma og fínstilltu herferðina hvenær sem er — beint úr stjórnborðinu þínu.</p>
+          </div>
+        </x-import>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATS BAND (navy full-bleed) ============ -->
+  <section style="background:#1e3a8a;padding:clamp(72px,10vw,128px) 0">
+    <div style="max-width:1180px;margin:0 auto;padding:0 clamp(24px,5vw,72px)">
+      <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.6);margin:0 0 22px">Gagnsætt verð</span>
+      <h2 style="font-size:clamp(30px,4.2vw,52px);font-weight:800;letter-spacing:-0.025em;line-height:1.02;margin:0 0 clamp(40px,6vw,64px);max-width:18ch;color:#ffffff">Eitt fast verð. Engin uppboð.</h2>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px">
+        <x-import component-from-global-scope="Birtingur.StatCard" label="Fast CPM verð" value="550 kr." hint-size="100%,120px"></x-import>
+        <x-import component-from-global-scope="Birtingur.StatCard" label="Uppsetningarkostnaður" value="0 kr." hint-size="100%,120px"></x-import>
+        <x-import component-from-global-scope="Birtingur.StatCard" label="Virkir efnisflokkar" value="12" hint-size="100%,120px"></x-import>
+        <x-import component-from-global-scope="Birtingur.StatCard" label="Útgreiðslur til útgefenda" value="Mánaðarlega" hint-size="100%,120px"></x-import>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:36px">
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Matur</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Ferðalög</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Tækni</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Heilsa</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Fjármál</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Menning</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Íþróttir</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Tíska</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Bílar</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Heimili</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Fjölskylda</span>
+        <span style="font-size:14px;font-weight:500;color:#e2e8f0;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:999px;padding:8px 18px">Afþreying</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST ============ -->
+  <section style="padding:clamp(80px,11vw,148px) 0">
+    <div style="max-width:1180px;margin:0 auto;padding:0 clamp(24px,5vw,72px)">
+      <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#1e3a8a;margin:0 0 22px">Af hverju Birtingur</span>
+      <h2 style="font-size:clamp(30px,4.2vw,52px);font-weight:800;letter-spacing:-0.025em;line-height:1.02;margin:0 0 clamp(44px,6vw,72px);max-width:16ch">Kostir sem skipta máli</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(40px,5vw,60px) clamp(24px,4vw,56px)">
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Eitt fast verð — 550 kr. CPM</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">550 kr. fyrir hverjar 1.000 birtingar. Engin uppboð, ekkert flækjustig.</p>
+        </div>
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Flokkakaup í stað stakra plássa</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">Veldu efnisflokk og fjárhæð — við dreifum birtingunum á alla íslenska vefi í flokknum.</p>
+        </div>
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Sjáðu áætlunina áður en þú borgar</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">Rauntíma birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.</p>
+        </div>
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Þú ferð aldrei yfir fjárhagsáætlun</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð.</p>
+        </div>
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Aðeins raunverulegar birtingar teljast</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">Birting telst aðeins þegar auglýsingin sést — í samræmi við IAB-viðmið.</p>
+        </div>
+        <div style="border-top:2px solid #1e3a8a;padding-top:26px">
+          <h3 style="font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0 0 12px;color:#0f172a">Engar vafrakökur frá þriðja aðila</h3>
+          <p style="font-size:15px;line-height:1.65;color:#475569;margin:0">Persónuvernd innbyggð: engin þriðju aðila rakning og tíðnistýring aðeins með samþykki notanda.</p>
+        </div>
+      </div>
+      <div style="margin-top:clamp(40px,5vw,60px);border-top:1px solid #e2e8f0;padding-top:24px;display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline;font-size:14px;color:#64748b">
+        <span style="font-weight:600;color:#0f172a;letter-spacing:0.01em">Og að sjálfsögðu</span>
+        <span>Vörn gegn smellasvindli</span><span style="color:#cbd5e1">·</span>
+        <span>24% VSK sundurliðaður</span><span style="color:#cbd5e1">·</span>
+        <span>Teya-greiðslur</span><span style="color:#cbd5e1">·</span>
+        <span>Íslenskt fyrirtæki með íslenskri þjónustu</span>
+      </div>
+      <div style="margin-top:clamp(40px,5vw,56px);display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <x-import component-from-global-scope="Birtingur.Button" hint-size="150px,44px">Stofna herferð</x-import>
+        <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="120px,44px">Skrá vef</x-import>
+      </div>
+    </div>
+  </section>
+
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,300px">
+    <x-import component-from-global-scope="Birtingur.PublicFooter" hint-size="100%,300px"></x-import>
+  </x-import>
+
+</div>
+</x-dc>
+</body>
+</html>

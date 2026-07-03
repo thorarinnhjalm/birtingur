@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Campaign Buy Flow" description="Nordic editorial campaign creation flow — category cards, budget, live forecast, Teya/VSK payment" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+  input[type=range]{accent-color:#1e3a8a}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#f6f7f9;font-family:'Inter',system-ui,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased" data-screen-label="Stofna herferð">
+
+  <div style="background:#ffffff;border-bottom:1px solid #e6e9ee">
+    <div style="max-width:760px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:800;letter-spacing:-0.01em">Birtingur</span>
+      <span style="font-size:14px;color:#64748b;cursor:pointer">Hætta við</span>
+    </div>
+  </div>
+
+  <div style="max-width:760px;margin:0 auto;padding:clamp(40px,6vw,72px) 24px 110px">
+
+    <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#1e3a8a;margin:0 0 16px">Ný herferð</span>
+    <h1 style="font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.03em;line-height:1.0;margin:0">Stofna herferð</h1>
+
+    <!-- STEP INDICATOR -->
+    <div style="display:flex;align-items:center;gap:18px;margin-top:32px;flex-wrap:wrap">
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">01</span><span style="font-size:14px;font-weight:600;color:#0f172a">Flokkar</span></div>
+      <div style="width:26px;height:1px;background:#c5c5d3"></div>
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">02</span><span style="font-size:14px;font-weight:600;color:#0f172a">Fjárhæð</span></div>
+      <div style="width:26px;height:1px;background:#c5c5d3"></div>
+      <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">03</span><span style="font-size:14px;font-weight:600;color:#0f172a">Greiðsla</span></div>
+    </div>
+
+    <!-- ===== 01 CATEGORIES ===== -->
+    <section style="margin-top:clamp(48px,6vw,72px)">
+      <div style="display:flex;gap:14px;align-items:baseline">
+        <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">01</span>
+        <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Veldu flokka</h2>
+      </div>
+      <p style="font-size:15px;color:#64748b;margin:12px 0 26px;line-height:1.5;max-width:52ch">Veldu efnisflokkana sem henta vörumerkinu. Við dreifum birtingunum á alla íslenska vefi í völdum flokkum.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+        <sc-for list="{{cats}}" as="cat" hint-placeholder-count="12">
+          <div style="position:relative;border:1.5px solid #e2e8f0;background:#ffffff;border-radius:14px;padding:20px 22px;cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:border-color .15s" onClick="{{cat.toggle}}">
+            <sc-if value="{{cat.selected}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:-1.5px;border:1.5px solid #1e3a8a;border-radius:14px;background:rgba(30,58,138,0.06);pointer-events:none"></span></sc-if>
+            <div style="position:relative;display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <span style="font-size:16px;font-weight:700;color:#0f172a">{{cat.name}}</span>
+              <sc-if value="{{cat.selected}}" hint-placeholder-val="{{false}}"><span style="width:20px;height:20px;border-radius:999px;background:#1e3a8a;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">✓</span></sc-if>
+            </div>
+            <span style="position:relative;font-size:13px;color:#64748b">~{{cat.invLabel}} á dag í boði</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- ===== 02 BUDGET ===== -->
+    <section style="margin-top:clamp(48px,6vw,72px)">
+      <div style="display:flex;gap:14px;align-items:baseline">
+        <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">02</span>
+        <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Fjárhæð</h2>
+      </div>
+      <p style="font-size:15px;color:#64748b;margin:12px 0 30px;line-height:1.5;max-width:52ch">Þú borgar aldrei meira. Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð.</p>
+      <div style="font-size:clamp(44px,8vw,64px);font-weight:800;letter-spacing:-0.035em;line-height:1;color:#0f172a;font-variant-numeric:tabular-nums">{{budgetFmt}}<span style="font-size:0.36em;font-weight:600;color:#64748b;margin-left:12px;letter-spacing:0">kr.</span></div>
+      <input type="range" min="10000" max="500000" step="5000" value="{{budget}}" onChange="{{onBudget}}" style="width:100%;margin:32px 0 0;height:4px;cursor:pointer" />
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-top:10px;font-variant-numeric:tabular-nums"><span>10.000 kr.</span><span>500.000 kr.</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">
+        <button onClick="{{setB25}}" style="font-size:14px;font-weight:600;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:9px 18px;cursor:pointer;font-variant-numeric:tabular-nums">25.000 kr.</button>
+        <button onClick="{{setB50}}" style="font-size:14px;font-weight:600;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:9px 18px;cursor:pointer;font-variant-numeric:tabular-nums">50.000 kr.</button>
+        <button onClick="{{setB100}}" style="font-size:14px;font-weight:600;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:9px 18px;cursor:pointer;font-variant-numeric:tabular-nums">100.000 kr.</button>
+        <button onClick="{{setB200}}" style="font-size:14px;font-weight:600;color:#334155;background:#fff;border:1px solid #e2e8f0;border-radius:999px;padding:9px 18px;cursor:pointer;font-variant-numeric:tabular-nums">200.000 kr.</button>
+      </div>
+
+      <!-- LIVE FORECAST -->
+      <div style="margin-top:34px;background:#f1f5fd;border:1px solid #dbe4f7;border-radius:18px;padding:30px 32px">
+        <span style="display:inline-block;font-size:12px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#1e3a8a">Áætluð birting</span>
+        <div style="display:flex;align-items:baseline;gap:14px;margin-top:12px">
+          <span style="font-size:clamp(36px,6vw,50px);font-weight:800;color:#1e3a8a;letter-spacing:-0.025em;line-height:1;font-variant-numeric:tabular-nums">{{perDayFmt}}</span>
+          <span style="font-size:16px;color:#334155;font-weight:500">birtingar á dag</span>
+        </div>
+        <p style="margin:14px 0 0;color:#475569;font-size:14px;line-height:1.55">≈ {{totalFmt}} birtingar alls yfir ~30 daga, reiknað á föstu <strong style="color:#1e3a8a;font-weight:700">550 kr. CPM</strong> verði.</p>
+        <sc-if value="{{hasCats}}" hint-placeholder-val="{{true}}">
+          <div style="margin-top:18px;padding-top:18px;border-top:1px solid #dbe4f7;font-size:14px;color:#475569">Laust pláss í {{selCount}} völdum flokkum: <strong style="color:#0f172a;font-weight:700;font-variant-numeric:tabular-nums">~{{invFmt}}</strong> birtingar á dag.</div>
+        </sc-if>
+      </div>
+    </section>
+
+    <!-- ===== 03 PAYMENT ===== -->
+    <section style="margin-top:clamp(48px,6vw,72px)">
+      <div style="display:flex;gap:14px;align-items:baseline">
+        <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">03</span>
+        <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Greiðsla</h2>
+      </div>
+      <p style="font-size:15px;color:#64748b;margin:12px 0 24px;line-height:1.5;max-width:52ch">Fjárhæðin er sótt af inneigninni í veskinu þínu. Ef inneign nægir ekki er sjálfkrafa fyllt á með kortinu þínu.</p>
+
+      <div style="background:#f6f7f9;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8">Núverandi inneign í veskinu þínu</div>
+          <div style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;margin-top:6px;font-variant-numeric:tabular-nums">{{walletFmt}} kr.</div>
+        </div>
+        <sc-if value="{{walletSufficient}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#0f172a;font-weight:600">Nóg inneign — engin áfylling þarf</span></sc-if>
+        <sc-if value="{{walletInsufficient}}" hint-placeholder-val="{{true}}"><span style="font-size:14px;color:#1e3a8a;font-weight:600">Vantar {{topUpFmt}} kr. — fyllt á með korti</span></sc-if>
+      </div>
+
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:16px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="width:46px;height:32px;border-radius:7px;background:#1e3a8a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:0.02em">Teya</div>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#0f172a">Kort •••• 4242</div>
+            <div style="font-size:13px;color:#64748b;margin-top:2px">Notað til að fylla á veskið þegar inneign nægir ekki</div>
+          </div>
+        </div>
+        <span style="font-size:14px;font-weight:600;color:#1e3a8a;cursor:pointer">Breyta</span>
+      </div>
+
+      <div style="margin-top:26px;display:flex;flex-direction:column;gap:15px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#475569">Fjárhæð herferðar</span><span style="font-size:15px;color:#0f172a;font-variant-numeric:tabular-nums">{{budgetFmt}} kr.</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:15px;color:#475569">VSK (24%)</span><span style="font-size:15px;color:#0f172a;font-variant-numeric:tabular-nums">{{vskFmt}} kr.</span></div>
+        <div style="height:1px;background:#e2e8f0;margin:3px 0"></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:17px;font-weight:700;color:#0f172a">Samtals</span><span style="font-size:24px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;font-variant-numeric:tabular-nums">{{grandFmt}} kr.</span></div>
+      </div>
+
+      <div style="margin-top:30px">
+        <sc-if value="{{walletSufficient}}" hint-placeholder-val="{{false}}"><x-import component-from-global-scope="Birtingur.Button" class="w-full" hint-size="100%,52px">Hefja birtingu af inneign</x-import></sc-if>
+        <sc-if value="{{walletInsufficient}}" hint-placeholder-val="{{true}}"><x-import component-from-global-scope="Birtingur.Button" class="w-full" hint-size="100%,52px">Fylla á veski og hefja birtingu</x-import></sc-if>
+      </div>
+      <p style="display:flex;align-items:center;gap:8px;justify-content:center;margin:20px 0 0;font-size:13px;color:#64748b;text-align:center;line-height:1.5">
+        <span class="material-symbols-outlined" style="font-size:17px;color:#1e3a8a">lock</span>
+        Örugg greiðsla í gegnum Teya · VSK-reikningur berst strax · stöðvaðu hvenær sem er
+      </p>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  CATS = [
+    { key: 'matur', name: 'Matur', inv: 142000 },
+    { key: 'frettir', name: 'Fréttir', inv: 168000 },
+    { key: 'taekni', name: 'Tækni', inv: 120000 },
+    { key: 'lifsstill', name: 'Lífsstíll', inv: 98000 },
+    { key: 'heilsa', name: 'Heilsa', inv: 88000 },
+    { key: 'ferdalog', name: 'Ferðalög', inv: 76000 },
+    { key: 'tiska', name: 'Tíska', inv: 72000 },
+    { key: 'ithrottir', name: 'Íþróttir', inv: 64000 },
+    { key: 'bilar', name: 'Bílar', inv: 61000 },
+    { key: 'fjarmal', name: 'Fjármál', inv: 54000 },
+    { key: 'menning', name: 'Menning', inv: 47000 },
+    { key: 'born', name: 'Börn & fjölskylda', inv: 39000 },
+  ];
+  WALLET_BALANCE = 84500;
+  state = { budget: 50000, sel: { matur: true, ferdalog: true, taekni: true } };
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  toggle(id) { this.setState(s => ({ sel: { ...s.sel, [id]: !s.sel[id] } })); }
+  renderVals() {
+    const s = this.state.sel, b = this.state.budget;
+    const cats = this.CATS.map(cat => ({
+      key: cat.key, name: cat.name, invLabel: this.fmt(cat.inv),
+      selected: !!s[cat.key], toggle: () => this.toggle(cat.key),
+    }));
+    const selCount = cats.filter(x => x.selected).length;
+    const invSum = this.CATS.reduce((a, cat) => a + (s[cat.key] ? cat.inv : 0), 0);
+    const total = Math.round(b / 550 * 1000);
+    const perDay = Math.round(total / 30);
+    const vsk = Math.round(b * 0.24);
+    const f = this.fmt.bind(this);
+    return {
+      budget: b, budgetFmt: f(b),
+      cats,
+      onBudget: (e) => this.setState({ budget: +e.target.value }),
+      setB25: () => this.setState({ budget: 25000 }), setB50: () => this.setState({ budget: 50000 }), setB100: () => this.setState({ budget: 100000 }), setB200: () => this.setState({ budget: 200000 }),
+      perDayFmt: f(perDay), totalFmt: f(total), invFmt: f(invSum), selCount,
+      vskFmt: f(vsk), grandFmt: f(b + vsk), hasCats: selCount > 0,
+      walletFmt: f(this.WALLET_BALANCE),
+      walletSufficient: this.WALLET_BALANCE >= (b + vsk), walletInsufficient: this.WALLET_BALANCE < (b + vsk),
+      topUpFmt: f(Math.max(0, (b + vsk) - this.WALLET_BALANCE)),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Greiðslur" description="Nordic editorial advertiser billing — payment method, summary stats, VSK invoice history" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,900px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur" hint-size="100%,900px">
+
+      <div data-screen-label="Greiðslur" style="display:flex;flex-direction:column;gap:clamp(32px,4vw,48px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header>
+          <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Greiðslur</h1>
+          <p style="font-size:15px;color:#64748b;margin:12px 0 0">Veskið þitt, greiðslusaga og reikningar</p>
+        </header>
+
+        <!-- ===== WALLET SUMMARY ===== -->
+        <x-import component-from-global-scope="Birtingur.Card" hint-size="100%,140px">
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f1f5f9;padding-bottom:16px;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+            <span style="font-size:14px;font-weight:600;color:#64748b">Núverandi inneign í veskinu þínu:</span>
+            <span style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em">84.500 kr.</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <p style="font-size:14px;color:#64748b;margin:0;max-width:44ch;line-height:1.5">Inneignin er notuð til að greiða fyrir birtingar herferða þinna. Bættu við inneign með korti á þegar hana þrýtur.</p>
+            <x-import component-from-global-scope="Birtingur.Button" hint-size="150px,42px">Bæta við inneign</x-import>
+          </div>
+        </x-import>
+
+        <!-- ===== STAT CARDS ===== -->
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Eytt í mánuðinum" value="706.500 kr." hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="VSK greitt á árinu" value="{{vskYearLabel}} kr." hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Næsta greiðsla" value="1. júlí 2026" hint-size="100%,120px"></x-import>
+        </div>
+
+        <!-- ===== PAYMENT METHOD ===== -->
+        <section>
+          <h2 style="font-size:19px;font-weight:700;letter-spacing:-0.015em;margin:0 0 16px">Greiðslumáti</h2>
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:16px">
+              <div style="width:46px;height:32px;border-radius:7px;background:#1e3a8a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:0.02em">Teya</div>
+              <div>
+                <div style="font-size:15px;font-weight:600;color:#0f172a">Kort •••• 4242</div>
+                <div style="font-size:13px;color:#64748b;margin-top:2px">Rennur út 08/28 · Notad til að fylla sjálfkrafa á veskið þitt</div>
+              </div>
+            </div>
+            <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="100px,42px">Breyta</x-import>
+          </div>
+        </section>
+
+        <!-- ===== INVOICE HISTORY ===== -->
+        <section>
+          <h2 style="font-size:19px;font-weight:700;letter-spacing:-0.015em;margin:0 0 16px">Reikningar</h2>
+          <p style="font-size:14px;color:#64748b;margin:-8px 0 20px;max-width:56ch;line-height:1.5">Löglegur VSK-reikningur fylgir hverri áfyllingu á veskið.</p>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:14px 16px 14px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Dagsetning</th>
+                <th style="text-align:left;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Herferð</th>
+                <th style="text-align:right;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Fjárhæð</th>
+                <th style="text-align:right;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">VSK (24%)</th>
+                <th style="text-align:left;padding:14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Staða</th>
+                <th style="text-align:right;padding:14px 0 14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Reikningur</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{invoices}}" as="inv" hint-placeholder-count="7">
+                <tr>
+                  <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;font-size:15px;color:#334155">{{inv.date}}</td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2;font-size:15px;font-weight:600;color:#0f172a">{{inv.campaign}}</td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">{{inv.amountLabel}}</td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#64748b;font-variant-numeric:tabular-nums">{{inv.vskLabel}}</td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2">
+                    <x-import component-from-global-scope="Birtingur.Badge" variant="{{inv.statusVariant}}" hint-size="70px,24px">{{inv.statusLabel}}</x-import>
+                  </td>
+                  <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right">
+                    <sc-if value="{{inv.canDownload}}" hint-placeholder-val="{{true}}">
+                      <span style="display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#1e3a8a;cursor:pointer">
+                        <span class="material-symbols-outlined" style="font-size:18px">download</span>PDF
+                      </span>
+                    </sc-if>
+                    <sc-if value="{{inv.cannotDownload}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#cbd5e1">—</span></sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  INVOICES = [
+    { date: '1. júlí 2026', campaign: 'Væntanleg greiðsla', amount: 706510, status: 'pending' },
+    { date: '1. júní 2026', campaign: 'Sumartilboð', amount: 267410, status: 'paid' },
+    { date: '1. júní 2026', campaign: 'Ferðasumar 2026', amount: 188500, status: 'paid' },
+    { date: '1. júní 2026', campaign: 'Nýjar græjur', amount: 250600, status: 'paid' },
+    { date: '1. maí 2026', campaign: 'Vorhreingerning', amount: 96200, status: 'paid' },
+    { date: '1. maí 2026', campaign: 'Sumartilboð', amount: 210300, status: 'paid' },
+    { date: '1. apríl 2026', campaign: 'Nýjar græjur', amount: 178900, status: 'paid' },
+  ];
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  renderVals() {
+    const f = this.fmt.bind(this);
+    const invoices = this.INVOICES.map(inv => {
+      const vsk = Math.round(inv.amount * 0.24);
+      const paid = inv.status === 'paid';
+      return {
+        date: inv.date, campaign: inv.campaign,
+        amountLabel: f(inv.amount) + ' kr.', vskLabel: f(vsk) + ' kr.',
+        statusVariant: paid ? 'success' : 'pending', statusLabel: paid ? 'Greitt' : 'Í vinnslu',
+        canDownload: paid, cannotDownload: !paid,
+      };
+    });
+    const vskYear = this.INVOICES.filter(i => i.status === 'paid').reduce((a, i) => a + Math.round(i.amount * 0.24), 0);
+
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/herferdir', label: 'Herferðir', icon: 'campaign' },
+      { to: '/auglysingasafn', label: 'Auglýsingasafn', icon: 'collections_bookmark' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+
+    return { navItems, invoices, vskYearLabel: f(vskYear) };
+  }
+}
+</script>
+</body>
+</html>

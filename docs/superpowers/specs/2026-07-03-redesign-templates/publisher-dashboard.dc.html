@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Útgefandi mælaborð" description="Nordic editorial publisher dashboard — AppShell, StatCards, AnalyticsChart in publisher mode, per-site performance table" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,900px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur Útgefandi" hint-size="100%,900px">
+
+      <div data-screen-label="Útgefandi mælaborð" style="display:flex;flex-direction:column;gap:clamp(36px,4.5vw,60px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Mælaborð</h1>
+            <p style="font-size:15px;color:#64748b;margin:12px 0 0;letter-spacing:0.01em">Tímabil&nbsp;&nbsp;<span style="color:#0f172a;font-weight:600">1.–30. júní 2026</span></p>
+          </div>
+          <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="120px,42px">Júní 2026</x-import>
+        </header>
+
+        <!-- ===== STAT CARDS ===== -->
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px">
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Birtingar" value="711.500" delta="{{dImp}}" hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Tekjur í mánuðinum" value="313.100 kr." delta="{{dRev}}" hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Meðal CPM" value="550 kr." hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Næsta útgreiðsla" value="1. júlí 2026" hint-size="100%,120px"></x-import>
+        </div>
+
+        <!-- ===== CHART ===== -->
+        <x-import component-from-global-scope="Birtingur.Card" hint-size="100%,420px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px">
+            <div>
+              <h2 style="font-size:19px;font-weight:700;letter-spacing:-0.015em;margin:0">Frammistaða</h2>
+              <p style="font-size:14px;color:#64748b;margin:6px 0 0">Birtingar og tekjur af öllum vefjum yfir tímabilið</p>
+            </div>
+          </div>
+          <div style="height:320px;width:100%">
+            <x-import component-from-global-scope="Birtingur.AnalyticsChart" data="{{chartData}}" mode="publisher" hint-size="100%,300px"></x-import>
+          </div>
+        </x-import>
+
+        <!-- ===== SITES TABLE ===== -->
+        <section>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px">
+            <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0">Vefirnir þínir</h2>
+            <span style="font-size:14px;color:#64748b">{{siteCountLabel}} vefir</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:16px 16px 14px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Vefur</th>
+                <th style="text-align:left;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Staða</th>
+                <th style="text-align:right;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Birtingar</th>
+                <th style="text-align:right;padding:16px 0 14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Tekjur</th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{sites}}" as="site" hint-placeholder-count="3">
+                <tr>
+                  <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                    <div style="font-size:15px;font-weight:600;color:#0f172a">{{site.domain}}</div>
+                    <div style="font-size:13px;color:#64748b;margin-top:3px">{{site.category}}</div>
+                  </td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle">
+                    <x-import component-from-global-scope="Birtingur.Badge" variant="{{site.statusVariant}}" hint-size="80px,24px">{{site.statusLabel}}</x-import>
+                  </td>
+                  <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">{{site.impressionsLabel}}</td>
+                  <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">{{site.revenueLabel}}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  SITES = [
+    { domain: 'matarbloggid.is', category: 'Matur', status: 'active', impressions: 412600, revenue: 181500 },
+    { domain: 'ferdafrettir.is', category: 'Ferðalög', status: 'active', impressions: 298900, revenue: 131600 },
+    { domain: 'taeknivaktin.is', category: 'Tækni', status: 'review', impressions: 0, revenue: 0 },
+  ];
+  fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  statusMeta(status) {
+    switch (status) {
+      case 'active': return { variant: 'success', label: 'Virkur' };
+      case 'review': return { variant: 'info', label: 'Í yfirferð' };
+      default: return { variant: 'neutral', label: status };
+    }
+  }
+
+  renderVals() {
+    const f = this.fmt.bind(this);
+    const sites = this.SITES.map(s => {
+      const meta = this.statusMeta(s.status);
+      return {
+        domain: s.domain, category: s.category,
+        statusVariant: meta.variant, statusLabel: meta.label,
+        impressionsLabel: s.impressions ? f(s.impressions) : '—',
+        revenueLabel: s.revenue ? f(s.revenue) + ' kr.' : '—',
+      };
+    });
+
+    const chartData = [];
+    for (let i = 0; i < 30; i++) {
+      const day = String(i + 1).padStart(2, '0');
+      const wave = Math.sin(i / 4) * 5200 + Math.sin(i / 2.3) * 2800;
+      const impressions = Math.round(23700 + wave + (i > 21 ? 3000 : 0));
+      const clicks = Math.round(impressions * 0.0075);
+      const spendIsk = Math.round((impressions / 1000) * 550 * 0.8);
+      chartData.push({ date: `2026-06-${day}`, impressions, clicks, spendIsk, pageviews: Math.round(impressions * 3.1) });
+    }
+
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/vefir', label: 'Vefir', icon: 'language' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+
+    return {
+      navItems, sites, chartData,
+      siteCountLabel: this.SITES.length,
+      dImp: { value: '+6,4% frá fyrra tímabili', positive: true },
+      dRev: { value: '+6,4% frá fyrra tímabili', positive: true },
+    };
+  }
+}
+</script>
+</body>
+</html>

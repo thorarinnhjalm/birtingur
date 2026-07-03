@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Advertiser Dashboard" description="Nordic editorial advertiser dashboard — AppShell, StatCards, AnalyticsChart, editorial campaign table" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+</style>
+</helmet>
+<div style="font-family:'Inter',system-ui,sans-serif;width:100%;-webkit-font-smoothing:antialiased">
+  <x-import component-from-global-scope="Birtingur.DSProvider" hint-size="100%,760px">
+    <x-import component-from-global-scope="Birtingur.AppShell" items="{{navItems}}" title="Birtingur" hint-size="100%,760px">
+
+      <div data-screen-label="Mælaborð" style="display:flex;flex-direction:column;gap:clamp(36px,4.5vw,60px);color:#0f172a">
+
+        <!-- ===== PAGE HEADER ===== -->
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px">
+          <div>
+            <h1 style="font-size:clamp(28px,3vw,40px);font-weight:800;letter-spacing:-0.03em;line-height:1.02;margin:0">Mælaborð</h1>
+            <p style="font-size:15px;color:#64748b;margin:12px 0 0;letter-spacing:0.01em">Tímabil&nbsp;&nbsp;<span style="color:#0f172a;font-weight:600">1.–30. júní 2026</span></p>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="120px,42px">Júní 2026</x-import>
+            <x-import component-from-global-scope="Birtingur.Button" hint-size="130px,42px">Ný herferð</x-import>
+          </div>
+        </header>
+
+        <!-- ===== STAT CARDS ===== -->
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px">
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Birtingar" value="1.284.930" delta="{{dImp}}" hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Smellir" value="9.640" delta="{{dClk}}" hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="CTR" value="0,75%" delta="{{dCtr}}" hint-size="100%,120px"></x-import>
+          <x-import component-from-global-scope="Birtingur.StatCard" label="Eytt í mánuðinum" value="706.500 kr." delta="{{dSpend}}" hint-size="100%,120px"></x-import>
+        </div>
+
+        <!-- ===== CHART ===== -->
+        <x-import component-from-global-scope="Birtingur.Card" hint-size="100%,420px">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px">
+            <div>
+              <h2 style="font-size:19px;font-weight:700;letter-spacing:-0.015em;margin:0">Frammistaða</h2>
+              <p style="font-size:14px;color:#64748b;margin:6px 0 0">Birtingar, smellir og kostnaður yfir tímabilið</p>
+            </div>
+          </div>
+          <div style="height:320px;width:100%">
+            <x-import component-from-global-scope="Birtingur.AnalyticsChart" data="{{chartData}}" mode="advertiser" hint-size="100%,300px"></x-import>
+          </div>
+        </x-import>
+
+        <!-- ===== CAMPAIGN TABLE ===== -->
+        <section>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px">
+            <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0">Herferðir</h2>
+            <span style="font-size:14px;color:#64748b">8 herferðir</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:16px 16px 14px 0;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Herferð</th>
+                <th style="text-align:left;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Staða</th>
+                <th style="text-align:right;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Birtingar</th>
+                <th style="text-align:right;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Smellir</th>
+                <th style="text-align:right;padding:16px 16px 14px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">CTR</th>
+                <th style="text-align:right;padding:16px 0 14px 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;border-bottom:1px solid #c5c5d3">Eytt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Sumartilboð</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Matur</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="success" hint-size="56px,24px">Virk</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">486.200</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">3.910</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">0,80%</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">267.410 kr.</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Ferðasumar 2026</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Ferðalög</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="success" hint-size="56px,24px">Virk</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">342.760</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">2.400</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">0,70%</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">188.500 kr.</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Nýjar græjur</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Tækni</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="success" hint-size="56px,24px">Virk</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">455.970</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">3.330</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">0,73%</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">250.600 kr.</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Heilsuátak haust</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Heilsa</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="info" hint-size="80px,24px">Í yfirferð</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Fjármálavika</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Fjármál</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="pending" hint-size="60px,24px">Í bið</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Haustlína</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Tíska</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="neutral" hint-size="56px,24px">Drög</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;border-bottom:1px solid #eceef2;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Vorhreingerning</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Lífsstíll</div>
+                </td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="neutral" hint-size="60px,24px">Í hléi</x-import></td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">175.000</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">1.220</td>
+                <td style="padding:22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;color:#334155;font-variant-numeric:tabular-nums">0,70%</td>
+                <td style="padding:22px 0 22px 16px;border-bottom:1px solid #eceef2;text-align:right;font-size:15px;font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">96.200 kr.</td>
+              </tr>
+              <tr>
+                <td style="padding:22px 16px 22px 0;vertical-align:middle">
+                  <div style="font-size:15px;font-weight:600;color:#0f172a">Bílasala vor</div>
+                  <div style="font-size:13px;color:#64748b;margin-top:3px">Bílar</div>
+                </td>
+                <td style="padding:22px 16px;vertical-align:middle"><x-import component-from-global-scope="Birtingur.Badge" variant="danger" hint-size="70px,24px">Hafnað</x-import></td>
+                <td style="padding:22px 16px;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 16px;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+                <td style="padding:22px 0 22px 16px;text-align:right;font-size:15px;color:#94a3b8;font-variant-numeric:tabular-nums">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </div>
+
+    </x-import>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const navItems = [
+      { to: '/', label: 'Mælaborð', icon: 'space_dashboard' },
+      { to: '/herferdir', label: 'Herferðir', icon: 'campaign' },
+      { to: '/auglysingasafn', label: 'Auglýsingasafn', icon: 'collections_bookmark' },
+      { to: '/greidslur', label: 'Greiðslur', icon: 'payments' },
+    ];
+    const chartData = [];
+    for (let i = 0; i < 30; i++) {
+      const day = String(i + 1).padStart(2, '0');
+      const wave = Math.sin(i / 4) * 7000 + Math.sin(i / 2.3) * 3800;
+      const impressions = Math.round(37000 + wave + (i > 21 ? 7000 : 0));
+      const clicks = Math.round(impressions * 0.0075);
+      const spendIsk = Math.round((impressions / 1000) * 550);
+      chartData.push({ date: `2026-06-${day}`, impressions, clicks, spendIsk });
+    }
+    return {
+      navItems,
+      chartData,
+      dImp: { value: '+8,2% frá fyrra tímabili', positive: true },
+      dClk: { value: '+3,1% frá fyrra tímabili', positive: true },
+      dCtr: { value: '-0,2% frá fyrra tímabili', positive: false },
+      dSpend: { value: '+8,2% frá fyrra tímabili', positive: true },
+    };
+  }
+}
+</script>
+</body>
+</html>

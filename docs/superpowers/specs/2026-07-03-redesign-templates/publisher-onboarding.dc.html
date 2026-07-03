@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Publisher Onboarding" description="Nordic editorial flow for websites registering as Birtingur publishers — domain+category, ad snippet, live verification, payout details" -->
+<helmet>
+<link rel="stylesheet" href="../../styles.css">
+<script src="../../_vendor/react.js"></script>
+<script src="../../_vendor/react-dom.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  html,body{margin:0}
+  ::selection{background:#1e3a8a;color:#fff}
+  @keyframes obPulse{0%,100%{opacity:1}50%{opacity:0.25}}
+</style>
+</helmet>
+<div style="min-height:100vh;background:#f6f7f9;font-family:'Inter',system-ui,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased" data-screen-label="Skrá vef">
+
+  <div style="background:#ffffff;border-bottom:1px solid #e6e9ee">
+    <div style="max-width:760px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:800;letter-spacing:-0.01em">Birtingur</span>
+      <span style="font-size:14px;color:#64748b;cursor:pointer">Hætta við</span>
+    </div>
+  </div>
+
+  <div style="max-width:760px;margin:0 auto;padding:clamp(40px,6vw,72px) 24px 110px">
+
+    <!-- ===== FLOW ===== -->
+    <sc-if value="{{notSubmitted}}" hint-placeholder-val="{{true}}">
+      <div>
+        <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#1e3a8a;margin:0 0 16px">Nýr útgefandi</span>
+        <h1 style="font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.03em;line-height:1.0;margin:0">Skrá vef</h1>
+
+        <div style="display:flex;align-items:center;gap:16px;margin-top:32px;flex-wrap:wrap">
+          <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">01</span><span style="font-size:14px;font-weight:600;color:#0f172a">Vefur</span></div>
+          <div style="width:22px;height:1px;background:#c5c5d3"></div>
+          <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">02</span><span style="font-size:14px;font-weight:600;color:#0f172a">Kóði</span></div>
+          <div style="width:22px;height:1px;background:#c5c5d3"></div>
+          <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">03</span><span style="font-size:14px;font-weight:600;color:#0f172a">Staðfesting</span></div>
+          <div style="width:22px;height:1px;background:#c5c5d3"></div>
+          <div style="display:flex;align-items:baseline;gap:9px"><span style="font-size:13px;font-weight:800;color:#1e3a8a;font-variant-numeric:tabular-nums">04</span><span style="font-size:14px;font-weight:600;color:#0f172a">Greiðslur</span></div>
+        </div>
+
+        <!-- 01 SITE + CATEGORY -->
+        <section style="margin-top:clamp(48px,6vw,72px)">
+          <div style="display:flex;gap:14px;align-items:baseline">
+            <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">01</span>
+            <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Vefurinn þinn</h2>
+          </div>
+          <p style="font-size:15px;color:#64748b;margin:12px 0 26px;line-height:1.5;max-width:52ch">Segðu okkur hvar auglýsingarnar eiga heima. Þú getur breytt þessu síðar.</p>
+
+          <div style="max-width:420px">
+            <x-import component-from-global-scope="Birtingur.Input" label="Vefslóð" placeholder="t.d. matarbloggid.is" value="{{domain}}" onChange="{{onDomain}}" hint-size="100%,74px"></x-import>
+          </div>
+
+          <p style="font-size:13px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#94a3b8;margin:32px 0 14px">Aðalefnisflokkur vefsins</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <sc-for list="{{cats}}" as="cat" hint-placeholder-count="12">
+              <div style="position:relative;border:1.5px solid #e2e8f0;background:#ffffff;border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:border-color .15s" onClick="{{cat.select}}">
+                <sc-if value="{{cat.selected}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:-1.5px;border:1.5px solid #1e3a8a;border-radius:12px;background:rgba(30,58,138,0.06);pointer-events:none"></span></sc-if>
+                <span style="position:relative;font-size:14px;font-weight:600;color:#0f172a">{{cat.name}}</span>
+                <sc-if value="{{cat.selected}}" hint-placeholder-val="{{false}}"><span style="position:relative;width:16px;height:16px;border-radius:999px;background:#1e3a8a;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">✓</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- 02 SNIPPET -->
+        <section style="margin-top:clamp(48px,6vw,72px)">
+          <div style="display:flex;gap:14px;align-items:baseline">
+            <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">02</span>
+            <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Tengdu vefinn</h2>
+          </div>
+          <p style="font-size:15px;color:#64748b;margin:12px 0 24px;line-height:1.5;max-width:52ch">Veldu leiðina sem hentar vefnum þínum best.</p>
+
+          <div style="display:flex;gap:8px;margin-bottom:22px">
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{selectSnippet}}">
+              <sc-if value="{{methodIsSnippet}}" hint-placeholder-val="{{true}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{methodIsSnippet}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Kóðasnippet</span></sc-if>
+              <sc-if value="{{methodNotSnippet}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Kóðasnippet</span></sc-if>
+            </div>
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{selectWordpress}}">
+              <sc-if value="{{methodIsWordpress}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{methodIsWordpress}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">WordPress</span></sc-if>
+              <sc-if value="{{methodNotWordpress}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">WordPress</span></sc-if>
+            </div>
+            <div style="position:relative;border-radius:999px;padding:9px 18px;cursor:pointer" onClick="{{selectGtm}}">
+              <sc-if value="{{methodIsGtm}}" hint-placeholder-val="{{false}}"><span style="position:absolute;inset:0;background:#1e3a8a;border-radius:999px"></span></sc-if>
+              <sc-if value="{{methodIsGtm}}" hint-placeholder-val="{{false}}"><span style="position:relative;font-size:14px;font-weight:600;color:#ffffff">Tag Manager</span></sc-if>
+              <sc-if value="{{methodNotGtm}}" hint-placeholder-val="{{true}}"><span style="position:relative;font-size:14px;font-weight:600;color:#475569">Tag Manager</span></sc-if>
+            </div>
+          </div>
+
+          <sc-if value="{{methodIsSnippet}}" hint-placeholder-val="{{true}}">
+            <div>
+              <p style="font-size:15px;color:#64748b;margin:0 0 18px;line-height:1.5;max-width:52ch">Settu eina línu af kóða á vefinn — í haus eða fyrir lokun <code style="background:#eef1f6;padding:1px 6px;border-radius:5px;font-size:13px">&lt;/body&gt;</code>. Virkar á hvaða vefumsjónarkerfi sem er.</p>
+              <div style="position:relative;background:#0f172a;border-radius:14px;padding:22px 24px;overflow-x:auto">
+                <code style="font-family:'SF Mono',Consolas,monospace;font-size:13.5px;color:#cbd5e1;white-space:pre;line-height:1.6">{{snippetText}}</code>
+                <button onClick="{{onCopySnippet}}" style="position:absolute;top:16px;right:16px;font-size:13px;font-weight:600;color:#0f172a;background:#ffffff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">{{copySnippetLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{methodIsWordpress}}" hint-placeholder-val="{{false}}">
+            <div>
+              <p style="font-size:15px;color:#64748b;margin:0 0 18px;line-height:1.5;max-width:52ch">Settu upp WordPress-viðbótina okkar og límdu API-lykilinn þinn inn í stillingarnar hennar.</p>
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+                <x-import component-from-global-scope="Birtingur.Button" variant="secondary" hint-size="170px,42px">Sækja viðbót</x-import>
+                <span style="font-size:13px;color:#94a3b8">Fyrir WordPress 5.0+</span>
+              </div>
+              <div style="position:relative;background:#0f172a;border-radius:14px;padding:22px 24px;overflow-x:auto">
+                <code style="font-family:'SF Mono',Consolas,monospace;font-size:13.5px;color:#cbd5e1;white-space:pre;line-height:1.6">{{apiKey}}</code>
+                <button onClick="{{onCopyKey}}" style="position:absolute;top:16px;right:16px;font-size:13px;font-weight:600;color:#0f172a;background:#ffffff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">{{copyKeyLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{methodIsGtm}}" hint-placeholder-val="{{false}}">
+            <div>
+              <p style="font-size:15px;color:#64748b;margin:0 0 18px;line-height:1.5;max-width:52ch">Búðu til nýtt Custom HTML-tag í Google Tag Manager, límdu kóðann inn og keyrðu það á öllum síðum.</p>
+              <div style="position:relative;background:#0f172a;border-radius:14px;padding:22px 24px;overflow-x:auto">
+                <code style="font-family:'SF Mono',Consolas,monospace;font-size:13.5px;color:#cbd5e1;white-space:pre;line-height:1.6">{{snippetText}}</code>
+                <button onClick="{{onCopySnippet}}" style="position:absolute;top:16px;right:16px;font-size:13px;font-weight:600;color:#0f172a;background:#ffffff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer">{{copySnippetLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+
+        <!-- 03 VERIFICATION -->
+        <section style="margin-top:clamp(48px,6vw,72px)">
+          <div style="display:flex;gap:14px;align-items:baseline">
+            <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">03</span>
+            <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Staðfesting</h2>
+          </div>
+          <p style="font-size:15px;color:#64748b;margin:12px 0 22px;line-height:1.5;max-width:52ch">Við athugum hvort kóðinn sé kominn upp á vefnum þínum.</p>
+
+          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:26px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <sc-if value="{{isIdle}}" hint-placeholder-val="{{true}}">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="width:12px;height:12px;border-radius:999px;background:#cbd5e1;flex-shrink:0"></span>
+                <span style="font-size:15px;color:#475569">Kóðinn hefur ekki verið staðfestur enn.</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{isChecking}}" hint-placeholder-val="{{false}}">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="width:12px;height:12px;border-radius:999px;background:#1e3a8a;flex-shrink:0;animation:obPulse 1s ease-in-out infinite"></span>
+                <span style="font-size:15px;color:#334155">Leitum að kóðanum á {{domain}}…</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{isVerified}}" hint-placeholder-val="{{false}}">
+              <div style="display:flex;align-items:center;gap:14px">
+                <span style="width:22px;height:22px;border-radius:999px;background:#1e3a8a;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">✓</span>
+                <span style="font-size:15px;color:#0f172a;font-weight:600">Kóðinn fannst — vefurinn er tilbúinn til birtinga.</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{showCheckBtn}}" hint-placeholder-val="{{true}}">
+              <x-import component-from-global-scope="Birtingur.Button" variant="secondary" onClick="{{onCheck}}" loading="{{isChecking}}" hint-size="150px,42px">Athuga stöðu</x-import>
+            </sc-if>
+          </div>
+        </section>
+
+        <!-- 04 PAYOUT -->
+        <section style="margin-top:clamp(48px,6vw,72px)">
+          <div style="display:flex;gap:14px;align-items:baseline">
+            <span style="font-size:28px;font-weight:800;color:#1e3a8a;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums">04</span>
+            <h2 style="font-size:24px;font-weight:800;letter-spacing:-0.02em;margin:0">Greiðsluupplýsingar</h2>
+          </div>
+          <p style="font-size:15px;color:#64748b;margin:12px 0 26px;line-height:1.5;max-width:52ch">Hér berast útgreiðslur fyrir birtingar á vefnum þínum.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:520px">
+            <x-import component-from-global-scope="Birtingur.Input" label="Kennitala fyrirtækis" placeholder="000000-0000" value="{{kennitala}}" onChange="{{onKennitala}}" hint-size="100%,74px"></x-import>
+            <x-import component-from-global-scope="Birtingur.Input" label="Bankareikningur" placeholder="0133-26-123456" value="{{bank}}" onChange="{{onBank}}" hint-size="100%,74px"></x-import>
+          </div>
+
+          <div style="margin-top:28px;background:#f1f5fd;border:1px solid #dbe4f7;border-radius:14px;padding:22px 24px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:#334155">Þitt hlutfall af tekjum</span><span style="font-size:14px;font-weight:700;color:#1e3a8a">80%</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:#334155">Útgreiðslur</span><span style="font-size:14px;font-weight:700;color:#0f172a">Mánaðarlega</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="font-size:14px;color:#334155">Lágmarksfjárhæð</span><span style="font-size:14px;font-weight:700;color:#0f172a">5.000 kr.</span></div>
+          </div>
+
+          <div style="margin-top:30px">
+            <x-import component-from-global-scope="Birtingur.Button" class="w-full" disabled="{{submitDisabled}}" onClick="{{onSubmit}}" hint-size="100%,52px">Staðfesta og hefja birtingar</x-import>
+          </div>
+          <p style="display:flex;align-items:center;gap:8px;justify-content:center;margin:20px 0 0;font-size:13px;color:#64748b;text-align:center;line-height:1.5">
+            <span class="material-symbols-outlined" style="font-size:17px;color:#1e3a8a">lock</span>
+            Greiðsluupplýsingar eru dulkóðaðar og aðeins notaðar til útgreiðslna
+          </p>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===== SUCCESS ===== -->
+    <sc-if value="{{isSubmitted}}" hint-placeholder-val="{{false}}">
+      <div style="padding-top:clamp(40px,7vw,80px);text-align:center">
+        <span style="display:inline-flex;width:56px;height:56px;border-radius:999px;background:#1e3a8a;color:#fff;font-size:24px;align-items:center;justify-content:center;margin:0 auto 28px">✓</span>
+        <span style="display:inline-block;font-size:13px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:#1e3a8a;margin:0 0 16px">Skráning móttekin</span>
+        <h1 style="font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.03em;line-height:1.05;margin:0">{{domain}} er nú virkur útgefandi</h1>
+        <p style="font-size:17px;color:#64748b;margin:20px auto 0;max-width:44ch;line-height:1.6">Auglýsingar úr flokknum {{selectedCatName}} byrja að birtast á vefnum þínum. Fyrsta útgreiðsla berst í lok mánaðarins.</p>
+        <div style="margin-top:44px">
+          <x-import component-from-global-scope="Birtingur.Button" hint-size="180px,52px">Fara á mælaborð</x-import>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  CATS = [
+    { key: 'matur', name: 'Matur' }, { key: 'frettir', name: 'Fréttir' }, { key: 'taekni', name: 'Tækni' },
+    { key: 'lifsstill', name: 'Lífsstíll' }, { key: 'heilsa', name: 'Heilsa' }, { key: 'ferdalog', name: 'Ferðalög' },
+    { key: 'tiska', name: 'Tíska' }, { key: 'ithrottir', name: 'Íþróttir' }, { key: 'bilar', name: 'Bílar' },
+    { key: 'fjarmal', name: 'Fjármál' }, { key: 'menning', name: 'Menning' }, { key: 'born', name: 'Börn & fjölskylda' },
+  ];
+  state = { domain: 'matarbloggid.is', category: 'matur', copiedSnippet: false, copiedKey: false, status: 'idle', kennitala: '', bank: '', submitted: false, method: 'snippet' };
+
+  slugify(d) { return (d || 'vefurinn-thinn').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'vefurinn-thinn'; }
+
+  renderVals() {
+    const s = this.state;
+    const slug = this.slugify(s.domain);
+    const cats = this.CATS.map(cat => ({
+      key: cat.key, name: cat.name, selected: s.category === cat.key,
+      select: () => this.setState({ category: cat.key }),
+    }));
+    const selectedCatName = (this.CATS.find(c => c.key === s.category) || {}).name || '';
+    const tagOpen = '<' + 'script';
+    const tagClose = '<' + '/script>';
+    const snippetText = tagOpen + ' src="https://cdn.birtingur.is/s.js" data-site="' + slug + '" async>' + tagClose;
+    const apiKey = 'birt_live_' + (slug.replace(/-/g, '').slice(0, 10) + '000000000').slice(0, 10) + '7f2a9c';
+    return {
+      domain: s.domain, onDomain: (e) => this.setState({ domain: e.target.value }),
+      cats, slug, selectedCatName, snippetText, apiKey,
+      methodIsSnippet: s.method === 'snippet', methodNotSnippet: s.method !== 'snippet',
+      methodIsWordpress: s.method === 'wordpress', methodNotWordpress: s.method !== 'wordpress',
+      methodIsGtm: s.method === 'gtm', methodNotGtm: s.method !== 'gtm',
+      selectSnippet: () => this.setState({ method: 'snippet' }),
+      selectWordpress: () => this.setState({ method: 'wordpress' }),
+      selectGtm: () => this.setState({ method: 'gtm' }),
+      copySnippetLabel: s.copiedSnippet ? 'Afritað ✓' : 'Afrita',
+      onCopySnippet: () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(snippetText).catch(() => {});
+        this.setState({ copiedSnippet: true });
+        clearTimeout(this._copySnippetT);
+        this._copySnippetT = setTimeout(() => this.setState({ copiedSnippet: false }), 1600);
+      },
+      copyKeyLabel: s.copiedKey ? 'Afritað ✓' : 'Afrita',
+      onCopyKey: () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(apiKey).catch(() => {});
+        this.setState({ copiedKey: true });
+        clearTimeout(this._copyKeyT);
+        this._copyKeyT = setTimeout(() => this.setState({ copiedKey: false }), 1600);
+      },
+      isIdle: s.status === 'idle', isChecking: s.status === 'checking', isVerified: s.status === 'verified',
+      showCheckBtn: s.status !== 'verified',
+      onCheck: () => {
+        this.setState({ status: 'checking' });
+        clearTimeout(this._checkT);
+        this._checkT = setTimeout(() => this.setState({ status: 'verified' }), 1300);
+      },
+      kennitala: s.kennitala, onKennitala: (e) => this.setState({ kennitala: e.target.value }),
+      bank: s.bank, onBank: (e) => this.setState({ bank: e.target.value }),
+      submitDisabled: s.status !== 'verified',
+      onSubmit: () => this.setState({ submitted: true }),
+      notSubmitted: !s.submitted, isSubmitted: s.submitted,
+    };
+  }
+}
+</script>
+</body>
+</html>
