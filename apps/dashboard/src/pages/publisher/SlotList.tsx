@@ -52,7 +52,9 @@ export default function SlotList() {
 
   if (isSlotsLoading || isPubsLoading) return <LoadingState />;
 
-  if (!slots || slots.length === 0) {
+  const sites = publishers ?? [];
+
+  if (!sites || sites.length === 0) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
         <EditorialH1>Vefir</EditorialH1>
@@ -70,8 +72,6 @@ export default function SlotList() {
       </div>
     );
   }
-
-  const sites = publishers ?? [];
 
   return (
     <div
@@ -192,9 +192,6 @@ export default function SlotList() {
                       today — kept inert (no handler), same convention as the
                       publisher Dashboard.tsx sibling's inert "Sía" filter
                       button, rather than fabricating a mutation. */}
-                  <Button variant="ghost" className="text-xs">
-                    Fjarlægja
-                  </Button>
                 </div>
               </div>
 
