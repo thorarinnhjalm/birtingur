@@ -1,20 +1,70 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
-import {
-  Sparkles,
-  MapPin,
-  Upload,
-  Coins,
-  CheckCircle2,
-  ChevronRight,
-  ArrowRight,
-  TrendingUp,
-  Target,
-} from 'lucide-react';
+import { Eyebrow, BigFigure } from '@/components/ui/editorial';
+import { AD_CATEGORIES, FLAT_CPM_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+
+// Icelandic dot-grouped integer — same local-fmtNum convention as
+// LandingPage.tsx/CampaignCreate.tsx/TopUp.tsx.
+function fmtNum(n: number): string {
+  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+}
+
+const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
+
+// Short display labels for the category pill row, derived from AD_CATEGORIES
+// (not hand-typed) — see LandingPage.tsx for why: it keeps this list from
+// drifting from what the platform actually targets.
+const CATEGORY_LABELS = AD_CATEGORIES.map((c) => c.label.split(' & ')[0]);
+
+const ADVERTISER_STEPS = [
+  {
+    n: '01',
+    title: 'Veldu flokka',
+    desc: 'Veldu þá efnisflokka sem henta viðskiptavinum þínum — matur, ferðalög, tækni og fleira. Við sjáum um að finna réttu miðlana.',
+  },
+  {
+    n: '02',
+    title: 'Stilltu herferð',
+    desc: 'Ákveddu fjárhæð og tímabil. Fast CPM verð, engin uppboð og engir faldir kostnaðir — þú veist alltaf hvað þú borgar.',
+  },
+  {
+    n: '03',
+    title: 'Fylgstu með',
+    desc: 'Sjáðu birtingar og smelli í rauntíma og fínstilltu herferðina hvenær sem er — beint úr stjórnborðinu þínu.',
+  },
+];
+
+const TRUST_ITEMS = [
+  {
+    title: `Eitt fast verð — ${fmtNum(FLAT_CPM_ISK)} kr. CPM`,
+    desc: `${fmtNum(FLAT_CPM_ISK)} kr. fyrir hverjar 1.000 birtingar. Engin uppboð, ekkert flækjustig.`,
+  },
+  {
+    title: 'Flokkakaup í stað stakra plássa',
+    desc: 'Veldu efnisflokk og fjárhæð — við dreifum birtingunum á alla íslenska vefi í flokknum.',
+  },
+  {
+    title: 'Sjáðu áætlunina áður en þú borgar',
+    desc: 'Rauntíma birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.',
+  },
+  {
+    title: 'Þú ferð aldrei yfir fjárhagsáætlun',
+    desc: 'Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð.',
+  },
+  {
+    title: 'Aðeins raunverulegar birtingar teljast',
+    desc: 'Birting telst aðeins þegar auglýsingin sést — í samræmi við IAB-viðmið.',
+  },
+  {
+    title: 'Engar vafrakökur frá þriðja aðila',
+    desc: 'Persónuvernd innbyggð: engin þriðju aðila rakning og tíðnistýring aðeins með samþykki notanda.',
+  },
+];
 
 const REGIONS: Record<
   string,
@@ -24,8 +74,6 @@ const REGIONS: Record<
     genitive: string;
     parentName: string;
     regionLabel: string;
-    population: number;
-    potentialReach: number;
   }
 > = {
   reykjavik: {
@@ -34,8 +82,6 @@ const REGIONS: Record<
     genitive: 'Reykjavíkur',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 139875,
-    potentialReach: 1200000,
   },
   kopavogur: {
     name: 'Kópavogur',
@@ -43,8 +89,6 @@ const REGIONS: Record<
     genitive: 'Kópavogs',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 39810,
-    potentialReach: 350000,
   },
   hafnarfjordur: {
     name: 'Hafnarfjörður',
@@ -52,8 +96,6 @@ const REGIONS: Record<
     genitive: 'Hafnarfjarðar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 30568,
-    potentialReach: 280000,
   },
   gardabaer: {
     name: 'Garðabær',
@@ -61,8 +103,6 @@ const REGIONS: Record<
     genitive: 'Garðabæjar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 18891,
-    potentialReach: 160000,
   },
   mosfellsbaer: {
     name: 'Mosfellsbær',
@@ -70,8 +110,6 @@ const REGIONS: Record<
     genitive: 'Mosfellsbæjar',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 13430,
-    potentialReach: 120000,
   },
   seltjarnarnes: {
     name: 'Seltjarnarnes',
@@ -79,8 +117,6 @@ const REGIONS: Record<
     genitive: 'Seltjarnarness',
     parentName: 'Höfuðborgarsvæðinu',
     regionLabel: 'Capital Area',
-    population: 4670,
-    potentialReach: 45000,
   },
   akureyri: {
     name: 'Akureyri',
@@ -88,8 +124,6 @@ const REGIONS: Record<
     genitive: 'Akureyrar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 19893,
-    potentialReach: 180000,
   },
   reykjanesbaer: {
     name: 'Reykjanesbær',
@@ -97,8 +131,6 @@ const REGIONS: Record<
     genitive: 'Reykjanesbæjar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 22014,
-    potentialReach: 200000,
   },
   selfoss: {
     name: 'Selfoss',
@@ -106,8 +138,6 @@ const REGIONS: Record<
     genitive: 'Selfoss',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 9600,
-    potentialReach: 90000,
   },
   akranes: {
     name: 'Akranes',
@@ -115,8 +145,6 @@ const REGIONS: Record<
     genitive: 'Akraness',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 7997,
-    potentialReach: 70000,
   },
   isafjordur: {
     name: 'Ísafjörður',
@@ -124,8 +152,6 @@ const REGIONS: Record<
     genitive: 'Ísafjarðar',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 2736,
-    potentialReach: 25000,
   },
   egilsstadir: {
     name: 'Egilsstaðir',
@@ -133,8 +159,6 @@ const REGIONS: Record<
     genitive: 'Egilsstaða',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 2572,
-    potentialReach: 22000,
   },
   vestmannaeyjar: {
     name: 'Vestmannaeyjar',
@@ -142,10 +166,13 @@ const REGIONS: Record<
     genitive: 'Vestmannaeyja',
     parentName: 'Landsbyggðinni',
     regionLabel: 'Countryside',
-    population: 4523,
-    potentialReach: 40000,
   },
 };
+
+const SECTION_PAD_X = {
+  paddingLeft: 'clamp(24px,5vw,72px)',
+  paddingRight: 'clamp(24px,5vw,72px)',
+} as const;
 
 export default function AdvertiserLanding() {
   const { region } = useParams<{ region?: string }>();
@@ -153,7 +180,7 @@ export default function AdvertiserLanding() {
 
   // Simple pricing calculator state
   const [budget, setBudget] = useState(15000);
-  const estimatedImpressions = Math.round((budget / 550) * 1000);
+  const estimatedImpressions = Math.round((budget / FLAT_CPM_ISK) * 1000);
 
   useEffect(() => {
     // Dynamic SEO Metadata setup
@@ -161,8 +188,8 @@ export default function AdvertiserLanding() {
       ? `Auglýsa á netinu ${activeRegion.dative} | Einföld birtingaþjónusta`
       : 'Auglýsa á netinu: Einföld birtingaþjónusta fyrir fyrirtæki | Birtingur';
     const descriptionText = activeRegion
-      ? `Auglýstu ${activeRegion.dative} og náðu til staðbundinna viðskiptavina. Sjálfvirk og kökulaus birtingaþjónusta án dýrra milliliða. Stofna herferð hér!`
-      : 'Auglýstu á íslenskum vefsíðum á nokkrum mínútum. Engin lágmarksgjöld, engir milliliðir. Prófaðu sjálfvirka og árangursríka birtingaþjónustu fyrir þitt fyrirtæki!';
+      ? `Auglýstu ${activeRegion.dative} með flokkakaupum á íslenskum vefjum. Fast ${fmtNum(FLAT_CPM_ISK)} kr. CPM verð, engin uppboð. Skráðu þig á biðlista!`
+      : `Auglýstu á íslenskum vefsíðum eftir efnisflokkum á föstu ${fmtNum(FLAT_CPM_ISK)} kr. CPM verði. Engin uppboð, ekkert flækjustig. Skráðu þig á biðlista!`;
 
     const path = region ? `/auglysendur/${region.toLowerCase()}` : '/auglysendur';
     updateSEO(titleText, descriptionText, path);
@@ -172,208 +199,230 @@ export default function AdvertiserLanding() {
     };
   }, [activeRegion, region]);
 
+  // Dispatches the same open-public-support event PublicFooter listens for —
+  // registration is closed (see RoleSelect.tsx REGISTRATION_CLOSED), so every
+  // "buy" CTA on this page routes to the waitlist instead of a live signup.
+  const openWaitlist = (extra?: string) => {
+    const event = new window.CustomEvent('open-public-support', {
+      detail: {
+        subject: 'Biðlisti: Vil kaupa auglýsingar',
+        body: `Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi${activeRegion ? ` með miðun á ${activeRegion.name}` : ''}${extra ?? ''} þegar opnað verður fyrir skráningu nýrra auglýsenda. Vinsamlegast látið mig vita.`,
+      },
+    });
+    window.dispatchEvent(event);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
-      {/* Background Glow */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-1/4 right-10 w-[500px] h-[500px] rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
+    <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased selection:bg-primary selection:text-white">
+      {/* Informational banner — real business state (advertiser self-signup is
+          currently closed, see RoleSelect.tsx REGISTRATION_CLOSED). Mirrors
+          the banner on LandingPage.tsx so the two pages read as one system. */}
+      <div className="flex flex-wrap items-center justify-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-center text-xs font-medium text-slate-600 sm:text-sm">
+        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
+          Tilkynning
+        </span>
+        <span>
+          Eins og er erum við eingöngu að skrá ný auglýsingapláss (vefi). Skráning nýrra auglýsenda
+          opnar fljótlega –{' '}
+          <button
+            onClick={() => openWaitlist()}
+            className="inline cursor-pointer border-none bg-transparent p-0 font-bold text-primary underline hover:text-primary-800"
+          >
+            smelltu hér til að skrá þig á biðlista!
+          </button>
+        </span>
+      </div>
 
       {/* HEADER */}
       <PublicHeader activeRegion={activeRegion} />
 
-      <main className="grow max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 space-y-16 relative">
-        {/* HERO SECTION */}
-        <section className="space-y-6 text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-bold uppercase tracking-wider">
-            <Sparkles size={14} className="text-blue-600" />
-            Vefauglýsingar eins og þær eiga að vera
-          </div>
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-            {activeRegion ? (
-              <>
-                Einfaldasta leiðin til að auglýsa{' '}
-                <span className="block mt-2 bg-linear-to-r from-blue-600 via-indigo-600 to-sky-600 bg-clip-text text-transparent">
-                  {activeRegion.dative}
-                </span>
-              </>
-            ) : (
-              <>
-                Einfaldasta leiðin til að auglýsa á{' '}
-                <span className="block mt-2 bg-linear-to-r from-blue-600 via-indigo-600 to-sky-600 bg-clip-text text-transparent">
-                  íslenskum vefsíðum
-                </span>
-              </>
-            )}
-          </h1>
-          <p className="text-base sm:text-lg text-slate-650 leading-relaxed font-semibold max-w-2xl mx-auto">
-            Viltu ná til fleiri viðskiptavina{activeRegion ? ` ${activeRegion.dative}` : ''} án þess
-            að sökkva í flókin tækniorð og erlend risakerfi? Með Birtingi geturðu birt auglýsingar á
-            nokkrum mínútum.
-          </p>
-
-          <div className="pt-4 flex flex-col items-center justify-center gap-3">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
-              <button
-                onClick={() => {
-                  const event = new window.CustomEvent('open-public-support', {
-                    detail: {
-                      subject: 'Biðlisti: Vil kaupa auglýsingar',
-                      body: `Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi${activeRegion ? ` með miðun á ${activeRegion.name}` : ''} þegar opnað verður fyrir skráningu nýrra auglýsenda. Vinsamlegast látið mig vita.`,
-                    },
-                  });
-                  window.dispatchEvent(event);
-                }}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold flex items-center justify-center gap-2 transition duration-300 cursor-pointer shadow-md shadow-blue-500/10 border-none"
-              >
-                Skrá mig á biðlista <ArrowRight size={18} />
-              </button>
-              <a
-                href="#reiknivel"
-                className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 font-bold text-slate-700 transition cursor-pointer text-center"
-              >
-                Sjá verðlagningu
-              </a>
-            </div>
-            <p className="text-xs text-slate-550 font-semibold text-center mt-1">
-              Skráðu þig á biðlista okkar til að tryggja þér pláss á undan öðrum og fá tilkynningu
-              um leið og við opnum fyrir auglýsingar!
-            </p>
-          </div>
-        </section>
-
-        {/* KEY HIGHLIGHTS */}
-        <section className="grid md:grid-cols-3 gap-6 pt-6">
-          <Card className="p-6 space-y-3 bg-white border border-slate-200/80 shadow-xs">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-              <Upload size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">1. Hlaða upp og birta</h3>
-            <p className="text-slate-600 text-sm font-medium leading-relaxed">
-              Þú þarft ekki að vera grafískur hönnuður eða tæknimaður. Þú hleður bara upp lógói eða
-              auglýsingamynd, setur inn vefslóðina þína og kerfið sér um afganginn.
-            </p>
-          </Card>
-
-          <Card className="p-6 space-y-3 bg-white border border-slate-200/80 shadow-xs">
-            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-              <MapPin size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900">2. Nákvæm mörkun</h3>
-            <p className="text-slate-600 text-sm font-medium leading-relaxed">
+      <main className="grow">
+        {/* ============ HERO ============ */}
+        <section
+          style={{ paddingTop: 'clamp(72px,10vw,132px)', paddingBottom: 'clamp(56px,8vw,96px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <Eyebrow className="mb-[22px] block">Fyrir auglýsendur</Eyebrow>
+            <h1
+              className="m-0 max-w-[18ch] font-extrabold text-slate-900"
+              style={{
+                fontSize: 'clamp(40px,7vw,92px)',
+                letterSpacing: '-0.035em',
+                lineHeight: 0.98,
+                textWrap: 'balance',
+              }}
+            >
               {activeRegion ? (
                 <>
-                  Við beinum auglýsingunni þinni sérstaklega að lesendum á{' '}
-                  <strong>{activeRegion.parentName}</strong> (þar á meðal {activeRegion.dative}) með
-                  því að greina sjálfkrafa hvaðan fólk er að lesa síðurnar.
+                  Auglýstu <span className="text-primary">{activeRegion.dative}</span> á íslenskum
+                  vefjum
                 </>
               ) : (
-                <>
-                  Veldu hvort þú vilt ná til lesenda á <strong>Höfuðborgarsvæðinu</strong>, á{' '}
-                  <strong>Landsbyggðinni</strong> eða í <strong>ákveðnu bæjarfélagi</strong>. Allt
-                  gert sjálfvirkt og kökulaust.
-                </>
+                <>Auglýstu á íslenskum vefjum eftir áhugasviði, ekki eftir stökum vefjum</>
               )}
-            </p>
-          </Card>
+            </h1>
 
-          <Card className="p-6 space-y-3 bg-white border border-slate-200/80 shadow-xs">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-              <Coins size={24} />
+            <div
+              className="flex flex-wrap items-end justify-between gap-10"
+              style={{ marginTop: 'clamp(36px,5vw,64px)' }}
+            >
+              <div className="max-w-[560px]">
+                <p
+                  className="m-0 font-normal text-slate-700"
+                  style={{ fontSize: 'clamp(18px,2vw,22px)', lineHeight: 1.55 }}
+                >
+                  {activeRegion ? (
+                    <>
+                      Kauptu auglýsingar eftir efnisflokkum sem henta fyrirtæki þínu{' '}
+                      {activeRegion.dative} — matur, ferðalög, tækni og fleira. Sama fasta, gagnsæa
+                      verðið hvar sem þú ert á landinu.
+                    </>
+                  ) : (
+                    <>
+                      Kauptu auglýsingar eftir efnisflokkum — ekki eftir stökum vefjum. Náðu til
+                      lesenda á íslenskum miðlum í kringum matinn, ferðalögin og tæknina sem þeir
+                      lesa um hvern dag.
+                    </>
+                  )}
+                </p>
+                <div className="mt-9 flex flex-wrap gap-3.5">
+                  <Button onClick={() => openWaitlist()}>Skrá mig á biðlista</Button>
+                  <a
+                    href="#reiknivel"
+                    className="inline-flex items-center justify-center rounded-lg border border-primary px-5 py-3 text-sm font-semibold text-primary transition-all duration-200 hover:bg-slate-50"
+                  >
+                    Sjá verðlagningu
+                  </a>
+                </div>
+              </div>
+              <div className="mb-1.5 border-l-2 border-primary pl-5">
+                <BigFigure value={fmtNum(FLAT_CPM_ISK)} suffix="kr. CPM" />
+                <div className="mt-2.5 max-w-[15ch] text-sm text-slate-500">
+                  Eitt fast verð fyrir hverjar 1.000 birtingar
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-slate-900">3. Engir bindandi samningar</h3>
-            <p className="text-slate-600 text-sm font-medium leading-relaxed">
-              Þú stjórnar kostnaðinum algjörlega sjálfur. Þú leggur inn upphæðina sem þú vilt nota í
-              veskið þitt, og greiðir aðeins fast og gagnsætt verð fyrir þær birtingar sem þú færð.
-            </p>
-          </Card>
+          </div>
         </section>
 
-        {/* INTEGRITY AND GEO ACCURACY BOX */}
-        {activeRegion && (
-          <section className="space-y-6">
-            <div className="p-6 bg-blue-50/40 border border-blue-150 rounded-2xl space-y-3">
-              <h4 className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                <Target size={16} />
-                Hvernig virkar staðsetningin {activeRegion.dative}?
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                Kerfið okkar notar 100% lögmæta IP-staðsetningargreiningu (án nokkurra vafrakaka eða
-                notendasporunar). Þegar þú velur <strong>{activeRegion.name}</strong>, greinir
-                kerfið sjálfkrafa lesendur sem koma frá {activeRegion.parentName} og sýnir þeim
-                auglýsinguna þína á okkar íslenska samstarfsneti. Þú ert því aðeins að borga fyrir
-                auglýsingar sem fólk á þínu svæði sér í raun og veru.
-              </p>
-            </div>
+        {/* ============ CATEGORY PILL ROW ============ */}
+        <div className="border-y border-slate-200">
+          <div
+            className="mx-auto flex flex-wrap items-center gap-x-6 gap-y-3.5 py-5"
+            style={{ maxWidth: 1180, ...SECTION_PAD_X }}
+          >
+            {CATEGORY_LABELS.map((label, i) => (
+              <span className="contents" key={label}>
+                <span className="text-[13px] font-semibold tracking-[0.14em] text-slate-500 uppercase">
+                  {label}
+                </span>
+                {i < CATEGORY_LABELS.length - 1 && <span className="text-slate-300">/</span>}
+              </span>
+            ))}
+          </div>
+        </div>
 
-            {/* Dynamic Local Stats Panel */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                  Íbúafjöldi ({activeRegion.name})
-                </span>
-                <span className="text-lg font-extrabold text-slate-800">
-                  {activeRegion.population.toLocaleString('is-IS')}
-                </span>
-              </div>
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                  Áætlaðar flettingar/mán
-                </span>
-                <span className="text-lg font-extrabold text-slate-800">
-                  {activeRegion.potentialReach.toLocaleString('is-IS')}+
-                </span>
-              </div>
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-center shadow-xs col-span-2 sm:col-span-1">
-                <span className="block text-[10px] uppercase font-black tracking-wider text-slate-400 mb-1">
-                  Gagnsætt verð
-                </span>
-                <span className="text-lg font-extrabold text-emerald-600">550 kr. CPM</span>
+        {/* ============ SVONA VIRKAR ÞAÐ ============ */}
+        <section
+          style={{ paddingTop: 'clamp(80px,11vw,148px)', paddingBottom: 'clamp(56px,7vw,96px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <Eyebrow className="mb-[22px] block">Svona virkar það</Eyebrow>
+            <h2
+              className="m-0 max-w-[18ch] font-extrabold text-slate-900"
+              style={{
+                fontSize: 'clamp(30px,4.2vw,52px)',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.02,
+                marginBottom: 'clamp(44px,6vw,72px)',
+              }}
+            >
+              Frá flokk að fyrstu birtingu í þremur skrefum
+            </h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              {ADVERTISER_STEPS.map((s) => (
+                <Card key={s.n} className="h-full">
+                  <div className="flex min-h-[236px] flex-col gap-[18px] p-1">
+                    <span className="text-[44px] leading-none font-extrabold tracking-[-0.03em] text-primary tabular-nums">
+                      {s.n}
+                    </span>
+                    <div className="h-px bg-slate-200" />
+                    <h3 className="m-0 text-[19px] font-bold tracking-[-0.01em] text-slate-900">
+                      {s.title}
+                    </h3>
+                    <p className="m-0 text-[15px] leading-[1.6] text-slate-600">{s.desc}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ REGIONAL CONTEXT (region routes only) ============ */}
+        {activeRegion && (
+          <section style={{ paddingBottom: 'clamp(56px,7vw,96px)' }}>
+            <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+              <div className="rounded-card border border-slate-200 bg-slate-50 p-8">
+                <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
+                  Fyrirtæki {activeRegion.dative}
+                </h3>
+                <p className="m-0 max-w-[62ch] text-[15px] leading-[1.65] text-slate-600">
+                  Birtingur dreifir birtingum eftir efnisflokkum á vefjum um allt land — óháð því
+                  hvort fyrirtækið þitt er {activeRegion.dative} eða annars staðar á landinu. Þú
+                  velur flokkana sem henta viðskiptavinum þínum og við sjáum um að finna réttu
+                  miðlana, á sama fasta {fmtNum(FLAT_CPM_ISK)} kr. CPM verðinu.
+                </p>
               </div>
             </div>
           </section>
         )}
 
-        {/* PRICING CALCULATOR */}
+        {/* ============ PRICING CALCULATOR ============ */}
         <section
           id="reiknivel"
-          className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm"
+          style={{ paddingTop: 'clamp(24px,4vw,48px)', paddingBottom: 'clamp(80px,11vw,148px)' }}
         >
-          <div className="grid md:grid-cols-2 gap-8 items-center">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">
-                <CheckCircle2 size={12} />
-                Flatt CPM verð
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 leading-tight">
-                Einfalt og gagnsætt verð
-              </h2>
-              <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                Við trúum ekki á flókið tilboðsferli eða falin gjöld. Hverjar 1.000 sýningar kosta
-                nákvæmlega <strong>550 kr.</strong> (CPM). Þú ræður því nákvæmlega hversu miklu þú
-                eyðir.
-              </p>
-              <ul className="space-y-2 text-slate-600 text-xs font-bold pt-2">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                  Engin mánaðargjöld eða uppsetningarkostnaður
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                  Breyttu eða stöðvaðu hvenær sem er með einum smelli
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-                  Móttaka og sjálfvirkt gæðaeftirlit með Gemini AI
-                </li>
-              </ul>
-            </div>
-
-            <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl space-y-6">
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <div className="grid grid-cols-1 gap-10 rounded-card border border-slate-200 bg-white p-8 md:grid-cols-2 md:p-12">
               <div>
-                <label className="flex justify-between text-xs font-bold text-slate-700 mb-2">
-                  <span>Hversu miklu viltu eyða?</span>
-                  <span className="text-blue-600 font-extrabold text-sm">
-                    {budget.toLocaleString('is-IS')} kr.
+                <Eyebrow className="mb-[18px] block">Verðreiknivél</Eyebrow>
+                <h2
+                  className="m-0 font-extrabold text-slate-900"
+                  style={{
+                    fontSize: 'clamp(26px,3.2vw,38px)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.05,
+                    marginBottom: '18px',
+                  }}
+                >
+                  Einfalt og gagnsætt verð
+                </h2>
+                <p className="m-0 text-[15px] leading-[1.65] text-slate-600">
+                  Hverjar 1.000 birtingar kosta nákvæmlega{' '}
+                  <strong className="text-slate-900">{fmtNum(FLAT_CPM_ISK)} kr.</strong> (CPM). Þú
+                  ræður sjálf/ur hversu miklu þú eyðir.
+                </p>
+                <ul className="mt-6 flex flex-col gap-3 text-sm font-medium text-slate-600">
+                  <li className="flex items-start gap-2.5">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    Engin mánaðargjöld eða uppsetningarkostnaður
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    Breyttu eða stöðvaðu herferð hvenær sem er
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                    Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð
+                  </li>
+                </ul>
+              </div>
+
+              <div className="rounded-card border border-slate-200 bg-slate-50 p-6">
+                <label className="mb-2 flex justify-between text-xs font-bold text-slate-700">
+                  <span>Hversu miklu viltu eyða á mánuði?</span>
+                  <span className="font-extrabold text-primary tabular-nums">
+                    {fmtNum(budget)} kr.
                   </span>
                 </label>
                 <input
@@ -383,99 +432,201 @@ export default function AdvertiserLanding() {
                   step="5000"
                   value={budget}
                   onChange={(e) => setBudget(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-primary"
                 />
-                <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1">
+                <div className="mt-1 flex justify-between text-[10px] font-bold text-slate-400 tabular-nums">
                   <span>5.000 kr.</span>
                   <span>50.000 kr.</span>
                   <span>100.000 kr.</span>
                 </div>
-              </div>
 
-              <div className="border-t border-slate-200 pt-4 text-center">
-                <span className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Áætlaður fjöldi auglýsingasýninga
-                </span>
-                <span className="block text-3xl font-black mt-1.5 bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {estimatedImpressions.toLocaleString('is-IS')}
-                </span>
-                <span className="block text-[10px] text-slate-400 font-medium mt-1">
-                  Mælt í skiptum sem íbúar{activeRegion ? ` ${activeRegion.dative}` : ''} sjá
-                  auglýsinguna þína
-                </span>
-              </div>
+                <div className="mt-6 border-t border-slate-200 pt-5 text-center">
+                  <span className="block text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                    Áætlaður fjöldi birtinga
+                  </span>
+                  <span className="mt-1.5 block text-3xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+                    {fmtNum(estimatedImpressions)}
+                  </span>
+                  <span className="mt-1 block text-[11px] leading-normal text-slate-500">
+                    Einfölduð áætlun miðað við fast CPM verð. Nákvæm birtingaspá fyrir hvern flokk
+                    birtist þegar herferð er sett upp.
+                  </span>
+                </div>
 
-              <button
-                onClick={() => {
-                  const event = new window.CustomEvent('open-public-support', {
-                    detail: {
-                      subject: 'Biðlisti: Vil kaupa auglýsingar',
-                      body: `Góðan daginn. Ég hef áhuga á að auglýsa í Birtingi${activeRegion ? ` með miðun á ${activeRegion.name}` : ''} með áætlað mánaðarlegt auglýsingafjármagn upp á um það bil ${budget.toLocaleString('is-IS')} kr. Vinsamlegast látið mig vita þegar opnað verður fyrir skráningu.`,
-                    },
-                  });
-                  window.dispatchEvent(event);
-                }}
-                className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-blue-500/10 border-none"
-              >
-                Skrá mig á biðlista <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* WHY COOKIELESS MATTERS IN SIMPLE TERMS */}
-        <section className="bg-slate-900 text-white rounded-3xl p-8 space-y-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-blue-500/10 blur-[80px] pointer-events-none" />
-          <div className="max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-bold">
-              <TrendingUp size={12} />
-              Betri árangur, minna vesen
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
-              Af hverju eru auglýsingarnar okkar áhrifameiri?
-            </h2>
-            <p className="text-slate-300 text-sm font-medium leading-relaxed">
-              Margir risamiðlar sýna tugi auglýsinga á sömu síðunni. Auglýsingar þar drukkna í
-              suðinu. Á okkar samstarfsneti gildir reglan:{' '}
-              <strong>Hvert pláss sýnir aðeins eina vandaða auglýsingu í senn</strong>. Lesandinn
-              fær frið til að taka eftir þínu vörumerki.
-            </p>
-            <p className="text-slate-350 text-xs font-semibold leading-relaxed">
-              Auk þess notum við <strong>engar vafrakökur (cookies)</strong>. Það þýðir að síðurnar
-              hlaðast eldsnöggt og engir pirrandi samþykkisgluggar birtast notendum út af okkar
-              skriftu.
-            </p>
-          </div>
-        </section>
-
-        {/* REGIONAL NAVIGATION FOOTER GRID (CRAWLABLE SEO LINKS) */}
-        <section className="space-y-4 pt-6">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider text-center">
-            Auglýstu á þínu svæði
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 text-xs font-bold">
-            {Object.entries(REGIONS).map(([key, value]) => {
-              const isActive = region?.toLowerCase() === key;
-              return (
-                <Link
-                  key={key}
-                  to={`/auglysendur/${key}`}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    isActive
-                      ? 'border-blue-600 bg-blue-50/20 text-blue-700'
-                      : 'border-slate-200 bg-white hover:border-slate-300 text-slate-650 hover:text-slate-900 hover:shadow-xs'
-                  }`}
+                <Button
+                  className="mt-6 w-full"
+                  onClick={() =>
+                    openWaitlist(
+                      ` með áætlað mánaðarlegt auglýsingafjármagn upp á um það bil ${fmtNum(budget)} kr.`,
+                    )
+                  }
                 >
-                  Auglýsa {value.dative}
-                </Link>
-              );
-            })}
-            <Link
-              to="/auglysendur"
-              className="p-3 rounded-xl border text-center transition-all border-slate-200 bg-white hover:border-slate-300 text-slate-650 hover:text-slate-900 hover:shadow-xs"
+                  Skrá mig á biðlista
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ STATS BAND (navy full-bleed) ============ */}
+        <section
+          className="bg-primary"
+          style={{ paddingTop: 'clamp(72px,10vw,128px)', paddingBottom: 'clamp(72px,10vw,128px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <span className="mb-[22px] inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
+              Gagnsætt verð
+            </span>
+            <h2
+              className="m-0 max-w-[18ch] font-extrabold text-white"
+              style={{
+                fontSize: 'clamp(30px,4.2vw,52px)',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.02,
+                marginBottom: 'clamp(40px,6vw,64px)',
+              }}
             >
-              Allt landið
-            </Link>
+              Eitt fast verð. Engin uppboð.
+            </h2>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              <div>
+                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                  Fast CPM verð
+                </div>
+                <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
+                  {fmtNum(FLAT_CPM_ISK)} kr.
+                </div>
+              </div>
+              <div>
+                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                  Uppsetningarkostnaður
+                </div>
+                <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
+                  0 kr.
+                </div>
+              </div>
+              <div>
+                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                  Virkir efnisflokkar
+                </div>
+                <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
+                  {AD_CATEGORIES.length}
+                </div>
+              </div>
+              <div>
+                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                  VSK sundurliðaður
+                </div>
+                <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
+                  24%
+                </div>
+              </div>
+            </div>
+            <div className="mt-9 flex flex-wrap gap-3">
+              {CATEGORY_LABELS.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full border border-white/20 bg-white/10 px-[18px] py-2 text-sm font-medium text-slate-200"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ TRUST ============ */}
+        <section
+          style={{ paddingTop: 'clamp(80px,11vw,148px)', paddingBottom: 'clamp(80px,11vw,148px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <Eyebrow className="mb-[22px] block">Af hverju Birtingur</Eyebrow>
+            <h2
+              className="m-0 max-w-[16ch] font-extrabold text-slate-900"
+              style={{
+                fontSize: 'clamp(30px,4.2vw,52px)',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.02,
+                marginBottom: 'clamp(44px,6vw,72px)',
+              }}
+            >
+              Kostir sem skipta máli
+            </h2>
+            <div className="grid grid-cols-1 gap-x-14 gap-y-10 sm:grid-cols-2 md:grid-cols-3">
+              {TRUST_ITEMS.map((item) => (
+                <div key={item.title} className="border-t-2 border-primary pt-[26px]">
+                  <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
+                    {item.title}
+                  </h3>
+                  <p className="m-0 text-[15px] leading-[1.65] text-slate-600">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2.5 border-t border-slate-200 pt-6 text-sm text-slate-500">
+              <span className="font-semibold tracking-[0.01em] text-slate-900">
+                Og að sjálfsögðu
+              </span>
+              <span>Vörn gegn smellasvindli</span>
+              <span className="text-slate-300">·</span>
+              <span>24% VSK sundurliðaður</span>
+              <span className="text-slate-300">·</span>
+              <span>Teya-greiðslur</span>
+              <span className="text-slate-300">·</span>
+              <span>Útgefendur halda {PUBLISHER_SHARE_PERCENT}% af hverri krónu</span>
+            </div>
+            <div className="mt-10 flex flex-wrap items-center gap-3.5">
+              <Button onClick={() => openWaitlist()}>Skrá mig á biðlista</Button>
+              <a
+                href="#reiknivel"
+                className="inline-flex items-center justify-center rounded-lg border border-primary px-5 py-3 text-sm font-semibold text-primary transition-all duration-200 hover:bg-slate-50"
+              >
+                Sjá verðlagningu
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ REGIONAL NAVIGATION (crawlable SEO links) ============ */}
+        <section
+          className="border-t border-slate-200"
+          style={{ paddingTop: 'clamp(56px,7vw,96px)', paddingBottom: 'clamp(56px,7vw,96px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <Eyebrow className="mb-[22px] block">Fleiri staðir</Eyebrow>
+            <h2
+              className="m-0 mb-8 max-w-[18ch] font-extrabold text-slate-900"
+              style={{
+                fontSize: 'clamp(24px,3vw,34px)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.1,
+              }}
+            >
+              Auglýstu hvar sem er á landinu
+            </h2>
+            <div className="flex flex-wrap gap-2.5">
+              {Object.entries(REGIONS).map(([key, value]) => {
+                const isActive = region?.toLowerCase() === key;
+                return (
+                  <Link
+                    key={key}
+                    to={`/auglysendur/${key}`}
+                    className={
+                      isActive
+                        ? 'rounded-full border border-primary bg-primary/6 px-4.5 py-[9px] text-[14px] font-semibold text-primary'
+                        : 'rounded-full border border-slate-200 bg-white px-4.5 py-[9px] text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary'
+                    }
+                  >
+                    Auglýsa {value.dative}
+                  </Link>
+                );
+              })}
+              <Link
+                to="/auglysendur"
+                className="rounded-full border border-slate-200 bg-white px-4.5 py-[9px] text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary"
+              >
+                Allt landið
+              </Link>
+            </div>
           </div>
         </section>
       </main>
