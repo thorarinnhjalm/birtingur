@@ -120,7 +120,7 @@ export default function SlotList() {
       <div className="flex flex-col gap-[22px]">
         {sites.map((site) => {
           const siteSlots = (
-            slots as (Slot & { stats?: { impressions: number; spendIsk: number } })[]
+            (slots ?? []) as (Slot & { stats?: { impressions: number; spendIsk: number } })[]
           ).filter((s) => s.publisherId === site.id);
           const status = siteStatusMeta(site.status);
           const categoryLabel =
@@ -188,10 +188,7 @@ export default function SlotList() {
                   >
                     Skoða kóða
                   </Button>
-                  {/* No delete-publisher endpoint exists anywhere in the app
-                      today — kept inert (no handler), same convention as the
-                      publisher Dashboard.tsx sibling's inert "Sía" filter
-                      button, rather than fabricating a mutation. */}
+                  {/* Remove-site control omitted: no delete-publisher endpoint exists. */}
                 </div>
               </div>
 
