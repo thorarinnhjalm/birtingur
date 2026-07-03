@@ -350,7 +350,9 @@ function PublisherHome() {
                             month: 'short',
                           });
                         }
-                      } catch {}
+                      } catch {
+                        /* keep the raw date string when parsing fails */
+                      }
                       return (
                         <div className="bg-slate-950/95 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xl border border-slate-800">
                           <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>

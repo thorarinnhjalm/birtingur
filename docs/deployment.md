@@ -59,6 +59,7 @@ Stilla þarf eftirfarandi breytur í hýsingarstjórnborðunum:
 | `GEMINI_API_KEY`        | Vef- og myndgreiningarlykill Gemini               | Sækja á Google AI Studio                         |
 | `TEYA_API_KEY`          | Kreditkortagreiðslulykill Teya                    | Sækja í Teya Developer Portal                    |
 | `TEYA_WEBHOOK_SECRET`   | Leyndarmál fyrir Teya tilkynningar                | Sækja í Teya Developer Portal                    |
+| `TEYA_STUB`             | `true` = gervigreiðslur (AÐEINS dev/próf!)        | Án lykils OG án flaggs svarar veskið 503         |
 
 ### B. Vercel: `@ada/dashboard` (Framendi)
 

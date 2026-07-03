@@ -4,7 +4,7 @@ import { Megaphone, Images, PlusCircle, ArrowUpRight, Sparkles, Lightbulb } from
 import { AppShell } from '@/components/layout/AppShell';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { useWallet } from '@/hooks/useWallet';
-import { useCampaigns, useBulkCreativeStats } from '@/hooks/useCampaigns';
+import { useCampaigns } from '@/hooks/useCampaigns';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Card } from '@/components/ui/Card';

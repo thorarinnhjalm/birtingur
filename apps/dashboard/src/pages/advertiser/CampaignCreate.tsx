@@ -588,7 +588,7 @@ export default function CampaignCreate() {
           <NumberedSection
             n="03"
             title="Greiðsla"
-            lede="Fjárhæðin er sótt af inneigninni í veskinu þínu. Ef inneign nægir ekki er sjálfkrafa fyllt á með kortinu þínu."
+            lede="Fjárhæðin er sótt af inneigninni í veskinu þínu. Þú fyllir á veskið með korti í gegnum Teya ef inneign vantar."
           >
             {/* Campaign summary — not in the spec, kept so the advertiser can
                   review name/dates/region before paying. */}
@@ -647,25 +647,14 @@ export default function CampaignCreate() {
                   Nóg inneign — engin áfylling þarf
                 </span>
               ) : (
-                <span className="text-sm text-primary font-semibold">
-                  Vantar {fmtNum(topUpNeeded)} kr. — fyllt á með korti
-                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate('/advertiser/topup')}
+                  className="text-sm text-primary font-semibold bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2"
+                >
+                  Vantar {fmtNum(topUpNeeded)} kr. — fylltu fyrst á veskið
+                </button>
               )}
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap mt-4">
-              <div className="flex items-center gap-4">
-                <div className="w-[46px] h-8 rounded-[7px] bg-primary text-white flex items-center justify-center text-xs font-bold tracking-[0.02em] shrink-0">
-                  Teya
-                </div>
-                <div>
-                  <div className="text-[15px] font-semibold text-slate-900">Kort •••• 4242</div>
-                  <div className="text-[13px] text-slate-500 mt-0.5">
-                    Notað til að fylla á veskið þegar inneign nægir ekki
-                  </div>
-                </div>
-              </div>
-              <span className="text-sm font-semibold text-primary cursor-pointer">Breyta</span>
             </div>
 
             <div className="mt-[26px] flex flex-col gap-[15px]">
@@ -691,19 +680,25 @@ export default function CampaignCreate() {
             </div>
 
             <div className="mt-[30px]">
-              <Button
-                className="w-full"
-                style={{ height: 52 }}
-                loading={submitting}
-                disabled={selectedCategories.length === 0}
-                onClick={handleFinalSubmit}
-              >
-                {walletSufficient ? 'Hefja birtingu af inneign' : 'Fylla á veski og hefja birtingu'}
-              </Button>
+              {walletSufficient ? (
+                <Button
+                  className="w-full h-[52px]"
+                  loading={submitting}
+                  disabled={selectedCategories.length === 0}
+                  onClick={handleFinalSubmit}
+                >
+                  Hefja birtingu af inneign
+                </Button>
+              ) : (
+                <Button className="w-full h-[52px]" onClick={() => navigate('/advertiser/topup')}>
+                  Fylla fyrst á veskið
+                </Button>
+              )}
             </div>
             <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-[1.5]">
               <Lock size={17} className="text-primary shrink-0" />
-              Örugg greiðsla í gegnum Teya · VSK-reikningur berst strax · stöðvaðu hvenær sem er
+              Örugg greiðsla í gegnum Teya · VSK-reikningur aðgengilegur í Greiðslum · stöðvaðu
+              hvenær sem er
             </p>
 
             <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">

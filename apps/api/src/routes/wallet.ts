@@ -12,7 +12,11 @@ import { COLLECTIONS } from '@ada/shared/firestore';
 
 function getTeya(): TeyaClient {
   if (process.env.TEYA_API_KEY) return new HttpTeyaClient(process.env.TEYA_API_KEY);
-  return new StubTeyaClient();
+  // The stub credits wallets without charging a card, so it must be an
+  // explicit opt-in — a prod deploy missing TEYA_API_KEY has to fail loudly,
+  // not silently hand out balance.
+  if (process.env.TEYA_STUB === 'true') return new StubTeyaClient();
+  throw new AppError(503, 'Payment provider is not configured', 'TEYA_NOT_CONFIGURED');
 }
 
 export const walletRouter = new Hono<Env>();

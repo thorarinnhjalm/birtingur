@@ -54,10 +54,24 @@ export default function TopUp() {
     const adv = advertiserQuery.data;
     if (!adv) return;
 
-    const txAmount = tx.amountIsk;
-    const deposit = Math.round(txAmount * 0.8);
-    const fee = Math.round(txAmount * 0.2);
-    const vat = Math.round(fee * 0.24);
+    // Derive the split from the shared business constants so this legal
+    // document can't drift from the platform's actual fee/VAT rates.
+    const isRefund = tx.type === 'refund';
+    const feeRate = DEFAULT_PLATFORM_FEE_PERCENT / 100;
+    const txAmount = Math.abs(tx.amountIsk);
+    const deposit = Math.round(txAmount * (1 - feeRate));
+    const fee = Math.round(txAmount * feeRate);
+    const vat = Math.round(fee * VAT_RATE);
+    const vatPct = Math.round(VAT_RATE * 100);
+    const docTitle = isRefund ? 'Kreditreikningur / Endurgreiðsla' : 'Greiðslukvittun / Reikningur';
+    const lineDesc = isRefund
+      ? 'Endurgreiðsla af veltureikningi hjá Birtingi (Umboðssala - VSK-frítt)'
+      : 'Innborgun á veltureikning hjá Birtingi (Umboðssala - VSK-frítt)';
+    const feeDesc = isRefund
+      ? `Bakfærð umsýslu- og bókunarþóknun (${DEFAULT_PLATFORM_FEE_PERCENT}% af endurgreiðslu)`
+      : `Umsýslu- og bókunarþóknun Birtingar (${DEFAULT_PLATFORM_FEE_PERCENT}% af innborgun)`;
+    const totalLabel = isRefund ? 'Endurgreidd heildarupphæð:' : 'Greidd heildarupphæð:';
+    const confirmsWhat = isRefund ? 'endurgreiðslu' : 'kortagreiðslu';
 
     const invoiceWindow = window.open('', '_blank');
     if (!invoiceWindow) {
@@ -223,7 +237,7 @@ export default function TopUp() {
         <div class="header">
           <div class="logo">Birtingur</div>
           <div class="title">
-            <h1>Greiðslukvittun / Reikningur</h1>
+            <h1>${docTitle}</h1>
             <p>Færslunúmer: ${tx.id}</p>
             <p>Dagsetning: ${dateStr}</p>
           </div>
@@ -262,13 +276,13 @@ export default function TopUp() {
           </thead>
           <tbody>
             <tr>
-              <td>Innborgun á veltureikning hjá Birtingi (Umboðssala - VSK-frítt)</td>
+              <td>${lineDesc}</td>
               <td class="right">1</td>
               <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
               <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
             </tr>
             <tr>
-              <td>Umsýslu- og bókunarþóknun Birtingar (20% af innborgun)</td>
+              <td>${feeDesc}</td>
               <td class="right">1</td>
               <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
               <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
@@ -278,25 +292,25 @@ export default function TopUp() {
 
         <div class="summary">
           <div class="summary-row">
-            <span>VSK-frjáls velta (Umboðssala 80%):</span>
+            <span>VSK-frjáls velta (Umboðssala ${100 - DEFAULT_PLATFORM_FEE_PERCENT}%):</span>
             <span>${deposit.toLocaleString('is-IS')} kr.</span>
           </div>
           <div class="summary-row">
-            <span>Gjaldstofn VSK (Þóknun 20%):</span>
+            <span>Gjaldstofn VSK (Þóknun ${DEFAULT_PLATFORM_FEE_PERCENT}%):</span>
             <span>${fee.toLocaleString('is-IS')} kr.</span>
           </div>
           <div class="summary-row">
-            <span>Virðisaukaskattur (24% af þóknun):</span>
+            <span>Virðisaukaskattur (${vatPct}% af þóknun):</span>
             <span>${vat.toLocaleString('is-IS')} kr.</span>
           </div>
           <div class="summary-row total">
-            <span>Greidd heildarupphæð:</span>
+            <span>${totalLabel}</span>
             <span>${txAmount.toLocaleString('is-IS')} kr.</span>
           </div>
         </div>
 
         <div class="footnote">
-          * Samkvæmt 10. gr. laga nr. 50/1988 um virðisaukaskatt og sérreglum um umboðssölu er innlögn á veltureikning til auglýsingakaupa undanþegin virðisaukaskatti við innborgun. Birtingur ehf. innheimtir virðisaukaskatt (24%) eingöngu af eigin bókunarþóknun (20% af ráðstafaðri upphæð) jafnóðum og herferðir eru birtar. Þessi reikningur þjónar som staðfesting á kortagreiðslu og sundurliðun á áætlaðri þóknun og sköttum.
+          * Samkvæmt 10. gr. laga nr. 50/1988 um virðisaukaskatt og sérreglum um umboðssölu er innlögn á veltureikning til auglýsingakaupa undanþegin virðisaukaskatti við innborgun. Birtingur ehf. innheimtir virðisaukaskatt (${vatPct}%) eingöngu af eigin bókunarþóknun (${DEFAULT_PLATFORM_FEE_PERCENT}% af ráðstafaðri upphæð) jafnóðum og herferðir eru birtar. Þessi reikningur þjónar sem staðfesting á ${confirmsWhat} og sundurliðun á áætlaðri þóknun og sköttum.
         </div>
       </body>
       </html>

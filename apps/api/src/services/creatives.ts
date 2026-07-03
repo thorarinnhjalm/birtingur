@@ -241,7 +241,7 @@ export async function deleteCreative(id: string, advertiserId: string): Promise<
 }
 
 export async function deleteCreativeAdmin(id: string): Promise<void> {
-  const existing = await requireCreative(id);
+  await requireCreative(id); // throws if the creative does not exist
 
   // Check if used by campaigns that are active, paused, or pending_approval
   const campaignsSnap = await db
