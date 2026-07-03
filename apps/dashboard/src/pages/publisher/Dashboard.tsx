@@ -189,10 +189,10 @@ function PublisherHome() {
     ? Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100))
     : 0;
 
-  // "Meðal CPM" (dashboard.dc.html's third stat card) maps to the
+  // "Meðal eCPM" (dashboard.dc.html's third stat card) maps to the
   // pre-redesign page's own "eCPM" quick-stat: net revenue per 1000
-  // impressions. Same already-computed figure, template's label used
-  // verbatim instead of inventing a second, different CPM number.
+  // impressions. Same already-computed figure, accurately labeled as
+  // eCPM to reflect the net-of-fee calculation, not the flat platform CPM.
   const avgCpmLabel =
     stats && stats.impressions > 0
       ? formatIsk(Math.round((netRevenueIsk / stats.impressions) * 1000))
@@ -402,8 +402,8 @@ function PublisherHome() {
           value={formatIsk(netRevenueIsk)}
           delta={trendDelta(pctChanges.revenue)}
         />
-        <StatCard label="Meðal CPM" value={avgCpmLabel} />
-        <StatCard label="Næsta útgreiðsla" value={nextPayoutDateLabel} />
+        <StatCard label="Meðal eCPM" value={avgCpmLabel} />
+        <StatCard label="Næsta útgreiðsla" value={`Áætlað ${nextPayoutDateLabel}`} />
       </div>
 
       {/* Vefumferð / Smellir / CTR / Fyllihlutfall — not in the template's
