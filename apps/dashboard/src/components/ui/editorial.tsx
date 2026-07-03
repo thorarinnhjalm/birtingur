@@ -23,8 +23,8 @@ export function Eyebrow({ children, className }: { children: ReactNode; classNam
 export function EditorialH1({ children }: { children: ReactNode }) {
   return (
     <h1
-      className="m-0 font-extrabold"
-      style={{ fontSize: 'clamp(32px,5vw,48px)', letterSpacing: '-0.03em', lineHeight: 1.0 }}
+      className="m-0 font-extrabold tracking-[-0.03em] leading-none"
+      style={{ fontSize: 'clamp(32px,5vw,48px)' }}
     >
       {children}
     </h1>
@@ -63,8 +63,8 @@ export function NumberedSection({
 export function BigFigure({ value, suffix }: { value: string; suffix?: string }) {
   return (
     <div
-      className="font-extrabold leading-none text-slate-900 tabular-nums"
-      style={{ fontSize: 'clamp(44px,8vw,64px)', letterSpacing: '-0.035em' }}
+      className="font-extrabold leading-none text-slate-900 tabular-nums tracking-[-0.035em]"
+      style={{ fontSize: 'clamp(44px,8vw,64px)' }}
     >
       {value}
       {suffix && (
@@ -108,7 +108,7 @@ export function StepIndicator({ steps, current }: { steps: string[]; current: nu
   return (
     <div className="mt-8 flex flex-wrap items-center gap-[18px]">
       {steps.map((step, i) => (
-        <div className="contents" key={step}>
+        <div className="contents" key={i}>
           {i > 0 && <div className="h-px w-[26px] bg-outline-variant" />}
           <div className="flex items-baseline gap-[9px]">
             <span
