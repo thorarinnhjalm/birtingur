@@ -45,7 +45,10 @@ interface StatsResponse {
 // never fabricate a status the API can't return. Labels/variants for the
 // statuses that do overlap ("Virk", "Í yfirferð", "Í hléi") are copied
 // verbatim from the template.
-const STATUS_MAP: Record<string, { label: string; variant: 'success' | 'pending' | 'danger' | 'info' | 'neutral' }> = {
+const STATUS_MAP: Record<
+  string,
+  { label: string; variant: 'success' | 'pending' | 'danger' | 'info' | 'neutral' }
+> = {
   active: { label: 'Virk', variant: 'success' },
   pending_approval: { label: 'Í yfirferð', variant: 'info' },
   paused: { label: 'Í hléi', variant: 'neutral' },
@@ -364,7 +367,11 @@ function AdvertiserHome() {
           Birtingar / Smellir / CTR / Eytt í mánuðinum — labels, order and
           card shape copied verbatim from dashboard.dc.html's StatCard row. */}
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <StatCard label="Birtingar" value={impressions} delta={trendDelta(pctChanges.impressions)} />
+        <StatCard
+          label="Birtingar"
+          value={impressions}
+          delta={trendDelta(pctChanges.impressions)}
+        />
         <StatCard label="Smellir" value={clicks} delta={trendDelta(pctChanges.clicks)} />
         <StatCard label="CTR" value={ctr} delta={trendDelta(pctChanges.ctr)} />
         <StatCard
@@ -518,7 +525,10 @@ function AdvertiserHome() {
                 {campaigns.map((c, i) => {
                   const spent = c.budget.totalIsk - c.budget.remainingIsk;
                   const rowStats = (c as any).stats;
-                  const status = STATUS_MAP[c.status] ?? { label: c.status, variant: 'neutral' as const };
+                  const status = STATUS_MAP[c.status] ?? {
+                    label: c.status,
+                    variant: 'neutral' as const,
+                  };
                   const isLast = i === campaigns.length - 1;
 
                   return (

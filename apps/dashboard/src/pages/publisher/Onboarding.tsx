@@ -395,9 +395,7 @@ export default function PublisherOnboarding() {
                       onClick={() => {
                         if (isSelected) {
                           if (selectedCategories.length > 1) {
-                            setSelectedCategories(
-                              selectedCategories.filter((s) => s !== cat.slug),
-                            );
+                            setSelectedCategories(selectedCategories.filter((s) => s !== cat.slug));
                           }
                         } else {
                           setSelectedCategories([...selectedCategories, cat.slug]);
@@ -405,7 +403,9 @@ export default function PublisherOnboarding() {
                       }}
                       className={clsx(
                         'relative flex select-none items-center justify-between gap-2 rounded-xl border-[1.5px] px-4 py-[14px] text-center transition-colors',
-                        createPublisher.isPending ? 'pointer-events-none opacity-60' : 'cursor-pointer',
+                        createPublisher.isPending
+                          ? 'pointer-events-none opacity-60'
+                          : 'cursor-pointer',
                         isSelected
                           ? 'border-primary bg-primary/[0.06]'
                           : 'border-slate-200 bg-white hover:border-slate-300',
@@ -466,7 +466,9 @@ export default function PublisherOnboarding() {
                       }
                       className={clsx(
                         'flex flex-col justify-between rounded-xl border-2 p-4 transition-colors',
-                        createPublisher.isPending ? 'pointer-events-none opacity-60' : 'cursor-pointer',
+                        createPublisher.isPending
+                          ? 'pointer-events-none opacity-60'
+                          : 'cursor-pointer',
                         isSelected
                           ? 'border-primary bg-primary/[0.04]'
                           : 'border-slate-200 hover:border-slate-300',
@@ -482,9 +484,7 @@ export default function PublisherOnboarding() {
                               <Cpu className="h-4 w-4 text-primary" />
                             </div>
                           )}
-                          {isSelected && (
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                          )}
+                          {isSelected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
                         </div>
                         <h4 className="text-xs font-bold text-slate-900">{opt.title}</h4>
                         <p className="mt-1 text-[11px] leading-snug text-slate-500">{opt.body}</p>
@@ -625,7 +625,12 @@ export default function PublisherOnboarding() {
               </div>
 
               <div className="mt-8 flex justify-between border-t border-slate-100 pt-5">
-                <Button type="button" variant="ghost" disabled={createPublisher.isPending} onClick={() => setStep(1)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={createPublisher.isPending}
+                  onClick={() => setStep(1)}
+                >
                   Til baka
                 </Button>
                 <Button

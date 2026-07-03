@@ -1,6 +1,13 @@
 import { test, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Eyebrow, EditorialH1, NumberedSection, BigFigure, PillButton, StepIndicator } from './editorial';
+import {
+  Eyebrow,
+  EditorialH1,
+  NumberedSection,
+  BigFigure,
+  PillButton,
+  StepIndicator,
+} from './editorial';
 
 test('editorial primitives render their content', () => {
   render(

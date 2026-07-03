@@ -12,16 +12,16 @@ Birtingur is an Icelandic self-serve ad platform (advertisers buy category-targe
 
 Style with Tailwind utility classes. The theme tokens (defined in `styles.css` `@theme`) generate the brand families — use these, not raw hex:
 
-| Family | Real class names |
-|---|---|
-| Brand | `bg-primary` (#1e3a8a navy), `text-primary`, `border-primary`, `text-on-primary` |
-| Surfaces | `bg-background`, `bg-surface`, `bg-surface-container-lowest` (white) / `-low` / `bg-surface-container` / `-high` / `-highest` |
-| On-colors | `text-on-surface`, `text-on-surface-variant`, `border-outline`, `border-outline-variant` |
-| Status | `bg-error`, `text-on-error`, `bg-error-container`; semantic chips via Badge variants |
-| Grays | Tailwind `slate` scale is the working gray: `text-slate-900/700/500`, `bg-slate-50`, `border-slate-200` |
-| Radii | `rounded-card` (12px, the standard card radius), `rounded-lg`, `rounded-xl` |
-| Type | Inter everywhere (`--font-sans`, applied on body); weights 400–900; headings `font-semibold`/`font-bold` |
-| Extras | `.glass-card` (white card with #e0e3e5 border) |
+| Family    | Real class names                                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Brand     | `bg-primary` (#1e3a8a navy), `text-primary`, `border-primary`, `text-on-primary`                                              |
+| Surfaces  | `bg-background`, `bg-surface`, `bg-surface-container-lowest` (white) / `-low` / `bg-surface-container` / `-high` / `-highest` |
+| On-colors | `text-on-surface`, `text-on-surface-variant`, `border-outline`, `border-outline-variant`                                      |
+| Status    | `bg-error`, `text-on-error`, `bg-error-container`; semantic chips via Badge variants                                          |
+| Grays     | Tailwind `slate` scale is the working gray: `text-slate-900/700/500`, `bg-slate-50`, `border-slate-200`                       |
+| Radii     | `rounded-card` (12px, the standard card radius), `rounded-lg`, `rounded-xl`                                                   |
+| Type      | Inter everywhere (`--font-sans`, applied on body); weights 400–900; headings `font-semibold`/`font-bold`                      |
+| Extras    | `.glass-card` (white card with #e0e3e5 border)                                                                                |
 
 **Constraint:** the shipped stylesheet is a compiled subset — standard utilities (layout, flex/grid, gap/p/m scales, the families above) are available, but **arbitrary-value classes like `w-[437px]` may not exist**. For one-off dimensions use inline styles.
 

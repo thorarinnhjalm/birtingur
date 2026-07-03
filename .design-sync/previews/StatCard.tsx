@@ -34,6 +34,10 @@ export const WithDeltas = () => (
 
 export const Single = () => (
   <div style={{ maxWidth: 240 }}>
-    <StatCard label="Tekjur útgefanda" value="86.400 kr." delta={{ value: '+8,2%', positive: true }} />
+    <StatCard
+      label="Tekjur útgefanda"
+      value="86.400 kr."
+      delta={{ value: '+8,2%', positive: true }}
+    />
   </div>
 );

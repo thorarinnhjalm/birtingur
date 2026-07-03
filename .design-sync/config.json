@@ -35,6 +35,10 @@
     "PublicHeader": { "cardMode": "column" },
     "PublicFooter": { "cardMode": "column" },
     "TopBar": { "cardMode": "column" },
-    "AppShell": { "cardMode": "single", "primaryStory": "PublisherDashboard", "viewport": "1440x800" }
+    "AppShell": {
+      "cardMode": "single",
+      "primaryStory": "PublisherDashboard",
+      "viewport": "1440x800"
+    }
   }
 }

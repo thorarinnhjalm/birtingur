@@ -19,7 +19,9 @@ const stats = [
 ];
 
 export const PublisherDashboard = () => (
-  <div style={{ position: 'relative', width: '100%', minWidth: 1100, height: 700, overflow: 'hidden' }}>
+  <div
+    style={{ position: 'relative', width: '100%', minWidth: 1100, height: 700, overflow: 'hidden' }}
+  >
     <AppShell items={sidebarItems} title="Birtingur Útgefandi">
       <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 16px' }}>Yfirlit</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
@@ -33,10 +35,20 @@ export const PublisherDashboard = () => (
               padding: 20,
             }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                color: '#64748b',
+                letterSpacing: '0.05em',
+              }}
+            >
               {s.label}
             </div>
-            <div style={{ fontSize: 26, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>{s.value}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, marginTop: 8, color: '#0f172a' }}>
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
