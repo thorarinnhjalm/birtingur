@@ -263,12 +263,12 @@ export default function CreativeLibrary() {
   // search/filter row never renders over an empty library.
   if (!creatives || creatives.length === 0) {
     return (
-      <div className="w-full" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="w-full flex flex-col gap-6">
         <EditorialH1>Auglýsingasafn</EditorialH1>
         <EmptyState
           icon={<ImageIcon size={44} />}
-          title="Engar auglýsingar fundust"
-          description="Prófaðu aðra leit eða veldu annan flokk."
+          title="Engar auglýsingar í safninu"
+          description="Hlaða upp fyrsta auglýsingaborðinu þínu til að geta valið það inn í herferðir."
           action={<Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>}
         />
         {showAddModal && (
