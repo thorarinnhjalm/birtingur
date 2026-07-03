@@ -1,100 +1,130 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Search, X, Plus } from 'lucide-react';
 import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
+import { Button } from '@/components/ui/Button';
+import { Eyebrow, EditorialH1, PillButton } from '@/components/ui/editorial';
+import { FLAT_CPM_ISK, DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK, VAT_RATE } from '@ada/shared';
+
+// Icelandic dot-grouped integer — same local-fmtNum convention as
+// LandingPage.tsx/AdvertiserLanding.tsx/PublisherLanding.tsx.
+function fmtNum(n: number): string {
+  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+}
+
+const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
+// The publisher's ISK cut of each 1.000-impression CPM block — derived, not
+// hand-typed, so it can never drift from FLAT_CPM_ISK/DEFAULT_PLATFORM_FEE_PERCENT.
+const PUBLISHER_CPM_SHARE_ISK = Math.round((FLAT_CPM_ISK * PUBLISHER_SHARE_PERCENT) / 100);
+const VAT_PERCENT = Math.round(VAT_RATE * 100);
+
+const SECTION_PAD_X = {
+  paddingLeft: 'clamp(24px,5vw,72px)',
+  paddingRight: 'clamp(24px,5vw,72px)',
+} as const;
+
+type Pillar = 'all' | 'advertiser' | 'publisher' | 'technical';
+
+const PILLARS: { key: Pillar; label: string }[] = [
+  { key: 'all', label: 'Allt' },
+  { key: 'advertiser', label: 'Auglýsingar & herferðir' },
+  { key: 'publisher', label: 'Vefstýring & tekjur' },
+  { key: 'technical', label: 'Tækni & persónuvernd' },
+];
 
 export default function FaqPage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPillar, setSelectedPillar] = useState<
-    'all' | 'advertiser' | 'publisher' | 'technical'
-  >('all');
+  const [selectedPillar, setSelectedPillar] = useState<Pillar>('all');
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
   };
 
-  // Structured FAQ database organized around core Content Pillars
+  // Structured FAQ database organized around core content pillars. Every
+  // answer is audited against the platform's real feature set/pricing —
+  // see the inline notes below each corrected item.
   const faqItems = useMemo(
     () => [
-      // Pillar 1: Auglýsendur & Herferðir
+      // Pillar 1: Auglýsingar & herferðir
       {
         q: 'Hver er munurinn á Birtingi og hefðbundnu birtingahúsi (birtingaþjónustu)?',
-        a: 'Hefðbundið birtingahús (fjölmiðlaumboð) starfar sem milliliður sem stýrir auglýsingakaupum handvirkt, tekur háa þóknun og krefst oft mikilla lágmarksfjárhæða. Birtingur er hins vegar sjálfvirkt sjálfsafgreiðslukerfi á netinu. Þú stofnar herferð á 3 mínútum, velur þína flokka/landshluta og greiðir aðeins fast, lágt verð per 1.000 sýningar (CPM) án allra milliliða eða flókinna samninga.',
+        a: `Hefðbundið birtingahús (fjölmiðlaumboð) starfar sem milliliður sem stýrir auglýsingakaupum handvirkt, tekur háa þóknun og krefst oft mikilla lágmarksfjárhæða. Birtingur er hins vegar sjálfsafgreiðslukerfi á netinu: þú velur sjálf/ur flokka og landshluta og greiðir fast, gagnsætt verð — ${fmtNum(FLAT_CPM_ISK)} kr. fyrir hverjar 1.000 birtingar (CPM) — án allra milliliða eða flókinna samninga.`,
         pillar: 'advertiser',
         tags: ['birtingahús', 'birtingaþjónusta', 'samanburður', 'milliliðir'],
       },
       {
-        q: 'Hvernig stofna ég herferð og birti auglýsingar á netinu?',
-        a: 'Að auglýsa á netinu með Birtingi er einstaklega einfalt. Þú stofnar herferð á 3 mínútum: <ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang og skráðu þig sem auglýsanda.</li><li>Hladdu upp auglýsingaborða (PNG, JPEG eða WebP) og settu inn lendingarsíðu.</li><li>Veldu markflokka (t.d. matur, lífsstíll) og landsvæði.</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
+        q: 'Hvernig kaupi ég auglýsingar á netinu hjá Birtingi?',
+        a: '<p>Skráning nýrra auglýsenda er lokuð sem stendur og opnar fljótlega — þú getur skráð þig á biðlista á síðunni fyrir auglýsendur. Þegar aðgangur opnast er ferlið einfalt:</p><ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang sem auglýsandi.</li><li>Hladdu upp auglýsingaborða (PNG, JPEG eða WebP) og settu inn lendingarsíðu.</li><li>Veldu markflokka (t.d. matur, ferðalög eða tækni) og landsvæði.</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
         pillar: 'advertiser',
-        tags: ['auglýsingar', 'herferð', 'skref', 'stofna'],
+        tags: ['auglýsingar', 'herferð', 'skref', 'biðlisti'],
       },
       {
-        q: 'Hvað er flat CPM og hvernig virkar greiðsluflæðið (VSK-reikningar)?',
-        a: 'Við trúum á fullkomið gagnsæi. Hverjar 1.000 birtingar á netinu kosta fastan 550 kr. CPM (Cost Per Mille). Innborgun í veskið þitt fer fram með kreditkorti í gegnum örugga gátt Teya og er hún VSK-frí (reiknast sem veltufjárinnlögn). Rafrænn sölureikningur með 24% VSK er gefinn út fyrir 20% umsýsluþóknun Birtings jafnóðum og herferðin er sýnd á samstarfsnetinu.',
+        q: 'Hvað er fast CPM og hvernig virkar greiðsluflæðið (VSK)?',
+        a: `Við leggjum áherslu á gagnsæi. Hverjar 1.000 birtingar á netinu kosta fastan ${fmtNum(FLAT_CPM_ISK)} kr. CPM (Cost Per Mille). Innborgun í veskið þitt fer fram með kreditkorti í gegnum Teya og telst innlögn á veltureikning sem er VSK-frjáls samkvæmt lögum um umboðssölu. Virðisaukaskattur (${VAT_PERCENT}%) er svo reiknaður eingöngu af ${DEFAULT_PLATFORM_FEE_PERCENT}% þjónustuþóknun Birtings og gefinn út sem rafrænn sölureikningur jafnóðum og herferðin er sýnd á samstarfsnetinu.`,
         pillar: 'advertiser',
         tags: ['greiðslur', 'cpm', 'vsk', 'reikningur'],
       },
       {
         q: 'Hvernig beini ég auglýsingum mínum að ákveðnum landshlutum?',
-        a: 'Birtingur býður upp á nákvæma og kökulausa landfræðilega mörkun. Með því að nýta Vercel Edge tækni greinum við almenna staðsetningu notenda út frá IP-tölum á augabragði. Þú getur valið að beina þínum <strong>auglýsingum á netinu</strong> sérstaklega að lesendum á Höfuðborgarsvæðinu, á Landsbyggðinni eða í ákveðnum bæjarfélögum (t.d. Akureyri, Reykjanesbæ eða Selfossi).',
+        a: 'Birtingur styður svæðismörkun innan Íslands. Út frá staðsetningu lesenda getur þú beint auglýsingum þínum á netinu sérstaklega að Höfuðborgarsvæðinu, Landsbyggðinni eða ákveðnum bæjarfélögum (t.d. Akureyri, Reykjanesbæ eða Selfossi) — á sama fasta CPM verðinu, óháð svæði.',
         pillar: 'advertiser',
         tags: ['mörkun', 'staðsetning', 'landsbyggðin', 'bæir'],
       },
       {
         q: 'Hvað gerist ef skapandi efni (creative) er hafnað í yfirferð?',
-        a: 'Ef sjálfvirka Gemini AI gæðaeftirlitið eða handvirk yfirferð okkar hafnar auglýsingu (t.d. vegna rangrar stærðar, óviðeigandi efnis eða bilaðrar slóðar) verður herferðin stöðvuð. Allar ónotaðar eftirstöðvar og innistæður herferðarinnar eru samstundis endurgreiddar inn í inneignarveskið þitt þar sem þú getur breytt efninu eða nýtt það í aðra herferð.',
+        a: 'Ef sjálfvirk efnisskimun eða handvirk yfirferð okkar hafnar auglýsingu (t.d. vegna rangrar stærðar, óviðeigandi efnis eða bilaðrar slóðar) er herferðin stöðvuð. Ónotaðar eftirstöðvar herferðarinnar eru endurgreiddar inn í inneignarveskið þitt, þar sem þú getur breytt efninu eða nýtt inneignina í aðra herferð.',
         pillar: 'advertiser',
         tags: ['höfnun', 'yfirferð', 'öryggi', 'veski'],
       },
-      // Pillar 2: Vefstýring & Tekjur
+      // Pillar 2: Vefstýring & tekjur
       {
         q: 'Hvernig breyti ég vefumferðinni minni í mánaðarlegar tekjur?',
-        a: 'Sem útgefandi á Birtingi geturðu breytt lausu plássi á vefnum þínum í tekjur. Þú skráir lénið þitt, skilgreinir flokka (t.d. tækni, matvæli) og býrð til auglýsingapláss (Slots). Kerfið gefur þér einn HTML-kóðabút sem þú límir á vefinn þinn. Við sjáum um að sýna viðeigandi auglýsingar og þú færð 80% af öllum auglýsingatekjum (440 kr. nettó per 1.000 birtingar).',
+        a: `Sem útgefandi á Birtingi getur þú breytt lausu plássi á vefnum þínum í tekjur. Þú skráir lénið þitt, skilgreinir efnisflokka (t.d. matur eða tækni) og býrð til auglýsingapláss (slot). Kerfið gefur þér eina línu af HTML-kóða sem þú límir á vefinn þinn. Þú heldur ${PUBLISHER_SHARE_PERCENT}% af auglýsingatekjunum — ${fmtNum(PUBLISHER_CPM_SHARE_ISK)} kr. nettó fyrir hverjar 1.000 birtingar.`,
         pillar: 'publisher',
         tags: ['tekjur', 'útgefendur', 'vefsíður', 'auglýsingapláss'],
       },
       {
-        q: 'Hefur auglýsingskriftan (widget.js) áhrif á hleðslutíma eða SEO vefsins?',
-        a: 'Alls ekki. Skriftan okkar er hönnuð frá grunni með lágmarkshleðslu í huga. Hún er undir 1.5 KB að stærð, keyrir asynchronously (hlið við hlið við annað efni) og er hýst á ofurhröðu CDN-kerfi. Vefurinn þinn hleðst eldsnöggt án þess að tefja fyrir innihaldi eða valda neikvæðum áhrifum á Google SEO eða Core Web Vitals.',
+        q: 'Hefur auglýsingaskriftan áhrif á hleðslutíma eða SEO vefsins?',
+        a: 'Skriftan okkar er hönnuð með lágmarkshleðslu í huga: hún er lítil að stærð, keyrir asynchronously (samhliða öðru efni á síðunni) og er hýst á CDN-kerfi. Hún er hönnuð til að lágmarka áhrif á hleðsluhraða, sýnilegt efni og Core Web Vitals mælingar vefsins þíns.',
         pillar: 'publisher',
         tags: ['hraði', 'seo', 'tæknilegt', 'widget'],
       },
       {
         q: 'Hvenær eru útborganir framkvæmdar og hvert er lágmarkið?',
-        a: 'Útborganir til útgefenda eru millifærðar sjálfkrafa á bankareikning þinn 1. virka dag hvers mánaðar. Lágmarksútborgun er 5.000 kr. Ef heildartekjur mánaðarins ná ekki 5.000 kr. flyst upphæðin óskert yfir á næsta mánuð og greiðist út um leið og lágmarkinu er náð.',
+        a: `Útborganir til útgefenda eru gerðar upp mánaðarlega. Í byrjun hvers mánaðar er staða reikningsins þíns gerð upp og, nái hún lágmarkinu, er greiðslan afgreidd með millifærslu í bankann þinn. Lágmarksútborgun er ${fmtNum(MIN_PAYOUT_ISK)} kr. — nái heildartekjur mánaðarins ekki því lágmarki flyst upphæðin óskert yfir á næsta mánuð og greiðist út um leið og lágmarkinu er náð.`,
         pillar: 'publisher',
         tags: ['útborganir', 'greiðslur', 'banki', 'lágmark'],
       },
       {
         q: 'Hvernig fæ ég stjórn á því hvaða auglýsingar birtast á mínum vef?',
-        a: 'Við bjóðum upp á fullkomið vörumerkjaöryggi (Brand Safety). Þú getur skilgreint hvaða efnisflokka þú leyfir á vefsíðunni þinni. Jafnframt hefurðu aðgang að samþykkisbiðröð (Approval Queue) í stjórnborðinu þínu þar sem þú getur skoðað og samþykkt/hafnað hverri einustu auglýsingu áður en hún fer í loftið hjá þér.',
+        a: 'Þú stýrir því hvaða auglýsingar birtast á vefnum þínum: þú getur skilgreint hvaða efnisflokka þú leyfir á vefsíðunni þinni. Jafnframt hefurðu aðgang að samþykkisbiðröð (Approval Queue) í stjórnborðinu þínu þar sem þú getur skoðað og samþykkt eða hafnað hverri auglýsingu áður en hún fer í loftið hjá þér.',
         pillar: 'publisher',
         tags: ['stýring', 'öryggi', 'samþykki', 'flokkar'],
       },
-      // Pillar 3: Kökulaus tækni & Öryggi
+      // Pillar 3: Tækni & persónuvernd
       {
         q: 'Af hverju eru kökulausar auglýsingar á netinu framtíðin?',
-        a: 'Persónuverndarvænar, kökulausar auglýsingar útiloka þörfina á þriðju aðila vafrakökum (third-party cookies) sem elta notendur á milli vefja. Þetta eykur traust lesenda, losar vefsíðueigendur við pirrandi samþykkisglugga og tryggir 100% samræmi við GDPR-lög. Birtingur miðar auglýsingum út frá samhengi efnisins (Contextual targeting) sem skilar oft meiri árangri þar sem auglýsingin tengist beint því sem notandinn er á þeirri stundu að lesa.',
+        a: 'Persónuverndarvænar, kökulausar auglýsingar útiloka þörfina á vafrakökum frá þriðja aðila (third-party cookies) sem elta notendur á milli vefja. Þetta eykur traust lesenda og losar vefsíðueigendur við pirrandi samþykkisglugga. Birtingur miðar auglýsingum út frá samhengi efnisins (contextual targeting) þannig að auglýsingin tengist því sem lesandinn er á þeirri stundu að lesa.',
         pillar: 'technical',
         tags: ['cookies', 'gdpr', 'persónuvernd', 'kökulaust'],
       },
       {
-        q: 'Hvernig virkar sjálfvirka Gemini AI gæðaeftirlitið?',
-        a: 'Þegar auglýsandi hleður upp efni eða tengir lendingarsíðu, greinir Gemini AI líkanið okkar bæði myndrænt og textalegt efni. Kerfið greinir sjálfkrafa NSFW-efni (ofbeldi, nekt), skilgreinir flokka vefsins og flaggar hugsanlegum vandamálum fyrir handvirka yfirferð okkar. Þetta tryggir eldsnögga og áreiðanlega gæðavottun.',
+        q: 'Hvernig er auglýsingaefni yfirfarið áður en það birtist?',
+        a: 'Þegar auglýsandi hleður upp efni eða tengir lendingarsíðu keyrir Birtingur sjálfvirka efnisskimun sem greinir bæði myndrænt og textalegt efni og flaggar hugsanlegu vandamáli (t.d. NSFW-efni eða röngum flokki) fyrir handvirka yfirferð starfsfólks okkar. Endanleg ákvörðun um samþykki er alltaf tekin af starfsfólki, ekki sjálfvirku kerfi eingöngu.',
         pillar: 'technical',
-        tags: ['gemini', 'gervigreind', 'öryggi', 'skönnun'],
+        tags: ['efnisskimun', 'öryggi', 'yfirferð', 'brand safety'],
       },
       {
-        q: 'Hvernig verndar Birtingur auglýsendur gegn smellasvikum (Click Fraud)?',
-        a: 'Við verjum fjárhagsáætlun þína með öflugu varnarkerfi á netþjónastigi. Allir smellir og birtingar eru HMAC-undirritaðir og staðfestir í rauntíma. Kerfið síar sjálfkrafa út bot-umferð, tvísmelli og óeðlilega smellitíðni úr sömu IP-tölu. Sviksamlegir smellir eru hreinsaðir áður en þeir birtast í mælaborðinu þínu og eru aldrei gjaldfærðir.',
+        q: 'Hvernig verndar Birtingur auglýsendur gegn smellasvikum (click fraud)?',
+        a: 'Við verjum fjárhagsáætlun þína með vörnum á netþjónastigi. Allir smellir og birtingar eru HMAC-undirritaðir og staðfestir í rauntíma. Kerfið síar út tvítekna atburði og óeðlilega smellitíðni úr sömu IP-tölu. Grunaðir sviksamlegir atburðir eru hreinsaðir áður en þeir birtast í mælaborðinu þínu og eru ekki gjaldfærðir.',
         pillar: 'technical',
         tags: ['clickfraud', 'öryggi', 'svik', 'smellir'],
       },
       {
-        q: 'Eruð þið með sjálfvirkar tengingar (API / MCP) fyrir gervigreind (AI Agents)?',
-        a: 'Já, Birtingur er hannaður sem „API-first“ vettvangur. Hönnuðir geta stofnað örugga API-lykla (ak_...) til að stýra herferðum og sækja gögn. Þar að auki bjóðum við upp á innbyggðan MCP (Model Context Protocol) þjón sem gerir gervigreindarkeyrðum umboðsmönnum (AI Agents, eins og Claude og Gemini) kleift að eiga samskipti beint við kerfið og stýra herferðum útgefenda sjálfvirkt.',
+        q: 'Eruð þið með API eða MCP-tengingar fyrir gervigreind (AI Agents)?',
+        a: 'Já. Auglýsendur og forritarar geta stofnað örugga API-lykla (ak_...) til að stýra herferðum og sækja gögn beint um REST-vendlann. Að auki bjóðum við upp á sérstakan MCP (Model Context Protocol) þjón fyrir útgefendur — hann gerir gervigreindarumboðsmönnum (t.d. Claude) kleift að stofna og stýra auglýsingaplássum, sækja innsetningarkóða, setja efnisstefnu og fylgjast með tölfræði. Kaup á auglýsingum fara alltaf fram í stjórnborðinu eða um REST-vendlann, ekki um MCP.',
         pillar: 'technical',
         tags: ['api', 'mcp', 'gervigreind', 'agents'],
       },
@@ -106,11 +136,12 @@ export default function FaqPage() {
   useEffect(() => {
     const titleText = 'Algengar spurningar um vefauglýsingar og birtingaþjónustu | Birtingur';
     const descriptionText =
-      'Svör við helstu spurningum um hvernig á að auglýsa á netinu á íslenskum vefsíðum eða græða á eigin vefsíðu með sjálfvirku birtingakerfi. Kynntu þér málið!';
+      'Svör við helstu spurningum um hvernig á að auglýsa á netinu á íslenskum vefsíðum eða græða á eigin vefsíðu með birtingakerfi Birtings.';
 
     updateSEO(titleText, descriptionText, '/faq');
 
-    // FAQ JSON-LD Schema
+    // FAQ JSON-LD Schema — kept in sync with the visible copy above since it
+    // reads directly from faqItems.
     const schema = {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
@@ -142,7 +173,7 @@ export default function FaqPage() {
     };
   }, [faqItems]);
 
-  // Filtered FAQ Items based on search and selected pillar
+  // Filtered FAQ items based on search and selected pillar
   const filteredFaqs = useMemo(() => {
     return faqItems.filter((item) => {
       if (selectedPillar !== 'all' && item.pillar !== selectedPillar) {
@@ -160,206 +191,143 @@ export default function FaqPage() {
   }, [faqItems, searchQuery, selectedPillar]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
-      {/* Background Ambient Gradients */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-10 w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-[100px] pointer-events-none -z-10" />
-
+    <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased selection:bg-primary selection:text-white">
       {/* HEADER */}
       <PublicHeader currentTab="faq" />
 
-      {/* MAIN */}
       <main className="grow">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12 animate-fade-in">
-          {/* Header section with Search bar */}
-          <div className="space-y-6 text-center max-w-3xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-              Algengar spurningar
-            </h1>
-            <p className="text-base sm:text-lg text-slate-500 font-semibold leading-relaxed">
-              Leitaðu í gagnagrunni okkar eða skoðaðu flokka hér að neðan til að finna svör við
-              tæknilegum og viðskiptalegum spurningum um auglýsingar á netinu og birtingar.
+        {/* ============ HERO ============ */}
+        <section
+          style={{ paddingTop: 'clamp(64px,9vw,112px)', paddingBottom: 'clamp(40px,6vw,64px)' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <Eyebrow className="mb-[18px] block">Hjálp & svör</Eyebrow>
+            <EditorialH1>Algengar spurningar</EditorialH1>
+            <p className="mt-5 max-w-[62ch] text-[17px] leading-[1.6] text-slate-600">
+              Leitaðu í spurningunum hér að neðan eða veldu efnisflokk til að finna svör um kaup á
+              auglýsingum, tekjur af vefnum þínum og hvernig kerfið virkar að tjaldabaki.
             </p>
 
-            {/* Interactive Search Input */}
-            <div className="relative max-w-xl mx-auto mt-4">
+            {/* Search input */}
+            <div className="relative mt-8 max-w-xl">
+              <Search
+                size={17}
+                className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-slate-400"
+              />
               <input
                 type="text"
-                placeholder="Leita að spurningum, leitarorðum (t.d. VSK, cookies)..."
+                placeholder="Leita að spurningum (t.d. VSK, kökur, CPM)…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-white border border-slate-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-bold text-slate-800 shadow-sm transition placeholder:text-slate-400 text-sm focus:outline-hidden"
+                className="w-full rounded-lg border border-slate-200 bg-white py-3.5 pr-16 pl-11 text-sm font-medium text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-colors placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
               />
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 select-none">
-                search
-              </span>
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 font-bold transition text-xs cursor-pointer"
+                  aria-label="Hreinsa leit"
+                  className="absolute top-1/2 right-3.5 -translate-y-1/2 cursor-pointer rounded-md border-none bg-transparent p-1 text-slate-400 transition-colors hover:text-slate-700"
                 >
-                  Hreinsa
+                  <X size={16} />
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Efnisstoðir - The Three Content Pillars Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Category Pill 0: Allt */}
-            <button
-              onClick={() => setSelectedPillar('all')}
-              className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                selectedPillar === 'all'
-                  ? 'border-blue-600 bg-blue-50/20 text-blue-700 shadow-xs font-bold'
-                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-600 hover:text-slate-900 hover:shadow-xs'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shrink-0">
-                <span className="material-symbols-outlined font-bold text-lg">apps</span>
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm mb-0.5 text-slate-900">Sýna allt</h3>
-                <span className="text-[10px] text-slate-400 font-semibold block">
-                  Öll svör og leiðbeiningar
-                </span>
-              </div>
-            </button>
-
-            {/* Category Pill 1: Auglýsendur */}
-            <button
-              onClick={() => setSelectedPillar('advertiser')}
-              className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                selectedPillar === 'advertiser'
-                  ? 'border-blue-600 bg-blue-50/20 text-blue-700 shadow-xs font-bold'
-                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-650 hover:text-slate-900 hover:shadow-xs'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                <span className="material-symbols-outlined font-bold text-lg">campaign</span>
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm mb-0.5 text-slate-900">
-                  Auglýsingar & Herferðir
-                </h3>
-                <span className="text-[10px] text-slate-400 font-semibold block">
-                  Stofnun, CPM og staðsetning
-                </span>
-              </div>
-            </button>
-
-            {/* Category Pill 2: Útgefendur */}
-            <button
-              onClick={() => setSelectedPillar('publisher')}
-              className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                selectedPillar === 'publisher'
-                  ? 'border-blue-600 bg-blue-50/20 text-blue-700 shadow-xs font-bold'
-                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-650 hover:text-slate-900 hover:shadow-xs'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-                <span className="material-symbols-outlined font-bold text-lg">add_to_queue</span>
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm mb-0.5 text-slate-900">
-                  Vefstýring & Tekjur
-                </h3>
-                <span className="text-[10px] text-slate-400 font-semibold block">
-                  HTML-pláss, hraði og útborganir
-                </span>
-              </div>
-            </button>
-
-            {/* Category Pill 3: Tækni & Kökulaust */}
-            <button
-              onClick={() => setSelectedPillar('technical')}
-              className={`p-5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                selectedPillar === 'technical'
-                  ? 'border-blue-600 bg-blue-50/20 text-blue-700 shadow-xs font-bold'
-                  : 'border-slate-200 bg-white hover:border-slate-300 text-slate-650 hover:text-slate-900 hover:shadow-xs'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                <span className="material-symbols-outlined font-bold text-lg">security</span>
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm mb-0.5 text-slate-900">
-                  Tækni & Persónuvernd
-                </h3>
-                <span className="text-[10px] text-slate-400 font-semibold block">
-                  Kökulaust, Gemini AI og API/MCP
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* Accordion container */}
-          <div className="space-y-4 max-w-3xl mx-auto">
-            {filteredFaqs.length === 0 ? (
-              <div className="p-8 text-center bg-white border border-slate-200 rounded-2xl space-y-2">
-                <span className="material-symbols-outlined text-slate-400 text-4xl block select-none">
-                  search_off
-                </span>
-                <h3 className="font-bold text-slate-800 text-sm">Engar niðurstöður fundust</h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Prófaðu að slá inn önnur leitarorð eða velja annan flokk.
-                </p>
-              </div>
-            ) : (
-              filteredFaqs.map((faq) => {
-                const originalIndex = faqItems.findIndex((item) => item.q === faq.q);
-                const isOpen = openFaqIndex === originalIndex;
-
-                return (
-                  <div
-                    key={originalIndex}
-                    className="rounded-2xl bg-white border border-slate-200/80 shadow-xs overflow-hidden transition-all duration-200"
-                  >
-                    <button
-                      onClick={() => toggleFaq(originalIndex)}
-                      className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-slate-850 hover:bg-slate-50 cursor-pointer text-sm sm:text-base"
-                    >
-                      <span>{faq.q}</span>
-                      <span className="material-symbols-outlined text-slate-500 select-none">
-                        {isOpen ? 'expand_less' : 'expand_more'}
-                      </span>
-                    </button>
-                    {isOpen && (
-                      <div
-                        className="px-6 pb-5 pt-1 text-xs sm:text-sm text-slate-650 leading-relaxed border-t border-slate-100 faq-answer"
-                        dangerouslySetInnerHTML={{ __html: faq.a }}
-                      />
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Help / Contact CTA */}
-          <div className="max-w-2xl mx-auto p-8 rounded-3xl bg-slate-900 text-white relative overflow-hidden border border-slate-800 shadow-md">
-            <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative">
-              <div className="space-y-2 text-center sm:text-left">
-                <h3 className="text-lg font-bold text-white flex items-center justify-center sm:justify-start gap-2">
-                  <span className="material-symbols-outlined text-blue-400">contact_support</span>
-                  Fannstu ekki svarið sem þig vantaði?
-                </h3>
-                <p className="text-xs text-slate-400 font-semibold leading-relaxed max-w-sm">
-                  Við erum alltaf til taks til að aðstoða þig við uppsetningu skrifta eða
-                  skipulagningu herferða.
-                </p>
-              </div>
-              <button
-                onClick={() => window.dispatchEvent(new window.CustomEvent('open-public-support'))}
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs transition cursor-pointer flex items-center gap-1.5 shrink-0 shadow-md shadow-blue-500/20 border-none"
-              >
-                <span className="material-symbols-outlined text-sm">chat</span>
-                Hafa samband
-              </button>
+            {/* Pillar jump-pills */}
+            <div className="mt-7 flex flex-wrap gap-2.5">
+              {PILLARS.map((p) => (
+                <PillButton
+                  key={p.key}
+                  active={selectedPillar === p.key}
+                  onClick={() => setSelectedPillar(p.key)}
+                >
+                  {p.label}
+                </PillButton>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* ============ FAQ LIST ============ */}
+        <section style={{ paddingBottom: 'clamp(72px,10vw,128px)' }}>
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <div className="mx-auto max-w-[760px]">
+              {filteredFaqs.length === 0 ? (
+                <div className="rounded-card border border-slate-200 bg-slate-50 p-10 text-center">
+                  <h3 className="m-0 text-base font-bold text-slate-900">
+                    Engar niðurstöður fundust
+                  </h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Prófaðu önnur leitarorð eða veldu annan flokk.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-200 rounded-card border border-slate-200 bg-white">
+                  {filteredFaqs.map((faq) => {
+                    const originalIndex = faqItems.findIndex((item) => item.q === faq.q);
+                    const isOpen = openFaqIndex === originalIndex;
+
+                    return (
+                      <div key={originalIndex}>
+                        <button
+                          onClick={() => toggleFaq(originalIndex)}
+                          className="flex w-full cursor-pointer items-center justify-between gap-6 border-none bg-transparent px-6 py-6 text-left transition-colors hover:bg-slate-50 sm:px-8"
+                        >
+                          <span className="text-[15px] font-bold text-slate-900 sm:text-base">
+                            {faq.q}
+                          </span>
+                          <Plus
+                            size={18}
+                            className={`shrink-0 text-primary transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}
+                          />
+                        </button>
+                        {isOpen && (
+                          <div
+                            className="faq-answer px-6 pb-7 text-[15px] leading-[1.65] text-slate-600 sm:px-8"
+                            dangerouslySetInnerHTML={{ __html: faq.a }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ CONTACT CTA (navy full-bleed) ============ */}
+        <section
+          className="bg-primary"
+          style={{ paddingTop: 'clamp(56px,8vw,96px)', paddingBottom: 'clamp(56px,8vw,96px)' }}
+        >
+          <div
+            className="mx-auto flex flex-col items-start justify-between gap-8 sm:flex-row sm:items-center"
+            style={{ maxWidth: 1180, ...SECTION_PAD_X }}
+          >
+            <div>
+              <span className="mb-3 inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
+                Fannstu ekki svarið?
+              </span>
+              <h2
+                className="m-0 max-w-[28ch] font-extrabold text-white"
+                style={{
+                  fontSize: 'clamp(24px,3vw,34px)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.15,
+                }}
+              >
+                Við aðstoðum þig við uppsetningu og skipulagningu herferða
+              </h2>
+            </div>
+            <Button
+              variant="secondary"
+              className="shrink-0"
+              onClick={() => window.dispatchEvent(new window.CustomEvent('open-public-support'))}
+            >
+              Hafa samband
+            </Button>
+          </div>
+        </section>
       </main>
 
       {/* FOOTER */}
