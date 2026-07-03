@@ -6,6 +6,7 @@ import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { getCreative } from './creatives.js';
+import { getWallet } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { isRedisConfigured } from '../lib/redis.js';
 
@@ -43,6 +44,19 @@ export async function createCampaign(
     if (c.reviewStatus === 'rejected') {
       throw new AppError(400, `Creative ${cid} is rejected`, 'BAD_REQUEST');
     }
+  }
+
+  // Funding gate: the wallet must cover the full budget up front. There is no
+  // reservation model yet, so concurrent campaigns can still oversubscribe a
+  // shared wallet — this stops the obvious case (buying with an empty wallet).
+  // Same fail-closed philosophy as the serving budget gate.
+  const { balanceIsk } = await getWallet(advertiserId);
+  if (balanceIsk < parsed.budget.totalIsk) {
+    throw new AppError(
+      402,
+      `Insufficient wallet balance (${balanceIsk} ISK) for campaign budget of ${parsed.budget.totalIsk} ISK`,
+      'INSUFFICIENT_FUNDS',
+    );
   }
 
   // Determine overall status
@@ -167,6 +181,19 @@ export async function updateCampaign(
         `Budget cannot be reduced below spent amount of ${spent} ISK`,
         'BAD_REQUEST',
       );
+    }
+    // Funding gate on increases only (reductions never require balance): the
+    // wallet must cover the still-unspent part of the new budget.
+    if (parsed.budget.totalIsk > existing.budget.totalIsk) {
+      const { balanceIsk } = await getWallet(existing.advertiserId);
+      const unfunded = parsed.budget.totalIsk - spent;
+      if (balanceIsk < unfunded) {
+        throw new AppError(
+          402,
+          `Insufficient wallet balance (${balanceIsk} ISK) for budget increase to ${parsed.budget.totalIsk} ISK`,
+          'INSUFFICIENT_FUNDS',
+        );
+      }
     }
     newBudget = {
       mode: existing.budget.mode,

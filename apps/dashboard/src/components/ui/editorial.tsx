@@ -95,7 +95,7 @@ export function PillButton({
       className={clsx(
         'cursor-pointer rounded-full border px-4.5 py-[9px] text-[14px] font-semibold tabular-nums transition-colors',
         active
-          ? 'border-primary bg-primary/[0.06] text-primary'
+          ? 'border-primary bg-primary/6 text-primary'
           : 'border-slate-200 bg-white text-slate-700',
       )}
     >

@@ -407,7 +407,7 @@ export default function PublisherOnboarding() {
                           ? 'pointer-events-none opacity-60'
                           : 'cursor-pointer',
                         isSelected
-                          ? 'border-primary bg-primary/[0.06]'
+                          ? 'border-primary bg-primary/6'
                           : 'border-slate-200 bg-white hover:border-slate-300',
                       )}
                     >
@@ -470,7 +470,7 @@ export default function PublisherOnboarding() {
                           ? 'pointer-events-none opacity-60'
                           : 'cursor-pointer',
                         isSelected
-                          ? 'border-primary bg-primary/[0.04]'
+                          ? 'border-primary bg-primary/4'
                           : 'border-slate-200 hover:border-slate-300',
                       )}
                     >

@@ -111,11 +111,22 @@ vi.mock('../src/lib/push-cache', () => ({
   pushCacheForCampaign: vi.fn(async () => {}),
 }));
 
+// Wallet balance is a funding gate for campaign creation/increase — mock it
+// with a controllable value (default: plenty) so existing tests stay funded.
+const mockWalletBalance = vi.hoisted(() => ({ value: 1_000_000 }));
+vi.mock('../src/services/wallet', () => ({
+  getWallet: vi.fn(async (advertiserId: string) => ({
+    advertiserId,
+    balanceIsk: mockWalletBalance.value,
+  })),
+}));
+
 describe('Campaign Service', () => {
   beforeEach(() => {
     mockAdvertisers = [];
     mockCreatives = [];
     mockCampaigns = [];
+    mockWalletBalance.value = 1_000_000;
   });
 
   const setupMockData = () => {
@@ -144,6 +155,42 @@ describe('Campaign Service', () => {
   };
 
   describe('createCampaign', () => {
+    it('rejects creation when the wallet balance is below the campaign budget', async () => {
+      const { adv, cre } = setupMockData();
+      mockWalletBalance.value = 19_999;
+      await expect(
+        createCampaign(adv.id, {
+          creativeIds: [cre.id],
+          categories: ['matur'],
+          schedule: {
+            startsAt: new Date(Date.now() + 1000),
+            endsAt: new Date(Date.now() + 86400_000),
+          },
+          budget: { mode: 'cpm_capped', totalIsk: 20_000 },
+        }),
+      ).rejects.toMatchObject({ code: 'INSUFFICIENT_FUNDS' });
+    });
+
+    it('rejects a budget increase beyond the wallet balance, but allows reductions', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20_000 },
+      });
+      mockWalletBalance.value = 9_000;
+      await expect(updateCampaign(cmp.id, { budget: { totalIsk: 30_000 } })).rejects.toMatchObject({
+        code: 'INSUFFICIENT_FUNDS',
+      });
+      // Reducing the budget must not require balance
+      const reduced = await updateCampaign(cmp.id, { budget: { totalIsk: 10_000 } });
+      expect(reduced.budget.totalIsk).toBe(10_000);
+    });
+
     it('creates a category-targeted campaign that is active when creatives are approved', async () => {
       const { adv, cre } = setupMockData();
       const cmp = await createCampaign(adv.id, {

@@ -43,6 +43,23 @@ async function sendMail(payload: MailPayload): Promise<void> {
 }
 
 /**
+ * Ops-viðvörun á rekstraraðila (notað af cron-alerting í ops-alerts.ts).
+ */
+export async function sendOpsAlertEmail(
+  toEmails: string[],
+  subject: string,
+  message: string,
+): Promise<void> {
+  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  await sendMail({
+    from: `Birtingur Ops <${sender}>`,
+    to: toEmails,
+    subject: `[Birtingur OPS] ${subject}`,
+    html: `<p style="font-family:monospace;white-space:pre-wrap">${message}</p>`,
+  });
+}
+
+/**
  * Sendir velkominn tölvupóst á nýjan útgefanda (Publisher)
  */
 export async function sendWelcomePublisherEmail(

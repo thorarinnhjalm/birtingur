@@ -85,6 +85,12 @@ let mockCampaigns: MockCampaign[] = [];
 let mockPublishers: MockPublisher[] = [];
 let mockSlots: MockSlot[] = [];
 
+// Campaign creation is gated on wallet balance; these route tests aren't about
+// funding, so give every advertiser a well-funded mock wallet.
+vi.mock('../src/services/wallet', () => ({
+  getWallet: vi.fn(async (advertiserId: string) => ({ advertiserId, balanceIsk: 1_000_000 })),
+}));
+
 vi.mock('../src/lib/firebase', () => ({
   auth: {
     verifyIdToken: vi.fn(),

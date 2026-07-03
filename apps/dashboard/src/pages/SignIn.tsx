@@ -152,7 +152,7 @@ export default function SignIn() {
           </form>
         </div>
 
-        <p className="mt-[22px] text-center text-[13px] leading-[1.5] text-slate-400">
+        <p className="mt-[22px] text-center text-[13px] leading-normal text-slate-400">
           Með því að halda áfram samþykkir þú skilmála og persónuverndarstefnu Birtings.
         </p>
       </div>

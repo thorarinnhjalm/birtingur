@@ -412,7 +412,7 @@ export default function CampaignCreate() {
                       className="relative border-[1.5px] border-slate-200 bg-white rounded-[14px] px-[22px] py-5 cursor-pointer flex flex-col gap-2 transition-colors select-none"
                     >
                       {isSelected && (
-                        <span className="absolute -inset-[1.5px] border-[1.5px] border-primary rounded-[14px] bg-primary/[0.06] pointer-events-none" />
+                        <span className="absolute inset-[-1.5px] border-[1.5px] border-primary rounded-[14px] bg-primary/6 pointer-events-none" />
                       )}
                       <div className="relative flex justify-between items-center gap-2.5">
                         <span className="text-base font-bold text-slate-900">{cat.label}</span>
@@ -451,7 +451,7 @@ export default function CampaignCreate() {
                     onClick={() => toggleRegion(region.key)}
                     className={`p-3.5 rounded-xl border cursor-pointer text-center select-none transition-colors text-xs ${
                       selectedRegions.includes(region.key)
-                        ? 'border-primary bg-primary/[0.06] font-bold text-slate-900'
+                        ? 'border-primary bg-primary/6 font-bold text-slate-900'
                         : 'border-slate-200 bg-white font-semibold text-slate-600 hover:border-slate-300'
                     }`}
                   >
@@ -487,7 +487,7 @@ export default function CampaignCreate() {
                         onClick={() => toggleRegion(city.key)}
                         className={`p-2.5 rounded-lg border cursor-pointer transition-colors flex items-center justify-between select-none ${
                           isChecked
-                            ? 'border-primary bg-primary/[0.06]'
+                            ? 'border-primary bg-primary/6'
                             : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
@@ -498,7 +498,7 @@ export default function CampaignCreate() {
                   })}
                 </div>
                 {!selectedRegions.includes('all') && (
-                  <div className="p-3 bg-primary/[0.04] border border-primary/20 rounded-xl mt-3 flex items-start gap-2">
+                  <div className="p-3 bg-primary/4 border border-primary/20 rounded-xl mt-3 flex items-start gap-2">
                     <Info size={14} className="text-primary shrink-0 mt-0.5" />
                     <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
                       Valin svæði:{' '}
@@ -550,7 +550,7 @@ export default function CampaignCreate() {
               <Eyebrow>Áætluð birting</Eyebrow>
               <div className="flex items-baseline gap-3.5 mt-3">
                 <span
-                  className="font-extrabold text-primary tabular-nums leading-none tracking-[-0.025em]"
+                  className="font-extrabold text-primary tabular-nums leading-none tracking-tight"
                   style={{ fontSize: 'clamp(36px,6vw,50px)' }}
                 >
                   {fmtNum(perDayImpressions)}
@@ -695,7 +695,7 @@ export default function CampaignCreate() {
                 </Button>
               )}
             </div>
-            <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-[1.5]">
+            <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-normal">
               <Lock size={17} className="text-primary shrink-0" />
               Örugg greiðsla í gegnum Teya · VSK-reikningur aðgengilegur í Greiðslum · stöðvaðu
               hvenær sem er

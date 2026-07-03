@@ -35,9 +35,21 @@ export async function GET(req) {
       }
     }
 
+    const hbNames = ['cron-accrue', 'cron-aggregate', 'cron-refresh-cache', 'cron-payouts'];
+    const hbVals = await redis.mget(...hbNames.map((n) => `heartbeat:${n}`));
+    const heartbeats = Object.fromEntries(
+      hbNames.map((n, i) => [
+        n,
+        hbVals[i] == null
+          ? null
+          : { ageMinutes: Math.floor((Date.now() - Number(hbVals[i])) / 60000) },
+      ]),
+    );
+
     results.redis = {
       status: 'ok',
       queues: { 'events:stats': statsLen, 'events:accrual': accrualLen, 'events:queue': legacyLen },
+      heartbeats,
       latestEvent,
     };
   } catch (err) {

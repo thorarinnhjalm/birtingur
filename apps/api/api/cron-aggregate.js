@@ -1,4 +1,9 @@
 import { drainAndAggregate } from '../dist/src/services/stats-aggregator.js';
+import {
+  alertCronFailure,
+  recordHeartbeat,
+  checkCronHeartbeats,
+} from '../dist/src/services/ops-alerts.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -15,11 +20,14 @@ export async function GET(req) {
       total.push(n);
       if (n === 0) break;
     }
-    return new Response(JSON.stringify({ batches: total }), {
+    await recordHeartbeat('cron-aggregate');
+    const watchdog = await checkCronHeartbeats();
+    return new Response(JSON.stringify({ batches: total, staleCrons: watchdog.stale }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('[cron-aggregate] Failed:', err);
+    await alertCronFailure('cron-aggregate', err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

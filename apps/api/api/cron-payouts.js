@@ -1,4 +1,5 @@
 import { generateMonthlyPayouts } from '../dist/src/services/payouts.js';
+import { alertCronFailure, recordHeartbeat } from '../dist/src/services/ops-alerts.js';
 
 export const config = { runtime: 'nodejs' };
 
@@ -14,11 +15,13 @@ export async function GET(req) {
     const periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
     const created = await generateMonthlyPayouts(periodStart, periodEnd);
 
+    await recordHeartbeat('cron-payouts');
     return new Response(JSON.stringify({ created: created.length }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error('[cron-payouts] Failed:', err);
+    await alertCronFailure('cron-payouts', err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
