@@ -1,28 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import clsx from 'clsx';
 import { useCreatePublisher } from '@/hooks/usePublisher';
-import { Card } from '@/components/ui/Card';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
-import { AD_CATEGORIES } from '@ada/shared';
+import { AD_CATEGORIES, DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK } from '@ada/shared';
+import { Eyebrow, EditorialH1, NumberedSection, StepIndicator } from '@/components/ui/editorial';
 import {
-  Globe,
-  Cpu,
-  Layers,
   ArrowRight,
-  ArrowLeft,
   CheckCircle2,
   Info,
   Sparkles,
   ChevronDown,
   ChevronUp,
   Loader2,
+  Cpu,
+  Layers,
+  Lock,
 } from 'lucide-react';
+
+const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
 
 export default function PublisherOnboarding() {
   const createPublisher = useCreatePublisher();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [domain, setDomain] = useState('');
@@ -194,58 +198,75 @@ export default function PublisherOnboarding() {
     }
   };
 
+  // "Hætta við" (cancel) — this page can render with no AppShell around it
+  // (the common first-run case, see Dashboard.tsx's zero-publishers branch),
+  // so there's no sidebar/logout affordance to fall back on. Signing out
+  // mirrors TopBar.tsx's own logout action and avoids the redirect loop that
+  // navigating anywhere under /publisher/* would cause while publishers.length
+  // === 0 (every such path bounces back to /publisher/onboarding).
+  const handleCancel = async () => {
+    await signOut();
+    navigate('/sign-in', { replace: true });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 md:p-12">
-      <Card className="max-w-2xl w-full p-6 md:p-8 shadow-xl border border-slate-100 rounded-2xl bg-white transition-all duration-300">
-        {/* Wizard Header Progress */}
-        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-lg text-primary tracking-tight">Birtingur</span>
-            <span className="text-xs font-semibold px-2 py-0.5 bg-sky-50 text-sky-600 rounded-full border border-sky-100">
-              Útgefandi
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-            <span className={step === 1 ? 'text-primary font-extrabold' : 'text-slate-500'}>
-              1. Slóð
-            </span>
-            <ArrowRight className="h-3 w-3" />
-            <span className={step === 2 ? 'text-primary font-extrabold' : ''}>2. Stillingar</span>
-          </div>
+    <div className="min-h-screen bg-background">
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-[760px] mx-auto px-6 py-[18px] flex items-center justify-between">
+          <span className="font-extrabold tracking-[-0.01em] text-slate-900">Birtingur</span>
+          <span
+            onClick={handleCancel}
+            className="text-sm text-slate-500 cursor-pointer hover:text-slate-700"
+          >
+            Hætta við
+          </span>
         </div>
+      </div>
 
-        {/* STEP 1: Discovery & Scrape */}
+      <div
+        className="max-w-[760px] mx-auto px-6"
+        style={{ paddingTop: 'clamp(40px,6vw,72px)', paddingBottom: 110 }}
+      >
+        <Eyebrow>Nýr útgefandi</Eyebrow>
+        <div className="mt-4">
+          <EditorialH1>Skrá vef</EditorialH1>
+        </div>
+        <StepIndicator steps={['Vefur', 'Stillingar']} current={step - 1} />
+
+        {error && (
+          <div className="mt-8 p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
+            {error}
+          </div>
+        )}
+
+        {/* STEP 1: Domain — maps to the template's "01 Vefurinn þinn" section.
+              The template collects domain + category on one screen; the real
+              flow gates category selection behind an AI scrape of the domain
+              (handleStartScrape), so category selection is deferred to step 2. */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div className="text-center max-w-md mx-auto">
-              <div className="w-12 h-12 bg-sky-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-sky-100">
-                <Globe className="h-6 w-6 text-sky-600 animate-pulse" />
-              </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                Skráðu vefsvæðið þitt
-              </h1>
-              <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
-                Sláðu inn vefslóðina þína. Gervigreindin okkar mun sjálfkrafa skoða og flokka vefinn
-                til að hámarka tekjur þínar og hjálpa auglýsendum að finna þig.
-              </p>
-            </div>
+          <NumberedSection
+            n="01"
+            title="Vefurinn þinn"
+            lede="Segðu okkur hvar auglýsingarnar eiga heima. Þú getur breytt þessu síðar."
+          >
+            <p className="-mt-4 mb-6 max-w-[52ch] text-sm leading-relaxed text-slate-500">
+              Sláðu inn vefslóðina þína. Gervigreindin okkar mun sjálfkrafa skoða og flokka vefinn
+              til að hámarka tekjur þínar og hjálpa auglýsendum að finna þig.
+            </p>
 
-            <form onSubmit={handleStartScrape} className="space-y-4 pt-4 max-w-lg mx-auto">
-              <div className="relative">
-                <Input
-                  label="Vefslóð (Lén) *"
-                  placeholder="Dæmi: visir.is eða minnvefur.is"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  required
-                  disabled={isLoading}
-                  className="pl-4 py-4 rounded-xl text-base"
-                />
-              </div>
+            <form onSubmit={handleStartScrape} className="max-w-[420px] space-y-4">
+              <Input
+                label="Vefslóð"
+                placeholder="t.d. matarbloggid.is"
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                required
+                disabled={isLoading}
+              />
 
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
-                  <Loader2 className="h-8 w-8 text-sky-600 animate-spin" />
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-6">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <span className="text-sm font-semibold text-slate-700">
                     Skoðum vefsíðuna þína...
                   </span>
@@ -257,7 +278,7 @@ export default function PublisherOnboarding() {
                 <div className="space-y-2">
                   <Button
                     type="submit"
-                    className="w-full py-4 text-base font-bold rounded-xl shadow-lg shadow-primary/10 flex items-center justify-center gap-2"
+                    className="w-full flex items-center justify-center gap-2 py-4 text-base font-bold"
                   >
                     Greina vefsíðu
                     <ArrowRight className="h-5 w-5" />
@@ -277,90 +298,94 @@ export default function PublisherOnboarding() {
                       setConfidence(null);
                       setStep(2);
                     }}
-                    className="w-full text-slate-500 hover:text-slate-700 text-sm font-semibold py-2"
+                    className="w-full text-sm font-semibold text-slate-500 hover:text-slate-700"
                   >
                     Sleppa greiningu og fylla út handvirkt
                   </Button>
                 </div>
               )}
             </form>
-          </div>
+          </NumberedSection>
         )}
 
-        {/* STEP 2: Configuration & Details */}
+        {/* STEP 2: everything the AI scrape unlocks — not a single template
+              section, since the template has no scrape step of its own. Laid
+              out as the template's remaining numbered sections (categories,
+              then payout) plus the real-only fields the template doesn't
+              cover (display name/description, integration method, estimated
+              slots, extra payout fields) kept functional per the CampaignCreate
+              precedent. The template's "02 Kóði" (fake code snippet) and
+              "03 Staðfesting" (live install check) sections are not reproduced
+              — there is no real snippet-generation or verification endpoint
+              wired up here, and inventing one would violate "no new API calls". */}
         {step === 2 && (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+          <form onSubmit={handleSubmit}>
+            <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+              <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em] text-slate-900">
                 Upplýsingar og stillingar
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="mt-3 mb-6 max-w-[52ch] text-[15px] leading-normal text-slate-500">
                 Gervigreindin fann eftirfarandi upplýsingar. Þú getur lagfært þær eða bætt við
                 stillingum hér að neðan.
               </p>
-            </div>
 
-            {/* Scrape results feedback card */}
-            {confidence !== null && (
-              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-emerald-800">
-                    Sjálfvirk flokkun gervigreindar tókst
-                  </h4>
-                  <p className="text-xs text-emerald-600 mt-0.5 leading-relaxed">
-                    Vefurinn var greindur sem{' '}
-                    <strong>
-                      {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label ||
-                        'Almennt'}
-                    </strong>{' '}
-                    með {Math.round(confidence * 100)}% öryggi.
-                  </p>
+              {confidence !== null && (
+                <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+                  <Sparkles className="h-5 w-5 shrink-0 mt-0.5 text-emerald-600" />
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-800">
+                      Sjálfvirk flokkun gervigreindar tókst
+                    </h4>
+                    <p className="mt-0.5 text-xs leading-relaxed text-emerald-600">
+                      Vefurinn var greindur sem{' '}
+                      <strong>
+                        {AD_CATEGORIES.find((c) => c.slug === selectedCategories[0])?.label ||
+                          'Almennt'}
+                      </strong>{' '}
+                      með {Math.round(confidence * 100)}% öryggi.
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label="Lén vefsíðu *"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  required
+                  disabled={createPublisher.isPending}
+                />
+                <Input
+                  label="Opinbert heiti vefsíðu *"
+                  placeholder="Dæmi: Tæknifréttir"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  required
+                  disabled={createPublisher.isPending}
+                />
               </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Lén vefsíðu *"
-                value={domain}
-                onChange={(e) => setDomain(e.target.value)}
-                required
-                disabled={createPublisher.isPending}
-              />
+              <div className="mt-4 space-y-1">
+                <label className="block text-sm font-medium text-slate-700">
+                  Lýsing á vef (fyrir auglýsendur)
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Hverju lýsir vefsíðan þín? Þetta hjálpar auglýsendum og gervigreindinni að skilja markhópinn þinn."
+                  className="min-h-[80px] w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  disabled={createPublisher.isPending}
+                />
+              </div>
+            </section>
 
-              <Input
-                label="Opinbert heiti vefsíðu *"
-                placeholder="Dæmi: Tæknifréttir"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                required
-                disabled={createPublisher.isPending}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-slate-700">
-                Lýsing á vef (fyrir auglýsendur)
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Hverju lýsir vefsíðan þín? Þetta hjálpar auglýsendum og gervigreindinni að skilja markhópinn þinn."
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm shadow-[0_1px_2px_rgba(0,0,0,0.02)] min-h-[80px]"
-                disabled={createPublisher.isPending}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-800">
-                Flokkar efnis * (Veldu einn eða fleiri)
-              </label>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt
-                birtingar í þessum flokkum.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+            <NumberedSection
+              n="02"
+              title="Flokkar efnis"
+              lede="Veldu þá flokka sem lýsa efni síðunnar þinnar best. Auglýsendur munu geta keypt birtingar í þessum flokkum."
+            >
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
                 {AD_CATEGORIES.map((cat) => {
                   const isSelected = selectedCategories.includes(cat.slug);
                   return (
@@ -369,250 +394,255 @@ export default function PublisherOnboarding() {
                       onClick={() => {
                         if (isSelected) {
                           if (selectedCategories.length > 1) {
-                            setSelectedCategories(selectedCategories.filter((s) => s !== cat.slug));
+                            setSelectedCategories(
+                              selectedCategories.filter((s) => s !== cat.slug),
+                            );
                           }
                         } else {
                           setSelectedCategories([...selectedCategories, cat.slug]);
                         }
                       }}
-                      className={`px-3 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all duration-200 text-center select-none ${
+                      className={clsx(
+                        'relative flex select-none items-center justify-between gap-2 rounded-xl border-[1.5px] px-4 py-[14px] text-center transition-colors',
+                        createPublisher.isPending ? 'pointer-events-none opacity-60' : 'cursor-pointer',
                         isSelected
-                          ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
-                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
+                          ? 'border-primary bg-primary/[0.06]'
+                          : 'border-slate-200 bg-white hover:border-slate-300',
+                      )}
                     >
-                      {cat.label}
+                      <span className="text-sm font-semibold text-slate-900">{cat.label}</span>
+                      {isSelected && (
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                          ✓
+                        </span>
+                      )}
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </NumberedSection>
 
-            {/* Premium Selector: Integration Preference */}
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="block text-sm font-bold text-slate-800">
-                  Hvernig viltu birta auglýsingar?
-                </label>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Veldu þá samþættingu sem hentar þínum þörfum best.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* Option 1: Widget */}
-                <div
-                  onClick={() => !createPublisher.isPending && setIntegrationPreference('widget')}
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'widget'
-                      ? 'border-primary bg-blue-50/20'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Layers className="h-5 w-5 text-primary" />
-                      {integrationPreference === 'widget' && (
-                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+            {/* Real-only content substituting for the template's "02 Kóði"
+                  section — there's no live code-snippet/WordPress/GTM
+                  integration flow wired up at registration time, so the
+                  existing widget/MCP preference + estimated-slots fields are
+                  kept here instead, restyled to the same numbered rhythm. */}
+            <NumberedSection
+              n="03"
+              title="Hvernig viltu birta auglýsingar?"
+              lede="Veldu þá samþættingu sem hentar þínum þörfum best."
+            >
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {(
+                  [
+                    {
+                      key: 'widget' as const,
+                      icon: Layers,
+                      title: 'Vef-Sniðmát (Widget)',
+                      body: 'Hefðbundið samþættingarform. Þú setur inn einfaldan JavaScript kóða á síðuna þína til að birta myndræna borða á ákveðnum stöðum.',
+                    },
+                    {
+                      key: 'mcp' as const,
+                      icon: Cpu,
+                      title: 'Gervigreindar-uppsetning (MCP)',
+                      body: 'Sjálfvirk uppsetning með gervigreind. Tengdu Claude eða Cursor við okkar MCP vefþjón svo gervigreindarkóðarinn þinn geti sjálfkrafa búið til og sett upp auglýsingapláss í þínum kóðagrunni.',
+                    },
+                    {
+                      key: 'both' as const,
+                      icon: null,
+                      title: 'Bæði (Handvirkt + MCP)',
+                      body: 'Hámarks sveigjanleiki. Settu upp hefðbundna borða og vefkassa handvirkt með kóðaklippum, eða leyfðu gervigreindarkóðaranum þínum að sjá um alla kóðunina í gegnum MCP.',
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const isSelected = integrationPreference === opt.key;
+                  const Icon = opt.icon;
+                  return (
+                    <div
+                      key={opt.key}
+                      onClick={() =>
+                        !createPublisher.isPending && setIntegrationPreference(opt.key)
+                      }
+                      className={clsx(
+                        'flex flex-col justify-between rounded-xl border-2 p-4 transition-colors',
+                        createPublisher.isPending ? 'pointer-events-none opacity-60' : 'cursor-pointer',
+                        isSelected
+                          ? 'border-primary bg-primary/[0.04]'
+                          : 'border-slate-200 hover:border-slate-300',
                       )}
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-900">Vef-Sniðmát (Widget)</h4>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Hefðbundið samþættingarform. Þú setur inn einfaldan JavaScript kóða á síðuna
-                      þína til að birta myndræna borða á ákveðnum stöðum.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Option 2: MCP */}
-                <div
-                  onClick={() => !createPublisher.isPending && setIntegrationPreference('mcp')}
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'mcp'
-                      ? 'border-primary bg-blue-50/20'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Cpu className="h-5 w-5 text-primary" />
-                      {integrationPreference === 'mcp' && (
-                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                      )}
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-900">
-                      Gervigreindar-uppsetning (MCP)
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Sjálfvirk uppsetning með gervigreind. Tengdu Claude eða Cursor við okkar MCP
-                      vefþjón svo gervigreindarkóðarinn þinn geti sjálfkrafa búið til og sett upp
-                      auglýsingapláss í þínum kóðagrunni.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Option 3: Both */}
-                <div
-                  onClick={() => !createPublisher.isPending && setIntegrationPreference('both')}
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 relative flex flex-col justify-between ${
-                    integrationPreference === 'both'
-                      ? 'border-primary bg-blue-50/20'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex gap-0.5">
-                        <Layers className="h-4 w-4 text-primary" />
-                        <Cpu className="h-4 w-4 text-primary" />
+                    >
+                      <div>
+                        <div className="mb-2 flex items-center justify-between">
+                          {Icon ? (
+                            <Icon className="h-5 w-5 text-primary" />
+                          ) : (
+                            <div className="flex gap-0.5">
+                              <Layers className="h-4 w-4 text-primary" />
+                              <Cpu className="h-4 w-4 text-primary" />
+                            </div>
+                          )}
+                          {isSelected && (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                          )}
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-900">{opt.title}</h4>
+                        <p className="mt-1 text-[11px] leading-snug text-slate-500">{opt.body}</p>
                       </div>
-                      {integrationPreference === 'both' && (
-                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                      )}
                     </div>
-                    <h4 className="text-xs font-bold text-slate-900">Bæði (Handvirkt + MCP)</h4>
-                    <p className="text-[11px] text-slate-500 mt-1 leading-snug">
-                      Hámarks sveigjanleiki. Settu upp hefðbundna borða og vefkassa handvirkt með
-                      kóðaklippum, eða leyfðu gervigreindarkóðaranum þínum að sjá um alla kóðunina í
-                      gegnum MCP.
+                  );
+                })}
+              </div>
+
+              <div className="mt-8 border-t border-slate-100 pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-800">
+                      Áætluð auglýsingapláss
+                    </label>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      Hversu mörg pláss ætlar þú að stofna í byrjun?
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Estimated Slots Selector */}
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="block text-sm font-bold text-slate-800">
-                    Áætluð auglýsingapláss
-                  </label>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Hversu mörg pláss ætlar þú að stofna í byrjun?
-                  </p>
-                </div>
-                <span className="px-3 py-1 bg-sky-50 text-sky-600 font-extrabold text-sm rounded-lg border border-sky-100">
-                  {estimatedSlotsCount} {estimatedSlotsCount === 1 ? 'pláss' : 'pláss'}
-                </span>
-              </div>
-
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={estimatedSlotsCount}
-                onChange={(e) => setEstimatedSlotsCount(Number(e.target.value))}
-                disabled={createPublisher.isPending}
-                className="custom-slider w-full h-2 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 font-bold px-1">
-                <span>1 pláss</span>
-                <span>2 pláss</span>
-                <span>3 pláss</span>
-                <span>4 pláss</span>
-                <span>5+ pláss</span>
-              </div>
-            </div>
-
-            {/* Collapsible Bank details panel */}
-            <div className="pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowPayoutPanel(!showPayoutPanel)}
-                className="w-full flex items-center justify-between py-2 text-slate-700 hover:text-slate-900 transition-colors bg-transparent border-0 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Info className="h-4 w-4 text-slate-400 shrink-0" />
-                  <span className="text-sm font-bold">
-                    Greiðslu- og bankaupplýsingar (Valfrjálst)
+                  <span className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-1 text-sm font-extrabold text-sky-600 tabular-nums">
+                    {estimatedSlotsCount} pláss
                   </span>
                 </div>
-                {showPayoutPanel ? (
-                  <ChevronUp className="h-4 w-4 shrink-0" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 shrink-0" />
-                )}
-              </button>
 
-              {showPayoutPanel && (
-                <div className="mt-3 space-y-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 animate-fadeIn">
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær
-                    eingöngu þegar reikningurinn þinn nær lágmarksútborgun (
-                    <strong>5.000 kr.</strong>). Þá geturðu auðveldlega skráð þær í stillingum.
-                  </p>
+                <input
+                  type="range"
+                  min="1"
+                  max="5"
+                  value={estimatedSlotsCount}
+                  onChange={(e) => setEstimatedSlotsCount(Number(e.target.value))}
+                  disabled={createPublisher.isPending}
+                  className="custom-slider mt-3 h-2 w-full cursor-pointer rounded-lg"
+                />
+                <div className="flex justify-between px-1 text-[10px] font-bold text-slate-400 tabular-nums">
+                  <span>1 pláss</span>
+                  <span>2 pláss</span>
+                  <span>3 pláss</span>
+                  <span>4 pláss</span>
+                  <span>5+ pláss</span>
+                </div>
+              </div>
+            </NumberedSection>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <NumberedSection
+              n="04"
+              title="Greiðsluupplýsingar"
+              lede="Hér berast útgreiðslur fyrir birtingar á vefnum þínum."
+            >
+              <div className="flex max-w-[520px] flex-col gap-2 rounded-2xl border border-[#dbe4f7] bg-[#f1f5fd] px-6 py-[22px]">
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-700">Þitt hlutfall af tekjum</span>
+                  <span className="text-sm font-bold text-primary tabular-nums">
+                    {PUBLISHER_SHARE_PERCENT}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-700">Útgreiðslur</span>
+                  <span className="text-sm font-bold text-slate-900">Mánaðarlega</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-slate-700">Lágmarksfjárhæð</span>
+                  <span className="text-sm font-bold text-slate-900 tabular-nums">
+                    {MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.
+                  </span>
+                </div>
+              </div>
+
+              {/* Bank details stay optional at registration time (real
+                    behaviour — see handleSubmit's hasAnyBankDetail /
+                    hasAllBankDetails validation), unlike the template's
+                    always-visible fields — kept as a disclosed collapsible
+                    "Valfrjálst" panel so that optionality isn't misrepresented. */}
+              <div className="mt-6 border-t border-slate-100 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPayoutPanel(!showPayoutPanel)}
+                  className="flex w-full cursor-pointer items-center justify-between border-0 bg-transparent py-2 text-slate-700 transition-colors hover:text-slate-900"
+                >
+                  <span className="flex items-center gap-2">
+                    <Info className="h-4 w-4 shrink-0 text-slate-400" />
+                    <span className="text-sm font-bold">
+                      Greiðslu- og bankaupplýsingar (Valfrjálst)
+                    </span>
+                  </span>
+                  {showPayoutPanel ? (
+                    <ChevronUp className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 shrink-0" />
+                  )}
+                </button>
+
+                {showPayoutPanel && (
+                  <div className="mt-3 space-y-4 rounded-xl border border-slate-200/60 bg-slate-50/50 p-4">
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær
+                      eingöngu þegar reikningurinn þinn nær lágmarksútborgun (
+                      <strong>{MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.</strong>). Þá geturðu
+                      auðveldlega skráð þær í stillingum.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <Input
+                        label="Kennitala fyrirtækis"
+                        placeholder="000000-0000"
+                        value={kennitala}
+                        onChange={(e) => setKennitala(e.target.value)}
+                        disabled={createPublisher.isPending}
+                      />
+                      <Input
+                        label="Nafn reikningshafa"
+                        placeholder="Nafn eins og það birtist í bankanum"
+                        value={accountHolder}
+                        onChange={(e) => setAccountHolder(e.target.value)}
+                        disabled={createPublisher.isPending}
+                      />
+                    </div>
+
                     <Input
-                      label="Kennitala reikningshafa"
-                      placeholder="Kennitala tengd bankareikningi"
-                      value={kennitala}
-                      onChange={(e) => setKennitala(e.target.value)}
+                      label="Bankareikningur"
+                      placeholder="0133-26-123456"
+                      value={iban}
+                      onChange={(e) => setIban(e.target.value)}
                       disabled={createPublisher.isPending}
                     />
 
                     <Input
-                      label="Nafn reikningshafa"
-                      placeholder="Nafn eins og það birtist í bankanum"
-                      value={accountHolder}
-                      onChange={(e) => setAccountHolder(e.target.value)}
+                      label="Lágmarksútborgun (ISK) *"
+                      type="number"
+                      min="5000"
+                      step="1000"
+                      value={minimumPayout}
+                      onChange={(e) => setMinimumPayout(Number(e.target.value) || 5000)}
+                      required
                       disabled={createPublisher.isPending}
                     />
                   </div>
-
-                  <Input
-                    label="Bankareikningur (Útibú-Höfuðbók-Reikningur)"
-                    placeholder="Dæmi: 0111-26-003450"
-                    value={iban}
-                    onChange={(e) => setIban(e.target.value)}
-                    disabled={createPublisher.isPending}
-                  />
-
-                  <Input
-                    label="Lágmarksútborgun (ISK) *"
-                    type="number"
-                    min="5000"
-                    step="1000"
-                    value={minimumPayout}
-                    onChange={(e) => setMinimumPayout(Number(e.target.value) || 5000)}
-                    required
-                    disabled={createPublisher.isPending}
-                  />
-                </div>
-              )}
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-semibold text-red-600">
-                {error}
+                )}
               </div>
-            )}
 
-            {/* Action buttons */}
-            <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={createPublisher.isPending}
-                onClick={() => setStep(1)}
-                className="flex items-center gap-1"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Til baka
-              </Button>
-
-              <Button
-                type="submit"
-                loading={createPublisher.isPending}
-                className="px-6 font-bold shadow-lg shadow-primary/10"
-              >
-                Ljúka skráningu
-              </Button>
-            </div>
+              <div className="mt-8 flex justify-between border-t border-slate-100 pt-5">
+                <Button type="button" variant="ghost" disabled={createPublisher.isPending} onClick={() => setStep(1)}>
+                  Til baka
+                </Button>
+                <Button
+                  type="submit"
+                  loading={createPublisher.isPending}
+                  className="px-6 font-bold"
+                >
+                  Ljúka skráningu
+                </Button>
+              </div>
+              <p className="mt-5 flex items-center justify-center gap-2 text-center text-[13px] leading-relaxed text-slate-500">
+                <Lock className="h-[17px] w-[17px] shrink-0 text-primary" />
+                Greiðsluupplýsingar eru dulkóðaðar og aðeins notaðar til útgreiðslna
+              </p>
+            </NumberedSection>
           </form>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
