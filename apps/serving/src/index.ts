@@ -15,6 +15,12 @@ export const app = new Hono();
 app.use('/*', cors());
 app.get('/healthz', (c) => c.json({ ok: true }));
 
+app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /\n'));
+
+app.get('/', (c) =>
+  c.text('Birtingur ad serving is running. See https://www.birtingur.app for more information.'),
+);
+
 const serveLocalFile = (relativePath: string) => {
   return (c: any) => {
     const pathsToTry = [
