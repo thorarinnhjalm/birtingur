@@ -32,6 +32,12 @@ app.onError(handleError);
 
 app.get('/healthz', (c) => c.json({ ok: true }));
 
+app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /\n'));
+
+app.get('/', (c) =>
+  c.text('Birtingur API is running. See https://www.birtingur.app for more information.'),
+);
+
 app.route('/v1/publishers', publishersRouter);
 app.route('/v1/publishers/me/slots', slotsRouter);
 app.route('/v1/advertisers', advertisersRouter);
