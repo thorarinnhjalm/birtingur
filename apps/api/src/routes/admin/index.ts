@@ -6,6 +6,7 @@ import { adminReviewRoutes } from './review.js';
 import { adminPayoutsRoutes } from './payouts.js';
 import { adminEntitiesRoutes } from './entities.js';
 import { refreshAllActiveSlotCaches } from '../../services/cache-refresh.js';
+import { previewCronBlockReason } from '../../lib/preview-guard.js';
 
 export const adminRoutes = new Hono<Env>();
 
@@ -16,7 +17,15 @@ adminRoutes.route('/review-queue', adminReviewRoutes);
 adminRoutes.route('/payouts', adminPayoutsRoutes);
 adminRoutes.route('/entities', adminEntitiesRoutes);
 
+// Reaches the same cache-refresh function the cron-refresh-cache preview
+// guard protects — needs the same fail-closed check so a preview deploy
+// can't push cache writes into the shared production Redis via this admin
+// route. See lib/preview-guard.ts.
 adminRoutes.post('/cache/refresh', async (c) => {
+  const blocked = previewCronBlockReason();
+  if (blocked) {
+    return c.json({ error: 'preview_blocked', reason: blocked }, 403);
+  }
   const count = await refreshAllActiveSlotCaches();
   return c.json({ success: true, count });
 });
