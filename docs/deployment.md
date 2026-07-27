@@ -60,6 +60,7 @@ Stilla þarf eftirfarandi breytur í hýsingarstjórnborðunum:
 | `TEYA_API_KEY`          | Kreditkortagreiðslulykill Teya                    | Sækja í Teya Developer Portal                    |
 | `TEYA_WEBHOOK_SECRET`   | Leyndarmál fyrir Teya tilkynningar                | Sækja í Teya Developer Portal                    |
 | `TEYA_STUB`             | `true` = gervigreiðslur (AÐEINS dev/próf!)        | Án lykils OG án flaggs svarar veskið 503         |
+| `ALLOW_PREVIEW_CRONS`   | `true` = leyfir peninga-cron á preview deploy     | AÐEINS eftir að preview-breytur vísa á staging   |
 
 ### B. Vercel: `@ada/dashboard` (Framendi)
 
@@ -85,5 +86,18 @@ Bakendinn keyrir mikilvægar lotuvinnslur í bakgrunni:
 - **Inneignar-accrual (`/api/cron-accrue`):** Dregur sjálfvirkt af veski auglýsenda á 15 mínútna fresti fyrir CPM birtingar.
 - **Tölfræðisöfnun (`/api/cron-aggregate`):** Safnar saman tímabundnum birtingum og smellum úr Redis yfir í Firestore á klukkutíma fresti.
 - **Mánaðarlegt uppgjör (`/api/cron-payouts`):** Keyrir fyrsta dag hvers mánaðar og býr til pending útgreiðslur fyrir útgefendur.
+- **Dagleg afstemming (`/api/cron-reconcile`):** Keyrir einu sinni á dag (kl. 05:00) og ber saman þrjár framsetningar peninga — ledger-inn (heimildin), `campaign.budget.remainingIsk` í Firestore og `budget:{id}` teljarann í Redis. Skrifar aldrei neitt sjálf (read-only), bara lesendur misræmi og sendir `alertOps` ef eitthvað finnst — sjá `apps/api/src/services/reconciliation.ts`.
 
 Þessar keyrslur eru sjálfkrafa stilltar í `vercel.json` og munu virkjast sjálfkrafa þegar verkefninu er dreift á Vercel. Þú þarft að tryggja að `CRON_SECRET` sé samstillt í Vercel Dashboard þar sem Vercel sendir hana sjálfkrafa sem `Authorization: Bearer <secret>` við kvaðningu.
+
+---
+
+## 5. Preview / Staging aðskilnaður
+
+Vercel keyrir sjálfkrafa preview-deploy fyrir hvert PR, en preview-verkefni deila **sömu** Firebase (`ada-prod`) og Upstash Redis gagnagrunnum og production nema umhverfisbreyturnar séu sérstaklega stilltar öðruvísi fyrir Preview-umhverfið í Vercel. Það þýðir að ef einhver kallar handvirkt í cron-endapunkt á preview-slóð (t.d. til að prófa peningaflæðið), er hann í raun að skrifa í production gögnin.
+
+Til að leysa þetta almennilega er mælt með að stofna **sérstakt `ada-staging` Firebase verkefni** og **sérstakan Upstash Redis gagnagrunn** eingöngu fyrir preview-deploy, og stilla þær breytur (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `KV_REST_API_URL`/`KV_REST_API_TOKEN` o.s.frv.) á Vercel þannig að þær gildi aðeins fyrir **Preview** umhverfið (ekki Production), og benda á staging-innviðina.
+
+Þangað til því er lokið er innbyggð vörn í kóðanum (`apps/api/src/lib/preview-guard.ts`): öll peninga-tengd cron (`cron-accrue`, `cron-aggregate`, `cron-payouts`, `cron-refresh-cache`, `cron-reconcile`) neita að keyra þegar `VERCEL_ENV === 'preview'` og skila `403 { error: 'preview_blocked' }`. `cron-diagnostics` er ekki varið, enda einungis lesandi (read-only) og öruggt að keyra á preview.
+
+Þegar preview-umhverfisbreyturnar hafa verið stilltar á staging-innviðina má setja `ALLOW_PREVIEW_CRONS=true` (aðeins fyrir Preview-umhverfið í Vercel) til að leyfa cron-keyrslur þar — sjá töfluna í kafla 3.A.

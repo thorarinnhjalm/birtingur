@@ -28,6 +28,7 @@ export const CRON_STALENESS_MINUTES: Record<string, number> = {
   'cron-refresh-cache': 30, // runs every 10 min
   'cron-aggregate': 130, // runs hourly
   'cron-payouts': 33 * 24 * 60, // runs monthly on the 1st
+  'cron-reconcile': 26 * 60, // runs daily + 2h grace
 };
 
 /** Pure staleness partition — exported for tests. Missing (null) heartbeats

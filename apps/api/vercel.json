@@ -8,13 +8,15 @@
     "api/cron-aggregate.js": { "maxDuration": 60 },
     "api/cron-diagnostics.js": { "maxDuration": 30 },
     "api/cron-payouts.js": { "maxDuration": 60 },
-    "api/cron-refresh-cache.js": { "maxDuration": 60 }
+    "api/cron-refresh-cache.js": { "maxDuration": 60 },
+    "api/cron-reconcile.js": { "maxDuration": 60 }
   },
   "crons": [
     { "path": "/api/cron-accrue", "schedule": "*/15 * * * *" },
     { "path": "/api/cron-aggregate", "schedule": "0 * * * *" },
     { "path": "/api/cron-payouts", "schedule": "0 6 1 * *" },
-    { "path": "/api/cron-refresh-cache", "schedule": "*/10 * * * *" }
+    { "path": "/api/cron-refresh-cache", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron-reconcile", "schedule": "0 5 * * *" }
   ],
   "rewrites": [
     { "source": "/api/cron-accrue", "destination": "/api/cron-accrue" },
@@ -22,6 +24,7 @@
     { "source": "/api/cron-diagnostics", "destination": "/api/cron-diagnostics" },
     { "source": "/api/cron-payouts", "destination": "/api/cron-payouts" },
     { "source": "/api/cron-refresh-cache", "destination": "/api/cron-refresh-cache" },
+    { "source": "/api/cron-reconcile", "destination": "/api/cron-reconcile" },
     { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
