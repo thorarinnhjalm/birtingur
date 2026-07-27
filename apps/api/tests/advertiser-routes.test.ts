@@ -85,11 +85,42 @@ let mockCampaigns: MockCampaign[] = [];
 let mockPublishers: MockPublisher[] = [];
 let mockSlots: MockSlot[] = [];
 
-// Campaign creation is gated on wallet balance; these route tests aren't about
-// funding, so give every advertiser a well-funded mock wallet.
+// Campaign creation is gated on available balance (ledger balance minus
+// committed funds); these route tests aren't about funding, so give every
+// advertiser a well-funded mock wallet with nothing committed. The real
+// committed-funds arithmetic is exercised against the Firestore emulator in
+// tests/wallet-reservation.test.ts.
 vi.mock('../src/services/wallet', () => ({
   getWallet: vi.fn(async (advertiserId: string) => ({ advertiserId, balanceIsk: 1_000_000 })),
+  getAvailableBalance: vi.fn(async () => ({
+    balanceIsk: 1_000_000,
+    committedIsk: 0,
+    availableIsk: 1_000_000,
+  })),
+  getAvailableBalanceInTransaction: vi.fn(async () => ({
+    balanceIsk: 1_000_000,
+    committedIsk: 0,
+    availableIsk: 1_000_000,
+  })),
 }));
+
+// Mirrors Firestore's dot-path partial-update semantics for `.update()` — a
+// key like 'budget.totalIsk' assigns into the nested `budget.totalIsk` field
+// in place rather than a literal `"budget.totalIsk"` property, which is what
+// updateCampaign/updateCampaignStatus now send (targeted updates, see
+// services/campaigns.ts) instead of the old whole-document `.set()`.
+function applyDotUpdate(target: Record<string, any>, fields: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(fields)) {
+    const parts = key.split('.');
+    let obj: Record<string, any> = target;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      if (obj[part] == null) obj[part] = {};
+      obj = obj[part];
+    }
+    obj[parts[parts.length - 1]!] = value;
+  }
+}
 
 vi.mock('../src/lib/firebase', () => ({
   auth: {
@@ -134,14 +165,24 @@ vi.mock('../src/lib/firebase', () => ({
             mockCampaigns.push(val as MockCampaign);
           }
         };
-        // Mirror the real DocumentReference: `.get()`/`.set()` are available
-        // directly and after `.withConverter()`. Without the direct methods,
-        // source paths that call `.doc().set()` without a converter throw
-        // "set is not a function".
+        const docUpdate = async (fields: Record<string, unknown>) => {
+          if (colName === 'advertisers') {
+            const found = mockAdvertisers.find((a) => a.id === id);
+            if (found) Object.assign(found, fields);
+          } else if (colName === 'campaigns') {
+            const found = mockCampaigns.find((c) => c.id === id);
+            if (found) applyDotUpdate(found, fields);
+          }
+        };
+        // Mirror the real DocumentReference: `.get()`/`.set()`/`.update()` are
+        // available directly and after `.withConverter()`. Without the direct
+        // methods, source paths that call `.doc().set()` without a converter
+        // throw "set is not a function".
         return {
           id,
           get: vi.fn(docGet),
           set: vi.fn(docSet),
+          update: vi.fn(docUpdate),
           withConverter: vi.fn(() => ({
             get: vi.fn(docGet),
             set: vi.fn(docSet),
@@ -184,6 +225,18 @@ vi.mock('../src/lib/firebase', () => ({
       }),
       get: vi.fn(async () => ({ docs: [] })),
     })),
+    // Generic transaction shim: the committed-funds gate reads/writes via
+    // t.get/t.update/t.set, all of which already exist on the mocked refs
+    // above — just forward them.
+    runTransaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) => {
+      const t = {
+        get: (ref: { get: () => Promise<unknown> }) => ref.get(),
+        update: (ref: { update: (f: unknown) => Promise<unknown> }, fields: unknown) =>
+          ref.update(fields),
+        set: (ref: { set: (v: unknown) => Promise<unknown> }, val: unknown) => ref.set(val),
+      };
+      return fn(t);
+    }),
   },
   storage: {},
 }));

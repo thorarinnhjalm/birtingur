@@ -53,6 +53,15 @@ async function seed() {
   console.log('✔ Seeded Slot: slot_demo_id');
 
   // 3. Seed Advertiser
+  //
+  // walletBalanceIsk below is just the (mirror) display value — the real
+  // available balance is ledger-derived (see getAvailableBalance in
+  // services/wallet.ts): committed funds = sum(budget.remainingIsk) over the
+  // advertiser's fund-holding campaigns. The two campaigns seeded below
+  // commit 112.000 + 50.000 = 162.000 ISK, so the ledger topup entry seeded
+  // just after this (step 3b) tops up 250.000 ISK — comfortable headroom
+  // above the committed amount — so local dev starts with a positive
+  // availableIsk instead of the wallet looking oversubscribed.
   const advRef = db.collection(COLLECTIONS.advertisers).doc('adv_demo_id');
   await advRef.set({
     id: 'adv_demo_id',
@@ -60,11 +69,27 @@ async function seed() {
     companyName: 'Gullfoss Ferðaþjónusta ehf.',
     kennitala: '1234567890',
     vatNumber: '159950',
-    walletBalanceIsk: 75000,
+    walletBalanceIsk: 250000,
     status: 'active',
     createdAt: now,
   });
   console.log('✔ Seeded Advertiser: adv_demo_id');
+
+  // 3b. Seed the ledger topup entry backing walletBalanceIsk above — the
+  // committed-funds gate sums this collection directly (sumByParty), it does
+  // NOT read the walletBalanceIsk mirror field, so without this entry the
+  // seeded advertiser would show a negative availableIsk despite the mirror
+  // field saying 250.000.
+  const ledgerTopupRef = db.collection(COLLECTIONS.ledger).doc('ldg_demo_topup');
+  await ledgerTopupRef.set({
+    id: 'ldg_demo_topup',
+    party: { type: 'advertiser', id: 'adv_demo_id' },
+    type: 'topup',
+    amountIsk: 250000,
+    relatedId: 'seed_demo_topup',
+    createdAt: now,
+  });
+  console.log('✔ Seeded Advertiser topup ledger entry: 250.000 kr.');
 
   // 4. Seed Active Creative
   const creativeRef = db.collection(COLLECTIONS.creatives).doc('creative_demo_id');

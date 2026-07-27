@@ -258,6 +258,20 @@ vi.mock('../src/lib/firebase', () => {
           ...createQuery(),
         };
       }),
+      // Generic transaction shim: the committed-funds gate in
+      // services/campaigns.ts reads/writes via t.get/t.update/t.set, all of
+      // which already exist on the mocked doc refs / query objects above —
+      // just forward them, so the real wallet.ts logic runs against this
+      // mocked db exactly as it does outside a transaction.
+      runTransaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) => {
+        const t = {
+          get: (ref: { get: () => Promise<unknown> }) => ref.get(),
+          update: (ref: { update: (f: unknown) => Promise<unknown> }, fields: unknown) =>
+            ref.update(fields),
+          set: (ref: { set: (v: unknown) => Promise<unknown> }, val: unknown) => ref.set(val),
+        };
+        return fn(t);
+      }),
     },
     storage: {},
   };

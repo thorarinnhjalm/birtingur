@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import { URL } from 'url';
 import { requireAuth, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
-import { getWallet } from '../services/wallet.js';
+import { getWallet, getAvailableBalance } from '../services/wallet.js';
 import { StubTeyaClient, HttpTeyaClient } from '../services/teya/index.js';
 import type { TeyaClient } from '../services/teya/index.js';
 import { AppError } from '../lib/errors.js';
@@ -29,7 +29,8 @@ walletRouter.get('/', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const w = await getWallet(adv.id);
-  return c.json(w);
+  const { committedIsk, availableIsk } = await getAvailableBalance(adv.id);
+  return c.json({ ...w, committedIsk, availableIsk });
 });
 
 walletRouter.get('/transactions', async (c) => {

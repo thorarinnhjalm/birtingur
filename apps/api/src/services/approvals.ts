@@ -5,7 +5,6 @@ import { db } from '../lib/firebase.js';
 import { AppError } from '../lib/errors.js';
 import { updateCreativeReview, requireCreative } from './creatives.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
-import { refundCampaign } from './wallet.js';
 import { isRedisConfigured } from '../lib/redis.js';
 import { createNotification } from './notifications.js';
 import { getAdvertiserById } from './advertisers.js';
@@ -118,10 +117,18 @@ export async function propagateCreativeChange(
         }
       }
     } else {
-      // If this was the only creative, refund remaining budget
+      // If this was the only creative, release the campaign's fund hold by
+      // completing it. Campaign creation never debits the ledger — only real
+      // accrual charges do (see chargeCampaign in services/wallet.ts) — so
+      // remainingIsk here is a committed-funds HOLD, not money that was ever
+      // taken out of the wallet. Setting status to `completed` alone already
+      // excludes it from getAvailableBalance's committed sum
+      // (FUND_HOLDING_STATUSES), which is all that's needed to give the
+      // advertiser their available balance back. Calling refundCampaign here
+      // would append a ledger `refund` credit for money that was never
+      // debited, minting funds out of thin air.
       if (cmp.creativeIds.length === 1) {
         cmp.status = 'completed';
-        await refundCampaign(cmp.advertiserId, cmp.id, cmp.budget.remainingIsk);
         cmp.budget.remainingIsk = 0;
         modified = true;
         newStatus = 'completed';

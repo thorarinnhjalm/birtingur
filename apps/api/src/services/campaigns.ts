@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FieldValue } from 'firebase-admin/firestore';
 import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { CampaignSchema, AD_CATEGORY_SLUGS, GeoRegionSchema } from '@ada/shared';
 import type { Campaign, CampaignStatus } from '@ada/shared';
@@ -6,7 +7,7 @@ import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
 import { getCreative } from './creatives.js';
-import { getWallet } from './wallet.js';
+import { getAvailableBalanceInTransaction, FUND_HOLDING_STATUSES } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { isRedisConfigured } from '../lib/redis.js';
 
@@ -46,19 +47,6 @@ export async function createCampaign(
     }
   }
 
-  // Funding gate: the wallet must cover the full budget up front. There is no
-  // reservation model yet, so concurrent campaigns can still oversubscribe a
-  // shared wallet — this stops the obvious case (buying with an empty wallet).
-  // Same fail-closed philosophy as the serving budget gate.
-  const { balanceIsk } = await getWallet(advertiserId);
-  if (balanceIsk < parsed.budget.totalIsk) {
-    throw new AppError(
-      402,
-      `Insufficient wallet balance (${balanceIsk} ISK) for campaign budget of ${parsed.budget.totalIsk} ISK`,
-      'INSUFFICIENT_FUNDS',
-    );
-  }
-
   // Determine overall status
   const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
   const status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
@@ -81,11 +69,40 @@ export async function createCampaign(
     status,
   });
 
-  await db
-    .collection(COLLECTIONS.campaigns)
-    .doc(campaign.id)
-    .withConverter(campaignConverter)
-    .set(campaign);
+  // Committed-funds gate: the wallet's AVAILABLE balance (ledger balance minus
+  // what's already committed to this advertiser's other fund-holding
+  // campaigns) must cover the full budget. Runs in a transaction so two
+  // concurrent creates for the same advertiser can't both read a wallet that
+  // "has enough" for each of them independently — the advertiser doc write
+  // (fundsVersion bump) is what forces the two transactions to conflict and
+  // retry serially; Firestore doesn't otherwise conflict on phantom query
+  // results across transactions. Same fail-closed philosophy as the serving
+  // budget gate.
+  const advRef = db.collection(COLLECTIONS.advertisers).doc(advertiserId);
+  await db.runTransaction(async (t) => {
+    const advSnap = await t.get(advRef);
+    if (!advSnap.exists) {
+      throw new AppError(404, `Advertiser ${advertiserId} not found`, 'NOT_FOUND');
+    }
+
+    const { balanceIsk, committedIsk, availableIsk } = await getAvailableBalanceInTransaction(
+      t,
+      advertiserId,
+    );
+    if (availableIsk < parsed.budget.totalIsk) {
+      throw new AppError(
+        402,
+        `Insufficient available balance (balance ${balanceIsk} ISK, committed to other campaigns ${committedIsk} ISK, available ${availableIsk} ISK) for campaign budget of ${parsed.budget.totalIsk} ISK`,
+        'INSUFFICIENT_FUNDS',
+      );
+    }
+
+    t.update(advRef, { fundsVersion: FieldValue.increment(1) });
+    t.set(
+      db.collection(COLLECTIONS.campaigns).doc(campaign.id).withConverter(campaignConverter),
+      campaign,
+    );
+  });
 
   if (isRedisConfigured()) {
     await pushCacheForCampaign(campaign.id);
@@ -155,6 +172,15 @@ export async function updateCampaign(
   }
   const parsed = UpdateCampaignSchema.parse(patch);
 
+  // Completed campaigns have already released their fund hold (see
+  // FUND_HOLDING_STATUSES in services/wallet.ts); every status this patch
+  // can request (`active` | `paused`) is a fund-holding one, so silently
+  // letting a completed campaign flip back to one would re-acquire a hold
+  // without ever passing the committed-funds gate again.
+  if (existing.status === 'completed' && parsed.status !== undefined) {
+    throw new AppError(400, 'Completed campaigns cannot be reactivated', 'BAD_REQUEST');
+  }
+
   // Validate creatives if updated
   if (parsed.creativeIds) {
     for (const cid of parsed.creativeIds) {
@@ -171,54 +197,137 @@ export async function updateCampaign(
     }
   }
 
-  // Validate budget if updated
-  let newBudget = existing.budget;
-  if (parsed.budget) {
-    const spent = existing.budget.totalIsk - existing.budget.remainingIsk;
-    if (parsed.budget.totalIsk < spent) {
-      throw new AppError(
-        400,
-        `Budget cannot be reduced below spent amount of ${spent} ISK`,
-        'BAD_REQUEST',
-      );
-    }
-    // Funding gate on increases only (reductions never require balance): the
-    // wallet must cover the still-unspent part of the new budget.
-    if (parsed.budget.totalIsk > existing.budget.totalIsk) {
-      const { balanceIsk } = await getWallet(existing.advertiserId);
-      const unfunded = parsed.budget.totalIsk - spent;
-      if (balanceIsk < unfunded) {
-        throw new AppError(
-          402,
-          `Insufficient wallet balance (${balanceIsk} ISK) for budget increase to ${parsed.budget.totalIsk} ISK`,
-          'INSUFFICIENT_FUNDS',
-        );
-      }
-    }
-    newBudget = {
-      mode: existing.budget.mode,
-      totalIsk: parsed.budget.totalIsk,
-      remainingIsk: parsed.budget.totalIsk - spent,
-    };
-  }
-
   const targeting = {
     categories: parsed.categories ?? existing.targeting.categories,
     geoRegions: parsed.geoRegions !== undefined ? parsed.geoRegions : existing.targeting.geoRegions,
   };
 
-  const next: Campaign = CampaignSchema.parse({
-    id: existing.id,
-    name: parsed.name !== undefined ? parsed.name : existing.name,
-    advertiserId: existing.advertiserId,
-    creativeIds: parsed.creativeIds ?? existing.creativeIds,
-    targeting,
-    schedule: parsed.schedule ?? existing.schedule,
-    budget: newBudget,
-    status: parsed.status ?? existing.status,
-  });
+  // Validates the non-budget shape of the patch up front (schedule ordering,
+  // targeting, etc.) using `existing.budget` as a placeholder — cheap fail
+  // fast before touching Firestore. The actual persisted budget numbers are
+  // always recomputed from a FRESH read inside the transaction below, never
+  // from this (potentially stale) `existing` — that's the whole point of
+  // this fix (see module-level comment on the three whole-doc-write bugs).
+  const buildNext = (budget: Campaign['budget']): Campaign =>
+    CampaignSchema.parse({
+      id: existing.id,
+      name: parsed.name !== undefined ? parsed.name : existing.name,
+      advertiserId: existing.advertiserId,
+      creativeIds: parsed.creativeIds ?? existing.creativeIds,
+      targeting,
+      schedule: parsed.schedule ?? existing.schedule,
+      budget,
+      status: parsed.status ?? existing.status,
+    });
+  buildNext(existing.budget);
 
-  await db.collection(COLLECTIONS.campaigns).doc(id).withConverter(campaignConverter).set(next);
+  // Targeted Firestore dot-path updates for the non-budget fields actually
+  // present in the patch — never includes a `budget.*` key here, and never
+  // includes a key at all for a field the caller didn't touch, so a
+  // concurrent accrual write to `budget.remainingIsk` (or any field we're
+  // not asked to change) can't be clobbered by a whole-doc write built from
+  // a stale read.
+  const nonBudgetUpdates: Record<string, unknown> = {};
+  if (parsed.name !== undefined) nonBudgetUpdates.name = parsed.name;
+  if (parsed.creativeIds !== undefined) nonBudgetUpdates.creativeIds = parsed.creativeIds;
+  if (parsed.categories !== undefined) nonBudgetUpdates['targeting.categories'] = parsed.categories;
+  if (parsed.geoRegions !== undefined) nonBudgetUpdates['targeting.geoRegions'] = parsed.geoRegions;
+  if (parsed.schedule !== undefined) nonBudgetUpdates.schedule = parsed.schedule;
+  if (parsed.status !== undefined) nonBudgetUpdates.status = parsed.status;
+
+  const campaignRefRaw = db.collection(COLLECTIONS.campaigns).doc(id);
+  const campaignRefTyped = campaignRefRaw.withConverter(campaignConverter);
+
+  let next: Campaign;
+
+  if (parsed.budget) {
+    const totalIsk = parsed.budget.totalIsk;
+    const isIncrease = totalIsk > existing.budget.totalIsk;
+    const advRef = db.collection(COLLECTIONS.advertisers).doc(existing.advertiserId);
+
+    // Budget changes (increase OR decrease) always go through a transaction
+    // that re-reads the campaign fresh — `spent` must reflect whatever an
+    // in-flight accrual has already decremented, not the `existing` read
+    // taken at the top of this function, or a concurrent accrual write
+    // between that read and this one would get silently reverted.
+    next = await db.runTransaction(async (t) => {
+      const freshSnap = await t.get(campaignRefTyped);
+      if (!freshSnap.exists) {
+        throw new AppError(404, `Campaign ${id} not found`, 'NOT_FOUND');
+      }
+      const fresh = freshSnap.data()!;
+
+      if (isIncrease) {
+        const advSnap = await t.get(advRef);
+        if (!advSnap.exists) {
+          throw new AppError(404, `Advertiser ${existing.advertiserId} not found`, 'NOT_FOUND');
+        }
+      }
+
+      const spent = fresh.budget.totalIsk - fresh.budget.remainingIsk;
+      if (totalIsk < spent) {
+        throw new AppError(
+          400,
+          `Budget cannot be reduced below spent amount of ${spent} ISK`,
+          'BAD_REQUEST',
+        );
+      }
+      const newRemaining = totalIsk - spent;
+
+      if (isIncrease) {
+        // Committed-funds gate on increases only (reductions never require
+        // balance): the new remainingIsk must fit within the wallet's
+        // available balance, excluding this campaign's own (fresh) committed
+        // amount so it isn't double-counted against its own increase. Gate +
+        // write happen in the same transaction, closing the same
+        // concurrent-increase race as createCampaign (see the comment there
+        // on the advertiser doc write).
+        const { balanceIsk, committedIsk, availableIsk } = await getAvailableBalanceInTransaction(
+          t,
+          existing.advertiserId,
+          { excludeCampaignId: existing.id },
+        );
+        if (availableIsk < newRemaining) {
+          throw new AppError(
+            402,
+            `Insufficient available balance (balance ${balanceIsk} ISK, committed to other campaigns ${committedIsk} ISK, available ${availableIsk} ISK) for budget increase to ${totalIsk} ISK`,
+            'INSUFFICIENT_FUNDS',
+          );
+        }
+        t.update(advRef, { fundsVersion: FieldValue.increment(1) });
+      }
+
+      t.update(campaignRefRaw, {
+        ...nonBudgetUpdates,
+        'budget.totalIsk': totalIsk,
+        'budget.remainingIsk': newRemaining,
+      });
+
+      return CampaignSchema.parse({
+        id: fresh.id,
+        name: parsed.name !== undefined ? parsed.name : fresh.name,
+        advertiserId: fresh.advertiserId,
+        creativeIds: parsed.creativeIds ?? fresh.creativeIds,
+        targeting: {
+          categories: parsed.categories ?? fresh.targeting.categories,
+          geoRegions:
+            parsed.geoRegions !== undefined ? parsed.geoRegions : fresh.targeting.geoRegions,
+        },
+        schedule: parsed.schedule ?? fresh.schedule,
+        budget: { mode: fresh.budget.mode, totalIsk, remainingIsk: newRemaining },
+        status: parsed.status ?? fresh.status,
+      });
+    });
+  } else if (Object.keys(nonBudgetUpdates).length > 0) {
+    // No budget field in the patch at all: a plain targeted update that
+    // never touches `budget.*`, so it can't clobber a concurrent accrual
+    // decrement regardless of how stale `existing` is.
+    await campaignRefRaw.update(nonBudgetUpdates);
+    next = buildNext(existing.budget);
+  } else {
+    // Empty patch — nothing to persist.
+    next = existing;
+  }
 
   if (isRedisConfigured()) {
     await pushCacheForCampaign(id);
@@ -257,16 +366,28 @@ export async function updateCampaignStatus(
     throw new AppError(404, `Campaign ${campaignId} not found`, 'NOT_FOUND');
   }
 
+  // Same reactivation guard as updateCampaign: a completed campaign has
+  // already released its fund hold, and every other CampaignStatus is
+  // fund-holding (see FUND_HOLDING_STATUSES in services/wallet.ts) — flipping
+  // it back would re-acquire that hold without ever passing the
+  // committed-funds gate again. The expiry sweep (sweepExpiredCampaigns
+  // below) only ever transitions INTO `completed`, never out of it, so this
+  // can't break that flow.
+  if (existing.status === 'completed' && FUND_HOLDING_STATUSES.has(status)) {
+    throw new AppError(400, 'Completed campaigns cannot be reactivated', 'BAD_REQUEST');
+  }
+
+  // Validates the transition produces a structurally valid campaign. Only
+  // `status` is actually written below, via a targeted update, so a
+  // concurrent accrual write to `budget.remainingIsk` between this read and
+  // that write can never be clobbered — unlike the old whole-doc `.set()`
+  // built from this same (potentially stale) `existing` read.
   const next = CampaignSchema.parse({
     ...existing,
     status,
   });
 
-  await db
-    .collection(COLLECTIONS.campaigns)
-    .doc(campaignId)
-    .withConverter(campaignConverter)
-    .set(next);
+  await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({ status });
 
   if (isRedisConfigured()) {
     if (status === 'paused' || status === 'completed') {
@@ -279,4 +400,46 @@ export async function updateCampaignStatus(
   }
 
   return next;
+}
+
+/**
+ * Expiry sweep (Fix 1a): nothing else in production ever sets a campaign's
+ * status to `completed` when `schedule.endsAt` passes, so its fund hold
+ * (`budget.remainingIsk`, held for as long as status is in
+ * FUND_HOLDING_STATUSES — see services/wallet.ts) would lock real wallet
+ * money forever without this. Called from the 10-minute
+ * cron-refresh-cache entrypoint, BEFORE the cache refresh runs, so a
+ * campaign this sweep just completed is never re-cached as servable in the
+ * same cron tick.
+ *
+ * Firestore can't cheaply query `schedule.endsAt < now` across several
+ * statuses at once — that would need a composite (status, schedule.endsAt)
+ * index per status, and none exists in firebase/firestore.indexes.json (the
+ * one campaigns index there is for `status` + `targeting.slotIds`). Instead
+ * this issues one single-field equality query per fund-holding status
+ * (auto-indexed, no composite index needed) and filters `endsAt < now` in
+ * code — simpler than provisioning four extra composite indexes for a
+ * housekeeping sweep.
+ */
+export async function sweepExpiredCampaigns(): Promise<number> {
+  const now = Date.now();
+  let swept = 0;
+
+  for (const status of FUND_HOLDING_STATUSES) {
+    const snap = await db
+      .collection(COLLECTIONS.campaigns)
+      .where('status', '==', status)
+      .withConverter(campaignConverter)
+      .get();
+
+    for (const doc of snap.docs) {
+      const campaign = doc.data();
+      if (campaign.schedule.endsAt.getTime() < now) {
+        await updateCampaignStatus(campaign.id, 'completed');
+        swept++;
+      }
+    }
+  }
+
+  return swept;
 }

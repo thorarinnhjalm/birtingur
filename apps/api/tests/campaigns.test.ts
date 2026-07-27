@@ -49,39 +49,75 @@ let mockAdvertisers: MockAdvertiser[] = [];
 let mockCreatives: MockCreative[] = [];
 let mockCampaigns: MockCampaign[] = [];
 
+// Mirrors Firestore's dot-path partial-update semantics for `.update()` — a
+// key like 'budget.totalIsk' assigns into the nested `budget.totalIsk` field
+// in place rather than setting a literal `"budget.totalIsk"` property, which
+// is what updateCampaign/updateCampaignStatus now send (targeted updates,
+// see services/campaigns.ts) instead of the old whole-document `.set()`.
+function applyDotUpdate(target: Record<string, any>, fields: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(fields)) {
+    const parts = key.split('.');
+    let obj: Record<string, any> = target;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      if (obj[part] == null) obj[part] = {};
+      obj = obj[part];
+    }
+    obj[parts[parts.length - 1]!] = value;
+  }
+}
+
 vi.mock('../src/lib/firebase', () => ({
   db: {
     collection: vi.fn((colName: string) => ({
-      doc: vi.fn((id: string) => ({
-        id,
-        withConverter: vi.fn(() => ({
-          get: vi.fn(async () => {
-            let data: unknown = null;
-            if (colName === 'advertisers') {
-              data = mockAdvertisers.find((a) => a.id === id);
-            } else if (colName === 'creatives') {
-              data = mockCreatives.find((c) => c.id === id);
-            } else if (colName === 'campaigns') {
-              data = mockCampaigns.find((c) => c.id === id);
+      doc: vi.fn((id: string) => {
+        const getFn = async () => {
+          let data: unknown = null;
+          if (colName === 'advertisers') {
+            data = mockAdvertisers.find((a) => a.id === id);
+          } else if (colName === 'creatives') {
+            data = mockCreatives.find((c) => c.id === id);
+          } else if (colName === 'campaigns') {
+            data = mockCampaigns.find((c) => c.id === id);
+          }
+          return {
+            exists: data !== undefined && data !== null,
+            data: () => data,
+          };
+        };
+        const setFn = async (val: unknown) => {
+          if (colName === 'campaigns') {
+            const cmpVal = val as MockCampaign;
+            const idx = mockCampaigns.findIndex((c) => c.id === id);
+            if (idx >= 0) {
+              mockCampaigns[idx] = cmpVal;
+            } else {
+              mockCampaigns.push(cmpVal);
             }
-            return {
-              exists: data !== undefined && data !== null,
-              data: () => data,
-            };
-          }),
-          set: vi.fn(async (val: unknown) => {
-            if (colName === 'campaigns') {
-              const cmpVal = val as MockCampaign;
-              const idx = mockCampaigns.findIndex((c) => c.id === id);
-              if (idx >= 0) {
-                mockCampaigns[idx] = cmpVal;
-              } else {
-                mockCampaigns.push(cmpVal);
-              }
-            }
-          }),
-        })),
-      })),
+          }
+        };
+        const updateFn = async (fields: Record<string, unknown>) => {
+          if (colName === 'advertisers') {
+            const found = mockAdvertisers.find((a) => a.id === id);
+            if (found) Object.assign(found, fields);
+          } else if (colName === 'campaigns') {
+            const found = mockCampaigns.find((c) => c.id === id);
+            if (found) applyDotUpdate(found, fields);
+          }
+        };
+        // Expose get/set/update directly (needed by db.runTransaction below,
+        // which calls them on the raw doc ref) as well as via withConverter().
+        return {
+          id,
+          get: vi.fn(getFn),
+          set: vi.fn(setFn),
+          update: vi.fn(updateFn),
+          withConverter: vi.fn(() => ({
+            get: vi.fn(getFn),
+            set: vi.fn(setFn),
+          })),
+        };
+      }),
       where: vi.fn((prop: string, _op: string, val: unknown) => {
         const builder = {
           withConverter: vi.fn(() => ({
@@ -101,6 +137,18 @@ vi.mock('../src/lib/firebase', () => ({
         return builder;
       }),
     })),
+    // Generic transaction shim: the real gate reads via t.get(ref|query) and
+    // writes via t.update/t.set, all of which already exist on the mocked
+    // refs above — just forward them.
+    runTransaction: vi.fn(async (fn: (t: unknown) => Promise<unknown>) => {
+      const t = {
+        get: (ref: { get: () => Promise<unknown> }) => ref.get(),
+        update: (ref: { update: (f: unknown) => Promise<unknown> }, fields: unknown) =>
+          ref.update(fields),
+        set: (ref: { set: (v: unknown) => Promise<unknown> }, val: unknown) => ref.set(val),
+      };
+      return fn(t);
+    }),
   },
   auth: {},
   storage: {},
@@ -111,13 +159,24 @@ vi.mock('../src/lib/push-cache', () => ({
   pushCacheForCampaign: vi.fn(async () => {}),
 }));
 
-// Wallet balance is a funding gate for campaign creation/increase — mock it
-// with a controllable value (default: plenty) so existing tests stay funded.
-const mockWalletBalance = vi.hoisted(() => ({ value: 1_000_000 }));
+// Available balance (wallet ledger balance minus committed) is the funding
+// gate for campaign creation/increase — mock it with a controllable value
+// (default: plenty) so existing tests stay funded. The real committed-funds
+// arithmetic (excludeCampaignId, fund-holding statuses, concurrency) is
+// exercised for real against the Firestore emulator in
+// tests/wallet-reservation.test.ts; this file is about campaign mechanics,
+// not wallet math, so the gate itself stays a simple controllable stub here
+// — matching how it already mocked getWallet before the reservation model.
+const mockAvailableBalance = vi.hoisted(() => ({ value: 1_000_000 }));
 vi.mock('../src/services/wallet', () => ({
   getWallet: vi.fn(async (advertiserId: string) => ({
     advertiserId,
-    balanceIsk: mockWalletBalance.value,
+    balanceIsk: mockAvailableBalance.value,
+  })),
+  getAvailableBalanceInTransaction: vi.fn(async () => ({
+    balanceIsk: mockAvailableBalance.value,
+    committedIsk: 0,
+    availableIsk: mockAvailableBalance.value,
   })),
 }));
 
@@ -126,7 +185,7 @@ describe('Campaign Service', () => {
     mockAdvertisers = [];
     mockCreatives = [];
     mockCampaigns = [];
-    mockWalletBalance.value = 1_000_000;
+    mockAvailableBalance.value = 1_000_000;
   });
 
   const setupMockData = () => {
@@ -157,7 +216,7 @@ describe('Campaign Service', () => {
   describe('createCampaign', () => {
     it('rejects creation when the wallet balance is below the campaign budget', async () => {
       const { adv, cre } = setupMockData();
-      mockWalletBalance.value = 19_999;
+      mockAvailableBalance.value = 19_999;
       await expect(
         createCampaign(adv.id, {
           creativeIds: [cre.id],
@@ -182,7 +241,7 @@ describe('Campaign Service', () => {
         },
         budget: { mode: 'cpm_capped', totalIsk: 20_000 },
       });
-      mockWalletBalance.value = 9_000;
+      mockAvailableBalance.value = 9_000;
       await expect(updateCampaign(cmp.id, { budget: { totalIsk: 30_000 } })).rejects.toMatchObject({
         code: 'INSUFFICIENT_FUNDS',
       });
