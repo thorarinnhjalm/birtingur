@@ -1,6 +1,6 @@
 # Advertiser-MCP: Agentic Campaign Buying — Implementation Plan
 
-> **Status: PARKED.** Trigger: the first external party asking "can my agent buy from you?", or a decision to use agentic buying as marketing differentiation. Do not start before the trigger fires. This plan was pre-written (2026-07-27) so the response time from trigger to shipped feature is short.
+> **Status: IMPLEMENTED (2026-07-27).** Built via the Fable-plans/Sonnet-codes/Opus-reviews loop; see git history for the commits.
 
 **Goal:** Let AI agents buy category campaigns over MCP — "keyptu birtingar í `matur` fyrir 30.000 kr. í viku" — with hard money guardrails, reversing the deliberate removal of advertiser tools in commit 6973955 now that the reservation gate and reconciliation cron exist to make it safe.
 
@@ -23,39 +23,39 @@
 
 ### Task 1: Shared schema + API-key purchase config
 
-- [ ] `packages/shared/src/schemas/campaign.ts`: optional `createdVia: { channel: z.enum(['dashboard','api','mcp']), apiKeyId: z.string().optional() }`.
-- [ ] `services/api-keys.ts`: add `purchase?: { enabled: boolean; monthlyCapIsk: number; autoApproveLimitIsk: number }` to `ApiKeyRecord`; extend `issueApiKey`; new `updateApiKeyPurchase(id, cfg)` with zod validation (cap ≥ limit ≥ 0, integers).
-- [ ] Route + dashboard settings surface for the owner to enable/configure purchase on a key (API-keys page; `PillButton`/editorial primitives).
-- [ ] Tests: config validation, defaults off.
+- [x] `packages/shared/src/schemas/campaign.ts`: optional `createdVia: { channel: z.enum(['dashboard','api','mcp']), apiKeyId: z.string().optional() }`.
+- [x] `services/api-keys.ts`: add `purchase?: { enabled: boolean; monthlyCapIsk: number; autoApproveLimitIsk: number }` to `ApiKeyRecord`; extend `issueApiKey`; new `updateApiKeyPurchase(id, cfg)` with zod validation (cap ≥ limit ≥ 0, integers).
+- [x] Route + dashboard settings surface for the owner to enable/configure purchase on a key (API-keys page; `PillButton`/editorial primitives).
+- [x] Tests: config validation, defaults off.
 
 ### Task 2: Purchase-aware campaign creation in the API
 
-- [ ] `routes/campaigns.ts` POST: when auth is an `ak_` key, require `scope` advertiser/both AND `purchase.enabled`; compute month-to-date agent spend for the key (query campaigns by `createdVia.apiKeyId` + `createdAt` range); reject if `spent + totalIsk > monthlyCapIsk` with `MONTHLY_CAP_EXCEEDED` (402) — check INSIDE the existing create transaction to avoid a race between two agent calls.
-- [ ] `Idempotency-Key` support: Firestore lookup (`campaigns` where `createdVia.idempotencyKey ==`) inside the transaction; on hit return the existing campaign with `idempotent: true`.
-- [ ] Above `autoApproveLimitIsk` ⇒ force status `pending_approval` + `createNotification` (advertiser role, Icelandic copy: "Agent óskar eftir herferð upp á X kr. — samþykktu eða hafnaðu") + `sendMail` if configured.
-- [ ] Funds are committed at create even while pending (the reservation gate already treats `pending_approval` as fund-holding — verify, don't change).
-- [ ] Tests (emulator): cap enforcement incl. two concurrent creates racing the cap; idempotent replay returns same id and charges once; approval-threshold path.
+- [x] `routes/campaigns.ts` POST: when auth is an `ak_` key, require `scope` advertiser/both AND `purchase.enabled`; compute month-to-date agent spend for the key (query campaigns by `createdVia.apiKeyId` + `createdAt` range); reject if `spent + totalIsk > monthlyCapIsk` with `MONTHLY_CAP_EXCEEDED` (402) — check INSIDE the existing create transaction to avoid a race between two agent calls.
+- [x] `Idempotency-Key` support: Firestore lookup (`campaigns` where `createdVia.idempotencyKey ==`) inside the transaction; on hit return the existing campaign with `idempotent: true`.
+- [x] Above `autoApproveLimitIsk` ⇒ force status `pending_approval` + `createNotification` (advertiser role, Icelandic copy: "Agent óskar eftir herferð upp á X kr. — samþykktu eða hafnaðu") + `sendMail` if configured.
+- [x] Funds are committed at create even while pending (the reservation gate already treats `pending_approval` as fund-holding — verify, don't change).
+- [x] Tests (emulator): cap enforcement incl. two concurrent creates racing the cap; idempotent replay returns same id and charges once; approval-threshold path.
 
 ### Task 3: Owner approval flow
 
-- [ ] `POST /v1/campaigns/:id/approve` and `/reject` (dashboard auth, owner only; reject releases the hold by marking `completed` with `remainingIsk: 0` — reuse the approvals.ts pattern, NO refund entry).
-- [ ] Dashboard: pending-agent-campaign card on advertiser dashboard (editorial primitives, Icelandic).
-- [ ] Tests: approve activates + pushes cache; reject releases committed funds.
+- [x] `POST /v1/campaigns/:id/approve` and `/reject` (dashboard auth, owner only; reject releases the hold by marking `completed` with `remainingIsk: 0` — reuse the approvals.ts pattern, NO refund entry).
+- [x] Dashboard: pending-agent-campaign card on advertiser dashboard (editorial primitives, Icelandic).
+- [x] Tests: approve activates + pushes cache; reject releases committed funds.
 
 ### Task 4: MCP advertiser tools
 
 New module `apps/mcp/src/tools/advertiser/` mirroring `tools/publisher/` (`register.ts` pattern). `createMcpServer(apiKey)` resolves the key's scope and registers ONLY matching tool sets (this also retro-fixes scope enforcement for publisher keys). Tools (thin wrappers over the REST API via `lib/api-client.ts`):
 
-- [ ] `list_categories` — categories + per-category inventory forecast (`GET /v1/categories/inventory`).
-- [ ] `get_wallet` — balance/committed/available + month-to-date agent spend and remaining cap for this key.
-- [ ] `list_creatives` — the advertiser's approved creatives (agents buy with existing creatives in v1; generation is the separate AI-creative plan).
-- [ ] `create_campaign` — categories, budget, schedule, creativeIds, auto-generated idempotency key param; response states clearly whether the campaign is live or awaiting owner approval.
-- [ ] `get_campaign` / `list_campaigns` — status + spend so agents can report back.
-- [ ] Tool descriptions must state the guardrails (cap, approval threshold) so agents can plan around them.
-- [ ] Tests: `@ada/mcp` unit tests for registration-by-scope; one integration test against the API test harness.
+- [x] `list_categories` — categories + per-category inventory forecast (`GET /v1/categories/inventory`).
+- [x] `get_wallet` — balance/committed/available + month-to-date agent spend and remaining cap for this key.
+- [x] `list_creatives` — the advertiser's approved creatives (agents buy with existing creatives in v1; generation is the separate AI-creative plan).
+- [x] `create_campaign` — categories, budget, schedule, creativeIds, auto-generated idempotency key param; response states clearly whether the campaign is live or awaiting owner approval.
+- [x] `get_campaign` / `list_campaigns` — status + spend so agents can report back.
+- [x] Tool descriptions must state the guardrails (cap, approval threshold) so agents can plan around them.
+- [x] Tests: `@ada/mcp` unit tests for registration-by-scope; one integration test against the API test harness.
 
 ### Task 5: Docs + guardrail review
 
-- [ ] CLAUDE.md: update the `apps/mcp` bullet (publisher-only ⇒ scoped; note this deliberately supersedes commit 6973955 and why).
-- [ ] `docs/mcp-feedback.md` / MCP landing text: document the purchase scope, caps, and that top-ups remain dashboard-only.
-- [ ] Adversarial review pass (Opus) focused on: cap race soundness, idempotency under retry storms, any path where an agent key reaches money endpoints beyond create/read.
+- [x] CLAUDE.md: update the `apps/mcp` bullet (publisher-only ⇒ scoped; note this deliberately supersedes commit 6973955 and why).
+- [x] `docs/mcp-feedback.md` / MCP landing text: document the purchase scope, caps, and that top-ups remain dashboard-only.
+- [x] Adversarial review pass (Opus) focused on: cap race soundness, idempotency under retry storms, any path where an agent key reaches money endpoints beyond create/read.
