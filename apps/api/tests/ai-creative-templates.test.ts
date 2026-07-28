@@ -208,6 +208,38 @@ describe('computeBannerLayout — collision-free-by-construction geometry', () =
     expect(headlineBox.y + headlineBox.h + 8).toBeLessThanOrEqual(ctaBox.y);
   });
 
+  describe('compact tier (320x100): 2-line wrap preferred over a dangling, un-ellipsized fragment', () => {
+    // Regression for the visual-QA finding: a max-length (30-char), multi-word
+    // headline used to come out as a truncated fragment ("Þórðargleði í") with
+    // no ellipsis, because wrapText silently dropped every word past the
+    // first overflow once it thought it had run out of line budget. The fix
+    // means the full headline must now either (a) wrap across up to 2 lines
+    // in its entirety, or (b) if truly nothing fits, ellipsize with "…" — it
+    // must never come back as a partial, un-ellipsized fragment.
+    const headline = 'Þórðargleði í öllum sínum dýrð og krafti'.slice(0, 30);
+
+    it('wraps the full headline across (up to) 2 lines, or ellipsizes — never a dangling fragment', () => {
+      const copy: GeneratedCopyVariant = {
+        headline,
+        subline: 'stutt',
+        cta: 'Kaupa núna',
+      };
+      const layout = computeBannerLayout({ width: 320, height: 100, copy });
+      expect(layout.tier).toBe('compact');
+      expect(layout.headlineLines.length).toBeLessThanOrEqual(2);
+
+      const joined = layout.headlineLines.join(' ');
+      if (joined.includes('…')) {
+        // Truncated as a last resort — must end with the ellipsis marker,
+        // not a bare dropped-word fragment.
+        expect(joined.trimEnd().endsWith('…')).toBe(true);
+      } else {
+        // Preferred outcome: the FULL headline made it in, just wrapped.
+        expect(joined).toBe(headline);
+      }
+    });
+  });
+
   describe('ellipsis behavior: an absurdly long single (unspaceable) word never overflows', () => {
     // No spaces at all — wrapText cannot break this into multiple lines, so
     // the only way to keep it inside its box is font-shrinking followed by
@@ -234,6 +266,36 @@ describe('computeBannerLayout — collision-free-by-construction geometry', () =
           // It fit at some font size without truncation — still must not overflow.
           expect(renderedText).toBe(longWord);
         }
+      });
+    }
+  });
+
+  // Fix 5 (adversarial review): fitSublineBlock used to return `{ lines: [] }`
+  // whenever a single unbroken token overflowed maxWidth at both line counts
+  // tried (2, then 1) — the subline vanished entirely instead of truncating,
+  // unlike the headline's own ellipsize fallback. Only the 'stacked' tier
+  // (300x250, 300x600) ever shows a subline at all — 'strip' and 'compact'
+  // never set sublineLines regardless of copy, so this is scoped to those.
+  describe('Fix 5: subline ellipsizes instead of vanishing on a long unbroken token', () => {
+    const longWord = 'Óaðskiljanlegurorðöskurþannigmeðengumbilumaðskiljaþaðíneinnveg';
+    const stackedSizes = IAB_STANDARD_SIZES.filter((s) => s.width === 300);
+
+    for (const size of stackedSizes) {
+      it(`${size.width}x${size.height}: long unbroken subline token truncates with … instead of disappearing`, () => {
+        const copy: GeneratedCopyVariant = {
+          headline: 'Stutt fyrirsögn',
+          subline: longWord,
+          cta: 'Kaupa núna',
+        };
+        const layout = computeBannerLayout({ width: size.width, height: size.height, copy });
+
+        expect(layout.sublineLines.length).toBeGreaterThan(0);
+        const rendered = layout.sublineLines.join('');
+        expect(rendered.endsWith('…')).toBe(true);
+
+        const sublineBox = layout.boxes.subline!;
+        expect(sublineBox.x + sublineBox.w).toBeLessThanOrEqual(size.width + 0.5);
+        expect(sublineBox.y + sublineBox.h).toBeLessThanOrEqual(size.height + 0.5);
       });
     }
   });

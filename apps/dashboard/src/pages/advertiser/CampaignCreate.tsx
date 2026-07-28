@@ -65,21 +65,38 @@ export default function CampaignCreate() {
   const [endDate, setEndDate] = useState('');
   const [totalBudget, setTotalBudget] = useState(20000);
 
-  // Step 2: Creative
+  // Step 3 (Efni): Creative
   const [clickUrl, setClickUrl] = useState('https://');
   const [imageUrl, setImageUrl] = useState('');
   const [ocrTextHint, setOcrTextHint] = useState('');
   const [imageWidth, setImageWidth] = useState(300);
   const [imageHeight, setImageHeight] = useState(250);
   const [creative, setCreative] = useState<Creative | null>(null);
+  // B2 (adversarial review): EVERY creative produced for this campaign —
+  // either every wizard-rendered size, or the single uploaded creative — so
+  // handleFinalSubmit can submit all of them as `creativeIds`, not just the
+  // one `creative` used as the step-4 preview thumbnail. Submitting only one
+  // ID inverts the whole point of the size wizard: push-cache resolves
+  // campaigns to slots by size match, so a campaign that only carries a
+  // 300x250 creative never fills a 728x90 slot even though the wizard just
+  // rendered one for it.
+  const [creatives, setCreatives] = useState<Creative[]>([]);
+  // Fix 3 (adversarial review): tracks creatives specifically from the
+  // wizard (as opposed to the manual-upload path) so that navigating from
+  // step 4 back to step 3 in "generate" mode can show a completed-state
+  // panel instead of remounting a fresh CreativeGenerator — which would
+  // reset all of its internal wizard state and force a full copy+render
+  // redo (burning rate-limit slots and creating duplicate Creative docs).
+  const [wizardCreatives, setWizardCreatives] = useState<Creative[]>([]);
   const [scanning, setScanning] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any>(null);
-  // Toggle between the manual upload path (unchanged) and the AI-generated
-  // banner flow ("Á ég enga borða?") — both end at the same setCreative +
-  // setStep(3) hand-off into step 3.
-  const [creativeMode, setCreativeMode] = useState<'upload' | 'generate'>('upload');
+  // Toggle between the AI-generated wizard ("Á ég enga borða?" — the primary
+  // path per the creative-wizard reorder) and the manual upload path
+  // ("Ég er með borða", kept as a visible alternative) — both end at the
+  // same setCreative + setStep(4) hand-off into "Staðfesta".
+  const [creativeMode, setCreativeMode] = useState<'upload' | 'generate'>('generate');
 
-  // Step 3: Categories & Region
+  // Step 2 (Kaup): Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>(['all']);
 
@@ -167,7 +184,9 @@ export default function CampaignCreate() {
         }),
       });
       setCreative(res);
-      setStep(3);
+      setCreatives([res]);
+      setWizardCreatives([]); // manual upload replaces any prior wizard run
+      setStep(4);
     } catch (err: any) {
       setError(err.message || 'Ekki tókst að hlaða upp eða skrá auglýsingaefnið.');
     } finally {
@@ -181,9 +200,16 @@ export default function CampaignCreate() {
     setError(null);
     setSubmitting(true);
     try {
+      // B2: submit every creative this campaign produced (all wizard-
+      // rendered sizes, or the single upload), not just the `creative`
+      // preview thumbnail — falls back to `[creative.id]` defensively in
+      // case `creatives` is somehow still empty (it's always populated
+      // alongside `creative` by both the upload and wizard paths above).
+      const submittedCreativeIds =
+        creatives.length > 0 ? creatives.map((c) => c.id) : [creative.id];
       await createCampaignMutation.mutateAsync({
         name,
-        creativeIds: [creative.id],
+        creativeIds: submittedCreativeIds,
         categories: selectedCategories,
         geoRegions: selectedRegions.includes('all') ? undefined : selectedRegions,
         schedule: {
@@ -233,7 +259,7 @@ export default function CampaignCreate() {
     return { neededDaily, availableDaily };
   })();
 
-  const stepLabels = ['Grunnur', 'Efni', 'Kaup'];
+  const stepLabels = ['Grunnur', 'Kaup', 'Efni', 'Staðfesta'];
 
   return (
     // Nested inside the advertiser AppShell (Sidebar + TopBar are already
@@ -254,9 +280,9 @@ export default function CampaignCreate() {
         </div>
       )}
 
-      {/* Step 1: Basics — not covered by the buy-flow spec (name/dates are
-            required before a creative can be scanned), kept functional and
-            restyled to the same editorial rhythm. */}
+      {/* Step 1: Grunnur — name/dates, not covered by the buy-flow spec (name/
+            dates are required before targeting or a creative can be chosen),
+            kept functional and restyled to the same editorial rhythm. */}
       {step === 1 && (
         <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
           <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Herferðarupplýsingar</h2>
@@ -310,127 +336,13 @@ export default function CampaignCreate() {
         </section>
       )}
 
-      {/* Step 2: Creative — not covered by the buy-flow spec, kept functional
-            and restyled to the same editorial rhythm. */}
+      {/* Step 2: Kaup — categories, geo, budget, forecast (moved up from the
+            old step 3 per the creative-wizard reorder, docs/superpowers/plans/
+            2026-07-27-creative-wizard-flow.md — categories must be chosen
+            BEFORE creative work so the wizard's "Stærðir" step can show real
+            per-category size forecasts). Existing hooks/mutations preserved
+            verbatim; only position changes. */}
       {step === 2 && (
-        <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
-          <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Auglýsingaefni</h2>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <PillButton
-              active={creativeMode === 'upload'}
-              onClick={() => setCreativeMode('upload')}
-            >
-              Hlaða upp sjálf(ur)
-            </PillButton>
-            <PillButton
-              active={creativeMode === 'generate'}
-              onClick={() => setCreativeMode('generate')}
-            >
-              Á ég enga borða?
-            </PillButton>
-          </div>
-
-          {creativeMode === 'upload' ? (
-            <>
-              <div className="mt-6 space-y-5">
-                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-white transition">
-                  <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-                  <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
-                  <p className="text-xs text-slate-500 mt-1">PNG, JPG eða JPEG upp að 2 MB stærð</p>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/jpg"
-                    className="hidden"
-                    id="creative-file"
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="mt-3 text-xs py-2 px-4"
-                    onClick={() => document.getElementById('creative-file')?.click()}
-                  >
-                    Velja skrá
-                  </Button>
-                </div>
-
-                {imageUrl && (
-                  <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4">
-                    <div className="w-16 h-16 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
-                      <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
-                    </div>
-                    <div className="text-xs text-slate-600 font-semibold space-y-0.5">
-                      <p className="font-bold text-slate-900">Uppgötvaðar víddir:</p>
-                      <p>
-                        {imageWidth} × {imageHeight} dílar
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <Input
-                  label="Vefslóð smella (Click URL) *"
-                  type="url"
-                  placeholder="https://fyrirtæki.is/tilboð"
-                  value={clickUrl}
-                  onChange={(e) => setClickUrl(e.target.value)}
-                  required
-                />
-
-                <Input
-                  label="Textahjálp (OCR lýsing) - Valfrjálst"
-                  placeholder="Skrifaðu textann sem stendur á myndinni til öryggisskönnunar..."
-                  value={ocrTextHint}
-                  onChange={(e) => setOcrTextHint(e.target.value)}
-                />
-              </div>
-
-              <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  Til baka
-                </Button>
-                <Button
-                  loading={scanning}
-                  disabled={!clickUrl.startsWith('https://') || !imageUrl}
-                  onClick={runCreativeScan}
-                >
-                  Skanna og halda áfram
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="mt-6">
-                <CreativeGenerator
-                  onComplete={(creatives) => {
-                    // All IAB sizes were created as real Creatives (they're
-                    // already in the library) — pick the one this flow's
-                    // step 3 actually consumes as `creative`. 300x250 is the
-                    // most common size; fall back to whatever came first.
-                    const primary =
-                      creatives.find((c) => c.width === 300 && c.height === 250) ?? creatives[0];
-                    if (primary) {
-                      setCreative(primary);
-                      setStep(3);
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  Til baka
-                </Button>
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      {/* Step 3: the buy flow proper — categories, budget, payment — laid out
-            exactly per the spec as one continuous page of three numbered
-            sections (01/02/03), ending in the submit CTA. */}
-      {step === 3 && (
         <>
           <NumberedSection
             n="01"
@@ -634,129 +546,337 @@ export default function CampaignCreate() {
             )}
           </NumberedSection>
 
-          <NumberedSection
-            n="03"
-            title="Greiðsla"
-            lede="Fjárhæðin er sótt af inneigninni í veskinu þínu. Þú fyllir á veskið með korti í gegnum Teya ef inneign vantar."
-          >
-            {/* Campaign summary — not in the spec, kept so the advertiser can
-                  review name/dates/region before paying. */}
-            {selectedCategories.length > 0 && (
-              <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 text-sm space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="block text-xs font-semibold text-slate-500">
-                      Heiti herferðar
-                    </span>
-                    <span className="font-bold text-slate-900">{name}</span>
-                  </div>
-                  <div>
-                    <span className="block text-xs font-semibold text-slate-500">Upphaf</span>
-                    <span className="font-bold text-slate-900">
-                      {startDate ? new Date(startDate).toLocaleDateString('is-IS') : '—'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-xs font-semibold text-slate-500">Lokadagur</span>
-                    <span className="font-bold text-slate-900">
-                      {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-xs font-semibold text-slate-500">Landshlutar</span>
-                    <span className="font-bold text-slate-900">
-                      {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-3 border-t border-slate-200">
-                  <span className="block text-xs font-semibold text-slate-500 mb-1">
-                    Valdir flokkar ({selectedCategories.length})
-                  </span>
-                  <span className="font-semibold text-slate-800 text-sm">
-                    {selectedCategories
-                      .map((slug) => AD_CATEGORIES.find((c) => c.slug === slug)?.label || slug)
-                      .join(', ')}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-background border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                  Núverandi inneign í veskinu þínu
-                </div>
-                <div className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em] mt-1.5 tabular-nums">
-                  {fmtNum(walletBalance)} kr.
-                </div>
-              </div>
-              {walletSufficient ? (
-                <span className="text-sm text-slate-900 font-semibold">
-                  Nóg inneign — engin áfylling þarf
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate('/advertiser/topup')}
-                  className="text-sm text-primary font-semibold bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2"
-                >
-                  Vantar {fmtNum(topUpNeeded)} kr. — fylltu fyrst á veskið
-                </button>
-              )}
-            </div>
-
-            <div className="mt-[26px] flex flex-col gap-[15px]">
-              <div className="flex justify-between items-center">
-                <span className="text-[15px] text-slate-600">Fjárhæð herferðar</span>
-                <span className="text-[15px] text-slate-900 tabular-nums">
-                  {fmtNum(totalBudget)} kr.
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-[15px] text-slate-600">
-                  VSK ({Math.round(VAT_RATE * 100)}%)
-                </span>
-                <span className="text-[15px] text-slate-900 tabular-nums">{fmtNum(vsk)} kr.</span>
-              </div>
-              <div className="h-px bg-slate-200 my-0.5" />
-              <div className="flex justify-between items-baseline">
-                <span className="text-[17px] font-bold text-slate-900">Samtals</span>
-                <span className="text-2xl font-extrabold text-slate-900 tracking-[-0.02em] tabular-nums">
-                  {fmtNum(grandTotal)} kr.
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-[30px]">
-              {walletSufficient ? (
-                <Button
-                  className="w-full h-[52px]"
-                  loading={submitting}
-                  disabled={selectedCategories.length === 0}
-                  onClick={handleFinalSubmit}
-                >
-                  Hefja birtingu af inneign
-                </Button>
-              ) : (
-                <Button className="w-full h-[52px]" onClick={() => navigate('/advertiser/topup')}>
-                  Fylla fyrst á veskið
-                </Button>
-              )}
-            </div>
-            <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-normal">
-              <Lock size={17} className="text-primary shrink-0" />
-              Örugg greiðsla í gegnum Teya · VSK-reikningur aðgengilegur í Greiðslum · stöðvaðu
-              hvenær sem er
-            </p>
-
-            <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
-              <Button variant="ghost" onClick={() => setStep(2)}>
-                Til baka
-              </Button>
-            </div>
-          </NumberedSection>
+          <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+            <Button variant="ghost" onClick={() => setStep(1)}>
+              Til baka
+            </Button>
+            <Button disabled={selectedCategories.length === 0} onClick={() => setStep(3)}>
+              Næsta skref →
+            </Button>
+          </div>
         </>
+      )}
+
+      {/* Step 3: Efni — the creative wizard (primary path) plus the existing
+            manual-upload path as a visible alternative ("Ég er með borða").
+            Categories chosen in Kaup are handed to the wizard so its
+            "Stærðir" step can show the real per-category size forecast. */}
+      {step === 3 && (
+        <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+          <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Auglýsingaefni</h2>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <PillButton
+              active={creativeMode === 'generate'}
+              onClick={() => setCreativeMode('generate')}
+            >
+              Á ég enga borða?
+            </PillButton>
+            <PillButton
+              active={creativeMode === 'upload'}
+              onClick={() => setCreativeMode('upload')}
+            >
+              Ég er með borða
+            </PillButton>
+          </div>
+
+          {creativeMode === 'generate' ? (
+            wizardCreatives.length > 0 ? (
+              // Fix 3: the wizard already produced creatives for this
+              // campaign (the advertiser is navigating back from step 4, or
+              // re-entering step 3) — show a completed-state summary instead
+              // of remounting a fresh CreativeGenerator, which would reset
+              // its internal wizard state and force a full copy+render redo.
+              <>
+                <div className="mt-6 flex items-center gap-4 rounded-[14px] border border-slate-200 bg-white px-[22px] py-5">
+                  {creative && (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100">
+                      <img
+                        src={creative.imageUrl}
+                        alt="Valin auglýsing"
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                  )}
+                  <div className="text-sm">
+                    <span className="block font-bold text-slate-900">
+                      {wizardCreatives.length} stærðir tilbúnar
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500">
+                      Auglýsingaefni hefur þegar verið búið til fyrir þessa herferð.
+                    </span>
+                  </div>
+                </div>
+                <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setWizardCreatives([]);
+                      setCreatives([]);
+                      setCreative(null);
+                    }}
+                  >
+                    Byrja upp á nýtt
+                  </Button>
+                  <Button onClick={() => setStep(4)}>Halda áfram →</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-6">
+                  <CreativeGenerator
+                    categories={selectedCategories}
+                    onComplete={(createdCreatives) => {
+                      // Every requested size was created as a real Creative
+                      // (they're already in the library) — pick one this
+                      // flow's step 4 preview uses as `creative`. 300x250 is
+                      // the most common size; fall back to whatever came
+                      // first. B2: ALL of them (not just the primary) are
+                      // kept in `creatives` for final submission.
+                      const primary =
+                        createdCreatives.find((c) => c.width === 300 && c.height === 250) ??
+                        createdCreatives[0];
+                      if (primary) {
+                        setCreative(primary);
+                        setCreatives(createdCreatives);
+                        setWizardCreatives(createdCreatives);
+                        setStep(4);
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
+                  <Button variant="ghost" onClick={() => setStep(2)}>
+                    Til baka
+                  </Button>
+                </div>
+              </>
+            )
+          ) : (
+            <>
+              <div className="mt-6 space-y-5">
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-white transition">
+                  <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
+                  <p className="text-xs text-slate-500 mt-1">PNG, JPG eða JPEG upp að 2 MB stærð</p>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    id="creative-file"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="mt-3 text-xs py-2 px-4"
+                    onClick={() => document.getElementById('creative-file')?.click()}
+                  >
+                    Velja skrá
+                  </Button>
+                </div>
+
+                {imageUrl && (
+                  <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4">
+                    <div className="w-16 h-16 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
+                      <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                    </div>
+                    <div className="text-xs text-slate-600 font-semibold space-y-0.5">
+                      <p className="font-bold text-slate-900">Uppgötvaðar víddir:</p>
+                      <p>
+                        {imageWidth} × {imageHeight} dílar
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <Input
+                  label="Vefslóð smella (Click URL) *"
+                  type="url"
+                  placeholder="https://fyrirtæki.is/tilboð"
+                  value={clickUrl}
+                  onChange={(e) => setClickUrl(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Textahjálp (OCR lýsing) - Valfrjálst"
+                  placeholder="Skrifaðu textann sem stendur á myndinni til öryggisskönnunar..."
+                  value={ocrTextHint}
+                  onChange={(e) => setOcrTextHint(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+                <Button variant="ghost" onClick={() => setStep(2)}>
+                  Til baka
+                </Button>
+                <Button
+                  loading={scanning}
+                  disabled={!clickUrl.startsWith('https://') || !imageUrl}
+                  onClick={runCreativeScan}
+                >
+                  Skanna og halda áfram
+                </Button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
+      {/* Step 4: Staðfesta — summary (name, schedule, categories, budget,
+            chosen creative preview) + payment, ending in the submit CTA.
+            handleFinalSubmit / useCreateCampaign unchanged from the old
+            step-3 "Greiðsla" section. */}
+      {step === 4 && (
+        <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
+          <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Yfirlit og staðfesting</h2>
+          <p className="mt-3 mb-[26px] max-w-[52ch] text-[15px] leading-normal text-slate-500">
+            Fjárhæðin er sótt af inneigninni í veskinu þínu. Þú fyllir á veskið með korti í gegnum
+            Teya ef inneign vantar.
+          </p>
+
+          {creative && (
+            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center gap-4">
+              <div className="w-20 h-20 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
+                <img
+                  src={creative.imageUrl}
+                  alt="Valin auglýsing"
+                  className="object-contain w-full h-full"
+                />
+              </div>
+              <div className="text-sm">
+                <span className="block text-xs font-semibold text-slate-500">Valin auglýsing</span>
+                <span className="font-bold text-slate-900">
+                  {creative.width} × {creative.height} px
+                </span>
+                {/* B2: every rendered size is submitted with the campaign,
+                    not just this preview thumbnail — make that visible here
+                    rather than implying only the pictured size ships. */}
+                {creatives.length > 1 && (
+                  <span className="block text-xs font-semibold text-primary mt-0.5">
+                    {creatives.length} stærðir
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {selectedCategories.length > 0 && (
+            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 text-sm space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-xs font-semibold text-slate-500">
+                    Heiti herferðar
+                  </span>
+                  <span className="font-bold text-slate-900">{name}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-500">Upphaf</span>
+                  <span className="font-bold text-slate-900">
+                    {startDate ? new Date(startDate).toLocaleDateString('is-IS') : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-500">Lokadagur</span>
+                  <span className="font-bold text-slate-900">
+                    {endDate ? new Date(endDate).toLocaleDateString('is-IS') : 'ótakmarkað'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-500">Landshlutar</span>
+                  <span className="font-bold text-slate-900">
+                    {selectedRegions.map((r) => REGION_LABELS[r] || r).join(', ')}
+                  </span>
+                </div>
+              </div>
+              <div className="pt-3 border-t border-slate-200">
+                <span className="block text-xs font-semibold text-slate-500 mb-1">
+                  Valdir flokkar ({selectedCategories.length})
+                </span>
+                <span className="font-semibold text-slate-800 text-sm">
+                  {selectedCategories
+                    .map((slug) => AD_CATEGORIES.find((c) => c.slug === slug)?.label || slug)
+                    .join(', ')}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-background border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
+                Núverandi inneign í veskinu þínu
+              </div>
+              <div className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em] mt-1.5 tabular-nums">
+                {fmtNum(walletBalance)} kr.
+              </div>
+            </div>
+            {walletSufficient ? (
+              <span className="text-sm text-slate-900 font-semibold">
+                Nóg inneign — engin áfylling þarf
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/advertiser/topup')}
+                className="text-sm text-primary font-semibold bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2"
+              >
+                Vantar {fmtNum(topUpNeeded)} kr. — fylltu fyrst á veskið
+              </button>
+            )}
+          </div>
+
+          <div className="mt-[26px] flex flex-col gap-[15px]">
+            <div className="flex justify-between items-center">
+              <span className="text-[15px] text-slate-600">Fjárhæð herferðar</span>
+              <span className="text-[15px] text-slate-900 tabular-nums">
+                {fmtNum(totalBudget)} kr.
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[15px] text-slate-600">
+                VSK ({Math.round(VAT_RATE * 100)}%)
+              </span>
+              <span className="text-[15px] text-slate-900 tabular-nums">{fmtNum(vsk)} kr.</span>
+            </div>
+            <div className="h-px bg-slate-200 my-0.5" />
+            <div className="flex justify-between items-baseline">
+              <span className="text-[17px] font-bold text-slate-900">Samtals</span>
+              <span className="text-2xl font-extrabold text-slate-900 tracking-[-0.02em] tabular-nums">
+                {fmtNum(grandTotal)} kr.
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-[30px]">
+            {walletSufficient ? (
+              <Button
+                className="w-full h-[52px]"
+                loading={submitting}
+                disabled={selectedCategories.length === 0 || !creative}
+                onClick={handleFinalSubmit}
+              >
+                Hefja birtingu af inneign
+              </Button>
+            ) : (
+              <Button className="w-full h-[52px]" onClick={() => navigate('/advertiser/topup')}>
+                Fylla fyrst á veskið
+              </Button>
+            )}
+          </div>
+          <p className="flex items-center gap-2 justify-center mt-5 text-[13px] text-slate-500 text-center leading-normal">
+            <Lock size={17} className="text-primary shrink-0" />
+            Örugg greiðsla í gegnum Teya · VSK-reikningur aðgengilegur í Greiðslum · stöðvaðu hvenær
+            sem er
+          </p>
+
+          <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
+            <Button variant="ghost" onClick={() => setStep(3)}>
+              Til baka
+            </Button>
+          </div>
+        </section>
       )}
     </div>
   );

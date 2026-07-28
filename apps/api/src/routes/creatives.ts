@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Hono } from 'hono';
+import { GeneratedCopyVariantSchema, IAB_STANDARD_SIZES } from '@ada/shared';
 import { requireAuth, requireScope, rejectApiKeyMutation, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import {
@@ -13,7 +14,9 @@ import { getCreativeStats, getAllCreativeStatsForAdvertiser } from '../services/
 import { GeminiAutoScanner } from '../services/auto-scan/gemini.js';
 import { GeminiCreativeGenerator } from '../services/ai-creative/gemini.js';
 import { chooseCreativeUploader } from '../services/ai-creative/storage.js';
-import { generateCreativePreviews } from '../services/ai-creative/generate.js';
+import { generateCreativeCopy } from '../services/ai-creative/copy.js';
+import { renderCreativeVariant } from '../services/ai-creative/render-variant.js';
+import { getPreviewManifest } from '../services/ai-creative/previews.js';
 import { confirmGeneratedCreatives } from '../services/ai-creative/confirm.js';
 import { SsrfBlockedError, extractSiteContext } from '../services/ai-creative/index.js';
 import { checkGenerationRateLimit } from '../lib/rate-limit.js';
@@ -57,7 +60,7 @@ creativesRouter.post('/', async (c) => {
   return c.json(cre, 201);
 });
 
-const GenerateBodySchema = z.object({
+const GenerateCopyBodySchema = z.object({
   landingUrl: z
     .string()
     .url()
@@ -65,29 +68,56 @@ const GenerateBodySchema = z.object({
   variants: z.number().int().min(1).max(3).optional(),
 });
 
-// AI creative assistance (Phase 2, docs/superpowers/plans/2026-07-27-ai-creative-assistance.md).
-// Registered above `/:id` so the literal `/generate` segment isn't shadowed
-// by the `:id` param route (same reason `/stats` is registered up top).
-creativesRouter.post('/generate', async (c) => {
+// AI creative assistance, split generation flow (creative-wizard,
+// docs/superpowers/plans/2026-07-27-creative-wizard-flow.md — supersedes the
+// original one-shot `/v1/creatives/generate` from
+// 2026-07-27-ai-creative-assistance.md). Registered above `/:id` so the
+// literal `/generate/*` segments aren't shadowed by the `:id` param route
+// (same reason `/stats` is registered up top).
+//
+// Step 1 of 2: SSRF-guarded extract + Gemini (or rule-based) copy variants
+// only — no background generation, no rendering, no Storage uploads. Fast
+// enough (~seconds) to show as live text suggestions in the wizard's "Texti"
+// step before any rendering cost is paid.
+creativesRouter.post('/generate/copy', async (c) => {
   const user = c.get('user');
-  // v1 MCP has no generation tool at all, and generation spends real Gemini
+  // v1 MCP has no generation tool at all, and this still spends real Gemini
   // money per call (rate-limited but not free) — an `ak_` key reaching this
-  // would only be a raw REST call, not a sanctioned agent workflow. Block it
-  // even though the route is otherwise advertiser-scoped and fine.
-  rejectApiKeyMutation(user, 'generate creatives');
+  // would only be a raw REST call, not a sanctioned agent workflow.
+  rejectApiKeyMutation(user, 'generate creative copy');
   const adv = await getAdvertiserByOwnerEmail(user.email);
   if (!adv) {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
 
-  const body = GenerateBodySchema.parse(await c.req.json());
+  const body = GenerateCopyBodySchema.parse(await c.req.json());
 
-  // Fix 2 (adversarial review): validate/fetch the landing page BEFORE
-  // consuming a rate-limit slot. An SSRF-unsafe or unreachable URL is a bad
-  // client input, not a real generation attempt — charging one of the
-  // advertiser's 10 daily slots for it would be an easy way to burn through
-  // their quota with garbage URLs. The rate limit still gates every actual
-  // Gemini/render call below it.
+  // Fix 12 (adversarial review — supersedes the old Fix 2 ordering below):
+  // the rate-limit check now runs BEFORE the SSRF-guarded fetch, not after.
+  // `GenerateCopyBodySchema.parse` above already rejects anything that
+  // isn't a syntactically-valid https:// URL for free (no network I/O), so
+  // that class of bad input still never touches the rate limiter — Fix 2's
+  // original goal. But `extractSiteContext` performs a real DNS lookup (and
+  // then an HTTP fetch) against a caller-supplied hostname; with the old
+  // ordering, a caller who had ALREADY exhausted their daily `gen-copy`
+  // quota could keep POSTing arbitrary (syntactically valid, but
+  // SSRF-blocked) hostnames forever and the server would still perform that
+  // lookup/fetch on every single request before ever getting to the 429 —
+  // an unbounded-outbound-request amplifier gated by nothing. Checking the
+  // rate limit first closes that: once a caller is over quota, no fetch is
+  // even attempted. The tradeoff is that a syntactically-valid but
+  // SSRF-unsafe URL (e.g. an internal IP) now DOES consume a rate-limit
+  // slot before being rejected — a narrower, already-authenticated-caller
+  // cost that's acceptable in exchange for closing the unbounded-fetch gap.
+  const { allowed } = await checkGenerationRateLimit('gen-copy', adv.id);
+  if (!allowed) {
+    throw new AppError(
+      429,
+      'Hámarksfjöldi textatillagna á dag er náður. Reyndu aftur á morgun.',
+      'RATE_LIMITED',
+    );
+  }
+
   let ctx;
   try {
     ctx = await extractSiteContext(body.landingUrl);
@@ -101,23 +131,94 @@ creativesRouter.post('/generate', async (c) => {
     throw err;
   }
 
-  const { allowed } = await checkGenerationRateLimit(adv.id);
+  const manifest = await generateCreativeCopy({
+    advertiserId: adv.id,
+    ctx,
+    variantsCount: body.variants ?? 3,
+    generator: creativeGenerator,
+  });
+  return c.json(manifest, 201);
+});
+
+const RenderSizeSchema = z.object({
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
+const GenerateRenderBodySchema = z.object({
+  variantId: z.string().min(1),
+  // Validated against the same length caps Gemini copy is held to (Zod
+  // schema shared with the AI-generated shape) — see the `edited` flag doc
+  // on GeneratedPreviewVariantSchema for why replacing copy here is allowed
+  // to bypass the Gemini claims guardrail.
+  editedCopy: GeneratedCopyVariantSchema.optional(),
+  sizes: z.array(RenderSizeSchema).min(1),
+  templateId: z.enum(['bold', 'light']),
+});
+
+const VALID_IAB_SIZE_KEYS = new Set(IAB_STANDARD_SIZES.map((s) => `${s.width}x${s.height}`));
+
+// Step 2 of 2: renders ONLY the requested variant + sizes (background image
+// generated once, not once per size — same perf reasoning the one-shot route
+// used) and uploads them, replacing that variant's copy/images in the
+// manifest and flipping its status to 'rendered'.
+creativesRouter.post('/generate/render', async (c) => {
+  const user = c.get('user');
+  rejectApiKeyMutation(user, 'render generated creatives');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+
+  const body = GenerateRenderBodySchema.parse(await c.req.json());
+
+  // `sizes` must be a subset of the IAB standard list — computeBannerLayout's
+  // tier logic is designed/tested against exactly these sizes, and it's also
+  // how the wizard promises "only the sizes you need" (the read-only
+  // /categories/sizes insight is itself IAB-based).
+  const invalidSize = body.sizes.find((s) => !VALID_IAB_SIZE_KEYS.has(`${s.width}x${s.height}`));
+  if (invalidSize) {
+    throw new AppError(
+      400,
+      `Óþekkt borðastærð: ${invalidSize.width}x${invalidSize.height}`,
+      'BAD_REQUEST',
+    );
+  }
+
+  const manifest = await getPreviewManifest(adv.id);
+  if (!manifest) {
+    throw new AppError(
+      404,
+      'Enginn auglýsingatexti fannst. Búðu til texta áður en þú útbýrð útlit.',
+      'NOT_FOUND',
+    );
+  }
+  if (!manifest.variants.some((v) => v.variantId === body.variantId)) {
+    throw new AppError(404, 'Valið afbrigði fannst ekki í forskoðuninni.', 'NOT_FOUND');
+  }
+
+  // Validated the request (bad variantId/sizes) BEFORE charging one of the
+  // advertiser's daily render slots — same "don't charge for garbage input"
+  // principle as the copy route's SSRF-before-rate-limit ordering above.
+  const { allowed } = await checkGenerationRateLimit('gen-render', adv.id);
   if (!allowed) {
     throw new AppError(
       429,
-      'Hámarksfjöldi sjálfvirkra tillagna á dag er náður. Reyndu aftur á morgun.',
+      'Hámarksfjöldi útlitsgerða á dag er náður. Reyndu aftur á morgun.',
       'RATE_LIMITED',
     );
   }
 
-  const manifest = await generateCreativePreviews({
-    advertiserId: adv.id,
-    ctx,
-    variantsCount: body.variants ?? 2,
+  const updated = await renderCreativeVariant({
+    manifest,
+    variantId: body.variantId,
+    editedCopy: body.editedCopy,
+    sizes: body.sizes,
+    templateId: body.templateId,
     generator: creativeGenerator,
     uploader: creativeUploader,
   });
-  return c.json(manifest, 201);
+  return c.json(updated, 201);
 });
 
 const ConfirmBodySchema = z

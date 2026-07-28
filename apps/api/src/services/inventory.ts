@@ -1,12 +1,36 @@
-import { COLLECTIONS, publisherConverter, campaignConverter } from '@ada/shared/firestore';
-import { AD_CATEGORY_SLUGS, FLAT_CPM_ISK } from '@ada/shared';
+import {
+  COLLECTIONS,
+  publisherConverter,
+  campaignConverter,
+  slotConverter,
+} from '@ada/shared/firestore';
+import { AD_CATEGORY_SLUGS, FLAT_CPM_ISK, IAB_STANDARD_SIZES } from '@ada/shared';
 import { db } from '../lib/firebase.js';
+import { getRedis, isRedisConfigured } from '../lib/redis.js';
 
 export interface CategoryInventory {
   category: string;
   avgDailyImpressions: number;
   committedDailyImpressions: number;
   availableDailyImpressions: number;
+}
+
+export interface CategorySizeForecast {
+  width: number;
+  height: number;
+  /** Number of ACTIVE slots (across active publishers in the requested
+   * categories) that declare this size. */
+  slotCount: number;
+  /** This size's share (0..1, rounded to 4 decimals so a small-but-nonzero
+   * share isn't indistinguishable from a true zero) of the summed
+   * daily-impression forecast across every size returned — sums to ~1
+   * across the whole result array. `null` when the whole 7-day forecast
+   * window is empty (no impression history yet) — there is no meaningful
+   * share to report, and reporting `0` for every size would misleadingly
+   * read as "none of these sizes get any traffic" (see the wizard's
+   * "um 0%" bug, creative-wizard 2026-07-27 plan follow-up). Callers should
+   * fall back to showing only `slotCount` when this is `null`. */
+  forecastShare: number | null;
 }
 
 function lastNDateKeys(n: number): string[] {
@@ -85,4 +109,157 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
       availableDailyImpressions: Math.max(0, gross - committed),
     };
   });
+}
+
+/** Sizes the render endpoint (`/v1/creatives/generate/render`, see
+ * `services/ai-creative/render-variant.ts`'s `VALID_IAB_SIZE_KEYS`) will
+ * actually accept. A publisher's `slots.sizes` is a free-form 1..2000 field
+ * (`seed.ts` itself seeds a 970x250 slot) — this endpoint is the wizard's
+ * "which sizes will I get" step, so surfacing a non-IAB size here would walk
+ * the advertiser straight into a 400 at the render step with no way forward.
+ * This is the server-side source of truth for that filter; `CreativeGenerator.tsx`
+ * additionally intersects defensively on the client. */
+const IAB_SIZE_KEYS = new Set(IAB_STANDARD_SIZES.map((s) => `${s.width}x${s.height}`));
+
+const SIZE_FORECAST_CACHE_TTL_SECONDS = 600;
+
+function sizeForecastCacheKey(categories: string[]): string {
+  return `sizes-forecast:${[...categories].sort().join(',')}`;
+}
+
+/**
+ * Read-through Redis cache in front of `computeCategorySizeForecast` (Fix 7,
+ * follow-up review): this backs a user-facing wizard step and was an
+ * uncached N+1 (one Firestore read per active publisher, plus 7 more per
+ * publisher for the trailing stats window) on every category-selection
+ * change. Same "skip entirely when unconfigured" pattern as
+ * `lib/rate-limit.ts` — this is a plain cache, not a security gate, so an
+ * unconfigured Redis (e.g. the emulator-only API test suite per CLAUDE.md)
+ * just means always computing live rather than failing closed.
+ */
+export async function getCategorySizeForecast(
+  categories: string[],
+): Promise<CategorySizeForecast[]> {
+  const cacheKey = sizeForecastCacheKey(categories);
+
+  if (isRedisConfigured()) {
+    try {
+      const cached = await getRedis().get<CategorySizeForecast[]>(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      console.error(
+        'getCategorySizeForecast cache read error (falling back to live compute):',
+        err,
+      );
+    }
+  }
+
+  const results = await computeCategorySizeForecast(categories);
+
+  if (isRedisConfigured()) {
+    try {
+      await getRedis().set(cacheKey, results, { ex: SIZE_FORECAST_CACHE_TTL_SECONDS });
+    } catch (err) {
+      console.error('getCategorySizeForecast cache write error (ignored):', err);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Per-size breakdown of ACTIVE-slot inventory across the given categories —
+ * backs `GET /v1/categories/sizes`, the creative wizard's "Stærðir" step
+ * (creative-wizard, 2026-07-27 plan): before any creative work, the
+ * advertiser sees which banner sizes their chosen categories actually serve
+ * and roughly how much of the forecast daily-impression volume each size
+ * represents, so size selection becomes information rather than a decision.
+ *
+ * Extends `getCategoryInventory`'s trailing-7-day avgDailyImpressions calc,
+ * which is necessarily per PUBLISHER (stats are only tracked at that
+ * granularity — there is no per-slot impression history). That average is
+ * spread evenly across the publisher's own ACTIVE slots (an even split is
+ * the only defensible default without real per-slot stats), then evenly
+ * again across however many sizes each of those slots declares (a slot's
+ * `sizes` array lists which sizes CAN render there, not a guaranteed
+ * multiplier of impressions).
+ */
+async function computeCategorySizeForecast(categories: string[]): Promise<CategorySizeForecast[]> {
+  const pubSnap = await db
+    .collection(COLLECTIONS.publishers)
+    .where('status', '==', 'active')
+    .withConverter(publisherConverter)
+    .get();
+
+  const dateKeys = lastNDateKeys(7);
+  const slotCountBySize = new Map<string, { width: number; height: number; count: number }>();
+  const forecastBySize = new Map<string, number>();
+
+  for (const pubDoc of pubSnap.docs) {
+    const pub = pubDoc.data();
+    if (!pub.categories.some((cat) => categories.includes(cat))) continue;
+
+    const slotSnap = await db
+      .collection(COLLECTIONS.slots)
+      .where('publisherId', '==', pub.id)
+      .withConverter(slotConverter)
+      .get();
+    // Redundant with a `.where('status', '==', 'active')` query, kept
+    // in-memory so unit-test mocks that ignore `.where()` (see
+    // inventory.test.ts's pattern) still exercise the real filtering logic.
+    const activeSlots = slotSnap.docs
+      .map((d) => d.data())
+      .filter((slot) => slot.status === 'active');
+    if (activeSlots.length === 0) continue;
+
+    let pubTotal = 0;
+    for (const dk of dateKeys) {
+      const statDoc = await db.doc(`${COLLECTIONS.stats}/publishers/${pub.id}/${dk}`).get();
+      pubTotal += (statDoc.data()?.impressions ?? 0) as number;
+    }
+    const pubAvg = Math.round(pubTotal / dateKeys.length);
+    const perSlotShare = pubAvg / activeSlots.length;
+
+    for (const slot of activeSlots) {
+      // Divide across EVERY size the slot declares (IAB or not) — that's
+      // the real allocation of this slot's forecasted impressions. Only the
+      // per-size MAPS below are filtered to IAB sizes, so a slot that also
+      // declares a non-IAB size doesn't have its forecast inflated onto the
+      // IAB sizes it also declares.
+      const perSizeShare = perSlotShare / slot.sizes.length;
+      for (const size of slot.sizes) {
+        const key = `${size.width}x${size.height}`;
+        if (!IAB_SIZE_KEYS.has(key)) continue; // B1: non-IAB sizes dead-end /generate/render
+        const entry = slotCountBySize.get(key) ?? {
+          width: size.width,
+          height: size.height,
+          count: 0,
+        };
+        entry.count += 1;
+        slotCountBySize.set(key, entry);
+        forecastBySize.set(key, (forecastBySize.get(key) ?? 0) + perSizeShare);
+      }
+    }
+  }
+
+  const totalForecast = [...forecastBySize.values()].reduce((sum, v) => sum + v, 0);
+  const results: CategorySizeForecast[] = [...slotCountBySize.values()].map((entry) => {
+    const key = `${entry.width}x${entry.height}`;
+    const forecast = forecastBySize.get(key) ?? 0;
+    // null (not 0) when the whole 7-day window is empty — see the
+    // CategorySizeForecast doc comment for why 0 would be misleading here.
+    const share = totalForecast > 0 ? forecast / totalForecast : null;
+    return {
+      width: entry.width,
+      height: entry.height,
+      slotCount: entry.count,
+      // 4 decimals (not 2) so a real-but-small share survives rounding
+      // instead of collapsing into the same 0 a true zero-contribution size
+      // would show — the wizard's "minna en 1%" display fix depends on
+      // being able to tell those two cases apart.
+      forecastShare: share === null ? null : Math.round(share * 10000) / 10000,
+    };
+  });
+  results.sort((a, b) => (b.forecastShare ?? 0) - (a.forecastShare ?? 0) || a.width - b.width);
+  return results;
 }

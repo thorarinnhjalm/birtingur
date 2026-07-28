@@ -265,10 +265,10 @@ describe('Agent mutation lockout (ak_ keys blocked from dashboard-only routes)',
     });
   });
 
-  describe('POST /v1/creatives/generate', () => {
+  describe('POST /v1/creatives/generate/copy', () => {
     it('rejects a both-scoped ak_ key with 403 AGENT_MUTATION_NOT_ALLOWED', async () => {
       const { bothKey } = await seed();
-      const res = await app.request('/v1/creatives/generate', {
+      const res = await app.request('/v1/creatives/generate/copy', {
         method: 'POST',
         headers: { Authorization: `Bearer ${bothKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ landingUrl: 'https://example.com/' }),
@@ -280,10 +280,44 @@ describe('Agent mutation lockout (ak_ keys blocked from dashboard-only routes)',
 
     it('rejects an advertiser-scoped ak_ key with 403 AGENT_MUTATION_NOT_ALLOWED', async () => {
       const { advKey } = await seed();
-      const res = await app.request('/v1/creatives/generate', {
+      const res = await app.request('/v1/creatives/generate/copy', {
         method: 'POST',
         headers: { Authorization: `Bearer ${advKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ landingUrl: 'https://example.com/' }),
+      });
+      expect(res.status).toBe(403);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toBe('AGENT_MUTATION_NOT_ALLOWED');
+    });
+  });
+
+  describe('POST /v1/creatives/generate/render', () => {
+    it('rejects a both-scoped ak_ key with 403 AGENT_MUTATION_NOT_ALLOWED', async () => {
+      const { bothKey } = await seed();
+      const res = await app.request('/v1/creatives/generate/render', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${bothKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variantId: 'gen_x',
+          sizes: [{ width: 300, height: 250 }],
+          templateId: 'bold',
+        }),
+      });
+      expect(res.status).toBe(403);
+      const body = (await res.json()) as { error: string };
+      expect(body.error).toBe('AGENT_MUTATION_NOT_ALLOWED');
+    });
+
+    it('rejects an advertiser-scoped ak_ key with 403 AGENT_MUTATION_NOT_ALLOWED', async () => {
+      const { advKey } = await seed();
+      const res = await app.request('/v1/creatives/generate/render', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${advKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variantId: 'gen_x',
+          sizes: [{ width: 300, height: 250 }],
+          templateId: 'bold',
+        }),
       });
       expect(res.status).toBe(403);
       const body = (await res.json()) as { error: string };

@@ -68,6 +68,17 @@ export async function confirmGeneratedCreatives(
     if (!variant) {
       throw new AppError(404, 'Valið afbrigði fannst ekki í forskoðuninni.', 'NOT_FOUND');
     }
+    // Split-flow manifests (creative-wizard, 2026-07-27 plan) can have a
+    // variant with copy but no rendered images yet — status 'copy', before
+    // /generate/render has run for it. Confirming that would create
+    // zero Creative docs silently; reject it explicitly instead.
+    if (variant.images.length === 0) {
+      throw new AppError(
+        400,
+        'Þetta afbrigði hefur ekki verið útbúið sem útlit ennþá. Veldu stærðir og útlit áður en þú staðfestir.',
+        'BAD_REQUEST',
+      );
+    }
     selected = variant.images.map((image) => ({ image, copy: variant.copy }));
   } else if (input.imageUrls && input.imageUrls.length > 0) {
     selected = input.imageUrls.map((url) => {

@@ -61,22 +61,34 @@ function escapeXml(s: string): string {
 /** Greedy word-wrap into at most `maxLines` lines of ~`maxChars` characters.
  * Words longer than `maxChars` (or a single-word input) are NOT split —
  * callers that need a hard width guarantee must additionally check the
- * rendered width of the result and fall back to `ellipsize`. */
+ * rendered width of the result and fall back to `ellipsize`.
+ *
+ * Bug fix (visual QA, compact-tier 320x100 dangling-fragment finding): once
+ * `maxLines - 1` complete lines have been placed, this used to just stop —
+ * a `break` right after starting the final line discarded every word after
+ * it, so a max-length headline could come out as a truncated fragment like
+ * "Þórðargleði í" with no ellipsis marker at all. Now every remaining word
+ * is folded onto the last allowed line instead of being dropped, even if
+ * that makes the line run over `maxChars` — the caller's width estimate
+ * then correctly sees that oversized last line as NOT fitting, so
+ * `fitHeadlineBlock` keeps searching smaller font sizes and, only as a true
+ * last resort, falls through to `ellipsize` (which always appends "…").
+ * This guarantees `wrapText` never silently drops text — it either returns
+ * the full text wrapped, or the caller detects the overflow and ellipsizes. */
 function wrapText(text: string, maxChars: number, maxLines: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let current = '';
   for (const word of words) {
     const candidate = current ? `${current} ${word}` : word;
-    if (candidate.length > maxChars && current) {
+    if (candidate.length > maxChars && current && lines.length < maxLines - 1) {
       lines.push(current);
       current = word;
-      if (lines.length === maxLines - 1) break;
     } else {
       current = candidate;
     }
   }
-  if (current && lines.length < maxLines) lines.push(current);
+  if (current) lines.push(current);
   return lines.length > 0 ? lines : [text];
 }
 
@@ -208,9 +220,14 @@ function fitHeadlineBlock(
   };
 }
 
-/** Drops subline lines (2 -> 1 -> none) until the block fits `maxHeight`
- * (there's no ellipsis tier for the subline — it's supporting copy, so
- * dropping it is preferable to truncating it awkwardly). */
+/** Drops subline lines (2 -> 1) trying to fit `maxHeight`, and — mirroring
+ * `fitHeadlineBlock`'s last-resort fallback (Fix 5, adversarial review) —
+ * ellipsizes a single line rather than vanishing entirely when even a
+ * single line overflows `maxWidth` at both line counts tried above (e.g. a
+ * long unbroken token `wrapText` can't break across lines). The subline
+ * still disappears (`lines: []`) only when `maxHeight` itself can't fit even
+ * one line's height — there is genuinely no room to draw anything then, and
+ * that case is unchanged from before this fix. */
 function fitSublineBlock(
   text: string,
   fontSize: number,
@@ -227,7 +244,15 @@ function fitSublineBlock(
       return { lines: wrapped, width: blockW, height: blockH };
     }
   }
-  return { lines: [], width: 0, height: 0 };
+  const oneLineHeight = textBlockHeight(fontSize, 1, SUBLINE_LINE_MULT);
+  if (oneLineHeight > maxHeight) return { lines: [], width: 0, height: 0 };
+  const maxChars = Math.max(1, Math.floor(maxWidth / (fontSize * SUBLINE_WIDTH_FACTOR)));
+  const truncated = ellipsize(text, maxChars);
+  return {
+    lines: [truncated],
+    width: textWidthEstimate(truncated, fontSize, 400),
+    height: oneLineHeight,
+  };
 }
 
 /**
