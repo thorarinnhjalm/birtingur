@@ -25,12 +25,18 @@ function init() {
   }
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL?.trim();
   const projectId = process.env.FIREBASE_PROJECT_ID?.trim();
+  // Firebase projects created since ~2024 get `<id>.firebasestorage.app` as the
+  // default bucket, not the legacy `<id>.appspot.com` (which does not exist for
+  // them — writes 404 "The specified bucket does not exist"). FIREBASE_STORAGE_BUCKET
+  // overrides for projects that do use the legacy name.
+  const storageBucket =
+    process.env.FIREBASE_STORAGE_BUCKET?.trim() || `${projectId}.firebasestorage.app`;
 
   if (privateKey && clientEmail && projectId) {
     initializeApp({
       credential: cert({ privateKey, clientEmail, projectId }),
       projectId,
-      storageBucket: `${projectId}.appspot.com`,
+      storageBucket,
     });
   } else {
     // If we're on Vercel or in production, NEVER fallback to applicationDefault() because it hangs trying to contact GCP metadata server.
@@ -48,7 +54,8 @@ function init() {
     initializeApp({
       credential: applicationDefault(),
       projectId: fallbackProjectId,
-      storageBucket: `${fallbackProjectId}.appspot.com`,
+      storageBucket:
+        process.env.FIREBASE_STORAGE_BUCKET?.trim() || `${fallbackProjectId}.firebasestorage.app`,
     });
   }
 }
