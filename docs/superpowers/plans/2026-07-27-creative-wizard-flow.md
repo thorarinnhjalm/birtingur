@@ -2,7 +2,7 @@
 
 > **Status: APPROVED (2026-07-27).** Þórarinn's decision: reorder the campaign flow so category targeting precedes creative work, and turn banner generation into a guided, self-explaining wizard. Supersedes the step order in the 2026-07-03 redesign templates for the campaign-create screen (deliberate; keep the editorial visual language and approved copy style).
 
-**Rationale:** For Birtingur's target user, a guided wizard is *support, not friction* — each step teaches while it executes. The step that makes this uniquely Birtingur: the system already knows which sizes a campaign needs (slot sizes × impression forecast of the chosen categories), so size selection becomes information, not a decision. That requires categories to be chosen BEFORE creative work — hence the reorder.
+**Rationale:** For Birtingur's target user, a guided wizard is _support, not friction_ — each step teaches while it executes. The step that makes this uniquely Birtingur: the system already knows which sizes a campaign needs (slot sizes × impression forecast of the chosen categories), so size selection becomes information, not a decision. That requires categories to be chosen BEFORE creative work — hence the reorder.
 
 ## New campaign-create flow (`apps/dashboard/src/pages/advertiser/CampaignCreate.tsx`)
 
@@ -21,7 +21,7 @@
 ## API changes (`apps/api`)
 
 - **`GET /v1/categories/sizes?categories=a,b`** (new, advertiser auth): per-size `{ width, height, slotCount, forecastShare }` across active slots in the given categories — extends the existing inventory service; read-only.
-- **Split generation** (replaces the one-shot `/v1/creatives/generate` — internal-only API, no external consumers, ak_ keys already blocked):
+- **Split generation** (replaces the one-shot `/v1/creatives/generate` — internal-only API, no external consumers, ak\_ keys already blocked):
   - `POST /v1/creatives/generate/copy` `{ landingUrl, variants? }` → SSRF-guarded extract + Gemini copy variants (text only). Manifest stores extract context + copy variants.
   - `POST /v1/creatives/generate/render` `{ variantId, editedCopy?, sizes[], templateId }` → validates `editedCopy` against `GeneratedCopyVariantSchema` limits, renders ONLY requested sizes (must be subset of IAB list), background once, uploads, updates manifest.
   - `POST /v1/creatives/generate/confirm` — unchanged contract (manifest-validated URLs, `manifest.landingUrl` as clickUrl).

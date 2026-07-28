@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { IAB_STANDARD_SIZES } from '@ada/shared';
-import { renderBannerSvg, SCRIM_COLOR, SCRIM_OPACITY } from '../src/services/ai-creative/templates';
+import type { GeneratedCopyVariant } from '@ada/shared';
+import {
+  renderBannerSvg,
+  computeBannerLayout,
+  SCRIM_COLOR,
+  SCRIM_OPACITY,
+  type Box,
+} from '../src/services/ai-creative/templates';
 import { renderSvgToPng } from '../src/services/ai-creative/render';
 
 const COPY = {
@@ -72,6 +79,163 @@ describe('renderBannerSvg', () => {
     });
     expect(bold).toContain('<image');
     expect(light).not.toContain('<image');
+  });
+});
+
+/**
+ * Regression net for the reported CTA/headline overlap bug: the old
+ * `layoutFor`+non-stacked-branch code left-anchored the headline and
+ * right-anchored the CTA pill with NO shared width budget, so a headline
+ * near the 30-char schema max at 320x100 overlapped the pill. Confirmed
+ * against the pre-fix code by extracting the actual emitted SVG for a
+ * 320x100 headline ("Rosalega frabaert", 17 chars) — before the fix, the
+ * headline `<text>` started at x=19 with font-size 30 (estimated right edge
+ * ≈ 19 + 17*30*0.52 ≈ 284px) while the CTA `<rect>` started at x=110, a
+ * ~174px overlap. `computeBannerLayout` is the fix: every element's box is
+ * computed up front, the CTA (which never shrinks) is budgeted first, and
+ * the headline fits itself — by shrinking font size, then wrapping, then
+ * ellipsizing — into whatever width/height is left.
+ */
+describe('computeBannerLayout — collision-free-by-construction geometry', () => {
+  function boxesIntersect(a: Box, b: Box): boolean {
+    const separatedX = a.x + a.w <= b.x || b.x + b.w <= a.x;
+    const separatedY = a.y + a.h <= b.y || b.y + b.h <= a.y;
+    return !(separatedX || separatedY);
+  }
+
+  /** Shortest gap between two boxes along whichever axis separates them;
+   * negative means they overlap. */
+  function gapBetween(a: Box, b: Box): number {
+    if (a.x + a.w <= b.x) return b.x - (a.x + a.w);
+    if (b.x + b.w <= a.x) return a.x - (b.x + b.w);
+    if (a.y + a.h <= b.y) return b.y - (a.y + a.h);
+    if (b.y + b.h <= a.y) return a.y - (b.y + b.h);
+    return -1;
+  }
+
+  function assertNoOverlaps(
+    boxes: Record<'headline' | 'subline' | 'cta', Box | null>,
+    width: number,
+    height: number,
+  ) {
+    const present = Object.values(boxes).filter((b): b is Box => b !== null);
+    // Every box lies fully inside the canvas.
+    for (const box of present) {
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.w).toBeLessThanOrEqual(width + 0.01);
+      expect(box.y + box.h).toBeLessThanOrEqual(height + 0.01);
+    }
+    // No two boxes intersect, and at least an 8px gap between any pair.
+    for (let i = 0; i < present.length; i++) {
+      for (let j = i + 1; j < present.length; j++) {
+        expect(boxesIntersect(present[i]!, present[j]!)).toBe(false);
+        expect(gapBetween(present[i]!, present[j]!)).toBeGreaterThanOrEqual(8);
+      }
+    }
+  }
+
+  // Three copy profiles, all with Icelandic diacritics (þ, ð, æ, ö) so the
+  // width-estimate math is exercised against real Icelandic text, not just
+  // ASCII. `slice` guarantees the max-length profile sits exactly at the
+  // schema caps (headline 30 / subline 60 / cta 15) regardless of exact
+  // character counts above.
+  const COPY_PROFILES: Record<string, GeneratedCopyVariant> = {
+    maxLength: {
+      headline: 'Þú færð glæsilegt tilboð í dag, ekki missa af þessu'.slice(0, 30),
+      subline: 'Kynntu þér ótrúlegt tilboð sem gildir öllum viðskiptavinum í dag'.slice(0, 60),
+      cta: 'Sjáðu tilboðin strax'.slice(0, 15),
+    },
+    typical: {
+      headline: 'Þú átt skilið gæði',
+      subline: 'Sjáðu nýja vöruúrvalið hjá okkur núna',
+      cta: 'Skoða vörur',
+    },
+    minimal: {
+      headline: 'Þetta æði',
+      subline: 'Gæði á góðu verði',
+      cta: 'Sjá öll tilboð',
+    },
+  };
+
+  describe('property sweep: every IAB size × both templates × three copy profiles', () => {
+    for (const size of IAB_STANDARD_SIZES) {
+      for (const [profileName, copy] of Object.entries(COPY_PROFILES)) {
+        it(`${size.width}x${size.height} (${size.name}) / ${profileName}: no overlapping boxes, all in-bounds`, () => {
+          const layout = computeBannerLayout({ width: size.width, height: size.height, copy });
+          assertNoOverlaps(layout.boxes, size.width, size.height);
+        });
+
+        for (const templateId of ['bold', 'light'] as const) {
+          it(`${size.width}x${size.height} / ${profileName} / ${templateId}: renderBannerSvg produces well-formed, correctly-sized SVG`, () => {
+            const svg = renderBannerSvg({
+              width: size.width,
+              height: size.height,
+              copy,
+              templateId,
+            });
+            expect(svg).toContain(`width="${size.width}" height="${size.height}"`);
+            expect(svg.trim().startsWith('<svg')).toBe(true);
+            expect(svg.trim().endsWith('</svg>')).toBe(true);
+          });
+        }
+      }
+    }
+  });
+
+  it('THE regression case: schema-max (30-char) headline at 320x100 does not overlap the CTA pill', () => {
+    // This exact case overlapped under the pre-fix layoutFor()/non-stacked
+    // branch — see the file-level comment above for the concrete before
+    // numbers extracted from the old code's SVG output.
+    const copy: GeneratedCopyVariant = {
+      headline: 'Þú færð glæsilegt tilboð í dag, ekki missa af þessu'.slice(0, 30),
+      subline: 'Kynntu þér ótrúlegt tilboð sem gildir öllum viðskiptavinum'.slice(0, 60),
+      cta: 'Sjáðu tilboðin strax'.slice(0, 15),
+    };
+    const layout = computeBannerLayout({ width: 320, height: 100, copy });
+    expect(layout.tier).toBe('compact');
+    assertNoOverlaps(layout.boxes, 320, 100);
+
+    // Also assert against the raw rendered SVG, not just the geometry model,
+    // so a mismatch between the two (fix requirement #4) would be caught.
+    const svg = renderBannerSvg({ width: 320, height: 100, copy, templateId: 'bold' });
+    const headlineBox = layout.boxes.headline!;
+    const ctaBox = layout.boxes.cta!;
+    expect(svg).toContain(`x="${ctaBox.x}"`);
+    // compact tier stacks headline-band-then-CTA-band vertically (CTA is
+    // bottom-right, not beside the headline), so the guaranteed gap is
+    // vertical, not horizontal.
+    expect(headlineBox.y + headlineBox.h + 8).toBeLessThanOrEqual(ctaBox.y);
+  });
+
+  describe('ellipsis behavior: an absurdly long single (unspaceable) word never overflows', () => {
+    // No spaces at all — wrapText cannot break this into multiple lines, so
+    // the only way to keep it inside its box is font-shrinking followed by
+    // hard ellipsis truncation.
+    const longWord = 'Óaðskiljanlegurorðöskurþannigmeðengumbilumaðskiljaþaðíneinnveg';
+
+    for (const size of IAB_STANDARD_SIZES) {
+      it(`${size.width}x${size.height}: long unspaceable headline stays in-bounds, truncates with … when it can't fit`, () => {
+        const copy: GeneratedCopyVariant = {
+          headline: longWord,
+          subline: 'stutt undirtexti með íslenskum stöfum',
+          cta: 'Kaupa núna',
+        };
+        const layout = computeBannerLayout({ width: size.width, height: size.height, copy });
+        const headlineBox = layout.boxes.headline!;
+        expect(headlineBox.x + headlineBox.w).toBeLessThanOrEqual(size.width + 0.5);
+        expect(headlineBox.y + headlineBox.h).toBeLessThanOrEqual(size.height + 0.5);
+
+        const renderedText = layout.headlineLines.join('');
+        if (renderedText.length < longWord.length) {
+          // It was truncated to fit — must end with the ellipsis marker.
+          expect(layout.headlineLines.some((l) => l.includes('…'))).toBe(true);
+        } else {
+          // It fit at some font size without truncation — still must not overflow.
+          expect(renderedText).toBe(longWord);
+        }
+      });
+    }
   });
 });
 
