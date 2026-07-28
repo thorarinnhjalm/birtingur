@@ -44,11 +44,25 @@ No image-model generation in v1. The pipeline is deterministic rendering with AI
 - [ ] Empty-state entry point on the creative-library page too.
 - [ ] Playwright happy-path if the e2e harness reaches it cheaply; otherwise component tests.
 
-### Task 5: Docs + review
+### Task 5 (v1.5, optional): Gemini background imagery
+
+Ships only after v1 is live and template banners prove demand. The hybrid keeps all text as crisp SVG (Icelandic þ/ð/æ never touch an image model) and lets Gemini supply only the background layer behind it.
+
+- [ ] Extend `ai-creative.ts` with `generateBackground(ctx, size)`: Gemini image generation (same `GEMINI_API_KEY`, image-capable model — pick current best at build time) prompted from the extracted site context for an abstract/ambient background ("no text, no logos, no faces" hard-constrained in the prompt); absent key ⇒ v1 flat-color templates unchanged.
+- [ ] Templates gain an optional background-image layer with a scrim/gradient so copy stays WCAG-readable on any generated image; contrast assertion in the snapshot tests.
+- [ ] Generated backgrounds go through the same storage path and the same creative-review pipeline — an image the advertiser confirms, never auto-published.
+- [ ] Cost control: backgrounds count against the same per-advertiser generation rate limit; cache per (advertiser, size) so re-renders reuse the image.
+
+### Task 6: Docs + review
 
 - [ ] CLAUDE.md: add ai-creative to the cross-cutting services list (one line, incl. stub/fallback behavior).
-- [ ] Adversarial review (Opus) focused on: SSRF surface, prompt-injection from hostile landing-page content into generated copy, storage-path authorization, rate-limit bypass.
+- [ ] Adversarial review (Opus) focused on: SSRF surface, prompt-injection from hostile landing-page content into generated copy AND image prompts, storage-path authorization, rate-limit bypass.
+
+## Alternatives considered
+
+- **Canva integration (rejected for the product):** letting advertisers design via Canva Connect would require partner-app registration, per-advertiser OAuth, and a Canva account per advertiser — a heavy dependency chain for exactly the segment that won't do setup work, which is the problem this feature exists to solve. Canva remains useful as a one-off _design tool_ for authoring the 2–3 base templates themselves (design there, translate to SVG here).
+- **Full image-model banner generation (deferred):** letting Gemini render the entire banner including text was rejected for v1/v1.5 — Icelandic diacritics in AI-rendered text are unreliable and output is non-deterministic. The hybrid above captures most of the visual upside without the text risk.
 
 ## Explicit non-goals (v1)
 
-Image-model banner generation, animation/HTML5 creatives, A/B rotation of generated variants (separate bandit idea), auto-regeneration on landing-page change, and any English copy. Revisit only with real usage data.
+Full image-model banner generation (see Alternatives), animation/HTML5 creatives, A/B rotation of generated variants (separate bandit idea), auto-regeneration on landing-page change, and any English copy. Revisit only with real usage data.
