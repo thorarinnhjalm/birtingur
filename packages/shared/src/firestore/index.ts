@@ -8,4 +8,5 @@ export {
   ledgerEntryConverter,
   payoutConverter,
   notificationConverter,
+  generatedPreviewManifestConverter,
 } from './converters.js';

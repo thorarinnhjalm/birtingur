@@ -5,3 +5,4 @@ export * from './ledger.js';
 export * from './stats.js';
 export * from './widget-key.js';
 export * from './notification.js';
+export * from './generated-preview.js';

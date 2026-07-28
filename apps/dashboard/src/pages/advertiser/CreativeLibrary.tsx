@@ -16,12 +16,14 @@ import {
   Upload,
   Edit2,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
 import type { Creative } from '@ada/shared';
 import { useBulkCreativeStats } from '@/hooks/useCampaigns';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
+import { CreativeGenerator } from '@/components/CreativeGenerator';
 
 // Filter-tab grouping — creative-library.dc.html's groupOf() operates on mock
 // campaign-like statuses (active / review|pending / draft|paused|rejected).
@@ -41,6 +43,7 @@ function groupOf(status: Creative['reviewStatus']): 'active' | 'progress' | 'ina
 export default function CreativeLibrary() {
   const qc = useQueryClient();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: bulkStats } = useBulkCreativeStats();
   const { data: advertiser } = useAdvertiser();
@@ -268,8 +271,20 @@ export default function CreativeLibrary() {
         <EmptyState
           icon={<ImageIcon size={44} />}
           title="Engar auglýsingar í safninu"
-          description="Hlaða upp fyrsta auglýsingaborðinu þínu til að geta valið það inn í herferðir."
-          action={<Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>}
+          description="Hlaða upp fyrsta auglýsingaborðinu þínu til að geta valið það inn í herferðir — eða láttu gervigreindina útbúa tillögur ef þú átt enga borða."
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button onClick={() => setShowAddModal(true)}>Hlaða upp nýrri auglýsingu</Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowGenerateModal(true)}
+                className="gap-1.5"
+              >
+                <Sparkles size={15} />
+                <span>Á ég enga borða?</span>
+              </Button>
+            </div>
+          }
         />
         {showAddModal && (
           <AddCreativeModal
@@ -285,6 +300,15 @@ export default function CreativeLibrary() {
             onFileChange={handleFileChange}
             onSubmit={handleUploadSubmit}
             onClose={() => setShowAddModal(false)}
+          />
+        )}
+        {showGenerateModal && (
+          <GenerateCreativeModal
+            onClose={() => setShowGenerateModal(false)}
+            onComplete={() => {
+              qc.invalidateQueries({ queryKey: ['creatives'] });
+              setShowGenerateModal(false);
+            }}
           />
         )}
       </div>
@@ -328,10 +352,20 @@ export default function CreativeLibrary() {
           <EditorialH1>Auglýsingasafn</EditorialH1>
           <p className="mt-3 text-[15px] text-slate-500">{creatives.length} auglýsingar samtals</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
-          <Plus size={16} />
-          <span>Búa til auglýsingu</span>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setShowGenerateModal(true)}
+            className="gap-1.5"
+          >
+            <Sparkles size={15} />
+            <span>Á ég enga borða?</span>
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} className="gap-1.5">
+            <Plus size={16} />
+            <span>Búa til auglýsingu</span>
+          </Button>
+        </div>
       </header>
 
       {/* ===== SEARCH + FILTER ===== */}
@@ -483,6 +517,17 @@ export default function CreativeLibrary() {
             );
           })}
         </div>
+      )}
+
+      {/* Generate Creative Modal (AI) */}
+      {showGenerateModal && (
+        <GenerateCreativeModal
+          onClose={() => setShowGenerateModal(false)}
+          onComplete={() => {
+            qc.invalidateQueries({ queryKey: ['creatives'] });
+            setShowGenerateModal(false);
+          }}
+        />
       )}
 
       {/* Add Creative Modal */}
@@ -739,6 +784,29 @@ function AddCreativeModal({
             </Button>
           </div>
         </form>
+      </Card>
+    </div>
+  );
+}
+
+// AI-generation modal — thin wrapper around the shared CreativeGenerator
+// component (also used by CampaignCreate's step-2 branch). Every size it
+// creates lands directly in the library via the normal createCreative path,
+// so onComplete here only needs to refresh the list and close the modal.
+function GenerateCreativeModal({
+  onClose,
+  onComplete,
+}: {
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+      <Card className="w-full max-w-lg space-y-4 overflow-y-auto bg-white p-6 shadow-2xl max-h-[90vh]">
+        <h3 className="border-b border-slate-100 pb-3 text-lg font-bold text-slate-900">
+          Búa til auglýsingu með gervigreind
+        </h3>
+        <CreativeGenerator onComplete={onComplete} onCancel={onClose} />
       </Card>
     </div>
   );

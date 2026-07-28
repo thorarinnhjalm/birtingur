@@ -9,11 +9,13 @@ import { AdvertiserSchema, CreativeSchema } from '../schemas/advertiser.js';
 import { CampaignSchema } from '../schemas/campaign.js';
 import { LedgerEntrySchema, PayoutSchema } from '../schemas/ledger.js';
 import { NotificationSchema } from '../schemas/notification.js';
+import { GeneratedPreviewManifestSchema } from '../schemas/generated-preview.js';
 import type { Publisher, Slot } from '../schemas/publisher.js';
 import type { Advertiser, Creative } from '../schemas/advertiser.js';
 import type { Campaign } from '../schemas/campaign.js';
 import type { LedgerEntry, Payout } from '../schemas/ledger.js';
 import type { Notification } from '../schemas/notification.js';
+import type { GeneratedPreviewManifest } from '../schemas/generated-preview.js';
 import type { ZodType, ZodTypeDef } from 'zod';
 
 /**
@@ -77,3 +79,6 @@ export const campaignConverter = makeConverter<Campaign>(CampaignSchema);
 export const ledgerEntryConverter = makeConverter<LedgerEntry>(LedgerEntrySchema);
 export const payoutConverter = makeConverter<Payout>(PayoutSchema);
 export const notificationConverter = makeConverter<Notification>(NotificationSchema);
+export const generatedPreviewManifestConverter = makeConverter<GeneratedPreviewManifest>(
+  GeneratedPreviewManifestSchema,
+);

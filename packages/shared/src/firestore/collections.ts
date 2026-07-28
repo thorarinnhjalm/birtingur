@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   payouts: 'payouts',
   stats: 'stats',
   notifications: 'notifications',
+  generatedPreviews: 'generated_previews',
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

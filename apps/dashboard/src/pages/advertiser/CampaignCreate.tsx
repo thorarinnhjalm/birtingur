@@ -20,6 +20,7 @@ import { AD_CATEGORIES, FLAT_CPM_ISK, VAT_RATE } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
+import { CreativeGenerator } from '@/components/CreativeGenerator';
 
 const REGION_LABELS: Record<string, string> = {
   all: 'Allt landið',
@@ -73,6 +74,10 @@ export default function CampaignCreate() {
   const [creative, setCreative] = useState<Creative | null>(null);
   const [scanning, setScanning] = useState(false);
   const [selectedFile, setSelectedFile] = useState<any>(null);
+  // Toggle between the manual upload path (unchanged) and the AI-generated
+  // banner flow ("Á ég enga borða?") — both end at the same setCreative +
+  // setStep(3) hand-off into step 3.
+  const [creativeMode, setCreativeMode] = useState<'upload' | 'generate'>('upload');
 
   // Step 3: Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -310,71 +315,115 @@ export default function CampaignCreate() {
       {step === 2 && (
         <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
           <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Auglýsingaefni</h2>
-          <div className="mt-6 space-y-5">
-            <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-white transition">
-              <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
-              <p className="text-xs text-slate-500 mt-1">PNG, JPG eða JPEG upp að 2 MB stærð</p>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg"
-                className="hidden"
-                id="creative-file"
-                onChange={handleFileChange}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                className="mt-3 text-xs py-2 px-4"
-                onClick={() => document.getElementById('creative-file')?.click()}
-              >
-                Velja skrá
-              </Button>
-            </div>
 
-            {imageUrl && (
-              <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4">
-                <div className="w-16 h-16 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
-                  <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
-                </div>
-                <div className="text-xs text-slate-600 font-semibold space-y-0.5">
-                  <p className="font-bold text-slate-900">Uppgötvaðar víddir:</p>
-                  <p>
-                    {imageWidth} × {imageHeight} dílar
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <Input
-              label="Vefslóð smella (Click URL) *"
-              type="url"
-              placeholder="https://fyrirtæki.is/tilboð"
-              value={clickUrl}
-              onChange={(e) => setClickUrl(e.target.value)}
-              required
-            />
-
-            <Input
-              label="Textahjálp (OCR lýsing) - Valfrjálst"
-              placeholder="Skrifaðu textann sem stendur á myndinni til öryggisskönnunar..."
-              value={ocrTextHint}
-              onChange={(e) => setOcrTextHint(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
-            <Button variant="ghost" onClick={() => setStep(1)}>
-              Til baka
-            </Button>
-            <Button
-              loading={scanning}
-              disabled={!clickUrl.startsWith('https://') || !imageUrl}
-              onClick={runCreativeScan}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <PillButton
+              active={creativeMode === 'upload'}
+              onClick={() => setCreativeMode('upload')}
             >
-              Skanna og halda áfram
-            </Button>
+              Hlaða upp sjálf(ur)
+            </PillButton>
+            <PillButton
+              active={creativeMode === 'generate'}
+              onClick={() => setCreativeMode('generate')}
+            >
+              Á ég enga borða?
+            </PillButton>
           </div>
+
+          {creativeMode === 'upload' ? (
+            <>
+              <div className="mt-6 space-y-5">
+                <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:bg-white transition">
+                  <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm font-semibold text-slate-700">Hlaða upp myndskrá</p>
+                  <p className="text-xs text-slate-500 mt-1">PNG, JPG eða JPEG upp að 2 MB stærð</p>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    id="creative-file"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="mt-3 text-xs py-2 px-4"
+                    onClick={() => document.getElementById('creative-file')?.click()}
+                  >
+                    Velja skrá
+                  </Button>
+                </div>
+
+                {imageUrl && (
+                  <div className="p-4 bg-white border border-slate-200 rounded-xl flex items-center gap-4">
+                    <div className="w-16 h-16 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
+                      <img src={imageUrl} alt="Preview" className="object-cover w-full h-full" />
+                    </div>
+                    <div className="text-xs text-slate-600 font-semibold space-y-0.5">
+                      <p className="font-bold text-slate-900">Uppgötvaðar víddir:</p>
+                      <p>
+                        {imageWidth} × {imageHeight} dílar
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <Input
+                  label="Vefslóð smella (Click URL) *"
+                  type="url"
+                  placeholder="https://fyrirtæki.is/tilboð"
+                  value={clickUrl}
+                  onChange={(e) => setClickUrl(e.target.value)}
+                  required
+                />
+
+                <Input
+                  label="Textahjálp (OCR lýsing) - Valfrjálst"
+                  placeholder="Skrifaðu textann sem stendur á myndinni til öryggisskönnunar..."
+                  value={ocrTextHint}
+                  onChange={(e) => setOcrTextHint(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-between border-t border-slate-200 pt-5 mt-8">
+                <Button variant="ghost" onClick={() => setStep(1)}>
+                  Til baka
+                </Button>
+                <Button
+                  loading={scanning}
+                  disabled={!clickUrl.startsWith('https://') || !imageUrl}
+                  onClick={runCreativeScan}
+                >
+                  Skanna og halda áfram
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-6">
+                <CreativeGenerator
+                  onComplete={(creatives) => {
+                    // All IAB sizes were created as real Creatives (they're
+                    // already in the library) — pick the one this flow's
+                    // step 3 actually consumes as `creative`. 300x250 is the
+                    // most common size; fall back to whatever came first.
+                    const primary =
+                      creatives.find((c) => c.width === 300 && c.height === 250) ?? creatives[0];
+                    if (primary) {
+                      setCreative(primary);
+                      setStep(3);
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex justify-start border-t border-slate-200 pt-5 mt-8">
+                <Button variant="ghost" onClick={() => setStep(1)}>
+                  Til baka
+                </Button>
+              </div>
+            </>
+          )}
         </section>
       )}
 

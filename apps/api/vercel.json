@@ -3,7 +3,10 @@
   "devCommand": "tsc --watch",
   "framework": null,
   "functions": {
-    "api/index.js": { "maxDuration": 30 },
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "node_modules/@expo-google-fonts/inter/**/*.ttf"
+    },
     "api/cron-accrue.js": { "maxDuration": 60 },
     "api/cron-aggregate.js": { "maxDuration": 60 },
     "api/cron-diagnostics.js": { "maxDuration": 30 },
