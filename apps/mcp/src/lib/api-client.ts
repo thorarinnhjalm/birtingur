@@ -12,13 +12,18 @@ export class ApiClientError extends Error {
 
 export async function apiCall<T>(
   path: string,
-  opts: { method?: string; body?: unknown; apiKey: string },
+  opts: { method?: string; body?: unknown; apiKey: string; idempotencyKey?: string },
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: opts.method ?? 'GET',
     headers: {
       Authorization: `Bearer ${opts.apiKey}`,
       'Content-Type': 'application/json',
+      // Lets the API distinguish MCP-mediated calls from a raw `ak_` key used
+      // directly against the REST API (both use identical bearer auth
+      // otherwise) — see createdVia.channel in services/campaigns.ts.
+      'X-Ada-Channel': 'mcp',
+      ...(opts.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
     },
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });

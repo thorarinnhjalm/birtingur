@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth.js';
+import { requireAuth, requireScope, type Env } from '../lib/auth.js';
 import {
   createPublisher,
   getPublisherByOwnerEmail,
@@ -22,6 +22,7 @@ export const publishersRouter = new Hono<Env>();
 
 // Apply authentication middleware to all publisher routes
 publishersRouter.use('*', requireAuth);
+publishersRouter.use('*', requireScope('publisher'));
 
 publishersRouter.get('/all', async (c) => {
   const user = c.get('user');

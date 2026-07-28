@@ -108,7 +108,15 @@ export async function propagateCreativeChange(
 
     let newStatus = '';
     if (approved) {
-      if (cmp.status === 'pending_approval') {
+      // Never auto-activate a campaign pending the OWNER's agent-purchase
+      // approval (pendingReason 'agent_purchase') just because its creative
+      // got reviewed — that would let an agent effectively self-activate its
+      // own over-the-limit purchase by getting its creative approved (or
+      // re-scanned), bypassing the human-in-the-loop gate entirely. Only
+      // approveAgentPurchaseCampaign (services/campaigns.ts, owner-only route)
+      // may clear pendingReason and activate; it already re-checks creative
+      // approval status on the way out, so nothing is lost by waiting.
+      if (cmp.status === 'pending_approval' && cmp.pendingReason !== 'agent_purchase') {
         const allCreativesApproved = await allCreativesAutoApproved(cmp.creativeIds);
         if (allCreativesApproved) {
           cmp.status = 'active';
@@ -130,6 +138,12 @@ export async function propagateCreativeChange(
       if (cmp.creativeIds.length === 1) {
         cmp.status = 'completed';
         cmp.budget.remainingIsk = 0;
+        // Fix 1b (pendingReason lifecycle): the campaign is leaving
+        // pending_approval for good here — clear any agent-purchase tag so
+        // it doesn't outlive the state it describes (stuck dashboard card,
+        // daily reconciliation alert, and — without the guard added to
+        // approve/rejectAgentPurchaseCampaign — a resurrection risk).
+        delete cmp.pendingReason;
         modified = true;
         newStatus = 'completed';
       }

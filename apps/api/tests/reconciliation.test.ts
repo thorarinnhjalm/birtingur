@@ -65,6 +65,7 @@ describe('runReconciliation', () => {
     totalIsk: number,
     remainingIsk: number,
     status: Campaign['status'] = 'active',
+    extra: Partial<Pick<Campaign, 'pendingReason' | 'createdAt'>> = {},
   ): Promise<void> {
     const campaign: Campaign = {
       id,
@@ -77,6 +78,7 @@ describe('runReconciliation', () => {
       },
       budget: { mode: 'cpm_capped', totalIsk, remainingIsk },
       status,
+      ...extra,
     };
     await db
       .collection(COLLECTIONS.campaigns)
@@ -165,6 +167,72 @@ describe('runReconciliation', () => {
     expect(finding).toBeDefined();
     expect(finding?.expected).toBe(100_000);
     expect(finding?.actual).toBe(999);
+  });
+
+  // Fix 7 (adversarial review): a campaign stuck pending_approval with
+  // pendingReason 'agent_purchase' for a long time is a sign the owner never
+  // saw (or acted on) the one-time approval notification — flag it so ops
+  // can manually nudge them. This check never mutates the campaign.
+  it('flags a campaign pending agent-purchase approval for more than 7 days', async () => {
+    const adv = await seedAdvertiser(100_000);
+    const campaignId = 'cmp_stale_agent_pending';
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+
+    await writeCampaign(campaignId, adv.id, 50_000, 50_000, 'pending_approval', {
+      pendingReason: 'agent_purchase',
+      createdAt: tenDaysAgo,
+    });
+
+    const report = await runReconciliation();
+
+    const finding = report.findings.find(
+      (f) => f.kind === 'stale_agent_pending_campaign' && f.entityId === campaignId,
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.expected).toBe(7);
+    expect(finding?.actual).toBeGreaterThanOrEqual(10);
+  });
+
+  // Fix 1d (pendingReason lifecycle): the tag alone isn't sufficient — once a
+  // campaign has left pending_approval (completed via creative-rejection or
+  // the expiry sweep) it must stop generating this alert even if a
+  // pendingReason tag somehow survived on it, or ops would get a daily nudge
+  // to "approve/reject" a campaign that's already resolved.
+  it('does not flag an old agent-purchase-tagged campaign whose status already left pending_approval', async () => {
+    const adv = await seedAdvertiser(100_000);
+    const campaignId = 'cmp_resolved_agent_pending';
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+
+    await writeCampaign(campaignId, adv.id, 0, 0, 'completed', {
+      pendingReason: 'agent_purchase',
+      createdAt: tenDaysAgo,
+    });
+
+    const report = await runReconciliation();
+
+    expect(
+      report.findings.some(
+        (f) => f.kind === 'stale_agent_pending_campaign' && f.entityId === campaignId,
+      ),
+    ).toBe(false);
+  });
+
+  it('does not flag a fresh agent-purchase pending campaign (under 7 days old)', async () => {
+    const adv = await seedAdvertiser(100_000);
+    const campaignId = 'cmp_fresh_agent_pending';
+
+    await writeCampaign(campaignId, adv.id, 50_000, 50_000, 'pending_approval', {
+      pendingReason: 'agent_purchase',
+      createdAt: new Date(),
+    });
+
+    const report = await runReconciliation();
+
+    expect(
+      report.findings.some(
+        (f) => f.kind === 'stale_agent_pending_campaign' && f.entityId === campaignId,
+      ),
+    ).toBe(false);
   });
 
   it('skips the Redis budget-counter check gracefully when Redis is unconfigured', async () => {

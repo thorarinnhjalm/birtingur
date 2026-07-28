@@ -1,12 +1,16 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth.js';
+import { requireAuth, requireScope, rejectApiKeyMutation, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import {
   createCampaign,
   getCampaign,
   listCampaignsForAdvertiser,
   updateCampaign,
+  approveAgentPurchaseCampaign,
+  rejectAgentPurchaseCampaign,
+  type CreateCampaignContext,
 } from '../services/campaigns.js';
+import { getApiKeyRecord } from '../services/api-keys.js';
 import { getCampaignStats } from '../services/campaign-stats.js';
 import { AppError } from '../lib/errors.js';
 import {
@@ -18,6 +22,7 @@ import {
 
 export const campaignsRouter = new Hono<Env>();
 campaignsRouter.use('*', requireAuth);
+campaignsRouter.use('*', requireScope('advertiser'));
 
 campaignsRouter.post('/', async (c) => {
   const user = c.get('user');
@@ -25,13 +30,72 @@ campaignsRouter.post('/', async (c) => {
   if (!adv) {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
+
+  // Purchase gate: an `ak_` key can only create campaigns if its owner has
+  // explicitly turned on purchase for this key (see services/api-keys.ts —
+  // no defaults, fail-closed). requireScope above already rejects
+  // publisher-scoped keys; this is the additional, purchase-specific check.
+  let ctx: CreateCampaignContext;
+  if (user.apiKeyId) {
+    const record = await getApiKeyRecord(user.apiKeyId);
+    if (!record || record.revoked || !record.purchase?.enabled) {
+      throw new AppError(
+        403,
+        'Purchase capability is not enabled for this API key',
+        'PURCHASE_NOT_ENABLED',
+      );
+    }
+    // The MCP server tags its own calls with X-Ada-Channel so campaigns it
+    // creates are distinguishable from a raw `ak_` key used directly against
+    // the REST API — both otherwise look identical (same bearer auth).
+    const channel = c.req.header('X-Ada-Channel') === 'mcp' ? 'mcp' : 'api';
+    ctx = {
+      channel,
+      apiKeyId: user.apiKeyId,
+      idempotencyKey: c.req.header('Idempotency-Key') || undefined,
+    };
+  } else {
+    ctx = { channel: 'dashboard' };
+  }
+
   const body = await c.req.json();
-  const cmp = await createCampaign(adv.id, body);
+  const cmp = await createCampaign(adv.id, body, ctx);
 
   // Provision default campaign widget viewer key
   await getOrCreateWidgetKey(user.email, 'campaign', cmp.id);
 
-  return c.json(cmp, 201);
+  return c.json(cmp, cmp.idempotent ? 200 : 201);
+});
+
+// Owner approval flow for a campaign an agent bought above its API key's
+// autoApproveLimitIsk (pendingReason: 'agent_purchase'). Dashboard/ID-token
+// auth only — an `ak_` key (the thing that created the pending campaign in
+// the first place) cannot also approve it, so requireScope above rejecting
+// publisher keys isn't enough here; block ALL API keys explicitly.
+campaignsRouter.post('/:id/approve', async (c) => {
+  const user = c.get('user');
+  if (user.apiKeyId) {
+    throw new AppError(403, 'API keys cannot approve campaigns', 'FORBIDDEN');
+  }
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const cmp = await approveAgentPurchaseCampaign(c.req.param('id'), adv.id);
+  return c.json(cmp);
+});
+
+campaignsRouter.post('/:id/reject', async (c) => {
+  const user = c.get('user');
+  if (user.apiKeyId) {
+    throw new AppError(403, 'API keys cannot reject campaigns', 'FORBIDDEN');
+  }
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const cmp = await rejectAgentPurchaseCampaign(c.req.param('id'), adv.id);
+  return c.json(cmp);
 });
 
 campaignsRouter.get('/', async (c) => {
@@ -90,8 +154,14 @@ campaignsRouter.get('/:id', async (c) => {
   return c.json(cmp);
 });
 
+// Dashboard/ID-token only — no MCP tool exposes campaign PATCH (status or
+// budget), so an `ak_` key reaching this is a raw REST call, not a
+// sanctioned agent workflow. Blocking it closes both an agent
+// self-activating its own pending_approval campaign (status: 'active') and
+// a monthly-cap bypass via budget increase — see rejectApiKeyMutation.
 campaignsRouter.patch('/:id', async (c) => {
   const user = c.get('user');
+  rejectApiKeyMutation(user, 'update campaigns');
   const adv = await getAdvertiserByOwnerEmail(user.email);
   if (!adv) {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');

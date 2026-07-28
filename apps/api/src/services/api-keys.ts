@@ -1,7 +1,20 @@
 import { randomBytes, createHash } from 'crypto';
+import { z } from 'zod';
 import { db } from '../lib/firebase.js';
+import { AppError } from '../lib/errors.js';
 
 const KEY_COLLECTION = 'api_keys';
+
+// Opt-in agentic-purchase capability for an `ak_` key. Absent entirely (or
+// `enabled: false`) means the key can never create a campaign — see the
+// purchase gate in services/campaigns.ts. There is deliberately no default
+// cap/limit: enabling purchase requires the owner to state both numbers
+// explicitly (fail-closed), see updateApiKeyPurchase below.
+export interface ApiKeyPurchaseConfig {
+  enabled: boolean;
+  monthlyCapIsk: number;
+  autoApproveLimitIsk: number;
+}
 
 export interface ApiKeyRecord {
   id: string;
@@ -11,6 +24,7 @@ export interface ApiKeyRecord {
   createdAt: Date;
   lastUsedAt?: Date;
   revoked: boolean;
+  purchase?: ApiKeyPurchaseConfig;
 }
 
 function hash(key: string): string {
@@ -58,6 +72,12 @@ export async function verifyApiKey(key: string): Promise<ApiKeyRecord | null> {
   return record;
 }
 
+export async function getApiKeyRecord(id: string): Promise<ApiKeyRecord | null> {
+  const snap = await db.collection(KEY_COLLECTION).doc(id).get();
+  if (!snap.exists) return null;
+  return snap.data() as ApiKeyRecord;
+}
+
 export async function revokeApiKey(id: string): Promise<void> {
   await db.collection(KEY_COLLECTION).doc(id).update({ revoked: true });
 }
@@ -78,4 +98,48 @@ export async function listApiKeys(ownerEmail: string): Promise<Omit<ApiKeyRecord
           : undefined,
     } as any;
   });
+}
+
+const ApiKeyPurchaseConfigSchema = z
+  .object({
+    enabled: z.boolean(),
+    monthlyCapIsk: z.number().int().min(0),
+    autoApproveLimitIsk: z.number().int().min(0),
+  })
+  .refine((cfg) => cfg.autoApproveLimitIsk <= cfg.monthlyCapIsk, {
+    message: 'autoApproveLimitIsk cannot exceed monthlyCapIsk',
+  });
+
+/**
+ * Owner-driven update of a key's purchase capability. No defaults: turning
+ * `enabled: true` on requires the caller to state both monthlyCapIsk and
+ * autoApproveLimitIsk in the same call (the schema requires all three
+ * fields), so a key can never end up "enabled" with an implicit unlimited
+ * cap. `ownerEmail` scopes the update to keys actually owned by the caller.
+ */
+export async function updateApiKeyPurchase(
+  id: string,
+  ownerEmail: string,
+  cfg: ApiKeyPurchaseConfig,
+): Promise<ApiKeyRecord> {
+  const parsed = ApiKeyPurchaseConfigSchema.parse(cfg);
+
+  const record = await getApiKeyRecord(id);
+  if (!record) {
+    throw new AppError(404, `API key ${id} not found`, 'NOT_FOUND');
+  }
+  if (record.ownerEmail.toLowerCase() !== ownerEmail.toLowerCase()) {
+    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+  }
+  if (record.scope === 'publisher') {
+    throw new AppError(
+      400,
+      'Purchase capability only applies to advertiser or both-scoped keys',
+      'BAD_REQUEST',
+    );
+  }
+
+  const updated: ApiKeyRecord = { ...record, purchase: parsed };
+  await db.collection(KEY_COLLECTION).doc(id).update({ purchase: parsed });
+  return updated;
 }

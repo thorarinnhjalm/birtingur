@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth.js';
+import { requireAuth, requireScope, type Env } from '../lib/auth.js';
 import { getPublishersByOwnerEmail } from '../services/publishers.js';
 import {
   createSlot,
@@ -14,6 +14,7 @@ import { AppError } from '../lib/errors.js';
 export const slotsRouter = new Hono<Env>();
 
 slotsRouter.use('*', requireAuth);
+slotsRouter.use('*', requireScope('publisher'));
 
 async function verifySlotOwnership(slotId: string, email: string) {
   const slot = await getSlot(slotId);

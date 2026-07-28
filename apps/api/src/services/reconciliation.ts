@@ -19,7 +19,8 @@ export type ReconciliationFindingKind =
   | 'campaign_spend_mismatch'
   | 'money_conservation_mismatch'
   | 'advertiser_mirror_mismatch'
-  | 'redis_budget_overseeded';
+  | 'redis_budget_overseeded'
+  | 'stale_agent_pending_campaign';
 
 export interface ReconciliationFinding {
   kind: ReconciliationFindingKind;
@@ -199,6 +200,51 @@ async function checkRedisBudgets(
   return checked;
 }
 
+const STALE_AGENT_PENDING_DAYS = 7;
+
+/**
+ * Check 5: a campaign still `pending_approval` with `pendingReason:
+ * 'agent_purchase'` after STALE_AGENT_PENDING_DAYS days is a sign the owner
+ * may never have seen (or acted on) the approval notification — the
+ * in-app/email notice fires once at create time (createCampaign,
+ * services/campaigns.ts) with no follow-up reminder. This is a read-only
+ * flag for ops to manually nudge the owner; it never mutates the campaign
+ * (approve/reject stay owner-only — see approveAgentPurchaseCampaign /
+ * rejectAgentPurchaseCampaign). Campaigns without a createdAt (written before
+ * that field existed) are skipped rather than treated as infinitely stale.
+ */
+function checkStaleAgentPendingCampaigns(
+  campaigns: Campaign[],
+  findings: ReconciliationFinding[],
+  now: Date = new Date(),
+): void {
+  for (const campaign of campaigns) {
+    // Fix 1d (pendingReason lifecycle): the tag alone isn't sufficient — a
+    // campaign that already left pending_approval (completed via
+    // creative-rejection or the expiry sweep) must not keep generating a
+    // daily "stale agent-pending" alert just because a pendingReason tag
+    // survived on it. Matches the invariant enforced everywhere else the tag
+    // is written: "pendingReason exists iff status is pending_approval".
+    if (campaign.pendingReason !== 'agent_purchase' || campaign.status !== 'pending_approval') {
+      continue;
+    }
+    if (!campaign.createdAt) continue;
+    const ageDays = (now.getTime() - campaign.createdAt.getTime()) / (24 * 60 * 60 * 1000);
+    if (ageDays > STALE_AGENT_PENDING_DAYS) {
+      findings.push({
+        kind: 'stale_agent_pending_campaign',
+        entityId: campaign.id,
+        detail:
+          `Campaign has been pending_approval with pendingReason 'agent_purchase' for ` +
+          `${Math.floor(ageDays)} day(s) — the owner may never have seen the approval ` +
+          'notification; consider a manual nudge',
+        expected: STALE_AGENT_PENDING_DAYS,
+        actual: Math.floor(ageDays),
+      });
+    }
+  }
+}
+
 function buildAlertMessage(findings: ReconciliationFinding[]): string {
   const shown = findings.slice(0, 10);
   const lines = shown.map(
@@ -229,6 +275,7 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
   for (const campaign of campaigns) {
     await checkCampaign(campaign, findings);
   }
+  checkStaleAgentPendingCampaigns(campaigns, findings);
 
   const advertisersSnap = await db.collection(COLLECTIONS.advertisers).get();
   for (const doc of advertisersSnap.docs) {

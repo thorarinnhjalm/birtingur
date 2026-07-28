@@ -1,5 +1,18 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerPublisherTools } from './tools/publisher/index.js';
+import { registerAdvertiserTools } from './tools/advertiser/index.js';
+import { apiCall } from './lib/api-client.js';
+
+interface ApiKeyMeResponse {
+  scope: 'advertiser' | 'publisher' | 'both';
+  purchase: {
+    enabled: boolean;
+    monthlyCapIsk: number;
+    autoApproveLimitIsk: number;
+    monthToDateSpentIsk: number;
+    remainingCapIsk: number;
+  } | null;
+}
 
 export async function createMcpServer(apiKey: string): Promise<McpServer> {
   const server = new McpServer({
@@ -7,9 +20,40 @@ export async function createMcpServer(apiKey: string): Promise<McpServer> {
     version: '1.0.0',
   });
 
-  // MCP is the publisher integration channel: project owners create ad slots and
-  // embed them on their site. Advertiser/buying tools are intentionally not exposed.
-  registerPublisherTools(server, apiKey);
+  // MCP is scoped per API key: publisher-scoped keys get the publisher tool
+  // set (create/manage ad slots), advertiser-scoped keys get the advertiser
+  // tool set (buy category campaigns, subject to the purchase guardrails —
+  // see tools/advertiser), and 'both'-scoped keys get everything. This
+  // supersedes the earlier "MCP is publisher-only" design (commit 6973955
+  // removed advertiser tools entirely) now that the committed-funds
+  // reservation gate and daily reconciliation cron make agentic buying safe
+  // — see docs/superpowers/plans/2026-07-27-advertiser-mcp-agentic-buying.md.
+  //
+  // The MCP server has no direct DB access, so scope is resolved over HTTP
+  // via GET /v1/api-keys/me. On failure (invalid/revoked key), no tools are
+  // registered at all — the API would reject every call anyway, so this just
+  // avoids advertising capabilities the key can't use.
+  let scope: 'advertiser' | 'publisher' | 'both' | null = null;
+  try {
+    const me = await apiCall<ApiKeyMeResponse>('/v1/api-keys/me', { apiKey });
+    scope = me.scope;
+  } catch (err) {
+    console.error('[MCP] Failed to resolve API key scope, registering no tools:', err);
+  }
+
+  const isPublisher = scope === 'publisher' || scope === 'both';
+  const isAdvertiser = scope === 'advertiser' || scope === 'both';
+
+  if (isPublisher) {
+    registerPublisherTools(server, apiKey);
+  }
+  if (isAdvertiser) {
+    registerAdvertiserTools(server, apiKey);
+  }
+
+  if (!isPublisher) {
+    return server;
+  }
 
   // 1. Expose top-level integration instructions as a resource
   server.resource('publisher-guide', 'instructions://publisher-guide', async (uri) => ({

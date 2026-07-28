@@ -136,3 +136,40 @@ export async function sendWelcomeAdvertiserEmail(
     html,
   });
 }
+
+/**
+ * Sendir tilkynningu á eiganda auglýsanda þegar agent (yfir MCP/API) stofnar
+ * herferð sem fer yfir sjálfvirku samþykktarmörkin (autoApproveLimitIsk) og
+ * bíður því handvirks samþykkis — sjá purchase-hliðið í services/campaigns.ts.
+ */
+export async function sendAgentCampaignPendingEmail(
+  toEmail: string,
+  companyName: string,
+  campaignId: string,
+  amountIsk: number,
+): Promise<void> {
+  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const appBaseUrl = process.env.APP_BASE_URL || 'https://app.birtingur.app';
+  const amountLabel = `${amountIsk.toLocaleString('is-IS')} kr.`;
+  const html = `
+<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; line-height: 1.6;">
+  <h2 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Agent óskar eftir herferð</h2>
+  <p>Hæ <strong>${companyName}</strong>,</p>
+  <p>Agent sem tengist auglýsingaaðgangnum þínum bjó til nýja herferð upp á <strong>${amountLabel}</strong>. Upphæðin er yfir sjálfvirku samþykktarmörkunum sem þú settir fyrir þennan API-lykil, svo herferðin bíður núna samþykkis þíns áður en hún fer í loftið.</p>
+  <p>Fjármunirnir eru þegar frátéknir úr veskinu þínu á meðan herferðin bíður — engin greiðsla fer fram fyrr en þú samþykkir.</p>
+  <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin-top: 25px; border-radius: 4px;">
+    <p style="margin: 0; font-size: 14px; font-weight: 600;">Næstu skref</p>
+    <p style="margin: 5px 0 0 0; font-size: 13px; color: #64748b;">Farðu í stjórnborðið þitt og samþykktu eða hafnaðu herferðinni.</p>
+  </div>
+  <p style="margin-top: 30px;"><a href="${appBaseUrl}/advertiser/campaigns/${campaignId}" style="color: #3b82f6; text-decoration: none;">Skoða herferð í stjórnborði</a></p>
+  <p style="margin-top: 30px;">Kær kveðja,<br><strong>Birtingsteymið</strong><br><a href="https://birtingur.is" style="color: #3b82f6; text-decoration: none;">birtingur.is</a></p>
+</div>
+  `;
+
+  await sendMail({
+    from: sender,
+    to: [toEmail],
+    subject: `Agent óskar eftir herferð upp á ${amountLabel} — samþykktu eða hafnaðu`,
+    html,
+  });
+}

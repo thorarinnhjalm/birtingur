@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { FieldValue } from 'firebase-admin/firestore';
+import type { Transaction } from 'firebase-admin/firestore';
 import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { CampaignSchema, AD_CATEGORY_SLUGS, GeoRegionSchema } from '@ada/shared';
-import type { Campaign, CampaignStatus } from '@ada/shared';
+import type { Campaign, CampaignStatus, PendingReason } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { AppError } from '../lib/errors.js';
@@ -10,6 +11,10 @@ import { getCreative } from './creatives.js';
 import { getAvailableBalanceInTransaction, FUND_HOLDING_STATUSES } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { isRedisConfigured } from '../lib/redis.js';
+import { getApiKeyRecord, type ApiKeyRecord } from './api-keys.js';
+import { createNotification } from './notifications.js';
+import { sendAgentCampaignPendingEmail } from './mail.js';
+import { getAdvertiserById } from './advertisers.js';
 
 const CreateCampaignInputSchema = z.object({
   name: z.string().min(1).max(120).optional(),
@@ -27,10 +32,69 @@ const CreateCampaignInputSchema = z.object({
 });
 export type CreateCampaignInput = z.infer<typeof CreateCampaignInputSchema>;
 
+/**
+ * Trust context supplied by the route, never by the request body: which
+ * channel created this campaign, and — for `ak_`-key channels — the key id
+ * (drives the purchase gate below) and an optional caller-supplied
+ * idempotency key (drives the replay-safe lookup below).
+ *
+ * Invariant this whole module leans on: one `ak_` key belongs to exactly one
+ * advertiser (an owner's ownerEmail maps to a single advertiser profile via
+ * getAdvertiserByOwnerEmail — see routes/campaigns.ts). That's what makes the
+ * per-ADVERTISER `fundsVersion` optimistic-concurrency bump (below) also
+ * correctly serialize the per-KEY monthly cap check: two concurrent creates
+ * for the same key are necessarily also two concurrent creates for the same
+ * advertiser, so they conflict and retry serially regardless of which cap
+ * they're racing. If multi-advertiser accounts (one owner, several
+ * advertiser profiles, or several keys per advertiser with independent caps)
+ * ever land, this invariant breaks and the monthly-cap race test
+ * ("lets exactly one of two concurrent creates through") would need a
+ * key-scoped lock, not just the advertiser-scoped one.
+ */
+export interface CreateCampaignContext {
+  channel: 'dashboard' | 'api' | 'mcp';
+  apiKeyId?: string;
+  idempotencyKey?: string;
+}
+
+const DASHBOARD_CONTEXT: CreateCampaignContext = { channel: 'dashboard' };
+
+function agentCampaignsQueryFor(apiKeyId: string) {
+  return db
+    .collection(COLLECTIONS.campaigns)
+    .where('createdVia.apiKeyId', '==', apiKeyId)
+    .withConverter(campaignConverter);
+}
+
+/**
+ * Sums budget.totalIsk over campaigns created via a given API key in the
+ * current UTC calendar month — the derived (not separately counted) "month's
+ * agent spend" for the monthly cap gate. Filtering by month happens in code,
+ * not in the query (a composite (createdVia.apiKeyId, createdAt) index isn't
+ * worth provisioning for this), same philosophy as sweepExpiredCampaigns.
+ */
+export function sumMonthToDateAgentSpend(campaigns: Campaign[], now: Date = new Date()): number {
+  const monthStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  const monthEndExclusive = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+  return campaigns.reduce((sum, c) => {
+    const createdAtMs = c.createdAt?.getTime();
+    if (createdAtMs === undefined) return sum;
+    if (createdAtMs < monthStart || createdAtMs >= monthEndExclusive) return sum;
+    return sum + c.budget.totalIsk;
+  }, 0);
+}
+
+/** Non-transactional read for reporting (e.g. GET /v1/api-keys/me, MCP get_wallet). */
+export async function getMonthToDateAgentSpend(apiKeyId: string): Promise<number> {
+  const snap = await agentCampaignsQueryFor(apiKeyId).get();
+  return sumMonthToDateAgentSpend(snap.docs.map((d) => d.data()));
+}
+
 export async function createCampaign(
   advertiserId: string,
   input: CreateCampaignInput,
-): Promise<Campaign> {
+  ctx: CreateCampaignContext = DASHBOARD_CONTEXT,
+): Promise<Campaign & { idempotent?: boolean }> {
   const parsed = CreateCampaignInputSchema.parse(input);
 
   // Verify all creatives exist & belong to advertiser
@@ -47,27 +111,35 @@ export async function createCampaign(
     }
   }
 
-  // Determine overall status
-  const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
-  const status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
+  // Purchase gate: an `ak_` key can only reach here (see the scope +
+  // purchase.enabled check in routes/campaigns.ts) if purchase is enabled,
+  // but re-verify fail-closed here too since this service function is the
+  // one source of truth for campaign creation, not just the REST route.
+  let purchase: ApiKeyRecord['purchase'] | undefined;
+  if (ctx.apiKeyId) {
+    const record = await getApiKeyRecord(ctx.apiKeyId);
+    if (!record || record.revoked || !record.purchase?.enabled) {
+      throw new AppError(
+        403,
+        'Purchase capability is not enabled for this API key',
+        'PURCHASE_NOT_ENABLED',
+      );
+    }
+    purchase = record.purchase;
+  }
 
-  const campaign: Campaign = CampaignSchema.parse({
-    id: generateId('cmp'),
-    name: parsed.name,
-    advertiserId,
-    creativeIds: parsed.creativeIds,
-    targeting: {
-      categories: parsed.categories,
-      geoRegions: parsed.geoRegions,
-    },
-    schedule: parsed.schedule,
-    budget: {
-      mode: parsed.budget.mode,
-      totalIsk: parsed.budget.totalIsk,
-      remainingIsk: parsed.budget.totalIsk,
-    },
-    status,
-  });
+  // Whether creatives are already fully approved (may still be downgraded to
+  // pending_approval inside the transaction below by the auto-approve-limit
+  // gate). Computed once outside the transaction like the creative-ownership
+  // checks above — creative review status isn't racing this transaction, so
+  // it doesn't need to be re-read on retry.
+  const allCreativesApproved = await allCreativesAutoApproved(parsed.creativeIds);
+
+  const createdVia: Campaign['createdVia'] = {
+    channel: ctx.channel,
+    apiKeyId: ctx.apiKeyId,
+    idempotencyKey: ctx.idempotencyKey,
+  };
 
   // Committed-funds gate: the wallet's AVAILABLE balance (ledger balance minus
   // what's already committed to this advertiser's other fund-holding
@@ -77,38 +149,148 @@ export async function createCampaign(
   // (fundsVersion bump) is what forces the two transactions to conflict and
   // retry serially; Firestore doesn't otherwise conflict on phantom query
   // results across transactions. Same fail-closed philosophy as the serving
-  // budget gate.
+  // budget gate. The idempotency lookup and the monthly-agent-cap sum ride
+  // inside the SAME transaction for the same reason — all reads happen
+  // before any write, so a retry (forced by the advertiser doc write below)
+  // re-reads everything fresh.
   const advRef = db.collection(COLLECTIONS.advertisers).doc(advertiserId);
-  await db.runTransaction(async (t) => {
-    const advSnap = await t.get(advRef);
-    if (!advSnap.exists) {
-      throw new AppError(404, `Advertiser ${advertiserId} not found`, 'NOT_FOUND');
-    }
+  const result = await db.runTransaction(
+    async (t: Transaction): Promise<{ campaign: Campaign; idempotent: boolean }> => {
+      if (ctx.idempotencyKey) {
+        const dupSnap = await t.get(
+          db
+            .collection(COLLECTIONS.campaigns)
+            .where('createdVia.idempotencyKey', '==', ctx.idempotencyKey)
+            .withConverter(campaignConverter),
+        );
+        // Scoped to advertiserId always, and ADDITIONALLY to the calling
+        // `ak_` key when the caller is one: two different keys under the
+        // same advertiser (e.g. two agents) coincidentally colliding on the
+        // same derived idempotency key must not silently return each other's
+        // campaign — see deriveIdempotencyKey in
+        // apps/mcp/src/tools/advertiser/create-campaign.ts, which folds the
+        // key id into the hash for exactly this reason. Non-key (dashboard)
+        // callers keep the advertiser-only scoping, unchanged.
+        const existing = dupSnap.docs
+          .map((d) => d.data())
+          .find(
+            (c) =>
+              c.advertiserId === advertiserId &&
+              (!ctx.apiKeyId || c.createdVia?.apiKeyId === ctx.apiKeyId),
+          );
+        if (existing) {
+          return { campaign: existing, idempotent: true };
+        }
+      }
 
-    const { balanceIsk, committedIsk, availableIsk } = await getAvailableBalanceInTransaction(
-      t,
-      advertiserId,
-    );
-    if (availableIsk < parsed.budget.totalIsk) {
-      throw new AppError(
-        402,
-        `Insufficient available balance (balance ${balanceIsk} ISK, committed to other campaigns ${committedIsk} ISK, available ${availableIsk} ISK) for campaign budget of ${parsed.budget.totalIsk} ISK`,
-        'INSUFFICIENT_FUNDS',
+      const advSnap = await t.get(advRef);
+      if (!advSnap.exists) {
+        throw new AppError(404, `Advertiser ${advertiserId} not found`, 'NOT_FOUND');
+      }
+
+      const { balanceIsk, committedIsk, availableIsk } = await getAvailableBalanceInTransaction(
+        t,
+        advertiserId,
       );
+
+      if (ctx.apiKeyId && purchase) {
+        const agentSnap = await t.get(agentCampaignsQueryFor(ctx.apiKeyId));
+        const spentIsk = sumMonthToDateAgentSpend(agentSnap.docs.map((d) => d.data()));
+        if (spentIsk + parsed.budget.totalIsk > purchase.monthlyCapIsk) {
+          throw new AppError(
+            402,
+            `Monthly agent purchase cap exceeded (spent ${spentIsk} ISK this month, cap ${purchase.monthlyCapIsk} ISK, requested ${parsed.budget.totalIsk} ISK)`,
+            'MONTHLY_CAP_EXCEEDED',
+          );
+        }
+      }
+
+      if (availableIsk < parsed.budget.totalIsk) {
+        throw new AppError(
+          402,
+          `Insufficient available balance (balance ${balanceIsk} ISK, committed to other campaigns ${committedIsk} ISK, available ${availableIsk} ISK) for campaign budget of ${parsed.budget.totalIsk} ISK`,
+          'INSUFFICIENT_FUNDS',
+        );
+      }
+
+      // Determine overall status/pendingReason fresh on EVERY transaction
+      // attempt (declared inside the callback, not hoisted `let`s mutated
+      // from outside) — a retried attempt must never carry over a mutation
+      // from a previous, possibly-aborted attempt.
+      let status: CampaignStatus = allCreativesApproved ? 'active' : 'pending_approval';
+      let pendingReason: PendingReason | undefined;
+      if (purchase && parsed.budget.totalIsk > purchase.autoApproveLimitIsk) {
+        status = 'pending_approval';
+        pendingReason = 'agent_purchase';
+      }
+
+      const campaign: Campaign = CampaignSchema.parse({
+        id: generateId('cmp'),
+        name: parsed.name,
+        advertiserId,
+        creativeIds: parsed.creativeIds,
+        targeting: {
+          categories: parsed.categories,
+          geoRegions: parsed.geoRegions,
+        },
+        schedule: parsed.schedule,
+        budget: {
+          mode: parsed.budget.mode,
+          totalIsk: parsed.budget.totalIsk,
+          remainingIsk: parsed.budget.totalIsk,
+        },
+        status,
+        createdAt: new Date(),
+        createdVia,
+        pendingReason,
+      });
+
+      t.update(advRef, { fundsVersion: FieldValue.increment(1) });
+      t.set(
+        db.collection(COLLECTIONS.campaigns).doc(campaign.id).withConverter(campaignConverter),
+        campaign,
+      );
+
+      return { campaign, idempotent: false };
+    },
+  );
+
+  if (!result.idempotent) {
+    if (isRedisConfigured()) {
+      await pushCacheForCampaign(result.campaign.id);
     }
 
-    t.update(advRef, { fundsVersion: FieldValue.increment(1) });
-    t.set(
-      db.collection(COLLECTIONS.campaigns).doc(campaign.id).withConverter(campaignConverter),
-      campaign,
-    );
-  });
-
-  if (isRedisConfigured()) {
-    await pushCacheForCampaign(campaign.id);
+    if (result.campaign.pendingReason === 'agent_purchase') {
+      try {
+        const advertiser = await getAdvertiserById(advertiserId);
+        if (advertiser) {
+          const amountLabel = `${result.campaign.budget.totalIsk.toLocaleString('is-IS')} kr.`;
+          await createNotification({
+            userEmail: advertiser.ownerEmail,
+            role: 'advertiser',
+            type: 'info',
+            title: 'Agent óskar eftir herferð',
+            message: `Agent bjó til herferð upp á ${amountLabel} sem er yfir sjálfvirku samþykktarmörkunum. Samþykktu eða hafnaðu til að hún fari í loftið.`,
+            link: `/advertiser/campaigns/${result.campaign.id}`,
+          });
+          await sendAgentCampaignPendingEmail(
+            advertiser.ownerEmail,
+            advertiser.companyName,
+            result.campaign.id,
+            result.campaign.budget.totalIsk,
+          );
+        }
+      } catch (err) {
+        console.error('Error notifying owner of agent campaign pending approval:', err);
+      }
+    }
   }
 
-  return campaign;
+  // `idempotent` is only present when a replay actually occurred — a fresh
+  // create omits the field entirely rather than carrying `idempotent: false`,
+  // so the response shape callers (dashboard, MCP) already depend on for a
+  // normal create is unchanged.
+  return result.idempotent ? { ...result.campaign, idempotent: true } : { ...result.campaign };
 }
 
 async function allCreativesAutoApproved(ids: string[]): Promise<boolean> {
@@ -179,6 +361,24 @@ export async function updateCampaign(
   // without ever passing the committed-funds gate again.
   if (existing.status === 'completed' && parsed.status !== undefined) {
     throw new AppError(400, 'Completed campaigns cannot be reactivated', 'BAD_REQUEST');
+  }
+
+  // Fix 1c (pendingReason lifecycle): a campaign tagged `pendingReason:
+  // 'agent_purchase'` is awaiting the OWNER's explicit approve/reject
+  // decision (see approveAgentPurchaseCampaign / rejectAgentPurchaseCampaign
+  // above) — the owner's own generic PATCH must not be able to flip its
+  // status directly, which would both bypass that human-in-the-loop gate and
+  // (for a reject-shaped PATCH to e.g. `paused`) detach the campaign from the
+  // "pending campaigns never served" premise that lets rejection zero
+  // totalIsk safely. Only the status field is blocked — other fields (name,
+  // creatives, budget, targeting) remain editable on a pending campaign.
+  if (parsed.status !== undefined && existing.pendingReason === 'agent_purchase') {
+    throw new AppError(
+      400,
+      'This campaign is awaiting agent-purchase approval — use POST /v1/campaigns/:id/approve ' +
+        'or /reject instead of changing status directly',
+      'BAD_REQUEST',
+    );
   }
 
   // Validate creatives if updated
@@ -385,9 +585,23 @@ export async function updateCampaignStatus(
   const next = CampaignSchema.parse({
     ...existing,
     status,
+    pendingReason: status === 'pending_approval' ? existing.pendingReason : undefined,
   });
 
-  await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({ status });
+  // Invariant this whole module leans on (Fix 1, pendingReason lifecycle):
+  // "pendingReason exists iff status is pending_approval, awaiting an
+  // owner decision". Every writer of `status` other than createCampaign /
+  // approveAgentPurchaseCampaign / rejectAgentPurchaseCampaign must clear the
+  // tag the moment it moves the campaign OUT of pending_approval — otherwise
+  // a campaign that completes via the creative-rejection branch in
+  // services/approvals.ts or the expiry sweep below keeps looking like it's
+  // still awaiting agent-purchase approval: the dashboard's
+  // PendingAgentCampaigns card would show it forever, and
+  // checkStaleAgentPendingCampaigns (services/reconciliation.ts) would keep
+  // alerting ops about it daily.
+  const updates: Record<string, unknown> =
+    status === 'pending_approval' ? { status } : { status, pendingReason: FieldValue.delete() };
+  await db.collection(COLLECTIONS.campaigns).doc(campaignId).update(updates);
 
   if (isRedisConfigured()) {
     if (status === 'paused' || status === 'completed') {
@@ -396,6 +610,138 @@ export async function updateCampaignStatus(
       await redis.del(`budget:${campaignId}`);
       await redis.del(`pace_limit:${campaignId}`);
     }
+    await pushCacheForCampaign(campaignId);
+  }
+
+  return next;
+}
+
+/**
+ * Owner approval for a campaign an agent bought above its API key's
+ * autoApproveLimitIsk (tagged `pendingReason: 'agent_purchase'` at create
+ * time — see createCampaign above). Only valid on campaigns still carrying
+ * that tag: a plain creative-review pending campaign (no tag) goes through
+ * the ordinary approvals.ts flow instead. Activating still respects the
+ * normal creative-approval logic — approving the AGENT'S purchase doesn't
+ * bypass the separate creative-review gate.
+ *
+ * Wrapped in a transaction (Fix 6, adversarial review): the campaign is
+ * re-read and its pendingReason re-checked INSIDE the transaction, and only
+ * a targeted `t.update` is issued, so a concurrent
+ * rejectAgentPurchaseCampaign racing the same campaign can't both "win" —
+ * Firestore's transaction conflict/retry serializes them, and whichever one
+ * loses re-reads the other's already-committed state and correctly fails its
+ * `pendingReason !== 'agent_purchase'` check with 400 instead of silently
+ * clobbering the winner's write. The cache push stays outside, after commit,
+ * same as every other transactional write in this file.
+ */
+export async function approveAgentPurchaseCampaign(
+  campaignId: string,
+  advertiserId: string,
+): Promise<Campaign> {
+  const campaignRefRaw = db.collection(COLLECTIONS.campaigns).doc(campaignId);
+  const campaignRefTyped = campaignRefRaw.withConverter(campaignConverter);
+
+  const next = await db.runTransaction(async (t: Transaction): Promise<Campaign> => {
+    const snap = await t.get(campaignRefTyped);
+    if (!snap.exists) {
+      throw new AppError(404, `Campaign ${campaignId} not found`, 'NOT_FOUND');
+    }
+    const existing = snap.data()!;
+    if (existing.advertiserId !== advertiserId) {
+      throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+    }
+    // Both the tag AND the status must still be in the "awaiting owner
+    // decision" state (see the pendingReason lifecycle invariant documented
+    // at updateCampaignStatus below) — a campaign that already left
+    // pending_approval (completed via creative-rejection, expiry sweep, or a
+    // prior approve/reject) must not be resurrected just because a stale
+    // pendingReason tag survived on it.
+    if (existing.pendingReason !== 'agent_purchase' || existing.status !== 'pending_approval') {
+      throw new AppError(400, 'Campaign is not awaiting agent-purchase approval', 'BAD_REQUEST');
+    }
+
+    const allApproved = await allCreativesAutoApproved(existing.creativeIds);
+    const nextStatus: CampaignStatus = allApproved ? 'active' : 'pending_approval';
+
+    t.update(campaignRefRaw, {
+      status: nextStatus,
+      pendingReason: FieldValue.delete(),
+    });
+
+    return CampaignSchema.parse({ ...existing, status: nextStatus, pendingReason: undefined });
+  });
+
+  if (isRedisConfigured()) {
+    await pushCacheForCampaign(campaignId);
+  }
+
+  return next;
+}
+
+/**
+ * Owner rejection of an agent-purchased campaign pending approval. Mirrors
+ * the sole-creative-rejection release in services/approvals.ts: campaign
+ * creation never touches the ledger (remainingIsk is a committed-funds HOLD,
+ * not money taken out of the wallet — see getAvailableBalance in
+ * services/wallet.ts), so releasing the hold is just a status change to
+ * `completed` with remainingIsk zeroed. NO refund ledger entry — appending
+ * one would credit money that was never debited.
+ *
+ * Also zeroes budget.totalIsk (Fix 5, adversarial review), not just
+ * remainingIsk: a campaign stuck in pending_approval can never have served
+ * (accrual only ever charges 'active' campaigns), so its true "spent" amount
+ * is provably 0 — zeroing totalIsk alongside remainingIsk keeps the
+ * reconciliation invariant `totalIsk - remainingIsk == sum(charges)` holding
+ * at `0 - 0 == 0`, and — just as importantly — removes this campaign from
+ * `sumMonthToDateAgentSpend` (services/campaigns.ts), which sums
+ * `budget.totalIsk` over a key's campaigns this month. Without this, a
+ * rejected purchase would go on permanently occupying headroom under the
+ * key's monthly cap even though it was never allowed to spend a single ISK.
+ *
+ * Transactional for the same conflict-safety reason as
+ * approveAgentPurchaseCampaign above (Fix 6) — see that function's comment.
+ */
+export async function rejectAgentPurchaseCampaign(
+  campaignId: string,
+  advertiserId: string,
+): Promise<Campaign> {
+  const campaignRefRaw = db.collection(COLLECTIONS.campaigns).doc(campaignId);
+  const campaignRefTyped = campaignRefRaw.withConverter(campaignConverter);
+
+  const next = await db.runTransaction(async (t: Transaction): Promise<Campaign> => {
+    const snap = await t.get(campaignRefTyped);
+    if (!snap.exists) {
+      throw new AppError(404, `Campaign ${campaignId} not found`, 'NOT_FOUND');
+    }
+    const existing = snap.data()!;
+    if (existing.advertiserId !== advertiserId) {
+      throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+    }
+    // Same "still awaiting owner decision" guard as approve above — a
+    // completed/active/paused campaign whose pendingReason tag somehow
+    // survived must not be re-rejected (which would zero its budget after it
+    // may have already served real spend).
+    if (existing.pendingReason !== 'agent_purchase' || existing.status !== 'pending_approval') {
+      throw new AppError(400, 'Campaign is not awaiting agent-purchase approval', 'BAD_REQUEST');
+    }
+
+    t.update(campaignRefRaw, {
+      status: 'completed',
+      'budget.totalIsk': 0,
+      'budget.remainingIsk': 0,
+      pendingReason: FieldValue.delete(),
+    });
+
+    return CampaignSchema.parse({
+      ...existing,
+      status: 'completed',
+      budget: { ...existing.budget, totalIsk: 0, remainingIsk: 0 },
+      pendingReason: undefined,
+    });
+  });
+
+  if (isRedisConfigured()) {
     await pushCacheForCampaign(campaignId);
   }
 

@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { Megaphone, Images, PlusCircle, ArrowUpRight, Sparkles, Lightbulb } from 'lucide-react';
+import {
+  Megaphone,
+  Images,
+  PlusCircle,
+  ArrowUpRight,
+  Sparkles,
+  Lightbulb,
+  Bot,
+} from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
 import { useWallet } from '@/hooks/useWallet';
-import { useCampaigns } from '@/hooks/useCampaigns';
+import { useCampaigns, useApproveCampaign, useRejectCampaign } from '@/hooks/useCampaigns';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { Card } from '@/components/ui/Card';
@@ -55,6 +63,76 @@ const STATUS_MAP: Record<
   draft: { label: 'Drög', variant: 'neutral' },
   completed: { label: 'Lokið', variant: 'neutral' },
 };
+
+/**
+ * Campaigns an agent (over MCP/API) bought above its API key's auto-approve
+ * limit — tagged `pendingReason: 'agent_purchase'` (see
+ * services/campaigns.ts). Funds are already committed from the wallet; the
+ * owner just needs to let it go live or reject it (which releases the
+ * committed hold, no refund entry needed since nothing was ever charged).
+ */
+function PendingAgentCampaigns() {
+  const { data: campaigns } = useCampaigns();
+  const approve = useApproveCampaign();
+  const reject = useRejectCampaign();
+
+  const pending = (campaigns ?? []).filter(
+    (c) => c.pendingReason === 'agent_purchase' && c.status === 'pending_approval',
+  );
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="rounded-card border border-amber-200 bg-amber-50 p-6">
+      <div className="flex items-center gap-2">
+        <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
+          <Bot size={18} />
+        </div>
+        <h3 className="text-sm font-bold tracking-tight text-slate-900">
+          Herferðir sem bíða samþykkis
+        </h3>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-slate-600">
+        Agent tengdur auglýsingaaðgangnum þínum stofnaði þessar herferðir. Fjármunir eru þegar
+        frátéknir úr veskinu — samþykktu til að hefja birtingar eða hafnaðu til að losa upphæðina
+        aftur.
+      </p>
+      <ul className="mt-4 flex flex-col gap-3">
+        {pending.map((c) => (
+          <li
+            key={c.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white p-4"
+          >
+            <div>
+              <div className="text-sm font-semibold text-slate-900">
+                {c.name || `Herferð ${c.id.substring(0, 8)}`}
+              </div>
+              <div className="mt-0.5 text-xs text-slate-500">
+                {c.targeting.categories.join(', ')} · {formatIsk(c.budget.totalIsk)}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                className="!px-3 !py-2 text-xs"
+                disabled={reject.isPending || approve.isPending}
+                onClick={() => reject.mutate(c.id)}
+              >
+                Hafna
+              </Button>
+              <Button
+                className="!px-3 !py-2 text-xs"
+                disabled={reject.isPending || approve.isPending}
+                onClick={() => approve.mutate(c.id)}
+              >
+                Samþykkja
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function AdvertiserHome() {
   const [datePreset, setDatePreset] = useState<'7' | '30' | '90' | 'custom'>('30');
@@ -362,6 +440,12 @@ function AdvertiserHome() {
           </Button>
         </div>
       </div>
+
+      {/* ===== PENDING AGENT CAMPAIGNS =====
+          Not in the template. Owner approve/reject surface for campaigns an
+          MCP/API agent bought above its key's auto-approve limit — see
+          services/campaigns.ts pendingReason: 'agent_purchase'. */}
+      <PendingAgentCampaigns />
 
       {/* ===== STAT CARDS =====
           Birtingar / Smellir / CTR / Eytt í mánuðinum — labels, order and

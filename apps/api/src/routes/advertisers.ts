@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth, type Env } from '../lib/auth.js';
+import { requireAuth, requireScope, type Env } from '../lib/auth.js';
 import {
   createAdvertiser,
   getAdvertiserByOwnerEmail,
@@ -13,6 +13,7 @@ import { listCampaignsForAdvertiser } from '../services/campaigns.js';
 
 export const advertisersRouter = new Hono<Env>();
 advertisersRouter.use('*', requireAuth);
+advertisersRouter.use('*', requireScope('advertiser'));
 
 advertisersRouter.post('/', async (c) => {
   const REGISTRATION_CLOSED = process.env.NODE_ENV !== 'test'; // Set to false to reopen registration

@@ -43,6 +43,7 @@ interface MockCampaign {
     remainingIsk: number;
   };
   status: string;
+  pendingReason?: string;
 }
 
 let mockAdvertisers: MockAdvertiser[] = [];
@@ -432,6 +433,36 @@ describe('Campaign Service', () => {
           creativeIds: [otherCre.id],
         }),
       ).rejects.toThrow('Creative cre_other is not owned by advertiser');
+    });
+
+    // Fix 1c (pendingReason lifecycle): the owner's own PATCH must not be able
+    // to bypass the approve/reject flow on a campaign an agent bought above
+    // its API key's auto-approve limit — see approveAgentPurchaseCampaign /
+    // rejectAgentPurchaseCampaign in services/campaigns.ts.
+    it('rejects a status change on a campaign awaiting agent-purchase approval', async () => {
+      const { adv, cre } = setupMockData();
+      const cmp = await createCampaign(adv.id, {
+        creativeIds: [cre.id],
+        categories: ['matur'],
+        schedule: {
+          startsAt: new Date(Date.now() + 1000),
+          endsAt: new Date(Date.now() + 86400_000),
+        },
+        budget: { mode: 'cpm_capped', totalIsk: 20000 },
+      });
+      const dbCmp = mockCampaigns.find((c) => c.id === cmp.id);
+      if (dbCmp) {
+        dbCmp.status = 'pending_approval';
+        dbCmp.pendingReason = 'agent_purchase';
+      }
+
+      await expect(updateCampaign(cmp.id, { status: 'active' })).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+      });
+
+      // Non-status fields remain editable on a pending campaign.
+      const updated = await updateCampaign(cmp.id, { name: 'Still editable' });
+      expect(updated.name).toBe('Still editable');
     });
   });
 });

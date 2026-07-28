@@ -132,6 +132,34 @@ export function useUpdateCampaign() {
   });
 }
 
+/**
+ * Owner approval flow for a campaign an agent bought (over MCP/API) above
+ * its API key's auto-approve limit — tagged `pendingReason: 'agent_purchase'`
+ * (see services/campaigns.ts). Dashboard/ID-token auth only; the API rejects
+ * `ak_` keys from these endpoints.
+ */
+export function useApproveCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Campaign>(`/v1/campaigns/${id}/approve`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+
+export function useRejectCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<Campaign>(`/v1/campaigns/${id}/reject`, { method: 'POST' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+
 export function useCreative(id: string | undefined) {
   return useQuery({
     queryKey: ['creatives', id],

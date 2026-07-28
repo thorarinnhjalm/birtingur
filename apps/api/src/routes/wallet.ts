@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { randomBytes } from 'crypto';
 import { URL } from 'url';
-import { requireAuth, type Env } from '../lib/auth.js';
+import { requireAuth, requireScope, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import { getWallet, getAvailableBalance } from '../services/wallet.js';
 import { StubTeyaClient, HttpTeyaClient } from '../services/teya/index.js';
@@ -21,6 +21,7 @@ function getTeya(): TeyaClient {
 
 export const walletRouter = new Hono<Env>();
 walletRouter.use('*', requireAuth);
+walletRouter.use('*', requireScope('advertiser'));
 
 walletRouter.get('/', async (c) => {
   const user = c.get('user');

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAdvertiser } from '@/hooks/useAdvertiser';
+import { useApiKeys, useIssueApiKey, useRevokeApiKey } from '@/hooks/useApiKeys';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ApiKeyPurchasePanel } from '@/components/ApiKeyPurchasePanel';
 import { apiFetch } from '@/lib/api';
 import { Check, ShieldAlert, Copy, Trash2, Key, Plus } from 'lucide-react';
 
@@ -16,49 +18,29 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // API Keys state
-  const [apiKeys, setApiKeys] = useState<any[]>([]);
-  const [loadingKeys, setLoadingKeys] = useState(false);
+  // API Keys
+  const { data: apiKeysRaw, isLoading: loadingKeys } = useApiKeys(!!advertiser);
+  const apiKeys = (apiKeysRaw ?? []).filter((k) => !k.revoked);
+  const issueApiKey = useIssueApiKey();
+  const revokeApiKey = useRevokeApiKey();
   const [newKey, setNewKey] = useState<string | null>(null);
-  const [generatingKey, setGeneratingKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
-
-  const fetchApiKeys = async () => {
-    setLoadingKeys(true);
-    try {
-      const keys = await apiFetch<any[]>('/v1/api-keys');
-      // Show non-revoked keys first
-      setApiKeys(keys.filter((k) => !k.revoked));
-    } catch (err) {
-      console.error('Ekki tókst að sækja API lykla:', err);
-    } finally {
-      setLoadingKeys(false);
-    }
-  };
 
   useEffect(() => {
     if (advertiser) {
       setCompanyName(advertiser.companyName);
       setBillingEmail(advertiser.billingEmail || advertiser.ownerEmail);
       setVatNumber(advertiser.vatNumber);
-      fetchApiKeys();
     }
   }, [advertiser]);
 
   const handleGenerateKey = async () => {
-    setGeneratingKey(true);
     setNewKey(null);
     try {
-      const res = await apiFetch<{ apiKey: string; apiKeyId: string }>('/v1/api-keys', {
-        method: 'POST',
-        body: JSON.stringify({ scope: 'advertiser' }),
-      });
+      const res = await issueApiKey.mutateAsync('advertiser');
       setNewKey(res.apiKey);
-      fetchApiKeys();
     } catch (err: any) {
       alert(err.message || 'Ekki tókst að búa til API lykil.');
-    } finally {
-      setGeneratingKey(false);
     }
   };
 
@@ -71,10 +53,7 @@ export default function Settings() {
       return;
     }
     try {
-      await apiFetch(`/v1/api-keys/${id}`, {
-        method: 'DELETE',
-      });
-      fetchApiKeys();
+      await revokeApiKey.mutateAsync(id);
     } catch (err: any) {
       alert(err.message || 'Ekki tókst að afturkalla API lykil.');
     }
@@ -235,7 +214,7 @@ export default function Settings() {
             <Button
               type="button"
               onClick={handleGenerateKey}
-              disabled={generatingKey}
+              disabled={issueApiKey.isPending}
               className="text-xs py-1.5 px-3 flex items-center gap-1 font-bold"
             >
               <Plus size={14} />
@@ -258,24 +237,25 @@ export default function Settings() {
                     <th className="py-2.5 font-bold">Umfang (Scope)</th>
                     <th className="py-2.5 font-bold">Stofnaður</th>
                     <th className="py-2.5 font-bold">Síðast notaður</th>
+                    <th className="py-2.5 font-bold">Sjálfvirk kaup (Agent purchase)</th>
                     <th className="py-2.5 text-right font-bold">Aðgerðir</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                   {apiKeys.map((key) => (
                     <tr key={key.id} className="hover:bg-slate-50/50">
-                      <td className="py-3 font-mono font-semibold">{key.id}</td>
-                      <td className="py-3 capitalize text-slate-600 font-semibold">
+                      <td className="py-3 font-mono font-semibold align-top">{key.id}</td>
+                      <td className="py-3 capitalize text-slate-600 font-semibold align-top">
                         {key.scope === 'both'
                           ? 'Allt'
                           : key.scope === 'advertiser'
                             ? 'Auglýsandi'
                             : 'Útgefandi'}
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 align-top">
                         {new Date(key.createdAt).toLocaleDateString('is-IS')}
                       </td>
-                      <td className="py-3">
+                      <td className="py-3 align-top">
                         {key.lastUsedAt
                           ? new Date(key.lastUsedAt).toLocaleDateString('is-IS') +
                             ' ' +
@@ -285,7 +265,10 @@ export default function Settings() {
                             })
                           : 'Aldrei'}
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 align-top">
+                        <ApiKeyPurchasePanel apiKey={key} />
+                      </td>
+                      <td className="py-3 text-right align-top">
                         <button
                           type="button"
                           onClick={() => handleRevokeKey(key.id)}
