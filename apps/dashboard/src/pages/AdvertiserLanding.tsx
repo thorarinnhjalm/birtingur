@@ -25,15 +25,20 @@ const ADVERTISER_STEPS = [
   {
     n: '01',
     title: 'Veldu flokka',
-    desc: 'Veldu þá efnisflokka sem henta viðskiptavinum þínum — matur, ferðalög, tækni og fleira. Við sjáum um að finna réttu miðlana.',
+    desc: 'Veldu þá efnisflokka sem henta viðskiptavinum þínum — matur, ferðalög, tækni og fleira. Kerfið sýnir þér strax hversu margar birtingar eru í boði í hverjum flokki og í hvaða stærðum.',
   },
   {
     n: '02',
-    title: 'Stilltu herferð',
-    desc: 'Ákveddu fjárhæð og tímabil. Fast CPM verð, engin uppboð og engir faldir kostnaðir — þú veist alltaf hvað þú borgar.',
+    title: 'Ákveddu fjárhæð',
+    desc: 'Fast CPM verð og rauntíma birtingaspá áður en þú borgar. Engin uppboð, engir faldir kostnaðir.',
   },
   {
     n: '03',
+    title: 'Búðu til borðana — eða láttu okkur gera það',
+    desc: 'Áttu enga auglýsingaborða? Límdu inn slóðina á vefsíðuna þína og gervigreindin skrifar textann og útbýr borðana í öllum þeim stærðum sem herferðin þarf. Þú velur, lagar og staðfestir — eða hleður upp þínum eigin borðum.',
+  },
+  {
+    n: '04',
     title: 'Fylgstu með',
     desc: 'Sjáðu birtingar og smelli í rauntíma og fínstilltu herferðina hvenær sem er — beint úr stjórnborðinu þínu.',
   },
@@ -47,6 +52,10 @@ const TRUST_ITEMS = [
   {
     title: 'Flokkakaup í stað stakra plássa',
     desc: 'Veldu efnisflokk og fjárhæð — við dreifum birtingunum á alla íslenska vefi í flokknum.',
+  },
+  {
+    title: 'Borðagerð innifalin',
+    desc: 'Þú þarft hvorki hönnunarstofu né hönnunarforrit. Gervigreindin býr til borðana út frá vefsíðunni þinni — í nákvæmlega þeim stærðum sem auglýsingaplássin í flokkunum þínum nota — og þú átt alltaf síðasta orðið.',
   },
   {
     title: 'Sjáðu áætlunina áður en þú borgar',
@@ -337,9 +346,9 @@ export default function AdvertiserLanding() {
                 marginBottom: 'clamp(44px,6vw,72px)',
               }}
             >
-              Frá flokk að fyrstu birtingu í þremur skrefum
+              Frá flokki að fyrstu birtingu í fjórum skrefum
             </h2>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {ADVERTISER_STEPS.map((s) => (
                 <Card key={s.n} className="h-full">
                   <div className="flex min-h-[236px] flex-col gap-[18px] p-1">
@@ -582,6 +591,27 @@ export default function AdvertiserLanding() {
               >
                 Sjá verðlagningu
               </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ FOR AI AGENTS (MCP) ============ */}
+        <section style={{ paddingBottom: 'clamp(56px,7vw,96px)' }}>
+          <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
+            <div className="rounded-card border border-slate-200 bg-slate-50 p-8">
+              <Eyebrow className="mb-3 block">Fyrir gervigreind</Eyebrow>
+              <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
+                Gervigreindin þín getur keypt fyrir þig
+              </h3>
+              <p className="m-0 max-w-[62ch] text-[15px] leading-[1.65] text-slate-600">
+                Birtingur er íslenskt auglýsingakerfi með opna MCP-tengingu:
+                gervigreindarumboðsmaður með API-lykil getur kannað flokka, séð birtingaspá og keypt
+                herferð — innan mánaðarþaks sem þú setur, og kaup yfir sjálfvirknimörkunum bíða
+                alltaf staðfestingar frá þér í stjórnborðinu.{' '}
+                <Link to="/faq" className="font-semibold text-primary underline">
+                  Sjá tækniskjölun
+                </Link>
+              </p>
             </div>
           </div>
         </section>

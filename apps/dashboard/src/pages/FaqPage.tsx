@@ -5,7 +5,13 @@ import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow, EditorialH1, PillButton } from '@/components/ui/editorial';
-import { FLAT_CPM_ISK, DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK, VAT_RATE } from '@ada/shared';
+import {
+  FLAT_CPM_ISK,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  MIN_PAYOUT_ISK,
+  VAT_RATE,
+  IAB_STANDARD_SIZES,
+} from '@ada/shared';
 
 // Icelandic dot-grouped integer — same local-fmtNum convention as
 // LandingPage.tsx/AdvertiserLanding.tsx/PublisherLanding.tsx.
@@ -18,6 +24,18 @@ const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
 // hand-typed, so it can never drift from FLAT_CPM_ISK/DEFAULT_PLATFORM_FEE_PERCENT.
 const PUBLISHER_CPM_SHARE_ISK = Math.round((FLAT_CPM_ISK * PUBLISHER_SHARE_PERCENT) / 100);
 const VAT_PERCENT = Math.round(VAT_RATE * 100);
+
+// Daily AI-creative generation caps — mirrored from apps/api/src/lib/rate-limit.ts's
+// BUCKET_LIMITS (not exported from @ada/shared, so kept in sync here by hand):
+// gen-copy is cheap (text only) and allows 20/day, gen-render is the expensive
+// step (image gen + rasterization + Storage uploads) and is capped at 10/day.
+const COPY_GENERATIONS_PER_DAY = 20;
+const RENDER_GENERATIONS_PER_DAY = 10;
+
+// IAB banner sizes advertised in the FAQ — read straight from the shared
+// constant so this list can't drift from what SlotCreate.tsx/CreativeGenerator.tsx
+// actually offer.
+const IAB_SIZE_LIST = IAB_STANDARD_SIZES.map((s) => `${s.width}×${s.height}`).join(', ');
 
 const SECTION_PAD_X = {
   paddingLeft: 'clamp(24px,5vw,72px)',
@@ -56,9 +74,21 @@ export default function FaqPage() {
       },
       {
         q: 'Hvernig kaupi ég auglýsingar á netinu hjá Birtingi?',
-        a: '<p>Skráning nýrra auglýsenda er lokuð sem stendur og opnar fljótlega — þú getur skráð þig á biðlista á síðunni fyrir auglýsendur. Þegar aðgangur opnast er ferlið einfalt:</p><ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang sem auglýsandi.</li><li>Hladdu upp auglýsingaborða (PNG, JPEG eða WebP) og settu inn lendingarsíðu.</li><li>Veldu markflokka (t.d. matur, ferðalög eða tækni) og landsvæði.</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
+        a: '<p>Skráning nýrra auglýsenda er lokuð sem stendur og opnar fljótlega — þú getur skráð þig á biðlista á síðunni fyrir auglýsendur. Þegar aðgangur opnast er ferlið einfalt:</p><ol class="list-decimal pl-5 mt-2 space-y-1"><li>Stofnaðu aðgang sem auglýsandi.</li><li>Veldu markflokka (t.d. matur, ferðalög eða tækni), landsvæði og fjárhæð — kerfið sýnir þér birtingaspá áður en þú borgar.</li><li>Búðu til auglýsingaborða út frá vefsíðunni þinni með innbyggðri borðagerð — eða hladdu upp þínum eigin (PNG, JPEG eða WebP).</li><li>Leggðu inn inneign í veskið þitt og virkjaðu herferðina.</li></ol>',
         pillar: 'advertiser',
         tags: ['auglýsingar', 'herferð', 'skref', 'biðlisti'],
+      },
+      {
+        q: 'Ég á enga auglýsingaborða — getur Birtingur búið þá til?',
+        a: `Já. Í kaupferlinu límir þú inn slóðina á vefsíðuna þína og kerfið les hana, skrifar allt að þrjár tillögur að auglýsingatexta á íslensku og útbýr borða í öllum þeim stærðum sem auglýsingaplássin í flokkunum þínum nota. Þú velur tillöguna sem þér líst best á, getur breytt fyrirsögn, undirtexta og hnappatexta að vild og staðfestir áður en nokkuð fer í loftið. Borðagerðin er innifalin í þjónustunni en dagleg hámörk gilda: ${COPY_GENERATIONS_PER_DAY} textatillögur og ${RENDER_GENERATIONS_PER_DAY} útlitsgerðir á dag.`,
+        pillar: 'advertiser',
+        tags: ['borðagerð', 'gervigreind', 'auglýsingaborðar', 'sjálfvirkni'],
+      },
+      {
+        q: 'Fer gervigreindarefni í sömu yfirferð og annað auglýsingaefni?',
+        a: 'Já, undantekningarlaust. Borðar sem gervigreindin býr til fara í nákvæmlega sömu efnisskimun og samþykktarferli og borðar sem þú hleður upp sjálf/ur. Þar sem þú getur breytt textanum berð þú ábyrgð á endanlega efninu og staðfestir það sérstaklega áður en borðarnir eru vistaðir.',
+        pillar: 'advertiser',
+        tags: ['gervigreind', 'yfirferð', 'öryggi', 'efnisskimun'],
       },
       {
         q: 'Hvað er fast CPM og hvernig virkar greiðsluflæðið (VSK)?',
@@ -123,8 +153,20 @@ export default function FaqPage() {
         tags: ['clickfraud', 'öryggi', 'svik', 'smellir'],
       },
       {
+        q: 'Í hvaða stærðum birtast auglýsingar?',
+        a: `Birtingur notar staðlaðar IAB-stærðir (${IAB_SIZE_LIST}). Þegar þú setur upp herferð sýnir kerfið þér nákvæmlega hvaða stærðir auglýsingaplássin í flokkunum þínum nota og hversu stór hluti áætlaðra birtinga fellur á hverja stærð — og borðagerðin býr sjálfkrafa til allar þær stærðir sem þarf.`,
+        pillar: 'technical',
+        tags: ['stærðir', 'iab', 'auglýsingaborðar', 'tækni'],
+      },
+      {
+        q: 'Getur gervigreindin mín keypt auglýsingar sjálf?',
+        a: 'Já — Birtingur rekur MCP-þjón (Model Context Protocol) sem gerir gervigreindarumboðsmönnum kleift að kanna flokka og birtingaspá, skoða stöðu veskisins og kaupa herferðir með borðum sem þegar hafa verið samþykktir. Öryggið er innbyggt: kaupheimild er valkvæð stilling á hverjum API-lykli, þú setur mánaðarlegt hámark og kaup yfir sjálfvirknimörkunum sem þú setur bíða samþykkis þar til þú staðfestir þau í stjórnborðinu. Gervigreindin getur aldrei lagt inn peninga, hækkað fjárhæðir eða samþykkt eigin kaup — það getur aðeins þú.',
+        pillar: 'technical',
+        tags: ['mcp', 'gervigreind', 'kaup', 'agents'],
+      },
+      {
         q: 'Eruð þið með API eða MCP-tengingar fyrir gervigreind (AI Agents)?',
-        a: 'Já. Auglýsendur og forritarar geta stofnað örugga API-lykla (ak_...) til að stýra herferðum og sækja gögn beint um REST-vendlann. Að auki bjóðum við upp á sérstakan MCP (Model Context Protocol) þjón fyrir útgefendur — hann gerir gervigreindarumboðsmönnum (t.d. Claude) kleift að stofna og stýra auglýsingaplássum, sækja innsetningarkóða, setja efnisstefnu og fylgjast með tölfræði. Kaup á auglýsingum fara alltaf fram í stjórnborðinu eða um REST-vendlann, ekki um MCP.',
+        a: 'Já. Auglýsendur og forritarar geta stofnað örugga API-lykla (ak_…) til að stýra herferðum og sækja gögn beint um REST-vendlann. Að auki rekum við MCP-þjón (Model Context Protocol) sem gerir gervigreindarumboðsmönnum (t.d. Claude) kleift að vinna með kerfið: útgefendur geta stofnað og stýrt auglýsingaplássum, sótt innsetningarkóða, sett efnisstefnu og fylgst með tölfræði, og auglýsendur geta kannað flokka og birtingaspá, skoðað stöðu veskisins og keypt herferðir. Kaupheimildin er valkvæð á hverjum lykli, með mánaðarþaki og samþykki þínu í stjórnborðinu yfir þeim mörkum sem þú setur.',
         pillar: 'technical',
         tags: ['api', 'mcp', 'gervigreind', 'agents'],
       },

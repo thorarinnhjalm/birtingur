@@ -1,0 +1,84 @@
+# Birtingur
+
+Birtingur is a self-service display advertising platform for the Icelandic
+market, built for long-tail niche content creators (e.g. food and lifestyle
+blogs) rather than premium publishers. Publishers register a site, declare
+its content categories, and embed an ad slot; advertisers buy by category and
+budget instead of picking individual sites, and the platform spreads
+impressions across every publisher site in that category. All money is in
+ISK (integer krona, no decimals); Icelandic VAT is 24%.
+
+## Pricing
+
+- Flat CPM: 550 ISK per 1,000 impressions, applied to every ad category.
+  There is no auction and no bidding — the price is the same regardless of
+  category or region.
+- No setup fees, no monthly fees. A campaign's remaining budget is enforced
+  server-side and the campaign stops serving automatically once it is spent.
+- Publishers keep 80% of gross ad revenue (a 20% platform fee); payouts run
+  monthly with a 5,000 ISK minimum (balances below that roll to the next
+  month).
+- VAT (24%) is charged only on the platform's service fee, not on the full
+  wallet top-up, and is itemized on an electronic invoice.
+
+## Publisher flow
+
+1. Register an account and add your site.
+2. Declare the site's content categories (e.g. food, travel, tech).
+3. Create an ad slot; the platform gives you one HTML/JS snippet to embed.
+4. Approve or reject individual ads in a per-site approval queue if you want
+   manual control, on top of automatic content screening.
+5. Get paid monthly once your balance clears the payout minimum.
+
+## Advertiser flow
+
+New self-serve advertiser signup is currently closed (waitlist only) while
+existing advertisers are onboarded manually; the flow below is what runs once
+an account exists:
+
+1. Create an advertiser account.
+2. Pick target categories, region, and a monthly budget — the platform shows
+   an impression forecast for that combination before you pay.
+3. Provide creatives: paste your website URL and the built-in AI creative
+   tool writes ad copy and renders banners in every IAB size your target
+   slots use, or upload your own PNG/JPEG/WebP creatives. AI-generated
+   creatives go through the same content-safety review and approval flow as
+   uploaded ones, and you always confirm the final copy yourself. AI
+   generation has daily caps per advertiser (currently 20 copy generations
+   and 10 render generations per day).
+4. Top up the wallet (card payment) and activate the campaign. The campaign
+   stops automatically when the budget is spent.
+
+Standard ad sizes: 728x90 (Leaderboard), 300x250 (Medium Rectangle),
+300x600 (Half Page), 320x100 (Mobile Banner), 980x120 (Billboard IS).
+
+## MCP server for AI agents
+
+Birtingur runs an MCP (Model Context Protocol) server at mcp.birtingur.app,
+scoped per API key:
+
+- Publisher-scoped keys: register and manage ad slots, fetch embed
+  snippets, set content policy, handle creative approvals, read stats.
+- Advertiser-scoped keys: browse categories and inventory forecasts, check
+  wallet balance, and buy category campaigns using creatives that have
+  already been approved (the MCP server cannot create or upload new
+  creatives).
+
+Agentic purchasing is opt-in per API key, with a configurable monthly
+spending cap; any purchase above an owner-configured auto-approve threshold
+is created pending and must be approved by the account owner in the
+dashboard. An API key can never top up the wallet, raise its own limits, or
+approve its own pending purchase — only a human, signed into the dashboard,
+can do that.
+
+Auth: `Authorization: Bearer ak_...` (an API key created in the dashboard).
+
+## Key URLs
+
+- https://www.birtingur.app/ — marketing site and dashboard
+- https://www.birtingur.app/auglysendur — for advertisers
+- https://www.birtingur.app/midlar — for publishers
+- https://www.birtingur.app/faq — frequently asked questions, including MCP
+  and API details
+- https://mcp.birtingur.app/ — MCP server (agent tools)
+- https://api.birtingur.app/ — REST API

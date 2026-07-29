@@ -15,7 +15,12 @@ app.get('/robots.txt', (c) => {
 
 app.get('/', (c) => {
   return c.text(
-    'Birtingur MCP Server is running. See https://www.birtingur.app for more information.',
+    [
+      'Birtingur MCP Server — the agent gateway to Icelandic display advertising.',
+      'Publisher tools: register sites, manage ad slots, embed snippets, read stats.',
+      'Advertiser tools: browse categories and inventory forecasts, check wallet and purchase limits, buy category campaigns with already-approved creatives (opt-in per API key, monthly cap, owner approval above a configurable threshold).',
+      'Auth: Bearer ak_… API key. Docs: https://www.birtingur.app/faq',
+    ].join('\n'),
   );
 });
 

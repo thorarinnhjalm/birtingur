@@ -79,7 +79,7 @@ export const BLOG_POSTS: BlogPostData[] = [
         items: [
           '300x250 (Medium Rectangle) - passar einstaklega vel í hliðarstikur eða inni í miðjum texta á farsímum.',
           '728x90 (Leaderboard) - tilvalið efst á vefsíður fyrir ofan aðalefnið.',
-          '970x250 (Billboard) - stórt og áberandi pláss efst á vefjum sem fangar athygli strax.',
+          '980x120 (Billboard IS) - stórt og áberandi pláss efst á vefjum sem fangar athygli strax.',
         ],
       },
       { type: 'h2', text: '2. Settu auglýsingarnar þar sem lesendur horfa' },
@@ -172,9 +172,9 @@ export const BLOG_POSTS: BlogPostData[] = [
         type: 'ol',
         items: [
           'Þú skráir þig inn á vefnum á 1 mínútu.',
-          'Hleður upp auglýsingaborða og velur markhópa sjálfur.',
-          'Gervigreind kerfisins greinir og samþykkir efnið samstundis.',
-          'Herferðin fer sjálfkrafa í loftið og þú sérð tölfræði í rauntíma.',
+          'Velur markflokka og fjárhæð — kerfið sýnir birtingaspá áður en þú borgar.',
+          'Býrð til auglýsingaborða út frá vefsíðunni þinni — eða hleður upp þínum eigin.',
+          'Herferðin fer í loftið og þú sérð birtingar og smelli í rauntíma.',
           'Ekkert lágmarksgjald – þú borgar aðeins fast gjald per 1.000 sýningar.',
         ],
       },
