@@ -145,3 +145,49 @@ describe('Prospect pages make no unsupported claims', () => {
     expect(readSource('src/pages/Tryggvi.tsx')).not.toContain('"Vibers"');
   });
 });
+
+/**
+ * The owner's standing rule (2026-07-29): speak about the network as something
+ * being built, and drop anything questionable. That means no uncited market or
+ * competitor statistics, no legal conclusions about GDPR, and no wording that
+ * implies an established network of well-known sites — inventory is still being
+ * gathered (RoleSelect.tsx says so to visitors).
+ */
+describe('Copy makes no uncited or legal claims', () => {
+  const guides = readSource('src/lib/blog-data.ts');
+
+  it('states no legal conclusion about GDPR or consent banners', () => {
+    expect(guides).not.toContain('Samkvæmt Evrópulögum');
+    expect(guides).not.toContain('Fullkomið samræmi við GDPR');
+  });
+
+  it('quotes no uncited market statistic', () => {
+    expect(guides).not.toContain('yfir 50%');
+  });
+
+  it('does not assert browsers now block third-party cookies', () => {
+    // Google publicly reversed Chrome's third-party-cookie deprecation.
+    expect(guides).not.toContain('Chrome sem loka nú');
+  });
+
+  it('makes no uncited comparative claim about media agencies', () => {
+    expect(guides).not.toContain('berast oft seint');
+    expect(guides).not.toContain('hagkvæmari og fljótlegri');
+    expect(guides).not.toContain('være'); // also a non-Icelandic typo
+  });
+
+  it('does not imply some ad sizes earn more when CPM is flat', () => {
+    expect(guides).not.toContain('dýrustu');
+  });
+
+  it('does not claim an established network of well-known sites', () => {
+    expect(guides).not.toContain('gæðavefjum');
+    expect(guides).not.toContain('þekktum íslenskum vefsíðum');
+  });
+
+  it('drops absolute cookie-free phrasing outside the ad system', () => {
+    // Serving sets no cookies, but the dashboard still uses Firebase auth
+    // storage, so an unqualified "100%" overreaches.
+    expect(guides).not.toContain('100% kökulaust');
+  });
+});

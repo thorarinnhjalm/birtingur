@@ -27,7 +27,7 @@ export const BLOG_POSTS: BlogPostData[] = [
     content: [
       {
         type: 'p',
-        text: 'Markaðssetning á netinu er lykilatriði fyrir vöxt flestra fyrirtækja í dag. Hins vegar hefur flestum íslenskum markaðsstjórum verið ýtt út í að nota flókin og dýr erlend stórkerfi eins og Google Ads eða Facebook Ads, sem krefjast mikillar sérfræðiþekkingar og taka verulegan hluta af fjárhagsáætluninni í umsýslugjöld.',
+        text: 'Markaðssetning á netinu er lykilatriði fyrir vöxt flestra fyrirtækja í dag. Mörg íslensk fyrirtæki reiða sig á erlend stórkerfi eins og Google Ads eða Facebook Ads, sem krefjast töluverðrar sérfræðiþekkingar.',
       },
       { type: 'h2', text: 'Hverjar eru helstu leiðirnar til að auglýsa á netinu?' },
       {
@@ -39,13 +39,13 @@ export const BLOG_POSTS: BlogPostData[] = [
         items: [
           'Leitarvélaauglýsingar (t.d. Google Search) sem miða á fólk sem er þegar að leita að ákveðnum vörum.',
           'Samfélagsmiðlar (Facebook, Instagram) sem sýna auglýsingar út frá áhugamálum notenda.',
-          'Birtingar á innlendum vefjum (Display Ads) sem byggja upp traust og sýnileika á þekktum íslenskum vefsíðum þar sem markhópurinn þinn ver tíma sínum.',
+          'Birtingar á innlendum vefjum (Display Ads) sem byggja upp traust og sýnileika á íslenskum vefjum þar sem markhópurinn þinn ver tíma sínum.',
         ],
       },
-      { type: 'h2', text: 'Kostir þess að auglýsa beint á íslenskum gæðavefjum' },
+      { type: 'h2', text: 'Kostir þess að auglýsa beint á íslenskum vefjum' },
       {
         type: 'p',
-        text: 'Íslenskir netnotendur eyða miklum tíma á staðbundnum vefsíðum – hvort sem það eru fréttavefir, sérhæfð áhugamálablogg eða héraðsmiðlar. Með því að velja dýnamískar vefauglýsingar sem falla vel að efni síðunnar nærðu fram mun meira trausti en með því að láta auglýsingu elta notendur um allan netheiminn.',
+        text: 'Íslenskir netnotendur eyða miklum tíma á staðbundnum vefsíðum – hvort sem það eru fréttavefir, sérhæfð áhugamálablogg eða héraðsmiðlar. Með því að velja vefauglýsingar sem falla að efni síðunnar birtist auglýsingin í samhengi við það sem lesandinn er þegar að skoða, í stað þess að fylgja honum milli vefja.',
       },
       { type: 'h3', text: 'Sjálfsafgreiðsla er framtíðin' },
       {
@@ -72,7 +72,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h2', text: '1. Veldu réttar stærðir á auglýsingaborðum' },
       {
         type: 'p',
-        text: 'Stærðirnar á auglýsingaplássinu skipta höfuðmáli fyrir smellihlutfall. Vinsælustu og dýrustu plássin eru yfirleitt standard stærðirnar:',
+        text: 'Stærðirnar á auglýsingaplássinu skipta máli fyrir smellihlutfall. Algengustu plássin eru staðalstærðirnar (verðið er það sama óháð stærð):',
       },
       {
         type: 'ul',
@@ -90,7 +90,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h2', text: '3. Notaðu sjálfvirka birtingaþjónustu' },
       {
         type: 'p',
-        text: 'Að selja auglýsingar handvirkt með því að senda tölvupósta og semja um verð tekur gríðarlegan tíma. Með því að nota sjálfvirkan vettvang eins og Birting geturðu skráð vefinn þinn einu sinni, sett inn einn HTML kóðabút og látið kerfið sjá um afganginn. Þú færð 80% af öllum auglýsingatekjum greiddar beint í hverjum mánuði.',
+        text: 'Að selja auglýsingar handvirkt með því að senda tölvupósta og semja um verð tekur gríðarlegan tíma. Með því að nota sjálfvirkan vettvang eins og Birting geturðu skráð vefinn þinn einu sinni, sett inn einn HTML kóðabút og látið kerfið sjá um afganginn. Þú færð 80% af öllum auglýsingatekjum greidd út mánaðarlega.',
       },
       { type: 'h2', text: '4. Haltu vefnum þínum hröðum og öruggum' },
       {
@@ -112,12 +112,12 @@ export const BLOG_POSTS: BlogPostData[] = [
     content: [
       {
         type: 'p',
-        text: 'Í mörg ár byggðist markaðssetning á netinu á því að fylgjast með notendum á milli vefsíðna með svokölluðum þriðju aðila vafrakökum (third-party cookies). Þessi tækni er hins vegar hratt að líða undir lok vegna herts persónuverndarlöggjafar (GDPR) og breytinga í vöfrum eins og Safari, Firefox og Chrome sem loka nú á slíkar kökur.',
+        text: 'Í mörg ár byggðist markaðssetning á netinu á því að fylgjast með notendum á milli vefsíðna með svokölluðum þriðju aðila vafrakökum (third-party cookies). Vafrar eins og Safari og Firefox loka sjálfgefið á slíkar kökur og persónuverndarkröfur hafa hert að þessari tækni.',
       },
       { type: 'h2', text: 'Af hverju eru vafrakökur vandamál?' },
       {
         type: 'p',
-        text: 'Vafrakökur safna persónugreinanlegum upplýsingum um hegðun notenda. Samkvæmt Evrópulögum (og íslenskum lögum um persónuvernd) verða vefsíður að sýna stóra og pirrandi samþykkisglugga (cookie banners) til að fá leyfi notenda áður en hægt er að sýna auglýsingar. Þetta skapar lélega notendaupplifun og yfir 50% notenda hafna þessum kökum í dag, sem gerir hefðbundnar mælingar ónákvæmar.',
+        text: 'Vafrakökur þriðja aðila safna upplýsingum um hegðun notenda milli vefja. Þess vegna reiða margar vefsíður sig á samþykkisglugga (cookie banners), sem hefur áhrif á upplifun lesenda. Hafðu samband við lögfræðing um hvaða kröfur eiga við um þinn vef.',
       },
       { type: 'h2', text: 'Lausnin: Samhengismiðun (Contextual Targeting)' },
       {
@@ -128,14 +128,14 @@ export const BLOG_POSTS: BlogPostData[] = [
       {
         type: 'ul',
         items: [
-          'Fullkomið samræmi við GDPR-löggjöfina – engin þörf á samþykkisgluggum fyrir þessar auglýsingar.',
+          'Engar vafrakökur eru settar vegna auglýsinganna sjálfra.',
           'Betri árangur – notandinn sér auglýsingar sem tengjast því sem hann hefur áhuga á NÚNA, frekar en eitthvað sem hann skoðaði fyrir viku.',
-          'Hraðari vefsíður – kökulausar skriftur eru léttari og krefjast ekki samskipta við stóra erlenda gagnagrunna sem hægja á vefhleðslu.',
+          'Létt skrifta – auglýsingaskriftan er undir 4 KB og hleðst ósamstillt.',
         ],
       },
       {
         type: 'p',
-        text: 'Birtingur er hannaður frá grunni sem 100% kökulaust auglýsingakerfi á Íslandi. Við söfnum ekki persónugreinanlegum upplýsingum um lesendur og tryggjum að vefstjórar og auglýsendur geti unnið saman í fullkomnu öryggi og samræmi við lög.',
+        text: 'Birtingur er hannaður frá grunni sem kökulaust auglýsingakerfi á Íslandi. Við söfnum ekki persónugreinanlegum upplýsingum um lesendur og tryggjum að vefstjórar og auglýsendur geti unnið saman í fullkomnu öryggi og samræmi við lög.',
       },
     ],
   },
@@ -152,7 +152,7 @@ export const BLOG_POSTS: BlogPostData[] = [
     content: [
       {
         type: 'p',
-        text: 'Hefðbundin birtingahús (fjölmiðlaumboð) hafa um áratugaskeið stýrt stórum hluta af auglýsingafé íslenskra fyrirtækja. Þótt þau bjóði upp á persónulega ráðgjöf fylgir þeim oft mikill kostnaður, flókið bókunarferli og háar lágmarkskröfur sem útiloka smærri og meðalstór fyrirtæki.',
+        text: 'Hefðbundin birtingahús (fjölmiðlaumboð) hafa um áratugaskeið stýrt stórum hluta af auglýsingafé íslenskra fyrirtækja. Þau bjóða upp á persónulega ráðgjöf og bókunarferlið fer að jafnaði fram í gegnum starfsfólk.',
       },
       { type: 'h2', text: 'Samanburður á ferlum' },
       { type: 'p', text: 'Hér er munurinn á því hvernig þú kemur herferð í loftið:' },
@@ -163,8 +163,7 @@ export const BLOG_POSTS: BlogPostData[] = [
           'Þú sendir fyrirspurn og bíður eftir fundi eða tilboði.',
           'Húsið semur handvirkt við fjölmiðla um pláss og verð.',
           'Þú sendir efnið með tölvupósti og bíður eftir að starfsmaður setji það upp.',
-          'Skýrslur um árangur berast oft seint og eftir á.',
-          'Umsýsluþóknun og lágmarksgjöld geta være veruleg.',
+          'Skýrslur um árangur berast í gegnum tengilið.',
         ],
       },
       { type: 'h3', text: 'Leið 2: Sjálfvirka leiðin (Birtingur)' },
@@ -181,7 +180,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h2', text: 'Hvor valkosturinn hentar þér betur?' },
       {
         type: 'p',
-        text: 'Fyrir stórfyrirtæki með milljóna fjárhagsáætlanir sem þurfa flókna alhliða ráðgjöf og birtingar í sjónvarpi og prentmiðlum getur hefðbundið birtingahús verið rétti kosturinn. En fyrir vefauglýsingar, sérstaklega hjá litlum og meðalstórum fyrirtækjum sem vilja fimi, gagnsæi og hámarks nýtingu á hverri krónu, er sjálfsafgreiðslukerfi eins og Birtingur mun hagkvæmari og fljótlegri kostur.',
+        text: 'Fyrir stórfyrirtæki með milljóna fjárhagsáætlanir sem þurfa flókna alhliða ráðgjöf og birtingar í sjónvarpi og prentmiðlum getur hefðbundið birtingahús verið rétti kosturinn. En fyrir vefauglýsingar, sérstaklega hjá litlum og meðalstórum fyrirtækjum sem vilja fimi, gagnsæi og hámarks nýtingu á hverri krónu, getur sjálfsafgreiðslukerfi eins og Birtingur hentað betur.',
       },
     ],
   },
