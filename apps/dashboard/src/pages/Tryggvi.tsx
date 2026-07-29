@@ -181,14 +181,12 @@ export default function Tryggvi() {
           </div>
           <div className="text-sm text-slate-650 leading-relaxed font-medium space-y-4 max-w-3xl">
             <p>
-              <strong>Birta (birta.datera.is)</strong> er frábært kerfi til að skipuleggja
-              birtingaráætlanir, bera saman fjölmiðla og halda utan um herferðir. Hins vegar þarf að
-              framkvæma bókanir og birta efnin handvirkt eða í gegnum mörg ólík kerfi á íslenskum
-              markaði.
+              <strong>Birta (birta.datera.is)</strong> er kerfi Datera til að skipuleggja
+              birtingaráætlanir, bera saman fjölmiðla og halda utan um herferðir.
             </p>
             <p>
-              <strong>Birtingur</strong> býður upp á sjálfvirkar auglýsingabirtingar á neti
-              sérhæfðra íslenskra samstarfsvefja.
+              <strong>Birtingur</strong> er að byggja upp net sérhæfðra íslenskra vefja með
+              sjálfvirkum auglýsingabirtingum.
             </p>
             <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-slate-800">
               <strong className="block text-slate-900 mb-1.5">Samlegðin:</strong>

@@ -191,3 +191,50 @@ describe('Copy makes no uncited or legal claims', () => {
     expect(guides).not.toContain('100% kökulaust');
   });
 });
+
+describe('Pages present the network as being built, not established', () => {
+  const marketingPages = [
+    'Bjarni',
+    'Serfraedingar',
+    'Tryggvi',
+    'Vibers',
+    'LandingPage',
+    'AdvertiserLanding',
+    'PublisherLanding',
+  ].map((name) => ({ name, source: readSource(`src/pages/${name}.tsx`) }));
+
+  const each = (assert: (source: string, name: string) => void) =>
+    marketingPages.forEach(({ source, name }) => assert(source, name));
+
+  it('quotes no uncited statistic about competitors', () => {
+    each((source, name) => expect(source, name).not.toContain('8–12 auglýsingar'));
+    each((source, name) => expect(source, name).not.toContain('Almennt (fréttalestur'));
+  });
+
+  it('claims no unmeasured superiority of the inventory', () => {
+    each((source, name) => expect(source, name).not.toContain('margfalt'));
+    each((source, name) => expect(source, name).not.toContain('gríðarlega einbeittur'));
+  });
+
+  it('drops absolute cookie-free phrasing', () => {
+    each((source, name) => expect(source, name).not.toContain('100% kökulaust'));
+  });
+
+  it('makes no claim about a named third party’s own product', () => {
+    expect(readSource('src/pages/Tryggvi.tsx')).not.toContain('Hins vegar þarf að framkvæma');
+  });
+
+  it('offers no revenue-share feature that is not implemented', () => {
+    // No affiliate/referral tracking exists in apps/api or packages/shared.
+    expect(readSource('src/pages/Vibers.tsx')).not.toContain('affiliate');
+  });
+
+  // Icelandic copy is full of accented Latin characters, which makes a
+  // Cyrillic homoglyph (а, е, о, с …) invisible on review — it renders
+  // identically but breaks search, screen readers and any grep. One slipped
+  // in while editing this very copy.
+  it('contains no Cyrillic homoglyphs hiding in Icelandic words', () => {
+    each((source, name) => expect(source, `${name} contains Cyrillic`).not.toMatch(/[Ѐ-ӿ]/));
+    expect(readSource('src/lib/blog-data.ts')).not.toMatch(/[Ѐ-ӿ]/);
+  });
+});

@@ -192,8 +192,8 @@ export default function Vibers() {
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Vefirnir sem þið smíðið fyrir viðskiptavini ykkar geta farið að skila þeim reglulegum
               tekjum af ónýttu auglýsingaplássi.
-              <strong> Og fyrir ykkur:</strong> Við getum sett upp affiliate/samstarfsprósentu af
-              veltunni sem rennur í gegnum plássin sem þið komið upp.
+              <strong> Og fyrir ykkur:</strong> Heyrið í okkur ef þið viljið ræða samstarf um
+              plássin sem þið komið upp.
             </p>
           </Card>
 

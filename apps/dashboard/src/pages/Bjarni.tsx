@@ -326,9 +326,9 @@ export default function Bjarni() {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-950">Niche media network</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Net af sérhæfðum íslenskum vefjum — blogg, áhugamálasíður, fagvefir. Tryggur
-              lesendahópur sem treystir efninu. Auglýsing þar hefur margfalt meiri slagkraft en á
-              yfirfylltum fréttamiðli.
+              Við erum að byggja upp net sérhæfðra íslenskra vefja — blogg, áhugamálasíður og
+              fagvefi. Markmiðið er umhverfi þar sem auglýsingin situr við hlið efnis sem lesandinn
+              valdi sér sjálfur.
             </p>
           </Card>
 
@@ -340,9 +340,8 @@ export default function Bjarni() {
               Eitt pláss, óskipt athygli
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Á stóru fréttamiðlunum eru 8–12 auglýsingar á hverri síðu. Hjá okkur er{' '}
-              <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili á sama skjá.
-              Vörumerkið þitt fær óskipta athygli lesandans.
+              Hjá okkur er <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili á sama
+              skjá. Vörumerkið þitt fær óskipta athygli lesandans.
             </p>
           </Card>
 
@@ -391,9 +390,8 @@ export default function Bjarni() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
                 {[
-                  ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
-                  ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
-                  ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
+                  ['Umgjörð', 'Mörg pláss á sama skjá', 'Eitt pláss — óskipt athygli'],
+                  ['Persónuvernd', 'Vafrakökur og vefsporun', 'Kökulaust auglýsingakerfi'],
                   [
                     'Uppsetning',
                     'Milliliðir, löng tilboðsferli',
@@ -415,9 +413,8 @@ export default function Bjarni() {
           {/* Mobile: stacked cards */}
           <div className="md:hidden space-y-3">
             {[
-              ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
-              ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
-              ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
+              ['Umgjörð', 'Mörg pláss á sama skjá', 'Eitt pláss — óskipt athygli'],
+              ['Persónuvernd', 'Vafrakökur og vefsporun', 'Kökulaust auglýsingakerfi'],
               ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk uppsetning í vefviðmóti'],
               ['Verð', 'Oft hátt lágmark', 'Engin lágmörk — CPM 550 kr'],
               ['Tækni', 'Tag managers, hæg load', 'REST API og IAB-staðfest sýnileikamæling'],
