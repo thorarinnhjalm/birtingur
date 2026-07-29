@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { AD_CATEGORIES, GEO_REGIONS } from '@ada/shared';
 
 /**
  * Guards public-facing copy against claims the shipped system cannot back up.
@@ -51,5 +52,30 @@ describe('TermsPage claims match the shipped system', () => {
   it('names the embed script by its real filename', () => {
     expect(terms).not.toContain('widget.js');
     expect(terms).toContain('snippet.js');
+  });
+});
+
+describe('Handbook guides describe real product capabilities', () => {
+  const guides = readSource('src/lib/blog-data.ts');
+  const blogPost = readSource('src/pages/BlogPost.tsx');
+
+  it('offers no ad category that does not exist', () => {
+    expect(AD_CATEGORIES.map((c) => c.slug)).not.toContain('fasteignir');
+    expect(guides).not.toContain('fasteignir');
+  });
+
+  it('offers no geographic region that does not exist', () => {
+    expect(GEO_REGIONS.map((r) => String(r).toLowerCase())).not.toContain('nordurland');
+    expect(guides).not.toContain('Norðurland');
+    expect(guides).not.toContain('Vesturland');
+  });
+
+  it('does not claim statistics are real-time', () => {
+    expect(guides).not.toContain('smelli í rauntíma');
+  });
+
+  it('does not promise an immediate signup while registration is closed', () => {
+    expect(guides).not.toContain('á 1 mínútu');
+    expect(blogPost).not.toContain('á 3 mínútum');
   });
 });

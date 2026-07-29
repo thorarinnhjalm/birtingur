@@ -50,7 +50,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h3', text: 'Sjálfsafgreiðsla er framtíðin' },
       {
         type: 'p',
-        text: 'Með sjálfvirkum kerfum eins og Birtingi geturðu sleppt dýrum milliliðum eins og auglýsingastofum. Þú einfaldlega velur flokk (t.d. matur, bílar, fasteignir) eða landshluta (t.d. Norðurland, Vesturland) og auglýsingin þín birtist á viðeigandi síðum á örfáum mínútum. Þú greiðir fast og lágt gjald per 1.000 sýningar (CPM) og hefur fulla stjórn á kostnaðinum.',
+        text: 'Með sjálfvirkum kerfum eins og Birtingi geturðu sleppt dýrum milliliðum eins og auglýsingastofum. Þú einfaldlega velur flokk (t.d. matur, bílar, tækni) eða svæði (t.d. höfuðborgarsvæðið eða Akureyri) og auglýsingin þín birtist á viðeigandi síðum. Þú greiðir fast og lágt gjald per 1.000 sýningar (CPM) og hefur fulla stjórn á kostnaðinum.',
       },
     ],
   },
@@ -135,7 +135,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       },
       {
         type: 'p',
-        text: 'Birtingur er hannaður frá grunni sem 100% kökulaust auglýsingakerfi á Íslandi. Við söfnum engum persónulegum gögnum og tryggjum að vefstjórar og auglýsendur geti unnið saman í fullkomnu öryggi og samræmi við lög.',
+        text: 'Birtingur er hannaður frá grunni sem 100% kökulaust auglýsingakerfi á Íslandi. Við söfnum ekki persónugreinanlegum upplýsingum um lesendur og tryggjum að vefstjórar og auglýsendur geti unnið saman í fullkomnu öryggi og samræmi við lög.',
       },
     ],
   },
@@ -171,10 +171,10 @@ export const BLOG_POSTS: BlogPostData[] = [
       {
         type: 'ol',
         items: [
-          'Þú skráir þig inn á vefnum á 1 mínútu.',
+          'Þú skráir þig á biðlista og kemst inn um leið og opnað er fyrir nýja auglýsendur.',
           'Velur markflokka og fjárhæð — kerfið sýnir birtingaspá áður en þú borgar.',
           'Býrð til auglýsingaborða út frá vefsíðunni þinni — eða hleður upp þínum eigin.',
-          'Herferðin fer í loftið og þú sérð birtingar og smelli í rauntíma.',
+          'Herferðin fer í loftið og þú fylgist með birtingum og smellum, sem uppfærast á klukkustundar fresti.',
           'Ekkert lágmarksgjald – þú borgar aðeins fast gjald per 1.000 sýningar.',
         ],
       },
