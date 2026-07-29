@@ -1,36 +1,29 @@
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 import { getRedis } from './redis.js';
 
 export function hashVisitorToken(input: string): string {
   return createHash('sha256').update(input).digest('hex').slice(0, 12);
 }
 
-const COOKIE_NAME = '_adp_v';
-
 const TOKEN_RE = /^[a-f0-9]{12}$/;
 
-export function getOrCreateVisitorToken(
-  cookieHeader: string | undefined,
-  clientToken?: string,
-): string {
-  // Prefer the first-party token the snippet keeps in the publisher's localStorage.
-  // Third-party cookies don't survive cross-origin in modern browsers, so the cookie
-  // path below only helps same-origin/demo callers.
+/**
+ * Resolves the visitor id for an ad request.
+ *
+ * The ONLY identifier is the first-party token the snippet keeps in the publisher's
+ * own localStorage and passes as `?vid=`; the snippet mints it exclusively under full
+ * consent (`getVisitorId` in packages/snippet), so a present token already implies
+ * consent. The serving origin deliberately sets no cookie of its own — it is a
+ * different origin from the publisher, so any cookie it set would be a cross-site
+ * (third-party) cookie and would falsify the network's cookie-free guarantee.
+ *
+ * With no token we return '' rather than generating one: a server-minted id would be
+ * a tracking identifier by another name, and callers treat '' as "no frequency
+ * capping, nothing to record" (see routes/impression.ts).
+ */
+export function getVisitorToken(clientToken?: string): string {
   if (clientToken && TOKEN_RE.test(clientToken)) return clientToken;
-  if (cookieHeader) {
-    const match = cookieHeader.split(/;\s*/).find((c) => c.startsWith(`${COOKIE_NAME}=`));
-    if (match) {
-      const value = match.slice(COOKIE_NAME.length + 1);
-      // Valid tokens are 12 characters (hex randomBytes(6))
-      if (TOKEN_RE.test(value)) return value;
-    }
-  }
-  return randomBytes(6).toString('hex');
-}
-
-export function setCookieHeader(token: string): string {
-  // 90 days (7776000 seconds)
-  return `${COOKIE_NAME}=${token}; Max-Age=7776000; Path=/; SameSite=None; Secure`;
+  return '';
 }
 
 export async function getVisitorImpressionsToday(token: string): Promise<Record<string, number>> {

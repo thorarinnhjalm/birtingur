@@ -44,8 +44,7 @@ vi.mock('../src/lib/cache', () => ({
 }));
 
 vi.mock('../src/lib/visitor', () => ({
-  getOrCreateVisitorToken: vi.fn(() => 'tok123'),
-  setCookieHeader: vi.fn(() => '_adp_v=tok123; Path=/'),
+  getVisitorToken: vi.fn(() => 'tok123'),
   getVisitorImpressionsToday: vi.fn(async () => ({})),
   recordVisitorImpression: vi.fn(),
 }));
@@ -136,6 +135,25 @@ describe('GET /v1/ad', () => {
   it('400 when slot param missing', async () => {
     const res = await app.request('/v1/ad?consent=full');
     expect(res.status).toBe(400);
+  });
+
+  // Birtingur is a cookie-free ad network: the only visitor identifier is the
+  // consent-gated first-party id the snippet keeps in the publisher's own
+  // localStorage and passes as ?vid=. The serving origin must never set a
+  // cookie of its own — a cross-site Set-Cookie here would silently make the
+  // "engar vafrakökur" claim false for every publisher on the network.
+  it('never sets a cookie when serving a creative', async () => {
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: { 'CF-IPCountry': 'IS' },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('never sets a cookie when serving the house-ad fallback', async () => {
+    const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('set-cookie')).toBeNull();
   });
 
   it('does not serve a creative whose campaign budget counter is exhausted', async () => {

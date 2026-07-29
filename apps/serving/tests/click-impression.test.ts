@@ -63,8 +63,7 @@ vi.mock('../src/lib/cache', () => ({
 }));
 
 vi.mock('../src/lib/visitor', () => ({
-  getOrCreateVisitorToken: vi.fn(() => 'tok123'),
-  setCookieHeader: vi.fn(() => '_adp_v=tok123; Path=/'),
+  getVisitorToken: vi.fn(() => 'tok123'),
   getVisitorImpressionsToday: vi.fn(async () => ({})),
   recordVisitorImpression: vi.fn(),
 }));
