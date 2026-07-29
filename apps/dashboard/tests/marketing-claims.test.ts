@@ -79,3 +79,25 @@ describe('Handbook guides describe real product capabilities', () => {
     expect(blogPost).not.toContain('á 3 mínútum');
   });
 });
+
+describe('Landing pages describe statistics honestly', () => {
+  const landing = readSource('src/pages/LandingPage.tsx');
+  const advertiser = readSource('src/pages/AdvertiserLanding.tsx');
+
+  it('does not claim impressions and clicks are visible in real time', () => {
+    expect(landing).not.toContain('smelli í rauntíma');
+    expect(advertiser).not.toContain('smelli í rauntíma');
+  });
+
+  it('does not promise a 3-minute campaign while registration is closed', () => {
+    expect(landing).not.toContain('3 mín');
+  });
+
+  // The category inventory forecast IS computed live per request
+  // (services/inventory.ts is uncached), so this wording is accurate and
+  // must survive the cleanup — do not "fix" it.
+  it('keeps the accurate real-time forecast claim', () => {
+    expect(landing).toContain('Rauntíma birtingaspá');
+    expect(advertiser).toContain('Rauntíma birtingaspá');
+  });
+});

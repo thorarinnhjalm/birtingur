@@ -51,7 +51,7 @@ const HOW_IT_WORKS_STEPS = [
   {
     n: '03',
     title: 'Fylgstu með',
-    desc: 'Sjáðu birtingar og smelli í rauntíma og fínstilltu herferðina hvenær sem er — beint úr stjórnborðinu þínu.',
+    desc: 'Fylgstu með birtingum og smellum — tölur uppfærast á klukkustundar fresti — og fínstilltu herferðina hvenær sem er, beint úr stjórnborðinu þínu.',
   },
 ];
 
@@ -81,7 +81,7 @@ export default function LandingPage() {
   useEffect(() => {
     const titleText = 'Birtingur — Einföld birtingaþjónusta og auglýsingar á netinu';
     const descriptionText =
-      'Viltu auglýsa á netinu eða selja auglýsingapláss? Birtingur er sjálfvirk og kökulaus birtingaþjónusta fyrir íslenskar vefauglýsingar. Stofnaðu herferð á 3 mín!';
+      'Viltu auglýsa á netinu eða selja auglýsingapláss? Birtingur er sjálfvirk og kökulaus birtingaþjónusta fyrir íslenskar vefauglýsingar. Skráðu þig á biðlista.';
 
     updateSEO(titleText, descriptionText, '');
 
