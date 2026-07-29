@@ -3,11 +3,7 @@ import { getSlotCache } from '../lib/cache.js';
 import { FLAT_CPM_ISK } from '@ada/shared';
 import { selectCreative } from '../lib/select.js';
 import { getVisitorRegions } from '../lib/geo.js';
-import {
-  getOrCreateVisitorToken,
-  setCookieHeader,
-  getVisitorImpressionsToday,
-} from '../lib/visitor.js';
+import { getVisitorToken, getVisitorImpressionsToday } from '../lib/visitor.js';
 import { getRemainingBudgets, getPaceState, logEvent } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
@@ -26,7 +22,7 @@ adRoute.get('/', async (c) => {
   }
 
   const country = c.req.header('CF-IPCountry') ?? 'XX';
-  const token = getOrCreateVisitorToken(c.req.header('Cookie'), c.req.query('vid'));
+  const token = getVisitorToken(c.req.query('vid'));
 
   let slot = await getSlotCache(slotId);
   if (!slot && (slotId === 'slot_demo_abc' || process.env.NODE_ENV === 'development')) {
@@ -67,8 +63,9 @@ adRoute.get('/', async (c) => {
     });
   }
 
+  // No token means no consented identifier, so there is nothing to cap against.
   const visitorImpressionsToday =
-    consentParam === 'full' ? await getVisitorImpressionsToday(token) : {};
+    consentParam === 'full' && token ? await getVisitorImpressionsToday(token) : {};
 
   const campaignIds = Array.from(new Set(slot.activeCreatives.map((ac) => ac.campaignId)));
   const budgets = await getRemainingBudgets(campaignIds);
@@ -102,7 +99,6 @@ adRoute.get('/', async (c) => {
       widthParam && heightParam
         ? { width: widthParam, height: heightParam }
         : slot.sizes[0] || { width: 300, height: 250 };
-    c.header('Set-Cookie', setCookieHeader(token));
     c.header('Cache-Control', 'private, no-store');
 
     const ts = Date.now();
@@ -162,7 +158,6 @@ adRoute.get('/', async (c) => {
 
   // Impression is counted when the pixel fires (impression.ts), not here.
 
-  c.header('Set-Cookie', setCookieHeader(token));
   c.header('Cache-Control', 'private, no-store');
 
   return c.json({

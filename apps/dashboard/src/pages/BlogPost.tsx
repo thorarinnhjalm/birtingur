@@ -146,7 +146,7 @@ export default function BlogPost() {
             <h3 className="text-2xl font-black mb-3">Viltu auglýsa eða afla tekna?</h3>
             <p className="text-white/80 text-sm max-w-lg mx-auto mb-6 leading-relaxed">
               Birtingur er sjálfvirk, kökulaus og persónuverndarvæn birtingaþjónusta á Íslandi.
-              Stofnaðu aðgang á 3 mínútum og sjáðu muninn.
+              Skráðu þig á biðlista og við höfum samband um leið og opnað er.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link

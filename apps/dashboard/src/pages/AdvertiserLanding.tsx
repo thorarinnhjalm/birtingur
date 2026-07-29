@@ -40,7 +40,7 @@ const ADVERTISER_STEPS = [
   {
     n: '04',
     title: 'Fylgstu með',
-    desc: 'Sjáðu birtingar og smelli í rauntíma og fínstilltu herferðina hvenær sem er — beint úr stjórnborðinu þínu.',
+    desc: 'Fylgstu með birtingum og smellum — tölur uppfærast á klukkustundar fresti — og fínstilltu herferðina hvenær sem er, beint úr stjórnborðinu þínu.',
   },
 ];
 

@@ -176,8 +176,8 @@ export default function Bjarni() {
             </p>
             <p>
               Birtingur leysir þetta með <strong>sjálfvirku auglýsingakerfi</strong> sem safnar
-              sérhæfðum vefjum saman á einn stað. Auglýsendur búa til herferð á 3 mínútum, velja
-              flokka, hlaða upp auglýsingamynd og kerfið parar sjálfkrafa. Engir símar, engir
+              sérhæfðum vefjum saman á einn stað. Auglýsendur setja upp herferð í nokkrum skrefum,
+              velja flokka, hlaða upp auglýsingamynd og kerfið parar sjálfkrafa. Engir símar, engir
               sölumenn.
             </p>
           </div>
@@ -190,8 +190,8 @@ export default function Bjarni() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-medium text-slate-700">
               <div className="space-y-1">
                 <div className="font-bold text-slate-900">Serving</div>
-                <div>Hono + Cloudflare Workers</div>
-                <div className="text-slate-500">&lt;15ms p99</div>
+                <div>Hono á Vercel</div>
+                <div className="text-slate-500">Svarhraði mældur á beiðni</div>
               </div>
               <div className="space-y-1">
                 <div className="font-bold text-slate-900">API</div>
@@ -258,7 +258,7 @@ export default function Bjarni() {
               <h3 className="text-xl font-bold text-slate-950">3. Aggregation pipeline</h3>
               <p className="text-sm text-slate-600 leading-relaxed font-medium">
                 Events → Redis queue → cron aggregate → Firestore stats. CPM reiknaður sjálfkrafa.
-                80/20 revenue split. Rauntíma dashboard fyrir báða aðila.
+                80/20 revenue split. Sameiginlegt stjórnborð fyrir báða aðila.
               </p>
             </Card>
           </div>
@@ -326,9 +326,9 @@ export default function Bjarni() {
             </div>
             <h3 className="text-lg sm:text-xl font-bold text-slate-950">Niche media network</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Net af sérhæfðum íslenskum vefjum — blogg, áhugamálasíður, fagvefir. Tryggur
-              lesendahópur sem treystir efninu. Auglýsing þar hefur margfalt meiri slagkraft en á
-              yfirfylltum fréttamiðli.
+              Við erum að byggja upp net sérhæfðra íslenskra vefja — blogg, áhugamálasíður og
+              fagvefi. Markmiðið er umhverfi þar sem auglýsingin situr við hlið efnis sem lesandinn
+              valdi sér sjálfur.
             </p>
           </Card>
 
@@ -340,9 +340,8 @@ export default function Bjarni() {
               Eitt pláss, óskipt athygli
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Á stóru fréttamiðlunum eru 8–12 auglýsingar á hverri síðu. Hjá okkur er{' '}
-              <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili á sama skjá.
-              Vörumerkið þitt fær óskipta athygli lesandans.
+              Hjá okkur er <strong>eitt pláss, ein auglýsing</strong>. Enginn samkeppnisaðili á sama
+              skjá. Vörumerkið þitt fær óskipta athygli lesandans.
             </p>
           </Card>
 
@@ -365,8 +364,8 @@ export default function Bjarni() {
               AI-powered review pipeline
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Allar auglýsingamyndir eru sjálfkrafa skannaðar af Gemini Vision. Vörumerkjaöryggi og
-              efnisflokkun á millisekúndum. Útgefendur hafa alltaf lokaorðið í samþykkisferli.
+              Auglýsingamyndir fara í sjálfvirka AI-skönnun fyrir birtingu. Vörumerkjaöryggi og
+              efnisflokkun. Útgefendur hafa alltaf lokaorðið í samþykkisferli.
             </p>
           </Card>
         </section>
@@ -391,12 +390,15 @@ export default function Bjarni() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-600 font-medium">
                 {[
-                  ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
-                  ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
-                  ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
-                  ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk á 3 mínútum'],
+                  ['Umgjörð', 'Mörg pláss á sama skjá', 'Eitt pláss — óskipt athygli'],
+                  ['Persónuvernd', 'Vafrakökur og vefsporun', 'Kökulaust auglýsingakerfi'],
+                  [
+                    'Uppsetning',
+                    'Milliliðir, löng tilboðsferli',
+                    'Sjálfvirk uppsetning í vefviðmóti',
+                  ],
                   ['Verð', 'Oft hátt lágmark', 'Engin lágmörk — CPM 550 kr'],
-                  ['Tækni', 'Tag managers, hæg load', 'REST API, <15ms, IAB viewability'],
+                  ['Tækni', 'Tag managers, hæg load', 'REST API og IAB-staðfest sýnileikamæling'],
                 ].map(([label, old, birtingur], i) => (
                   <tr key={i}>
                     <td className="py-4 pr-4 font-bold text-slate-900">{label}</td>
@@ -411,12 +413,11 @@ export default function Bjarni() {
           {/* Mobile: stacked cards */}
           <div className="md:hidden space-y-3">
             {[
-              ['Umgjörð', '8–12 auglýsingar á skjá', 'Eitt pláss — óskipt athygli'],
-              ['Traust', 'Almennt (fréttalestur)', 'Hátt (sérhæft efni, tryggir lesendur)'],
-              ['Persónuvernd', 'Cookies og vefsporun', '100% kökulaust frá grunni'],
-              ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk á 3 mínútum'],
+              ['Umgjörð', 'Mörg pláss á sama skjá', 'Eitt pláss — óskipt athygli'],
+              ['Persónuvernd', 'Vafrakökur og vefsporun', 'Kökulaust auglýsingakerfi'],
+              ['Uppsetning', 'Milliliðir, löng tilboðsferli', 'Sjálfvirk uppsetning í vefviðmóti'],
               ['Verð', 'Oft hátt lágmark', 'Engin lágmörk — CPM 550 kr'],
-              ['Tækni', 'Tag managers, hæg load', 'REST API, <15ms, IAB viewability'],
+              ['Tækni', 'Tag managers, hæg load', 'REST API og IAB-staðfest sýnileikamæling'],
             ].map(([label, old, birtingur], i) => (
               <div
                 key={i}
@@ -444,8 +445,9 @@ export default function Bjarni() {
               Sjálfvirkt, gagnsætt og byggt til að skala
             </h3>
             <p className="text-sm text-indigo-200 leading-relaxed font-semibold max-w-3xl">
-              Vörumerkið þitt getur verið live á niche-netinu okkar á 3 mínútum. Engar
-              skuldbindingar — keyptu inneign, stofnaðu herferð, horfðu á rauntíma tölfræði.
+              Vörumerkið þitt getur farið í loftið á sérhæfðum íslenskum vefjum um leið og opnað er
+              fyrir nýja auglýsendur. Engar skuldbindingar — keyptu inneign, stofnaðu herferð og
+              fylgstu með tölfræði sem uppfærist á klukkustundar fresti.
             </p>
           </div>
 
@@ -463,9 +465,9 @@ export default function Bjarni() {
               </span>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-black text-white block">&lt;15ms</span>
+              <span className="text-2xl sm:text-3xl font-black text-white block">3 KB</span>
               <span className="text-[10px] sm:text-xs text-indigo-300 font-bold">
-                p99 svartími á edge
+                Stærð auglýsingaskriftu
               </span>
             </div>
             <div>
