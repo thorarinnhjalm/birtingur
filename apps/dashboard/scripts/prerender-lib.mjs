@@ -38,6 +38,19 @@ export function readRoutes() {
   return routes;
 }
 
+// Which sources were edited after the build that capture is about to render?
+//
+// capture renders dist/, not src/. It used to check only that dist/index.html
+// existed, so running it without building first quietly recaptured the previous
+// build's copy and reported success — and the committed snapshot cache then
+// served crawlers text that no longer matched the site.
+//
+// `sources` is [{ path, mtimeMs }]. Equal timestamps count as fresh: a file
+// written in the same millisecond as the build is part of that build.
+export function findStaleSources(distMtimeMs, sources) {
+  return sources.filter((s) => s.mtimeMs > distMtimeMs).map((s) => s.path);
+}
+
 // dist/<route>/index.html — Vercel resolves /a/b to a/b/index.html, and that
 // filesystem match is checked before the SPA rewrite in vercel.json, so these
 // files win for their exact paths while everything else falls through to the SPA.
@@ -73,7 +86,11 @@ export function stitch(template, snap) {
 
   const canonicalTag = `<link rel="canonical" href="${escapeAttr(snap.canonical)}" />`;
   if (/rel="canonical"/.test(html)) {
-    html = replaceAttr(html, /(<link\s+rel="canonical"\s+href=")[\s\S]*?(")/, escapeAttr(snap.canonical));
+    html = replaceAttr(
+      html,
+      /(<link\s+rel="canonical"\s+href=")[\s\S]*?(")/,
+      escapeAttr(snap.canonical),
+    );
   } else {
     html = html.replace('</head>', `  ${canonicalTag}\n  </head>`);
   }

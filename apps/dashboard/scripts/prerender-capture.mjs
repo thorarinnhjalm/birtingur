@@ -6,14 +6,52 @@
 //   pnpm --filter @ada/dashboard prerender:capture
 import http from 'node:http';
 import { readFile, stat, writeFile, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join, extname, dirname } from 'node:path';
 import { chromium } from '@playwright/test';
-import { dashboardRoot, SNAPSHOTS_PATH, readRoutes } from './prerender-lib.mjs';
+import { dashboardRoot, SNAPSHOTS_PATH, readRoutes, findStaleSources } from './prerender-lib.mjs';
 
 const distDir = join(dashboardRoot, 'dist');
-if (!existsSync(join(distDir, 'index.html'))) {
+const distIndex = join(distDir, 'index.html');
+if (!existsSync(distIndex)) {
   console.error('[prerender:capture] dist/index.html missing — run `vite build` first.');
+  process.exit(1);
+}
+
+// A present-but-stale dist is the dangerous case: capture succeeds, rewrites
+// snapshots.json with the PREVIOUS build's copy, and reports success. Refuse
+// instead — a wrong snapshot cache is worse than no capture, because it ships
+// text the site no longer contains to Google and to AI crawlers.
+function collectSources(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...collectSources(full));
+    else out.push({ path: full.slice(dashboardRoot.length + 1), mtimeMs: statSync(full).mtimeMs });
+  }
+  return out;
+}
+
+const sources = [
+  ...collectSources(join(dashboardRoot, 'src')),
+  {
+    path: 'public/sitemap.xml',
+    mtimeMs: statSync(join(dashboardRoot, 'public', 'sitemap.xml')).mtimeMs,
+  },
+];
+const stale = findStaleSources(statSync(distIndex).mtimeMs, sources);
+if (stale.length > 0) {
+  console.error(
+    `[prerender:capture] dist/ is older than ${stale.length} source file(s) — capturing now would\n` +
+      `record the PREVIOUS build's copy and silently ship stale text to crawlers.\n` +
+      `Run \`pnpm --filter @ada/dashboard build\` first, then capture again.\n\n` +
+      stale
+        .slice(0, 10)
+        .map((p) => `  ${p}`)
+        .join('\n') +
+      (stale.length > 10 ? `\n  ... and ${stale.length - 10} more` : ''),
+  );
   process.exit(1);
 }
 
@@ -91,13 +129,14 @@ for (const route of routes) {
         !!document.querySelector('link[rel="canonical"]'),
       { timeout: 15000 },
     )
-    .catch(() => console.warn(`[prerender:capture] ${route}: SEO signal timed out; capturing as-is.`));
+    .catch(() =>
+      console.warn(`[prerender:capture] ${route}: SEO signal timed out; capturing as-is.`),
+    );
   await page.waitForTimeout(250);
 
   const snap = await page.evaluate(() => ({
     title: document.title,
-    description:
-      document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+    description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
     canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '',
     rootHtml: document.getElementById('root')?.innerHTML || '',
   }));
