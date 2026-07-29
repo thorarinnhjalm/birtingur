@@ -187,8 +187,8 @@ export default function Tryggvi() {
               markaði.
             </p>
             <p>
-              <strong>Birtingur</strong> býður upp á rauntíma auglýsingabirtingar og sjálfvirkt net
-              af vönduðum íslenskum samstarfsvefjum (niche network).
+              <strong>Birtingur</strong> býður upp á sjálfvirkar auglýsingabirtingar á neti
+              sérhæfðra íslenskra samstarfsvefja.
             </p>
             <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl my-4 text-slate-800">
               <strong className="block text-slate-900 mb-1.5">Samlegðin:</strong>
@@ -210,9 +210,8 @@ export default function Tryggvi() {
             <h3 className="text-xl font-bold text-slate-950">Blistering Fast Edge Ad Serving</h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Vefir viðskiptavina ykkar eiga ekki að hægja á sér vegna auglýsinga. Innviðir okkar
-              keyra á <strong>Hono + Cloudflare Workers</strong> sem tryggir{' '}
-              <strong>&lt;15ms serving</strong> á Edge-inu á Íslandi. Ef netið dettur út, fellur
-              skriftan hljóðleiðis niður (fail-silent) án þess að tefja síðuna.
+              keyra á <strong>Hono</strong> á Vercel Edge og skila auglýsingum ósamstillt. Ef netið
+              dettur út, fellur skriftan hljóðleiðis niður (fail-silent) án þess að tefja síðuna.
             </p>
           </Card>
 
@@ -259,7 +258,7 @@ export default function Tryggvi() {
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Auglýsingar drukkna oft í suðinu á risamiðlunum. Við tengjum saman trygga íslenska
               nisjumiðla þar sem hvert pláss sýnir <strong>aðeins eina auglýsingu í senn</strong>.
-              Þetta gefur miklu meira CTR (meðaltal 1.8%) og meiri athygli fyrir herferðirnar.
+              Þetta gefur að jafnaði meiri athygli fyrir herferðirnar.
             </p>
           </Card>
         </section>
@@ -299,7 +298,7 @@ export default function Tryggvi() {
             <pre className="text-xs sm:text-sm font-mono leading-relaxed text-blue-400">
               <code>
                 <span className="text-emerald-400">GET</span>
-                <span className="text-white/80"> /v1/slots?category=technology</span>
+                <span className="text-white/80"> /v1/categories/inventory</span>
                 {`\n\n`}
                 <span className="text-slate-500">{'// Response: 200 OK'}</span>
                 {`\n`}
@@ -308,15 +307,9 @@ export default function Tryggvi() {
                 <span className="text-white/60">{'  {'}</span>
                 {`\n`}
                 <span className="text-white/60">{'    '}</span>
-                <span className="text-amber-300">"slotId"</span>
+                <span className="text-amber-300">"category"</span>
                 <span className="text-white/60">: </span>
-                <span className="text-emerald-300">"slot_cf8d390a"</span>
-                <span className="text-white/60">,</span>
-                {`\n`}
-                <span className="text-white/60">{'    '}</span>
-                <span className="text-amber-300">"publisher"</span>
-                <span className="text-white/60">: </span>
-                <span className="text-emerald-300">"Vibers"</span>
+                <span className="text-emerald-300">"taekni"</span>
                 <span className="text-white/60">,</span>
                 {`\n`}
                 <span className="text-white/60">{'    '}</span>
@@ -328,13 +321,7 @@ export default function Tryggvi() {
                 <span className="text-white/60">],</span>
                 {`\n`}
                 <span className="text-white/60">{'    '}</span>
-                <span className="text-amber-300">"monthlyImpressions"</span>
-                <span className="text-white/60">: </span>
-                <span className="text-blue-300">250000</span>
-                <span className="text-white/60">,</span>
-                {`\n`}
-                <span className="text-white/60">{'    '}</span>
-                <span className="text-amber-300">"cpmRate"</span>
+                <span className="text-amber-300">"cpmIsk"</span>
                 <span className="text-white/60">: </span>
                 <span className="text-blue-300">550</span>
                 {`\n`}
@@ -483,7 +470,8 @@ export default function Tryggvi() {
                   <td className="py-4 pr-4 font-bold text-slate-900">Gagnsæi í tölfræði</td>
                   <td className="py-4 px-4">Fá skýrslur sendar eftir á, stundum seint.</td>
                   <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Rauntímatölfræði (Impressions, Clicks, CTR, CPM) deilt með API.
+                    Tölfræði (Impressions, Clicks, CTR, CPM) gegnum API, uppfærð á klukkustundar
+                    fresti.
                   </td>
                 </tr>
                 <tr>

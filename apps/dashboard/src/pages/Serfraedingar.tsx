@@ -274,7 +274,7 @@ export default function Serfraedingar() {
                   <td className="py-4 pr-4 font-bold text-slate-900">Uppsetning herferðar</td>
                   <td className="py-4 px-4">Flókin tilboðsferli eða dýrir milliliðir</td>
                   <td className="py-4 pl-4 text-blue-800 font-bold bg-blue-50/30">
-                    Sjálfvirk á 3 mínútum beint úr viðmótinu
+                    Sjálfvirk uppsetning beint úr viðmótinu
                   </td>
                 </tr>
                 <tr>
@@ -303,24 +303,24 @@ export default function Serfraedingar() {
             </h3>
             <p className="text-sm sm:text-base text-indigo-200 leading-relaxed font-semibold max-w-3xl">
               Við viljum bjóða ykkur að koma með einn af ykkar viðskiptavinum í prufu. Við getum
-              miðað herferðina nákvæmlega við vefi sem hafa ykkar markhóp, fylgst með rauntíma
-              tölfræði og borið saman árangurinn (smellihlutfall og virkni) við hefðbundna
-              risamiðla.
+              miðað herferðina nákvæmlega við vefi sem hafa ykkar markhóp, fylgst með tölfræði sem
+              uppfærist á klukkustundar fresti og borið saman árangurinn (smellihlutfall og virkni)
+              við hefðbundna risamiðla.
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4 border-t border-indigo-800/80">
             <div>
-              <span className="text-3xl font-black text-white block">1.8% - 2.5%</span>
-              <span className="text-xs text-indigo-300 font-bold">Meðal smellihlutfall (CTR)</span>
+              <span className="text-3xl font-black text-white block">550 kr</span>
+              <span className="text-xs text-indigo-300 font-bold">Fast CPM verð</span>
             </div>
             <div>
               <span className="text-3xl font-black text-white block">100%</span>
               <span className="text-xs text-indigo-300 font-bold">Kökulaust og löglegt</span>
             </div>
             <div>
-              <span className="text-3xl font-black text-white block">15ms</span>
-              <span className="text-xs text-indigo-300 font-bold">Viðbragðstími borða</span>
+              <span className="text-3xl font-black text-white block">80/20</span>
+              <span className="text-xs text-indigo-300 font-bold">Skipting til útgefenda</span>
             </div>
             <div>
               <span className="text-3xl font-black text-white block">80/20</span>

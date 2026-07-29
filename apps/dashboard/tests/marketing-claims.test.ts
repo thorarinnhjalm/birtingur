@@ -101,3 +101,47 @@ describe('Landing pages describe statistics honestly', () => {
     expect(advertiser).toContain('Rauntíma birtingaspá');
   });
 });
+
+describe('Prospect pages make no unsupported claims', () => {
+  const pages = ['Bjarni', 'Serfraedingar', 'Tryggvi', 'Vibers'].map((name) => ({
+    name,
+    source: readSource(`src/pages/${name}.tsx`),
+  }));
+
+  const each = (assert: (source: string, name: string) => void) =>
+    pages.forEach(({ source, name }) => assert(source, name));
+
+  it('does not present Cloudflare Workers as the live serving stack', () => {
+    // apps/serving deploys to Vercel; Cloudflare Workers is the unshipped V2.
+    each((source, name) => expect(source, name).not.toContain('Cloudflare Workers'));
+  });
+
+  it('quotes no unbenchmarked latency figure', () => {
+    each((source, name) => expect(source, name).not.toContain('15ms'));
+  });
+
+  it('quotes no invented CTR benchmark', () => {
+    // Nothing in apps/api computes a platform-wide CTR average.
+    each((source, name) => expect(source, name).not.toContain('1.8%'));
+  });
+
+  it('does not promise a 3-minute signup while registration is closed', () => {
+    each((source, name) => expect(source, name).not.toContain('3 mínútum'));
+  });
+
+  it('does not claim statistics are real-time', () => {
+    each((source, name) => expect(source, name).not.toContain('Rauntíma'));
+    each((source, name) => expect(source, name).not.toContain('rauntíma tölfræði'));
+  });
+
+  it('states the real built size of the embed snippet', () => {
+    // packages/snippet/dist/snippet.js is 3,105 bytes.
+    expect(readSource('src/pages/Vibers.tsx')).not.toContain('1.5 KB');
+  });
+
+  it('shows no fabricated data attributed to a named company', () => {
+    // Tryggvi.tsx is served at /tryggvi and /datera; naming another live
+    // prospect in a fake API response exposes one client to another.
+    expect(readSource('src/pages/Tryggvi.tsx')).not.toContain('"Vibers"');
+  });
+});

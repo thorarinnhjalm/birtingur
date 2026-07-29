@@ -207,9 +207,9 @@ export default function Vibers() {
             </h3>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
               Við vitum að þið viljið ekki hægja á vefnum sem þið voruð að fínstilla. Skriftan okkar
-              er undir <strong>1.5 KB</strong> og hleðst async. Ef kerfið okkar myndi einhvern tíman
+              er undir <strong>4 KB</strong> og hleðst async. Ef kerfið okkar myndi einhvern tíman
               liggja niðri, þá fellur hún hljóðlega niður (fail-silent) og felur plássið sjálfkrafa.
-              Engin seinkun, engin SEO-refsing.
+              Skriftan blokkar ekki síðuhleðslu og hættir við eftir 2 sekúndur ef ekkert svar berst.
             </p>
           </Card>
 
@@ -387,8 +387,7 @@ export default function Vibers() {
             <p className="text-sm sm:text-base text-blue-100 leading-relaxed font-semibold max-w-3xl">
               Ef þið bannið auglýsingablokka á vefjum viðskiptavina ykkar eða viljið hjálpa þeim að
               breyta ónýttu plássi í greiðslur inn á bankareikning, þá er Birtingur fullkomið tól
-              fyrir ykkur. Við sjáum um allt: innheimtu, Gemini AI skönnun, greiðslukerfi og
-              tölfræði.
+              fyrir ykkur. Við sjáum um AI-skönnun, greiðslugátt og tölfræði.
             </p>
           </div>
 
