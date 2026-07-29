@@ -64,23 +64,22 @@ export default function TermsPage() {
                 (Wallet). Auglýsendur leggja inn inneign með kreditkorti í gegnum örugga
                 greiðslugátt
                 <strong>Teya</strong>. Lágmarksinnborgun er 2.000 kr. Innlögnin er VSK-frjáls
-                innlögn á veltureikning og bætist 100% við inneign þína. Við innborgun færðu senda
-                kvittun fyrir innlögninni. Lögbundinn sölureikningur með 24% virðisaukaskatti (VSK)
-                er gefinn út fyrir 20% umsýsluþóknun Birtings jafnóðum og herferðir eru birtar.
-                Inneignir fyrnast ekki en eru almennt ekki endurgreiddar nema herferðir séu
-                stöðvaðar af hálfu kerfisins.
+                innlögn á veltureikning og bætist 100% við inneign þína. Kvittun fyrir innlögninni
+                er aðgengileg í stjórnborðinu. Umsýsluþóknun Birtings ber 24% virðisaukaskatt og
+                sundurliðun þóknunar og VSK birtist í stjórnborðinu þínu. Inneignir fyrnast ekki en
+                eru almennt ekki endurgreiddar nema herferðir séu stöðvaðar af hálfu kerfisins.
               </p>
               <p>
                 <strong>Auglýsingaefni (Creatives)</strong>: Auglýsendur bera fulla ábyrgð á því
                 efni sem þeir hlaða upp í kerfið. Öllum auglýsingum er skannað sjálfvirkt fyrir
-                óviðeigandi efni (t.d. nekt, ofbeldi) og þær þurfa samþykki kerfisstjóra áður en ær
-                fara í birtingu. Ólöglegt efni, hatursáróður eða efni sem brýtur gegn höfundarrétti
-                er stranglega bannað.
+                óviðeigandi efni (t.d. nekt, ofbeldi) og þær auglýsingar sem skönnunin merkir til
+                skoðunar fara í handvirka yfirferð áður en þær birtast. Ólöglegt efni, hatursáróður
+                eða efni sem brýtur gegn höfundarrétti er stranglega bannað.
               </p>
               <p>
-                <strong>Birtingar og kostnaður</strong>: Kostnaður er dreginn af inneign notanda í
-                rauntíma samkvæmt CPM (kostnaður per 1.000 sýningar) eða samkvæmt föstu verði
-                plássa. Kerfið ver herferð sjálfkrafa um leið og inneign hennar tæmist.
+                <strong>Birtingar og kostnaður</strong>: Kostnaður er dreginn af inneign notanda
+                samkvæmt CPM (kostnaður per 1.000 sýningar) og uppfærist á um 15 mínútna fresti.
+                Kerfið ver herferð sjálfkrafa um leið og inneign hennar tæmist.
               </p>
             </section>
 
@@ -90,7 +89,7 @@ export default function TermsPage() {
               </h2>
               <p>
                 <strong>Uppsetning og rekstur</strong>: Útgefandi setur inn létta Javascript skriftu
-                (widget.js) á sitt vefsvæði til að birta auglýsingar. Skriftan vinnur ósamstillt
+                (snippet.js) á sitt vefsvæði til að birta auglýsingar. Skriftan vinnur ósamstillt
                 (async) og fellur út hljóðlaust ef villa kemur upp, án þess að tefja eða skemma
                 fyrir vefnum.
               </p>
@@ -103,9 +102,10 @@ export default function TermsPage() {
                 <strong>Þóknun og greiðslur</strong>: Birtingur tekur{' '}
                 <strong>20% flatgreidda þóknun</strong> af öllum auglýsingatekjum sem miðlast í
                 gegnum kerfið. Þóknunin stendur straum af rekstri, greiðslugáttum og umsýslu. Tekjur
-                útgefanda safnast upp í rauntíma. Ef áunnin inneign nær <strong>5.000 kr.</strong>{' '}
-                nettó greiðist hún út á skráðan bankareikning fyrsta virka dag næsta mánaðar.
-                Útgefandi ber ábyrgð á því að banka- og reikningsupplýsingar séu réttar.
+                útgefanda uppfærast á um 15 mínútna fresti. Ef áunnin inneign nær{' '}
+                <strong>5.000 kr.</strong> nettó greiðist hún út með millifærslu á skráðan
+                bankareikning í næsta mánaðarlega útgreiðsluferli. Útgefandi ber ábyrgð á því að
+                banka- og reikningsupplýsingar séu réttar.
               </p>
             </section>
 
@@ -121,11 +121,11 @@ export default function TermsPage() {
               <p>
                 <strong>Gagnaúrvinnsla</strong>: Auglýsingamiðlun okkar er samhengismiðuð
                 (Contextual Targeting) og byggist á flokkun vefefnis og grófri staðsetningu
-                (landfræðilegt svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru aldrei
-                vistaðar í gagnagrunni okkar heldur eru þær eingöngu notaðar í rauntíma til að
-                ákvarða birtingarsvæði og koma í veg fyrir smellasvik (Click Fraud). Birtingur telst
-                því vera vinnsluaðili (Processor) gagna en útgefandi telst ábyrgðaraðili
-                (Controller) gagnvart sínum lesendum.
+                (landfræðilegt svæði greint út frá IP-tölu á netþjónsstigi). IP-tölur eru ekki
+                vistaðar í gagnagrunni okkar. Þær eru eingöngu notaðar í skammtímaminni, í mesta
+                lagi eina klukkustund, til að ákvarða birtingarsvæði og koma í veg fyrir smellasvik
+                (Click Fraud). Birtingur telst því vera vinnsluaðili (Processor) gagna en útgefandi
+                telst ábyrgðaraðili (Controller) gagnvart sínum lesendum.
               </p>
             </section>
 
