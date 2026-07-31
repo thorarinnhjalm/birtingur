@@ -26,16 +26,18 @@
 
 ## Frontier & Active Decision Tickets
 
-*(Allir 7 ákvarðanamiðarnir á jaðrinum hafa verið leystir og samþykktir!)*
+_(Allir 7 ákvarðanamiðarnir á jaðrinum hafa verið leystir og samþykktir!)_
 
 ## Not yet specified
 
 <!-- Fog of war: Innan ramma verkefnisins en ekki komið á miðastig enn -->
+
 - Upplifun og onboarding flæði fyrir íslenska ör-útgefendur (t.d. matarbloggara).
 - Prófanir á Payday/Blikk bókhalds- og reikningaútsendingum fyrir íslensk fyrirtæki.
 
 ## Out of scope
 
 <!-- Ákvarðanir eða hugmyndir sem hafa verið útilokaðar -->
+
 - **Alþjóðavæðing & erlendir gjaldmiðlar:** Birtingur er 100% sérsniðinn fyrir íslenska markaðinn (ISK, VSK 24%, íslenskir bloggarar) — allur stuðningur við erlenda gjaldmiðla eða svæði situr utan ramma.
 - Samþætting við erlendar auglýsingaveitur (Google AdSense / Rubicon / AppNexus SSP) — Birtingur er eingöngu beinn flötur fyrir íslenska ör-útgefendur.

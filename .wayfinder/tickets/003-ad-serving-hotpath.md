@@ -7,16 +7,16 @@
 
 ## Question
 
-Hvernig er hraðvirkni (`latency`) og persónuvernd tryggð í `apps/serving` á heitu slóðinni (`/v1/ad`, impression pixel, click tracking) án vafrakakna (*cookies*)?
+Hvernig er hraðvirkni (`latency`) og persónuvernd tryggð í `apps/serving` á heitu slóðinni (`/v1/ad`, impression pixel, click tracking) án vafrakakna (_cookies_)?
 
 ## Resolution / Niðurstaða
 
 1. **Persónuvernd án vafrakakna (Cookie-Free Guarantee):**
    - Engin `Set-Cookie` færsla er tekin af `apps/serving` á neinum slóðum. Prófunin `tests/ad-route.test.ts` staðfestir: `expect(res.headers.get('set-cookie')).toBeNull()`.
-   - Tíðnitakmörkun (*frequency capping*) notar einungis `localStorage` visitor token (`?vid=`) af upprunavef útgefanda. Ef samþykki vantar skilar `getVisitorToken` tómum streng `''` og enginn tilbúinn auðkennislykill er geymdur.
+   - Tíðnitakmörkun (_frequency capping_) notar einungis `localStorage` visitor token (`?vid=`) af upprunavef útgefanda. Ef samþykki vantar skilar `getVisitorToken` tómum streng `''` og enginn tilbúinn auðkennislykill er geymdur.
 
 2. **Lágt viðbragðsþol (Hot-Path Latency Optimization):**
-   - Samsetning herferða og hólfa (*category matching*) er reiknuð fyrirfram við uppfærslu skyndiminnis (`pushCacheForCampaign`).
+   - Samsetning herferða og hólfa (_category matching_) er reiknuð fyrirfram við uppfærslu skyndiminnis (`pushCacheForCampaign`).
    - Serving heita slóðin les beint úr Redis (`SlotCacheEntry`) og velur auglýsingu í minni með `selectCreative`.
    - Budget-takmörk (`budget:{id}`) og pacing-takmörk eru staðfest með hraðvirkri Redis pípulögn.
 

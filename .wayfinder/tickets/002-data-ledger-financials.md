@@ -15,12 +15,12 @@ Hvernig tryggjum við 100% samræmi milli Firestore Ledger, committed-funds rese
    - Alla peningafærslur skráast í `ledger` safnið í Firestore með fastgreindum gerðum (`topup`, `campaign_charge`, `refund`, `publisher_credit`, `platform_fee`).
    - Raunstöðu er einungis treyst frá `sumByParty` úr ledger færslum. Mirror-svæðið `walletBalanceIsk` á auglýsanda er uppfært til flýtis, en er alltaf sannreynt gegn ledger í afstemmingu.
 
-2. **Gátt um tekin efnistök (*Committed-Funds Reservation Gating*):**
-   - Við stofnun herferðar eða hækkun fjárhagsáætlunar eru fjármunir teknir í frátekið horf (*committed*) án þess að færa neina neikvæða færslu á ledger-inn strax.
+2. **Gátt um tekin efnistök (_Committed-Funds Reservation Gating_):**
+   - Við stofnun herferðar eða hækkun fjárhagsáætlunar eru fjármunir teknir í frátekið horf (_committed_) án þess að færa neina neikvæða færslu á ledger-inn strax.
    - `availableIsk = balanceIsk - committedIsk`.
-   - Skráningarprófun keyrir í Firestore transaction (`getAvailableBalanceInTransaction`) sem læsir `fundsVersion` á auglýsendaskjalinu til að koma í veg fyrir kapphlaupsskilyrði (*race conditions*).
+   - Skráningarprófun keyrir í Firestore transaction (`getAvailableBalanceInTransaction`) sem læsir `fundsVersion` á auglýsendaskjalinu til að koma í veg fyrir kapphlaupsskilyrði (_race conditions_).
 
-3. **Varðveisluregla Peninga í Áfallandi Gjöldum (*Money Conservation*):**
+3. **Varðveisluregla Peninga í Áfallandi Gjöldum (_Money Conservation_):**
    - Hjá `/api/cron-accrue` eru birtingar teknar úr Redis röðinni (`events:accrual`).
    - Auglýsandi er gjaldfærður fyrir heildarbrúttó (`campaign_charge`), og útbýting skiptist í `publisher_credit` (80%) og `platform_fee` (20%).
    - Nákvæmt jafnvægi: `sum(publisher_credit) + sum(platform_fee) === sum(campaign_charge)`.

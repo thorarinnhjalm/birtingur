@@ -16,7 +16,7 @@ Eru Firestore öryggisreglurnar (`firebase/security-rules`) og REST API auth sco
 
 2. **Lokað á beinar breytingar notenda (Zero Client Writes):**
    - Í `firebase/firestore.rules` er lokað á allar beinar breytingar frá vafra/biðlara (`allow write: if false;` á öllum söfnum: `publishers`, `slots`, `advertisers`, `creatives`, `campaigns`, `ledger`, `payouts`, `stats`).
-   - Öll skrif verða að fara í gegnum REST API þjónustuaðganginn (*service account*), sem útilokar að notandi geti breytt veskisstöðu, birtingargjöldum eða herferðum beint.
+   - Öll skrif verða að fara í gegnum REST API þjónustuaðganginn (_service account_), sem útilokar að notandi geti breytt veskisstöðu, birtingargjöldum eða herferðum beint.
 
 3. **Einangrun á API lyklum & Aðgangstakmörk (`requireScope` & `rejectApiKeyMutation`):**
    - **`requireScope`**: Tryggir að API lyklar sem eru merkta `advertiser` geti ekki opnað útgefendalínur (og öfugt).

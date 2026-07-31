@@ -17,8 +17,8 @@ Hvernig komum við í veg fyrir gervitraffík og bot-smelli á íslenskum niche 
    - Redis `claimSignatureOnce` tryggir að hver undirskrift er aðeins nýtt einu sinni. Endurteknir smellir eða falsaðir pixel-kallanir eru hljóðlega felldar niður.
 
 2. **Hraðatakar & Tvítekningarsía (`apps/serving/src/lib/fraud.ts`):**
-   - **Tvísmella-vörn (*Click Deduplication*):** `isClickDeduplicated` læsir tengingu á IP-tölu og auglýsingu í 30 sekúndur. Margir smellir í röð gjaldfærast ekki.
-   - **Hraðamörk IP-talna (*Hourly Rate Caps*):** `checkAndIncrementRateLimit` setur ströng hámörk: hámark 30 birtingar og 3 smellir á klukkustund á hverja IP-tölu fyrir hverja herferð.
+   - **Tvísmella-vörn (_Click Deduplication_):** `isClickDeduplicated` læsir tengingu á IP-tölu og auglýsingu í 30 sekúndur. Margir smellir í röð gjaldfærast ekki.
+   - **Hraðamörk IP-talna (_Hourly Rate Caps_):** `checkAndIncrementRateLimit` setur ströng hámörk: hámark 30 birtingar og 3 smellir á klukkustund á hverja IP-tölu fyrir hverja herferð.
 
-3. **IAB Sýnileikastaðall (*Viewability Standard*):**
+3. **IAB Sýnileikastaðall (_Viewability Standard_):**
    - Innfellda skriftan (`packages/snippet`) notar `IntersectionObserver` og sendir einungis birtingarpixel þegar auglýsingin er í raun sýnileg á skjá notandans (IAB sýnileikastaðall). Fuldar eða bakgrunnsbirtingar innheimtast aldrei.
