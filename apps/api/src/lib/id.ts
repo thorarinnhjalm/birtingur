@@ -10,7 +10,8 @@ export type IdPrefix =
   | 'pay'
   | 'sup'
   | 'not'
-  | 'gen';
+  | 'gen'
+  | 'wtl';
 
 export function generateId(prefix: IdPrefix): string {
   const randomStr = randomBytes(12).toString('hex');

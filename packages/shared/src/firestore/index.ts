@@ -9,4 +9,5 @@ export {
   payoutConverter,
   notificationConverter,
   generatedPreviewManifestConverter,
+  waitlistEntryConverter,
 } from './converters.js';

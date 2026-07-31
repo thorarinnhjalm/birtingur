@@ -26,6 +26,7 @@ export type { LedgerEntry, LedgerEntryType, LedgerParty, Payout } from '../schem
 
 export type { HourlyStats, PublisherStatsBreakdown } from '../schemas/stats.js';
 export type { WidgetKey, WidgetKeyType } from '../schemas/widget-key.js';
+export type { WaitlistEntry, CreateWaitlistInput, WaitlistRole } from '../schemas/waitlist.js';
 
 export interface CachedCreative {
   creativeId: string;

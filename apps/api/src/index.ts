@@ -14,6 +14,7 @@ import { widgetsRouter } from './routes/widgets.js';
 import { categoriesRouter } from './routes/categories.js';
 import { supportRouter } from './routes/support.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { waitlistRoute } from './routes/waitlist.js';
 
 export const app = new Hono();
 
@@ -51,5 +52,6 @@ app.route('/v1/widgets', widgetsRouter);
 app.route('/v1/categories', categoriesRouter);
 app.route('/v1/support', supportRouter);
 app.route('/v1/notifications', notificationsRouter);
+app.route('/v1/waitlist', waitlistRoute);
 
 export default app;
