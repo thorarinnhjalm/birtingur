@@ -76,6 +76,7 @@ Auth: `Authorization: Bearer ak_...` (an API key created in the dashboard).
 ## Key URLs
 
 - https://www.birtingur.app/ — marketing site and dashboard
+- https://www.birtingur.app/en — global English landing page & waitlist for creators and brands
 - https://www.birtingur.app/auglysendur — for advertisers
 - https://www.birtingur.app/midlar — for publishers
 - https://www.birtingur.app/faq — frequently asked questions, including MCP
