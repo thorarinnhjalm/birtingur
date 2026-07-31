@@ -155,7 +155,7 @@ export default function EnglishLanding() {
         <span>
           Birtingur is expanding its privacy-first category ad network globally.{' '}
           <a
-            href="#waitlist-form"
+            href="#waitlist-section"
             className="font-bold text-primary underline hover:text-primary-800"
           >
             Join the early access waitlist →
@@ -176,7 +176,7 @@ export default function EnglishLanding() {
           </div>
 
           <div>
-            <a href="#waitlist-form">
+            <a href="#waitlist-section">
               <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
                 Join Waitlist →
               </Button>
@@ -186,214 +186,193 @@ export default function EnglishLanding() {
       </header>
 
       <main className="grow">
-        {/* HERO SECTION */}
-        <section
-          style={{ paddingTop: 'clamp(64px,8vw,108px)', paddingBottom: 'clamp(56px,7vw,88px)' }}
-        >
-          <div
-            className="mx-auto"
+        {/* HERO SECTION — FULL WIDTH STACK (NO OVERLAP POSSIBLE) */}
+        <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-left">
+          <Eyebrow className="mb-4">Cookie-Free Category Display Network</Eyebrow>
+
+          <h1
+            className="m-0 font-extrabold text-slate-900 tracking-tight"
             style={{
-              maxWidth: 1180,
-              paddingLeft: 'clamp(24px,5vw,72px)',
-              paddingRight: 'clamp(24px,5vw,72px)',
+              fontSize: 'clamp(40px,6vw,84px)',
+              lineHeight: 1.02,
+              textWrap: 'balance',
             }}
           >
-            <Eyebrow className="mb-4">Cookie-Free Category Display Network</Eyebrow>
+            Advertise by interest, <br className="hidden sm:inline" />
+            not by tracking cookies
+          </h1>
 
-            <h1
-              className="m-0 max-w-[18ch] font-extrabold text-slate-900"
-              style={{
-                fontSize: 'clamp(42px,7vw,96px)',
-                letterSpacing: '-0.035em',
-                lineHeight: 0.98,
-                textWrap: 'balance',
-              }}
-            >
-              Advertise by interest, not by tracking cookies
-            </h1>
+          <p className="mt-6 text-lg sm:text-xl text-slate-600 leading-relaxed max-w-3xl">
+            Birtingur connects niche digital creators and lifestyle blogs directly with
+            forward-thinking brands. Zero third-party cookies, full GDPR privacy by design, and
+            transparent flat-CPM category buying.
+          </p>
 
-            <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-start">
-              {/* LEFT COL: EDITORIAL EXPLANATION */}
-              <div className="lg:col-span-6">
-                <p className="m-0 text-lg leading-relaxed text-slate-600 sm:text-xl">
-                  Birtingur connects niche digital creators and lifestyle blogs directly with
-                  forward-thinking brands. Zero third-party cookies, full GDPR privacy by design,
-                  and transparent flat-CPM category buying.
-                </p>
-
-                {/* ENGLISH CATEGORY TICKER PILLS */}
-                <div className="mt-8">
-                  <span className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-                    Active Content Categories (English Taxonomy)
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {ENGLISH_CATEGORIES.map((lbl) => (
-                      <span
-                        key={lbl}
-                        className="rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary/40 hover:bg-primary/5 transition-colors"
-                      >
-                        {lbl}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-10 grid grid-cols-2 gap-6 border-t border-slate-200 pt-8">
-                  <div>
-                    <BigFigure value="80%" suffix="Revenue Share" />
-                    <p className="mt-2 text-xs font-medium text-slate-500">
-                      Transparent payout share for creators
-                    </p>
-                  </div>
-                  <div>
-                    <BigFigure value="100%" suffix="Cookie-Free" />
-                    <p className="mt-2 text-xs font-medium text-slate-500">
-                      Zero tracking cookies or cross-site profiling
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* RIGHT COL: WAITLIST FORM CARD */}
-              <div className="lg:col-span-6" id="waitlist-form">
-                <Card className="p-6 md:p-8 bg-white shadow-xl rounded-2xl border border-slate-200">
-                  <h2 className="m-0 text-xl font-extrabold text-slate-900 tracking-tight mb-2">
-                    Reserve Your Early Access Spot
-                  </h2>
-                  <p className="text-sm text-slate-500 mb-6">
-                    Join creators and brands testing Birtingur in international markets.
-                  </p>
-
-                  <div className="mb-6">
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                      I am joining as a
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      <PillButton
-                        active={role === 'advertiser'}
-                        onClick={() => setRole('advertiser')}
-                      >
-                        Brand / Advertiser
-                      </PillButton>
-                      <PillButton
-                        active={role === 'publisher'}
-                        onClick={() => setRole('publisher')}
-                      >
-                        Creator / Publisher
-                      </PillButton>
-                      <PillButton active={role === 'both'} onClick={() => setRole('both')}>
-                        Both
-                      </PillButton>
-                    </div>
-                  </div>
-
-                  {status === 'success' ? (
-                    <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-center">
-                      <span className="text-3xl mb-2 block">🎉</span>
-                      <p className="font-extrabold text-lg">{message}</p>
-                      <p className="text-xs mt-2 text-emerald-700 leading-normal">
-                        Your spot is reserved! We will notify you as soon as early access expands to
-                        your content category.
-                      </p>
-                      <Button
-                        variant="secondary"
-                        className="mt-5 text-xs"
-                        onClick={() => setStatus('idle')}
-                      >
-                        Register Another Email
-                      </Button>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <label
-                          className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                          htmlFor="waitlist-email"
-                        >
-                          Work Email Address <span className="text-rose-500">*</span>
-                        </label>
-                        <input
-                          id="waitlist-email"
-                          type="email"
-                          required
-                          placeholder="name@company.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label
-                            className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                            htmlFor="waitlist-website"
-                          >
-                            Website / Channel URL
-                          </label>
-                          <input
-                            id="waitlist-website"
-                            type="url"
-                            placeholder="https://myblog.com"
-                            value={websiteUrl}
-                            onChange={(e) => setWebsiteUrl(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
-                          />
-                        </div>
-                        <div>
-                          <label
-                            className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
-                            htmlFor="waitlist-category"
-                          >
-                            Primary Category
-                          </label>
-                          <input
-                            id="waitlist-category"
-                            type="text"
-                            placeholder="Food, Tech, Travel..."
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      {status === 'error' && (
-                        <p className="text-xs text-rose-600 font-semibold">{message}</p>
-                      )}
-
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={status === 'submitting'}
-                        className="w-full py-3.5 text-base font-bold shadow-lg shadow-primary/20 mt-2"
-                      >
-                        {status === 'submitting'
-                          ? 'Joining Waitlist...'
-                          : 'Join Early Access Waitlist →'}
-                      </Button>
-
-                      <p className="text-[11px] text-center text-slate-400 mt-2">
-                        🔒 Privacy first. No tracking cookies. Zero spam.
-                      </p>
-                    </form>
-                  )}
-                </Card>
-              </div>
+          {/* ACTIVE CONTENT CATEGORIES */}
+          <div className="mt-10">
+            <span className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+              Active Content Categories
+            </span>
+            <div className="flex flex-wrap gap-2.5">
+              {ENGLISH_CATEGORIES.map((lbl) => (
+                <span
+                  key={lbl}
+                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                >
+                  {lbl}
+                </span>
+              ))}
             </div>
+          </div>
+
+          {/* KEY STATS ROW */}
+          <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 gap-8 border-t border-slate-200 pt-8 max-w-2xl">
+            <div>
+              <BigFigure value="80%" suffix="Revenue Share" />
+              <p className="mt-2 text-xs font-medium text-slate-500">
+                Transparent creator payout share
+              </p>
+            </div>
+            <div>
+              <BigFigure value="100%" suffix="Cookie-Free" />
+              <p className="mt-2 text-xs font-medium text-slate-500">
+                Zero tracking cookies or cross-site profiling
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* DEDICATED WAITLIST SECTION — PROMINENT HIGHLIGHT BOX */}
+        <section className="py-16 bg-slate-900 text-white" id="waitlist-section">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <span className="inline-block rounded-full bg-primary/20 text-primary-300 px-3 py-1 text-xs font-bold uppercase tracking-wider mb-3">
+                Early Access Registration
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white m-0">
+                Reserve Your Early Access Spot
+              </h2>
+              <p className="mt-3 text-slate-300 text-base">
+                Join creators and brands testing Birtingur in international markets.
+              </p>
+            </div>
+
+            <Card className="p-6 md:p-10 bg-white text-slate-900 shadow-2xl rounded-2xl border border-slate-200 max-w-2xl mx-auto">
+              <div className="mb-6">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  I am joining as a
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <PillButton active={role === 'advertiser'} onClick={() => setRole('advertiser')}>
+                    Brand / Advertiser
+                  </PillButton>
+                  <PillButton active={role === 'publisher'} onClick={() => setRole('publisher')}>
+                    Creator / Publisher
+                  </PillButton>
+                  <PillButton active={role === 'both'} onClick={() => setRole('both')}>
+                    Both
+                  </PillButton>
+                </div>
+              </div>
+
+              {status === 'success' ? (
+                <div className="p-6 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-center">
+                  <span className="text-4xl mb-3 block">🎉</span>
+                  <p className="font-extrabold text-xl">{message}</p>
+                  <p className="text-sm mt-2 text-emerald-700 leading-relaxed">
+                    Your spot is reserved! We will reach out as soon as early access expands to your
+                    content category.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    className="mt-6 text-xs font-bold"
+                    onClick={() => setStatus('idle')}
+                  >
+                    Register Another Email
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label
+                      className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                      htmlFor="waitlist-email"
+                    >
+                      Work Email Address <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      id="waitlist-email"
+                      type="email"
+                      required
+                      placeholder="name@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                        htmlFor="waitlist-website"
+                      >
+                        Website / Channel URL
+                      </label>
+                      <input
+                        id="waitlist-website"
+                        type="url"
+                        placeholder="https://myblog.com"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
+                        htmlFor="waitlist-category"
+                      >
+                        Primary Category
+                      </label>
+                      <input
+                        id="waitlist-category"
+                        type="text"
+                        placeholder="Food, Tech, Travel..."
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {status === 'error' && (
+                    <p className="text-xs text-rose-600 font-bold">{message}</p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={status === 'submitting'}
+                    className="w-full py-4 text-base font-bold shadow-xl shadow-primary/30 mt-2"
+                  >
+                    {status === 'submitting'
+                      ? 'Joining Waitlist...'
+                      : 'Join Early Access Waitlist →'}
+                  </Button>
+
+                  <p className="text-xs text-center text-slate-400 mt-3">
+                    🔒 Privacy first. Zero tracking cookies. Cancel anytime.
+                  </p>
+                </form>
+              )}
+            </Card>
           </div>
         </section>
 
         {/* 3-STEP HOW IT WORKS */}
         <section className="py-20 bg-slate-50 border-t border-slate-200">
-          <div
-            className="mx-auto"
-            style={{
-              maxWidth: 1180,
-              paddingLeft: 'clamp(24px,5vw,72px)',
-              paddingRight: 'clamp(24px,5vw,72px)',
-            }}
-          >
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-14">
               <Eyebrow>How It Works</Eyebrow>
               <h2 className="m-0 text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl mt-2">
@@ -444,14 +423,7 @@ export default function EnglishLanding() {
 
         {/* COMPREHENSIVE ENGLISH FAQ SECTION (SEO & LLMO ENHANCED) */}
         <section className="py-20 bg-white border-t border-slate-200">
-          <div
-            className="mx-auto"
-            style={{
-              maxWidth: 1000,
-              paddingLeft: 'clamp(24px,5vw,72px)',
-              paddingRight: 'clamp(24px,5vw,72px)',
-            }}
-          >
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <Eyebrow>Frequently Asked Questions</Eyebrow>
               <h2 className="m-0 text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl mt-2">
@@ -487,7 +459,7 @@ export default function EnglishLanding() {
       </main>
 
       {/* DEDICATED CLEAN ENGLISH FOOTER */}
-      <footer className="border-t border-slate-200 bg-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t border-slate-200 bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 text-white">
         <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <Logo className="h-7 w-auto text-white" />
