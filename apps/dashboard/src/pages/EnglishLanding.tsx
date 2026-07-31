@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import PublicHeader from '@/components/layout/PublicHeader';
-import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Eyebrow, BigFigure, PillButton } from '@/components/ui/editorial';
 import type { WaitlistRole } from '@ada/shared/types';
 import { AD_CATEGORIES } from '@ada/shared';
+import Logo from '@/components/ui/Logo';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
@@ -58,7 +56,6 @@ const ENGLISH_FAQS = [
 ];
 
 export default function EnglishLanding() {
-  const navigate = useNavigate();
   const [role, setRole] = useState<WaitlistRole>('advertiser');
   const [email, setEmail] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
@@ -151,14 +148,6 @@ export default function EnglishLanding() {
     }
   };
 
-  const changeTab = (tab: string) => {
-    if (tab === 'advertisers') navigate('/auglysendur');
-    else if (tab === 'publishers') navigate('/midlar');
-    else if (tab === 'faq') navigate('/faq');
-    else if (tab === 'terms') navigate('/skilmalar');
-    else navigate('/');
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased selection:bg-primary selection:text-white">
       {/* INFORMATIONAL BANNER BAR */}
@@ -177,8 +166,27 @@ export default function EnglishLanding() {
         </span>
       </div>
 
-      {/* HEADER */}
-      <PublicHeader onTabChange={changeTab} currentTab="home" />
+      {/* DEDICATED CLEAN ENGLISH HEADER */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <a href="/en" className="flex items-center gap-2 text-slate-900 no-underline">
+              <Logo className="h-8 w-auto text-primary" />
+            </a>
+            <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+              Global Beta
+            </span>
+          </div>
+
+          <div>
+            <a href="#waitlist-form">
+              <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
+                Join Waitlist →
+              </Button>
+            </a>
+          </div>
+        </div>
+      </header>
 
       <main className="grow">
         {/* HERO SECTION */}
@@ -422,7 +430,7 @@ export default function EnglishLanding() {
               </Card>
 
               <Card className="p-8 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold mb-5">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xl font-extrabold mb-5">
                   03
                 </div>
                 <h3 className="m-0 text-xl font-bold text-slate-900">
@@ -481,8 +489,21 @@ export default function EnglishLanding() {
         </section>
       </main>
 
-      {/* FOOTER */}
-      <PublicFooter onTabChange={changeTab} />
+      {/* DEDICATED CLEAN ENGLISH FOOTER */}
+      <footer className="border-t border-slate-200 bg-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <Logo className="h-7 w-auto text-white" />
+            <span className="text-xs text-slate-400">
+              — The Privacy-First Category Display Network
+            </span>
+          </div>
+
+          <div className="text-xs text-slate-400 text-center md:text-right">
+            © {new Date().getFullYear()} Birtingur. All rights reserved. 100% Cookie-Free.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
