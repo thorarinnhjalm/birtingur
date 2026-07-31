@@ -28,14 +28,14 @@ Gæða ensk lendingarsíða (`/en`) í `apps/dashboard` ásamt tvíþættri bið
 
 ## Frontier & Active Decision Tickets
 
-_(Allir 4 miðarnir fyrir ensku lendingarsíðuna og biðlistann hafa verið samþykktir og leystir!)_
+- [012: English SEO Content Clusters & Category Landing Pages](tickets/012-llm-geo-landing-pages-content.md) — `wayfinder:task` — Útfærsla á leitarorðastefnu með enskum fræðslugreinum (`/en/guides/*`) og flokkasíðum (`/en/categories/*`).
+- [013: Waitlist Email Confirmation & Telemetry](tickets/013-waitlist-telemetry-email-welcome.md) — `wayfinder:task` — Sjálfvirkur velkomins-tölvupóstur á ensku via Resend og biðlistatölfræði í stjórnborði stjórnenda.
 
 ## Not yet specified
 
 <!-- Fog of war: Innan ramma verkefnisins en ekki komið á miðastig enn -->
 
-- Sjálfvirk tölvupóststaðfesting / velkomins-tölvupóstur við skráningu á biðlista via Resend.
-- Mælingar á alþjóðlegri traffík (_Analytics & Attribution_) til að greina hvaða lönd/flokkar sýna mestan áhuga.
+- Mælingar á alþjóðlegri traffík (_Analytics & Attribution_) til að greina hvaða lönd sýna mestan áhuga.
 
 ## Out of scope
 
