@@ -11,21 +11,18 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
 // Mapped English Category Labels for International SEO & UX
 const ENGLISH_CATEGORY_MAP: Record<string, string> = {
+  matur: 'Food & Culinary',
+  ferdalog: 'Travel & Outdoors',
+  tiska_fegurd: 'Fashion & Beauty',
+  taekni: 'Tech & Innovation',
+  heilsa_likamsraekt: 'Health & Fitness',
+  fjarmal_vidskipti: 'Business & Finance',
+  ithrottir: 'Sports & Athletics',
+  born_foreldrar: 'Parenting & Family',
+  bilar: 'Automotive & Transport',
+  heimili_honnun: 'Home & Interior Design',
   afthreying_menning: 'Entertainment & Culture',
-  bilus_samgongur: 'Automotive & Transport',
-  bolustadir_heimili: 'Home & Living',
   dyr_gaeludyr: 'Pets & Animals',
-  fjarmal_visskipti: 'Business & Finance',
-  frettir_samfelag: 'News & Society',
-  hafi_sjo: 'Maritime & Nautical',
-  heilsa_snyrtivorur: 'Health & Beauty',
-  ithrottir_hreyfing: 'Sports & Fitness',
-  matur_drykkur: 'Food & Culinary',
-  stjornmal_samfelag: 'Politics & Opinion',
-  taekni_tolvur: 'Tech & Innovation',
-  tiska_lfsstll: 'Fashion & Lifestyle',
-  tnslist: 'Music & Audio',
-  utivist_ferdalog: 'Travel & Outdoors',
 };
 
 const ENGLISH_CATEGORIES = AD_CATEGORIES.map(
