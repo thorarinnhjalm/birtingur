@@ -115,10 +115,7 @@ describe('extendCampaign', () => {
     // Zero the leftover directly: accrual (not chargeCampaign) is what
     // decrements remainingIsk in production, and running the whole accrual
     // pipeline here would test the wrong unit.
-    await db
-      .collection(COLLECTIONS.campaigns)
-      .doc(cmp.id)
-      .update({ 'budget.remainingIsk': 0 });
+    await db.collection(COLLECTIONS.campaigns).doc(cmp.id).update({ 'budget.remainingIsk': 0 });
 
     await expect(extendCampaign(cmp.id, adv.id, tomorrow())).rejects.toMatchObject({
       statusCode: 400,
