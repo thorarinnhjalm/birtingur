@@ -30,7 +30,7 @@ const ADVERTISER_STEPS = [
   {
     n: '02',
     title: 'Ákveddu fjárhæð',
-    desc: 'Fast CPM verð og rauntíma birtingaspá áður en þú borgar. Engin uppboð, engir faldir kostnaðir.',
+    desc: 'Fast CPM verð og birtingaspá áður en þú borgar. Engin uppboð, engir faldir kostnaðir.',
   },
   {
     n: '03',
@@ -59,7 +59,7 @@ const TRUST_ITEMS = [
   },
   {
     title: 'Sjáðu áætlunina áður en þú borgar',
-    desc: 'Rauntíma birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.',
+    desc: 'Birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.',
   },
   {
     title: 'Þú ferð aldrei yfir fjárhagsáætlun',

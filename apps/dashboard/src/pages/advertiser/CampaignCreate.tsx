@@ -319,7 +319,7 @@ export default function CampaignCreate() {
                 <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                   Birtingar eru verðlagðar samkvæmt flötu gjaldskrá kerfisins á{' '}
                   <strong>{fmtNum(FLAT_CPM_ISK)} kr. pr. 1.000 birtingar</strong> (CPM). Greitt er
-                  úr veskinu þínu í rauntíma eftir því sem auglýsingar birtast.
+                  sjálfkrafa úr veskinu þínu eftir því sem auglýsingar birtast.
                 </p>
               </div>
             </div>

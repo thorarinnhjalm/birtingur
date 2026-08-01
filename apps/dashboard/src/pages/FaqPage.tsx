@@ -148,7 +148,7 @@ export default function FaqPage() {
       },
       {
         q: 'Hvernig verndar Birtingur auglýsendur gegn smellasvikum (click fraud)?',
-        a: 'Við verjum fjárhagsáætlun þína með vörnum á netþjónastigi. Allir smellir og birtingar eru HMAC-undirritaðir og staðfestir í rauntíma. Kerfið síar út tvítekna atburði og óeðlilega smellitíðni úr sömu IP-tölu. Grunaðir sviksamlegir atburðir eru hreinsaðir áður en þeir birtast í mælaborðinu þínu og eru ekki gjaldfærðir.',
+        a: 'Við verjum fjárhagsáætlun þína með vörnum á netþjónastigi. Allir smellir og birtingar eru HMAC-undirritaðir og staðfestir við móttöku. Kerfið síar út tvítekna atburði og óeðlilega smellitíðni úr sömu IP-tölu. Grunaðir sviksamlegir atburðir eru hreinsaðir áður en þeir birtast í mælaborðinu þínu og eru ekki gjaldfærðir.',
         pillar: 'technical',
         tags: ['clickfraud', 'öryggi', 'svik', 'smellir'],
       },

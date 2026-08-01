@@ -420,7 +420,7 @@ export default function LandingPage() {
                   Sjáðu áætlunina áður en þú borgar
                 </h3>
                 <p className="m-0 text-[15px] leading-[1.65] text-slate-600">
-                  Rauntíma birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.
+                  Birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.
                 </p>
               </div>
               <div className="border-t-2 border-primary pt-[26px]">
