@@ -51,9 +51,7 @@ export function NumberedSection({
         <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">{title}</h2>
       </div>
       {lede && (
-        <p className="mt-3 mb-[26px] max-w-[52ch] text-[15px] leading-normal text-slate-500">
-          {lede}
-        </p>
+        <p className="mt-3 mb-6.5 max-w-[52ch] text-[15px] leading-normal text-slate-500">{lede}</p>
       )}
       {children}
     </section>
@@ -95,7 +93,7 @@ export function PillButton({
       type="button"
       onClick={onClick}
       className={clsx(
-        'cursor-pointer rounded-full border px-4.5 py-[9px] text-[14px] font-semibold tabular-nums transition-colors',
+        'cursor-pointer rounded-full border px-4.5 py-2.25 text-[14px] font-semibold tabular-nums transition-colors',
         active
           ? 'border-primary bg-primary/6 text-primary'
           : 'border-slate-200 bg-white text-slate-700',
@@ -108,11 +106,11 @@ export function PillButton({
 
 export function StepIndicator({ steps, current }: { steps: string[]; current: number }) {
   return (
-    <div className="mt-8 flex flex-wrap items-center gap-[18px]">
+    <div className="mt-8 flex flex-wrap items-center gap-4.5">
       {steps.map((step, i) => (
         <div className="contents" key={i}>
-          {i > 0 && <div className="h-px w-[26px] bg-outline-variant" />}
-          <div className="flex items-baseline gap-[9px]">
+          {i > 0 && <div className="h-px w-6.5 bg-outline-variant" />}
+          <div className="flex items-baseline gap-2.25">
             <span
               className={clsx(
                 'text-[13px] font-extrabold tabular-nums',
