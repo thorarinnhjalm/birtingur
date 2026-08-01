@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Bot, Zap, Check, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -194,9 +195,10 @@ export default function EnglishLanding() {
           Birtingur is expanding its MCP-native & privacy-first ad network globally.{' '}
           <a
             href="#waitlist-section"
-            className="font-bold text-primary underline hover:text-primary-800"
+            className="inline-flex items-center gap-1 font-bold text-primary underline hover:text-primary-800"
           >
-            Join the early access waitlist →
+            <span>Join the early access waitlist</span>
+            <ArrowRight className="h-3.5 w-3.5" />
           </a>
         </span>
       </div>
@@ -222,7 +224,10 @@ export default function EnglishLanding() {
             </Link>
             <a href="#waitlist-section">
               <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
-                Join Waitlist →
+                <span className="flex items-center gap-1.5">
+                  <span>Join Waitlist</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
               </Button>
             </a>
           </div>
@@ -233,7 +238,8 @@ export default function EnglishLanding() {
         {/* HERO SECTION */}
         <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-left">
           <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 mb-6">
-            <span>🤖 MCP-Native & Cookie-Free Display Ad Network</span>
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>MCP-Native & Cookie-Free Display Ad Network</span>
           </div>
 
           <h1
@@ -264,10 +270,10 @@ export default function EnglishLanding() {
                 <Link
                   key={c.slug}
                   to={`/en/categories/${c.routeSlug}`}
-                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-150 inline-flex items-center gap-1.5"
+                  className="group rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-150 inline-flex items-center gap-1.5"
                 >
                   <span>{c.label}</span>
-                  <span className="text-[10px] text-slate-400">→</span>
+                  <ArrowRight className="h-3 w-3 text-slate-400 group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
                 </Link>
               ))}
             </div>
@@ -309,10 +315,10 @@ export default function EnglishLanding() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* ADVERTISER / AGENT SIDE */}
-              <Card className="p-8 bg-slate-800/80 border border-slate-700 rounded-3xl text-white flex flex-col justify-between">
+              <Card className="p-8 bg-slate-800/90 border border-slate-700/80 rounded-3xl text-white flex flex-col justify-between shadow-xl">
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary-300 text-2xl mb-6">
-                    🤖
+                  <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary-300 mb-6">
+                    <Bot className="h-6 w-6 text-primary-300" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-primary-300 block mb-2">
                     For AI Buying Agents & Marketers
@@ -332,38 +338,42 @@ export default function EnglishLanding() {
                     to evaluate target verticals, set spending caps, and buy display ads
                     programmatically.
                   </p>
-                  <ul className="space-y-2.5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Automated category selection &
-                      campaign deployment
+                  <ul className="space-y-3 text-xs text-slate-300 p-0 m-0 list-none">
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Automated category selection & campaign deployment</span>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Enforced money guardrails
-                      (`autoApproveLimitIsk`)
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>
+                        Enforced money guardrails (<code>autoApproveLimitIsk</code>)
+                      </span>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Hourly telemetry (`get_wallet`,
-                      `list_campaigns`)
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>
+                        Hourly telemetry (<code>get_wallet</code>, <code>list_campaigns</code>)
+                      </span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-700">
+                <div className="mt-8 pt-6 border-t border-slate-700/80">
                   <Link
                     to="/en/guides/mcp-ai-agent-advertising"
-                    className="text-xs font-bold text-primary-300 hover:text-white flex items-center justify-between no-underline"
+                    className="group text-xs font-bold text-primary-300 hover:text-white flex items-center justify-between no-underline"
                   >
                     <span>Read AI Agent Buying Guide</span>
-                    <span>→</span>
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>
               </Card>
 
               {/* PUBLISHER / DEVELOPER SIDE */}
-              <Card className="p-8 bg-slate-800/80 border border-slate-700 rounded-3xl text-white flex flex-col justify-between">
+              <Card className="p-8 bg-slate-800/90 border border-slate-700/80 rounded-3xl text-white flex flex-col justify-between shadow-xl">
                 <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-2xl mb-6">
-                    ⚡
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6">
+                    <Zap className="h-6 w-6 text-emerald-400" />
                   </div>
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-2">
                     For App Builders & Blog Creators
@@ -386,29 +396,29 @@ export default function EnglishLanding() {
                     </code>{' '}
                     to fetch ready-to-render React ad components without manual click-ops.
                   </p>
-                  <ul className="space-y-2.5 text-xs text-slate-300">
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Automated registration & ad slot
-                      creation via MCP
+                  <ul className="space-y-3 text-xs text-slate-300 p-0 m-0 list-none">
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Automated registration & ad slot creation via MCP</span>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> Typed React ad components & 5KB
-                      script snippets
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>Typed React ad components & 5KB script snippets</span>
                     </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-emerald-400">✓</span> 80% net revenue split paid out
-                      monthly
+                    <li className="flex items-center gap-2.5">
+                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span>80% net revenue split paid out monthly</span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-700">
+                <div className="mt-8 pt-6 border-t border-slate-700/80">
                   <Link
                     to="/en/guides/ai-app-monetization-sdk-widgets"
-                    className="text-xs font-bold text-emerald-400 hover:text-white flex items-center justify-between no-underline"
+                    className="group text-xs font-bold text-emerald-400 hover:text-white flex items-center justify-between no-underline"
                   >
                     <span>Read App Developer Guide</span>
-                    <span>→</span>
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>
               </Card>
@@ -451,7 +461,9 @@ export default function EnglishLanding() {
 
               {status === 'success' ? (
                 <div className="p-6 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-center">
-                  <span className="text-4xl mb-3 block">🎉</span>
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
                   <p className="font-extrabold text-xl">{message}</p>
                   <p className="text-sm mt-2 text-emerald-700 leading-relaxed">
                     Your spot is reserved! We will reach out as soon as early access expands to your
@@ -530,13 +542,19 @@ export default function EnglishLanding() {
                     disabled={status === 'submitting'}
                     className="w-full py-4 text-base font-bold shadow-xl shadow-primary/30 mt-2"
                   >
-                    {status === 'submitting'
-                      ? 'Joining Waitlist...'
-                      : 'Join Early Access Waitlist →'}
+                    {status === 'submitting' ? (
+                      'Joining Waitlist...'
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <span>Join Early Access Waitlist</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    )}
                   </Button>
 
-                  <p className="text-xs text-center text-slate-400 mt-3">
-                    🔒 Privacy first. Zero tracking cookies. MCP & API Ready.
+                  <p className="flex items-center justify-center gap-1.5 text-xs text-center text-slate-400 mt-3">
+                    <Lock className="h-3.5 w-3.5 text-slate-400" />
+                    <span>Privacy first. Zero tracking cookies. MCP & API Ready.</span>
                   </p>
                 </form>
               )}
@@ -607,7 +625,10 @@ export default function EnglishLanding() {
               </div>
               <Link to="/en/guides">
                 <Button variant="secondary" className="text-xs font-bold">
-                  Browse All 10 Guides →
+                  <span className="flex items-center gap-1.5">
+                    <span>Browse All 10 Guides</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
                 </Button>
               </Link>
             </div>
@@ -630,7 +651,7 @@ export default function EnglishLanding() {
                     </div>
                     <div className="mt-6 pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold text-primary">
                       <span>Read Guide</span>
-                      <span>→</span>
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </div>
                   </Card>
                 </Link>
@@ -640,7 +661,10 @@ export default function EnglishLanding() {
             <div className="mt-12 text-center">
               <Link to="/en/guides">
                 <Button variant="primary" className="py-3 px-6 text-xs font-bold">
-                  View Complete 10-Guide Catalog →
+                  <span className="flex items-center gap-2">
+                    <span>View Complete 10-Guide Catalog</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
                 </Button>
               </Link>
             </div>
