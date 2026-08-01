@@ -83,6 +83,26 @@ export function stitch(template, snap) {
     /(<meta\s+property="twitter:url"\s+content=")[\s\S]*?("\s*\/?>)/,
     escapeAttr(snap.canonical),
   );
+  html = replaceAttr(
+    html,
+    /(<meta\s+property="og:title"\s+content=")[\s\S]*?("\s*\/?>)/,
+    escapeAttr(snap.title),
+  );
+  html = replaceAttr(
+    html,
+    /(<meta\s+property="twitter:title"\s+content=")[\s\S]*?("\s*\/?>)/,
+    escapeAttr(snap.title),
+  );
+  html = replaceAttr(
+    html,
+    /(<meta\s+property="og:description"\s+content=")[\s\S]*?("\s*\/?>)/,
+    escapeAttr(snap.description),
+  );
+  html = replaceAttr(
+    html,
+    /(<meta\s+property="twitter:description"\s+content=")[\s\S]*?("\s*\/?>)/,
+    escapeAttr(snap.description),
+  );
 
   const canonicalTag = `<link rel="canonical" href="${escapeAttr(snap.canonical)}" />`;
   if (/rel="canonical"/.test(html)) {

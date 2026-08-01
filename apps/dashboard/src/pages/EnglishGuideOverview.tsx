@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import EnglishHeader from '@/components/layout/EnglishHeader';
 import EnglishFooter from '@/components/layout/EnglishFooter';
 import { updateSEO } from '@/lib/seo';
-import { ARTICLES, type ArticleMeta } from './EnglishGuidePage';
+import { ARTICLES, articleReadTime, type ArticleMeta } from './EnglishGuidePage';
 import { Clock, ArrowRight, Search, Sparkles } from 'lucide-react';
 
 const CATEGORIES = [
@@ -125,7 +125,7 @@ export default function EnglishGuideOverview() {
                       </span>
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>{art.readTime}</span>
+                        <span>{articleReadTime(art)}</span>
                       </div>
                     </div>
 
