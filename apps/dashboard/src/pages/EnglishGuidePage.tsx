@@ -46,7 +46,7 @@ export function articleReadTime(article: ArticleMeta): string {
 }
 
 /** Render a body string: blank-line paragraph breaks, [text](url) links. */
-function renderRichText(text: string, keyPrefix: string, className: string): ReactNode[] {
+export function renderRichText(text: string, keyPrefix: string, className: string): ReactNode[] {
   return text.split(/\n\n+/).map((para, pi) => {
     const parts: ReactNode[] = [];
     const re = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -597,6 +597,109 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
     ],
   },
+  'travel-outdoors-blog-advertising-guide': {
+    slug: 'travel-outdoors-blog-advertising-guide',
+    category: 'Category Playbooks',
+    title: 'Travel & Outdoors Display Advertising: Reaching Readers While They Plan the Trip',
+    subtitle:
+      'How tour operators, gear brands, and booking services reach high-intent audiences on independent travel blogs — whether the campaign is bought by a marketer in a dashboard or by an AI agent over MCP.',
+    description:
+      'A travel category ad-buying playbook: flat-CPM placements on independent travel blogs, agent-driven buying via MCP, and an honest look at AI search visibility.',
+    date: 'August 2026',
+    datePublished: '2026-08-01',
+    sections: [
+      {
+        h2: 'The Trip-Planning Mindset Is a Buying Mindset',
+        p: 'A reader deep in itinerary research, gear comparisons, or destination guides is actively deciding where their money goes next. Trip planning is one of the longest, most research-heavy purchase journeys on the consumer internet — weeks of reading across destination posts, packing lists, and honest reviews from bloggers who actually went there.\n\nBirtingur’s [Travel & Outdoors category](/en/categories/travel) places your brand alongside that research on independent travel blogs — bought by category, not by negotiating individual sites — at the same flat 550 kr. CPM every category pays. Impressions count only after the IAB viewability delay, and campaign statistics update hourly, so you pay for ads that were actually seen and can follow spend as it accrues.',
+      },
+      {
+        h2: 'Why Independent Travel Blogs Beat Generic Reach',
+        p: 'Travel decisions run on trust, and independent travel bloggers hold a kind of trust that aggregator sites and social feeds cannot replicate: they were there, they paid their own way, and their readers know it. An ad placed in that environment borrows its coherence — a gear brand next to a packing guide reads as relevant, not intrusive.\n\nContextual placement also reaches the readers tracking-based systems structurally miss: people who decline cookie consent, browse privately, or run blockers. On a cookieless network they see the same ads as everyone else, which matters in a category where research sessions are long and privacy-conscious readers are common.',
+      },
+      {
+        h2: 'For Developers and AI Agents: Buying Travel Campaigns via MCP',
+        p: 'Birtingur runs an MCP server at mcp.birtingur.app, so a developer — or an AI agent working for a travel brand — can run the whole buy programmatically: list_categories to inspect Travel & Outdoors inventory, get_wallet to check funds, create_campaign to buy, get_campaign and list_campaigns to follow up.\n\nThe setup is deliberately small, with one human step that never goes away: an API key created in the dashboard, with purchasing explicitly enabled on that key. From there, agentic buying ships with hard money guardrails as a feature — spend counts against a monthly cap per key, and any purchase above the key’s auto-approve limit waits for human approval in the dashboard before it runs. The full flow is covered in our [developer and agent guide](/en/guides/mcp-ai-agent-advertising).',
+      },
+      {
+        h2: 'AI Search and Travel Brands: What Category Ads Can and Cannot Do',
+        p: 'Will buying travel category ads get your brand recommended by Perplexity or other AI answer engines? Nobody can honestly promise that today, and you should be skeptical of anyone who does. Display ads render in the reader’s browser, and AI crawlers mostly do not see them — we walk through the mechanics in our [honest GEO guide](/en/guides/geo-generative-engine-optimization-display-ads).\n\nWhat category placements verifiably deliver is human attention: viewability-counted impressions in front of readers who are planning trips right now. Buy for the humans; treat any generative-engine upside as a possible bonus, not the business case.',
+      },
+      {
+        h2: 'How This Compares to Managed Ad Networks',
+        p: 'Managed ad networks are built for publishers with significant scale, with publicly documented traffic minimums for their main programs. Birtingur is being built for the other end of the spectrum: long-tail niche creators, including the independent travel bloggers those thresholds leave out.\n\nWhere traditional ad-management stacks tend to add heavy client-side machinery and cookie-based tracking, Birtingur uses a single embed under 5KB, sets zero cookies, and pays creators 80% of net revenue with monthly payouts from 5.000 kr. For travel advertisers, that means placements on fast, clean pages next to trusted niche content — the full comparison lives in our [alternatives guide](/en/guides/mediavine-ezoic-alternatives-cookieless).',
+      },
+    ],
+    faqs: [
+      {
+        q: 'What does a travel category campaign cost?',
+        a: 'The network-wide flat 550 kr. CPM — identical to every other category. You set a total budget and reach follows directly from it; the buy flow shows a daily impression forecast for the category before you commit.',
+      },
+      {
+        q: 'Can I choose which travel blogs my ads appear on?',
+        a: 'No — you buy the Travel & Outdoors category and the platform spreads impressions across all registered sites in it. You control the category, the budget, and the creative.',
+      },
+      {
+        q: 'Can an AI agent manage my travel campaigns?',
+        a: 'Yes, via the MCP server at mcp.birtingur.app — with guardrails: a human-created API key with purchasing enabled, a monthly spending cap per key, and human approval required above the key’s auto-approve limit.',
+      },
+      {
+        q: 'What do travel bloggers earn from this?',
+        a: 'Creators keep 80% of net revenue at the flat CPM, with monthly bank-transfer payouts from 5.000 kr. and hourly statistics — and no arbitrary traffic minimums for quality sites.',
+      },
+    ],
+  },
+  'fashion-beauty-blog-advertising-guide': {
+    slug: 'fashion-beauty-blog-advertising-guide',
+    category: 'Category Playbooks',
+    title:
+      'Fashion & Beauty Display Advertising: Reaching Style Audiences Without Breaking the Aesthetic',
+    subtitle:
+      'How apparel, cosmetics, and lifestyle brands reach style-conscious readers on independent fashion blogs — with ads clean enough to live on a page someone designed with care.',
+    description:
+      'A fashion and beauty category ad-buying playbook: contextual flat-CPM placements on independent style blogs, cookie-free and aesthetic-safe.',
+    date: 'August 2026',
+    datePublished: '2026-08-01',
+    sections: [
+      {
+        h2: 'Style Audiences Buy on Inspiration',
+        p: 'Fashion and beauty content is where inspiration and purchase intent collapse into one moment: a reader saving outfit ideas, comparing skincare routines, or reading a seasonal lookbook is a reader actively assembling their next purchase. The page is not adjacent to the shopping journey — it is the shopping journey.\n\nContextual category placement meets that reader inside the moment. An apparel or cosmetics ad inside Birtingur’s [Fashion & Beauty category](/en/categories/fashion) appears alongside the creators whose taste the reader already trusts, at the network-wide flat 550 kr. CPM.',
+      },
+      {
+        h2: 'Why Fashion Blogs Need Cleaner Ads Than Anyone',
+        p: 'No vertical suffers more from ugly advertising than style content. A fashion blogger’s entire product is visual judgment — and a flashing programmatic banner wedged into a carefully art-directed page spends the site’s credibility on the advertiser’s behalf. Many style creators run no ads at all rather than accept that trade.\n\nA category network changes the trade: standard IAB formats in reserved containers that never shift the layout, no auction clutter, and a content policy the creator controls. The embed is a single script under 5KB with zero cookies — nothing about it fights the page it lives on.',
+      },
+      {
+        h2: 'How a Fashion Category Buy Works',
+        p: 'A fashion campaign is one decision: choose the Fashion & Beauty category, set a total budget, review the daily impression forecast shown in the buy flow, and launch. The platform spreads impressions across every registered style site in the network — no site-by-site negotiation, no bidding.\n\nPricing is the same flat 550 kr. CPM as every category (there is no premium-vertical surcharge), impressions count only after the IAB viewability delay, and campaign statistics update hourly from launch. The economics of flat pricing versus auctions are covered in our [flat CPM guide](/en/guides/flat-cpm-vs-programmatic-rtb).',
+      },
+      {
+        h2: 'Creative That Earns Its Place on a Styled Page',
+        p: 'On style content, creative quality is targeting. Strong product photography, restrained typography, and one clear idea suit these pages far better than busy promotional layouts — the ad is sharing a page with content that was composed, and readers notice the difference.\n\nPrepare the standard IAB set: the 300×250 rectangle for in-content placement, 300×600 half page for sidebars, 728×90 or 980×120 for headers, and 320×100 for mobile — where most fashion and beauty reading happens. Slots reserve their dimensions before the ad renders, so your creative never causes the layout jumps that break a visual page.',
+      },
+      {
+        h2: 'Empowering Style Creators',
+        p: 'Fashion and beauty bloggers do real editorial work — shooting, styling, testing products, writing honestly about what worked. Birtingur’s 80% net revenue share pays that work fairly, with monthly bank-transfer payouts from 5.000 kr., hourly statistics, and no tracking scripts that would betray their readers’ trust.\n\nBecause serving is cookie-free, creators keep the clean, premium experience their brand depends on — no consent-wall between the reader and the content. If you write about style, [join the creator waitlist](/en#waitlist-section); if you sell to people who care how things look, start at the [category page](/en/categories/fashion).',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Does fashion category placement cost more than other categories?',
+        a: 'No. The flat 550 kr. CPM is identical in every category — there are no premium verticals. What you buy is the context, not a price tier.',
+      },
+      {
+        q: 'Can creators control which brands appear on their blog?',
+        a: 'Publishers set a content policy for their sites, and slots render a configured fallback (house ad or transparent placeholder) when nothing eligible fills — so the aesthetic stays under the creator’s control.',
+      },
+      {
+        q: 'Which creative sizes matter most for fashion audiences?',
+        a: 'Mobile-first: the 320×100 mobile banner and 300×250 in-content rectangle carry most style-content reading. The 300×600 half page is the strongest desktop sidebar format for visual creative.',
+      },
+      {
+        q: 'Do the ads track readers across sites?',
+        a: 'No. Serving sets zero cookies and performs no cross-site tracking or profiling; targeting is purely contextual. The only identifier is a consent-gated, first-party frequency-capping value — see our [GDPR guide](/en/guides/privacy-first-display-ads-gdpr).',
+      },
+    ],
+  },
 };
 
 function RelatedGuides({ current }: { current: ArticleMeta }) {
@@ -631,7 +734,7 @@ function RelatedGuides({ current }: { current: ArticleMeta }) {
 }
 
 /** JSON-LD rendered inline in the body so it survives prerendering for non-JS crawlers. */
-function JsonLd({ data }: { data: object }) {
+export function JsonLd({ data }: { data: object }) {
   return (
     <script
       type="application/ld+json"

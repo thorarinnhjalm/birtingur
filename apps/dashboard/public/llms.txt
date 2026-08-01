@@ -44,6 +44,8 @@ Birtingur hosts a native Dual-Sided Model Context Protocol (MCP) server at `http
 - GDPR & ePrivacy Compliance Guide: https://www.birtingur.app/en/guides/privacy-first-display-ads-gdpr
 - Food & Culinary Advertising Playbook: https://www.birtingur.app/en/guides/food-culinary-blog-advertising-guide
 - Tech & Finance Blog Monetization: https://www.birtingur.app/en/guides/tech-finance-blog-monetization-guide
+- Travel & Outdoors Advertising Playbook: https://www.birtingur.app/en/guides/travel-outdoors-blog-advertising-guide
+- Fashion & Beauty Advertising Playbook: https://www.birtingur.app/en/guides/fashion-beauty-blog-advertising-guide
 
 ### Icelandic Guides (handbækur, in Icelandic)
 
