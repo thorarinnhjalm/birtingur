@@ -20,6 +20,7 @@ import BlogPost from '@/pages/BlogPost';
 import EnglishLanding from '@/pages/EnglishLanding';
 import EnglishCategoryPage from '@/pages/EnglishCategoryPage';
 import EnglishGuidePage from '@/pages/EnglishGuidePage';
+import EnglishGuideOverview from '@/pages/EnglishGuideOverview';
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -110,6 +111,7 @@ export default function App() {
       <Route path="/handbaekur/:slug" element={<BlogPost />} />
       <Route path="/en" element={<EnglishLanding />} />
       <Route path="/en/categories/:slug" element={<EnglishCategoryPage />} />
+      <Route path="/en/guides" element={<EnglishGuideOverview />} />
       <Route path="/en/guides/:slug" element={<EnglishGuidePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

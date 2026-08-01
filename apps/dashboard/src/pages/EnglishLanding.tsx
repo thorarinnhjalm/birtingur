@@ -36,16 +36,32 @@ const ENGLISH_CATEGORIES_LIST = AD_CATEGORIES.map((c) => {
 
 const FEATURED_GUIDES = [
   {
-    slug: 'cookieless-advertising-2026',
-    title: 'Cookieless Advertising in 2026: Why Category Networks Outperform Tracking Cookies',
-    desc: 'Learn why cookieless contextual category advertising is replacing invasive third-party tracking cookies for creators and brands.',
-    readTime: '4 min read',
+    slug: 'mcp-ai-agent-advertising',
+    category: 'AI & MCP',
+    title: 'The Developer & Agent Guide to MCP-Native Display Advertising',
+    desc: 'How AI agents buy campaigns and app developers provision ad placements programmatically via Model Context Protocol (MCP).',
+    readTime: '6 min read',
   },
   {
-    slug: 'adsense-alternatives-niche-blogs',
-    title: 'The Creator Guide to Monetizing Niche Blogs Without Cookie Banners',
-    desc: 'Discover how independent bloggers earn predictable ad revenue without annoying readers with intrusive tracking scripts or CMP banners.',
+    slug: 'geo-generative-engine-optimization-display-ads',
+    category: 'AI & MCP',
+    title: 'Generative Engine Optimization (GEO): How AI Search Engines Recommend Brands',
+    desc: 'How Perplexity, SearchGPT, and Claude synthesize category brand mentions into top search recommendations.',
     readTime: '5 min read',
+  },
+  {
+    slug: 'mediavine-ezoic-alternatives-cookieless',
+    category: 'Creator Monetization',
+    title: 'Why Independent Creators Choose Category Networks over Mediavine & Ezoic',
+    desc: 'Discover why creators prefer 80% revenue share with zero tracking cookies and fast page load speeds.',
+    readTime: '6 min read',
+  },
+  {
+    slug: 'privacy-first-display-ads-gdpr',
+    category: 'Privacy & Compliance',
+    title: 'The Complete GDPR & ePrivacy Guide to Website Monetization Without Consent Banners',
+    desc: 'How to monetize digital content legally in Europe without annoying visitors with intrusive CMP cookie banners.',
+    readTime: '6 min read',
   },
 ];
 
@@ -53,6 +69,10 @@ const ENGLISH_FAQS = [
   {
     q: 'How does Birtingur operate 100% cookie-free?',
     a: 'Unlike legacy programmatic networks that drop third-party tracking cookies across reader browsers, Birtingur serves ads entirely in-context based on interest categories. Frequency capping uses first-party consent-gated tokens stored strictly in the publisher’s origin. No user profiling, no cross-site tracking.',
+  },
+  {
+    q: 'How do AI agents and developers use the MCP server?',
+    a: 'Birtingur hosts an MCP server (mcp.birtingur.app). AI agents use tools like `list_categories` and `create_campaign` to buy context ads autonomously with spending caps. App developers use tools like `register_publisher`, `create_slot`, and `get_react_component` to provision display ad slots programmatically.',
   },
   {
     q: 'How do digital creators and bloggers earn money?',
@@ -65,10 +85,6 @@ const ENGLISH_FAQS = [
   {
     q: 'Is Birtingur fully GDPR and ePrivacy compliant?',
     a: 'Yes. By eliminating third-party cookies, tracking beacons, and invasive user profiling, Birtingur is built privacy-first by design. Websites embedding Birtingur retain reader trust without complex cookie banner obligations.',
-  },
-  {
-    q: 'When will international campaign buying open for my region?',
-    a: 'We are currently onboarding creators and brands by region and category. Joining the waitlist reserves your early access spot and ensures your category is prioritized for commercial launch.',
   },
 ];
 
@@ -83,8 +99,8 @@ export default function EnglishLanding() {
 
   useEffect(() => {
     updateSEO(
-      'Birtingur — Cookie-Free Category Display Ad Network for Niche Creators & Brands',
-      'Birtingur is the privacy-first, cookie-free display ad network connecting niche bloggers and digital creators directly with brands by interest category. Join the global waitlist.',
+      'Birtingur — MCP-Native & Cookie-Free Category Display Ad Network',
+      'Birtingur is the privacy-first, MCP-native category display ad network connecting creators, brands, and AI agents directly by interest category. Join the global waitlist.',
       '/en',
     );
 
@@ -96,7 +112,8 @@ export default function EnglishLanding() {
           name: 'Birtingur',
           applicationCategory: 'BusinessApplication',
           operatingSystem: 'All',
-          description: 'Privacy-first category display ad network connecting creators and brands.',
+          description:
+            'MCP-native and privacy-first category display ad network for creators, brands, and AI agents.',
           url: 'https://www.birtingur.app/en',
         },
         {
@@ -170,10 +187,10 @@ export default function EnglishLanding() {
       {/* INFORMATIONAL BANNER BAR */}
       <div className="flex flex-wrap items-center justify-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5 text-center text-xs font-medium text-slate-600 sm:text-sm">
         <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-primary uppercase">
-          Global Early Access
+          MCP & AI Agent Native
         </span>
         <span>
-          Birtingur is expanding its privacy-first category ad network globally.{' '}
+          Birtingur is expanding its MCP-native & privacy-first ad network globally.{' '}
           <a
             href="#waitlist-section"
             className="font-bold text-primary underline hover:text-primary-800"
@@ -183,25 +200,25 @@ export default function EnglishLanding() {
         </span>
       </div>
 
-      {/* DEDICATED CLEAN ENGLISH HEADER */}
+      {/* HEADER */}
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <a href="/en" className="flex items-center gap-2 text-slate-900 no-underline">
               <Logo className="h-8 w-auto text-primary" />
             </a>
-            <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              Global Beta
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-bold text-primary uppercase tracking-wider">
+              MCP Ready
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <a
-              href="#guides-section"
+            <Link
+              to="/en/guides"
               className="text-xs font-bold text-slate-600 hover:text-primary hidden sm:inline"
             >
               Guides & Articles
-            </a>
+            </Link>
             <a href="#waitlist-section">
               <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
                 Join Waitlist →
@@ -214,7 +231,9 @@ export default function EnglishLanding() {
       <main className="grow">
         {/* HERO SECTION */}
         <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-left">
-          <Eyebrow className="mb-4">Cookie-Free Category Display Network</Eyebrow>
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-bold text-slate-700 mb-6">
+            <span>🤖 MCP-Native & Cookie-Free Display Ad Network</span>
+          </div>
 
           <h1
             className="m-0 font-extrabold text-slate-900 tracking-tight"
@@ -229,12 +248,12 @@ export default function EnglishLanding() {
           </h1>
 
           <p className="mt-6 text-lg sm:text-xl text-slate-600 leading-relaxed max-w-3xl">
-            Birtingur connects niche digital creators and lifestyle blogs directly with
-            forward-thinking brands. Zero third-party cookies, full GDPR privacy by design, and
-            transparent flat-CPM category buying.
+            Birtingur connects niche digital creators, AI app builders, and forward-thinking brands
+            directly by interest category. Powered by native Model Context Protocol (MCP) tools for
+            autonomous AI campaign management.
           </p>
 
-          {/* ACTIVE CONTENT CATEGORIES — CLICKABLE LINKS TO CATEGORY PAGES */}
+          {/* ACTIVE CONTENT CATEGORIES */}
           <div className="mt-10">
             <span className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
               Explore Active Content Categories (Click to view category details)
@@ -270,8 +289,134 @@ export default function EnglishLanding() {
           </div>
         </section>
 
+        {/* DUAL-SIDED MCP INFRASTRUCTURE SECTION */}
+        <section className="py-20 bg-slate-900 text-white border-t border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <span className="inline-block rounded-full bg-primary/20 text-primary-300 px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-3">
+                Built for AI Agents & App Builders
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight m-0">
+                Dual-Sided Model Context Protocol (MCP) Infrastructure
+              </h2>
+              <p className="mt-4 text-slate-300 text-base leading-relaxed">
+                Birtingur provides an MCP server (
+                <code className="text-primary-300 font-mono text-xs">mcp.birtingur.app</code>) that
+                empowers both buying agents and publishing developers.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* ADVERTISER / AGENT SIDE */}
+              <Card className="p-8 bg-slate-800/80 border border-slate-700 rounded-3xl text-white flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary-300 text-2xl mb-6">
+                    🤖
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-primary-300 block mb-2">
+                    For AI Buying Agents & Marketers
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-4">
+                    Autonomous Campaign Purchasing
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed mb-6">
+                    AI agents (Claude, ChatGPT wrappers, custom agent pipelines) use tools like{' '}
+                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-primary-300">
+                      list_categories
+                    </code>{' '}
+                    and{' '}
+                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-primary-300">
+                      create_campaign
+                    </code>{' '}
+                    to evaluate target verticals, set spending caps, and buy display ads
+                    programmatically.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Automated category selection &
+                      campaign deployment
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Enforced money guardrails
+                      (`autoApproveLimitIsk`)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Hourly telemetry (`get_wallet`,
+                      `list_campaigns`)
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-700">
+                  <Link
+                    to="/en/guides/mcp-ai-agent-advertising"
+                    className="text-xs font-bold text-primary-300 hover:text-white flex items-center justify-between no-underline"
+                  >
+                    <span>Read AI Agent Buying Guide</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              </Card>
+
+              {/* PUBLISHER / DEVELOPER SIDE */}
+              <Card className="p-8 bg-slate-800/80 border border-slate-700 rounded-3xl text-white flex flex-col justify-between">
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-2xl mb-6">
+                    ⚡
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-2">
+                    For App Builders & Blog Creators
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-4">
+                    Streamlined Developer Ad Integration
+                  </h3>
+                  <p className="text-sm text-slate-300 leading-relaxed mb-6">
+                    Developers building web apps or AI tools can call{' '}
+                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
+                      register_publisher
+                    </code>
+                    ,{' '}
+                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
+                      create_slot
+                    </code>
+                    , and{' '}
+                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
+                      get_react_component
+                    </code>{' '}
+                    to fetch ready-to-render React ad components without manual click-ops.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-slate-300">
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Automated registration & ad slot
+                      creation via MCP
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> Typed React ad components & 5KB
+                      script snippets
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-emerald-400">✓</span> 80% net revenue split paid out
+                      monthly
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-700">
+                  <Link
+                    to="/en/guides/ai-app-monetization-sdk-widgets"
+                    className="text-xs font-bold text-emerald-400 hover:text-white flex items-center justify-between no-underline"
+                  >
+                    <span>Read App Developer Guide</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </section>
+
         {/* DEDICATED WAITLIST SECTION */}
-        <section className="py-16 bg-slate-900 text-white" id="waitlist-section">
+        <section className="py-20 bg-slate-950 text-white" id="waitlist-section">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <span className="inline-block rounded-full bg-primary/20 text-primary-300 px-3 py-1 text-xs font-bold uppercase tracking-wider mb-3">
@@ -281,7 +426,7 @@ export default function EnglishLanding() {
                 Reserve Your Early Access Spot
               </h2>
               <p className="mt-3 text-slate-300 text-base">
-                Join creators and brands testing Birtingur in international markets.
+                Join creators, app builders, and brands testing Birtingur in international markets.
               </p>
             </div>
 
@@ -295,7 +440,7 @@ export default function EnglishLanding() {
                     Brand / Advertiser
                   </PillButton>
                   <PillButton active={role === 'publisher'} onClick={() => setRole('publisher')}>
-                    Creator / Publisher
+                    Creator / Developer
                   </PillButton>
                   <PillButton active={role === 'both'} onClick={() => setRole('both')}>
                     Both
@@ -345,12 +490,12 @@ export default function EnglishLanding() {
                         className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5"
                         htmlFor="waitlist-website"
                       >
-                        Website / Channel URL
+                        Website / App URL
                       </label>
                       <input
                         id="waitlist-website"
                         type="url"
-                        placeholder="https://myblog.com"
+                        placeholder="https://myapp.com"
                         value={websiteUrl}
                         onChange={(e) => setWebsiteUrl(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
@@ -390,7 +535,7 @@ export default function EnglishLanding() {
                   </Button>
 
                   <p className="text-xs text-center text-slate-400 mt-3">
-                    🔒 Privacy first. Zero tracking cookies. Cancel anytime.
+                    🔒 Privacy first. Zero tracking cookies. MCP & API Ready.
                   </p>
                 </form>
               )}
@@ -415,8 +560,8 @@ export default function EnglishLanding() {
                 </div>
                 <h3 className="m-0 text-xl font-bold text-slate-900">Select Interest Category</h3>
                 <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-                  Brands pick their target categories (Food & Culinary, Tech, Travel). Ads
-                  automatically serve across every verified creator site in that interest cluster.
+                  Brands and AI agents pick target categories (Food, Tech, Travel). Ads
+                  automatically serve across verified creator sites in that vertical.
                 </p>
               </Card>
 
@@ -428,8 +573,8 @@ export default function EnglishLanding() {
                   Cookie-Free Lightweight Code
                 </h3>
                 <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-                  Creators paste a single size-budgeted JavaScript snippet on their blog. Zero
-                  third-party tracking cookies or site performance penalties.
+                  Creators paste a 5KB script snippet or React component on their blog or web app.
+                  Zero third-party cookies or performance penalties.
                 </p>
               </Card>
 
@@ -449,14 +594,21 @@ export default function EnglishLanding() {
           </div>
         </section>
 
-        {/* FEATURED GUIDES & EDUCATIONAL ARTICLES SECTION */}
+        {/* FEATURED GUIDES & ARTICLES SECTION */}
         <section className="py-20 bg-white border-t border-slate-200" id="guides-section">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-14">
-              <Eyebrow>Educational Guides & Resources</Eyebrow>
-              <h2 className="m-0 text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl mt-2">
-                Learn About Privacy-First Display Ads
-              </h2>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
+              <div>
+                <Eyebrow className="mb-2">Educational Guides & Playbooks</Eyebrow>
+                <h2 className="m-0 text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
+                  Explore Privacy-First Ad Playbooks
+                </h2>
+              </div>
+              <Link to="/en/guides">
+                <Button variant="secondary" className="text-xs font-bold">
+                  Browse All 10 Guides →
+                </Button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -464,26 +616,37 @@ export default function EnglishLanding() {
                 <Link key={g.slug} to={`/en/guides/${g.slug}`} className="no-underline group">
                   <Card className="p-8 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl transition-all duration-200 hover:shadow-lg group-hover:border-primary/50 h-full flex flex-col justify-between">
                     <div>
-                      <span className="text-xs font-bold uppercase tracking-wider text-primary block mb-2">
-                        Guide • {g.readTime}
-                      </span>
-                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors mb-3">
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
+                          {g.category}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium">{g.readTime}</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors mb-3 leading-snug">
                         {g.title}
                       </h3>
                       <p className="text-sm text-slate-600 leading-relaxed">{g.desc}</p>
                     </div>
                     <div className="mt-6 pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold text-primary">
-                      <span>Read Article</span>
+                      <span>Read Guide</span>
                       <span>→</span>
                     </div>
                   </Card>
                 </Link>
               ))}
             </div>
+
+            <div className="mt-12 text-center">
+              <Link to="/en/guides">
+                <Button variant="primary" className="py-3 px-6 text-xs font-bold">
+                  View Complete 10-Guide Catalog →
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
 
-        {/* COMPREHENSIVE ENGLISH FAQ SECTION */}
+        {/* COMPREHENSIVE FAQ SECTION */}
         <section className="py-20 bg-slate-50 border-t border-slate-200">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
@@ -520,18 +683,19 @@ export default function EnglishLanding() {
         </section>
       </main>
 
-      {/* DEDICATED CLEAN ENGLISH FOOTER */}
+      {/* FOOTER */}
       <footer className="border-t border-slate-200 bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 text-white">
         <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <Logo className="h-7 w-auto text-white" />
             <span className="text-xs text-slate-400">
-              — The Privacy-First Category Display Network
+              — The MCP-Native Category Display Network
             </span>
           </div>
 
           <div className="text-xs text-slate-400 text-center md:text-right">
-            © {new Date().getFullYear()} Birtingur. All rights reserved. 100% Cookie-Free.
+            © {new Date().getFullYear()} Birtingur. All rights reserved. 100% Cookie-Free & MCP
+            Native.
           </div>
         </div>
       </footer>
