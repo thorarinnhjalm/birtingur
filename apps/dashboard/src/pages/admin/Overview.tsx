@@ -30,6 +30,7 @@ import {
   useDeleteEntity,
   useUpdateCampaignStatus,
   useRefreshCache,
+  useAdminWaitlistStats,
 } from '@/hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -74,6 +75,7 @@ function Home() {
     queryFn: () => apiFetch<AdminStats>('/v1/admin/stats'),
   });
   const { data: diag } = useAdminDiagnostics();
+  const { data: waitlist } = useAdminWaitlistStats();
 
   return (
     <div className="space-y-8">
@@ -121,6 +123,40 @@ function Home() {
           label="Skráðar herferðir"
           value={isLoading ? '...' : (stats?.campaignsCount ?? 0).toLocaleString('is-IS')}
         />
+      </div>
+
+      <div>
+        <h3 className="text-base font-bold text-slate-900 mb-3">Biðlisti enska vefsins (/en)</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard
+            label="Skráningar alls"
+            value={(waitlist?.total ?? 0).toLocaleString('is-IS')}
+          />
+          <StatCard
+            label="Auglýsendur"
+            value={(waitlist?.roles.advertisers ?? 0).toLocaleString('is-IS')}
+          />
+          <StatCard
+            label="Útgefendur"
+            value={(waitlist?.roles.publishers ?? 0).toLocaleString('is-IS')}
+          />
+          <StatCard label="Bæði" value={(waitlist?.roles.both ?? 0).toLocaleString('is-IS')} />
+        </div>
+        {waitlist && Object.keys(waitlist.categories).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(waitlist.categories)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 8)
+              .map(([cat, count]) => (
+                <span
+                  key={cat}
+                  className="rounded-full bg-slate-100 border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                >
+                  {cat} · {count}
+                </span>
+              ))}
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

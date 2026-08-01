@@ -19,6 +19,14 @@ vi.mock('../src/services/mail', async (importOriginal) => {
   };
 });
 
+vi.mock('../src/services/notifications', async (importOriginal) => {
+  const original = await importOriginal<any>();
+  return {
+    ...original,
+    createNotification: vi.fn(async () => ({})),
+  };
+});
+
 vi.mock('../src/lib/firebase', () => {
   return {
     auth: {
@@ -71,6 +79,7 @@ vi.mock('../src/lib/firebase', () => {
 });
 
 import { sendWaitlistWelcomeEmail } from '../src/services/mail';
+import { createNotification } from '../src/services/notifications';
 
 function post(body: unknown, ip: string) {
   return app.request('/v1/waitlist', {
@@ -84,6 +93,7 @@ describe('POST /v1/waitlist', () => {
   beforeEach(() => {
     waitlistStore = [];
     vi.mocked(sendWaitlistWelcomeEmail).mockClear();
+    vi.mocked(createNotification).mockClear();
   });
 
   it('rejects invalid input with 400', async () => {
@@ -117,6 +127,15 @@ describe('POST /v1/waitlist', () => {
     expect(body.id).toBe('wtl_existing');
     expect(waitlistStore).toHaveLength(1);
     expect(sendWaitlistWelcomeEmail).not.toHaveBeenCalled();
+    expect(createNotification).not.toHaveBeenCalled();
+  });
+
+  it('notifies the admin role about a new signup', async () => {
+    const res = await post({ email: 'notify@example.com', role: 'advertiser' }, '10.0.0.9');
+    expect(res.status).toBe(201);
+    expect(createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'admin', userEmail: 'admin', link: '/admin' }),
+    );
   });
 
   it('rate-limits the 6th submission from the same IP with 429', async () => {

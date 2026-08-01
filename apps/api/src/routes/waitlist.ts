@@ -5,6 +5,7 @@ import type { WaitlistEntry } from '@ada/shared/types';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
 import { sendWaitlistWelcomeEmail } from '../services/mail.js';
+import { createNotification } from '../services/notifications.js';
 import { isRedisConfigured, getRedis } from '../lib/redis.js';
 
 export const waitlistRoute = new Hono();
@@ -116,6 +117,21 @@ waitlistRoute.post('/', async (c) => {
 
   // Properly AWAITED email send with SENDER_EMAIL fallback from mail.ts
   await sendWaitlistWelcomeEmail(email, role, category);
+
+  // In-app heads-up for admins (same 'admin' sentinel as creatives/support);
+  // a failed notification must never fail the signup itself.
+  try {
+    await createNotification({
+      userEmail: 'admin',
+      role: 'admin',
+      type: 'info',
+      title: 'Ný skráning á biðlista',
+      message: `${email} skráði sig á enska biðlistann sem ${role}${category ? ` (flokkur: ${category})` : ''}.`,
+      link: '/admin',
+    });
+  } catch (err) {
+    console.error('Error creating admin waitlist notification:', err);
+  }
 
   return c.json(
     {

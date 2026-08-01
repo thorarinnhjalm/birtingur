@@ -166,3 +166,18 @@ export function useRefreshCache() {
       }),
   });
 }
+
+// Waitlist signups from the English marketing site (/en) — aggregated by
+// GET /v1/admin/waitlist/stats (admin-gated, see apps/api routes/admin).
+export interface AdminWaitlistStats {
+  total: number;
+  roles: { advertisers: number; publishers: number; both: number };
+  categories: Record<string, number>;
+}
+
+export function useAdminWaitlistStats() {
+  return useQuery({
+    queryKey: ['admin', 'waitlist-stats'],
+    queryFn: () => apiFetch<AdminWaitlistStats>('/v1/admin/waitlist/stats'),
+  });
+}
