@@ -361,7 +361,7 @@ export default function EnglishLanding() {
                 </ul>
                 <Link
                   to="/en/guides/ai-app-monetization-sdk-widgets"
-                  className="group inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 no-underline"
+                  className="group inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-800 no-underline"
                 >
                   Read the Developer Guide
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

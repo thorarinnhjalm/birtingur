@@ -40,25 +40,18 @@ export default function EnglishGuideOverview() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
-      {/* Background Ambient Gradients */}
-      <div className="absolute top-0 left-1/4 w-150 h-150 rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-10 w-125 h-125 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
-
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
       <EnglishHeader />
 
       <main className="grow pt-24 pb-20">
         {/* Hero Section */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs font-bold mb-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-6">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Developer & Creator Resources</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            Privacy-First Ads &{' '}
-            <span className="bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              AI Infrastructure Guides
-            </span>
+            Privacy-First Ads & <span className="text-primary">AI Infrastructure Guides</span>
           </h1>
           <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 leading-relaxed font-medium">
             Comprehensive playbooks on Model Context Protocol (MCP) ad buying, Generative Engine
@@ -76,7 +69,7 @@ export default function EnglishGuideOverview() {
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
                     selectedCategory === cat
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-primary text-white shadow-sm'
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                   }`}
                 >
@@ -92,7 +85,7 @@ export default function EnglishGuideOverview() {
                 placeholder="Search guides..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-sm font-medium text-slate-900"
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm font-medium text-slate-900"
               />
             </div>
           </div>
@@ -122,7 +115,7 @@ export default function EnglishGuideOverview() {
               {filteredArticles.map((art) => (
                 <article
                   key={art.slug}
-                  className="group bg-white rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex flex-col h-full overflow-hidden"
+                  className="group bg-white rounded-2xl border border-slate-200/80 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 flex flex-col h-full overflow-hidden"
                 >
                   <div className="p-6 flex flex-col grow">
                     {/* Category & Read Time */}
@@ -137,7 +130,7 @@ export default function EnglishGuideOverview() {
                     </div>
 
                     {/* Title & Desc */}
-                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors duration-200 line-clamp-2">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors duration-200 line-clamp-2">
                       <Link to={`/en/guides/${art.slug}`}>{art.title}</Link>
                     </h3>
                     <p className="text-slate-500 text-sm leading-relaxed mb-6 grow line-clamp-3">
@@ -149,7 +142,7 @@ export default function EnglishGuideOverview() {
                       <span className="text-xs text-slate-400 font-medium">{art.date}</span>
                       <Link
                         to={`/en/guides/${art.slug}`}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-800 transition"
                       >
                         Read Guide
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
@@ -162,7 +155,7 @@ export default function EnglishGuideOverview() {
           )}
 
           {/* Call To Action Box */}
-          <div className="mt-16 bg-linear-to-br from-blue-600 to-indigo-650 text-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-blue-500/10 text-center relative overflow-hidden">
+          <div className="mt-16 bg-primary text-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-primary/10 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
             <h2 className="text-2xl sm:text-3xl font-black mb-3">
               Build & Advertise with Privacy-First Display Ads
@@ -173,7 +166,7 @@ export default function EnglishGuideOverview() {
             </p>
             <Link
               to="/en#waitlist-section"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl text-xs font-black hover:bg-slate-50 transition shadow-sm"
+              className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl text-xs font-black hover:bg-slate-50 transition shadow-sm"
             >
               Join Global Early Access Waitlist
               <ArrowRight className="w-4 h-4" />

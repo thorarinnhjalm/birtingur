@@ -343,7 +343,7 @@ export default function EnglishGuidePage() {
           </p>
           <Link
             to="/en/guides"
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+            className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-primary-800 transition"
           >
             <ArrowLeft className="w-4 h-4" />
             Browse All Guides
@@ -354,11 +354,7 @@ export default function EnglishGuidePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
-      {/* Background Ambient Gradients */}
-      <div className="absolute top-0 left-1/4 w-150 h-150 rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute top-1/3 right-10 w-125 h-125 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
-
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-primary selection:text-white">
       <EnglishHeader />
 
       <main className="grow pt-28 pb-20">
@@ -390,7 +386,7 @@ export default function EnglishGuidePage() {
             <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
               {article.title}
             </h1>
-            <p className="text-lg text-slate-650 font-medium leading-relaxed border-l-4 border-blue-500 pl-4 py-1 mb-8">
+            <p className="text-lg text-slate-650 font-medium leading-relaxed border-l-4 border-primary pl-4 py-1 mb-8">
               {article.subtitle}
             </p>
           </header>
@@ -417,7 +413,7 @@ export default function EnglishGuidePage() {
           </div>
 
           {/* Call To Action Box */}
-          <div className="bg-linear-to-br from-blue-600 to-indigo-650 text-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-blue-500/10 text-center relative overflow-hidden">
+          <div className="bg-primary text-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-primary/10 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
             <h3 className="text-2xl font-black mb-3">Ready for Privacy-First Display Ads?</h3>
             <p className="text-white/80 text-sm max-w-lg mx-auto mb-6 leading-relaxed">
@@ -425,7 +421,7 @@ export default function EnglishGuidePage() {
             </p>
             <Link
               to="/en#waitlist-section"
-              className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl text-xs font-black hover:bg-slate-50 transition shadow-sm"
+              className="inline-flex items-center gap-2 bg-white text-primary px-6 py-3 rounded-xl text-xs font-black hover:bg-slate-50 transition shadow-sm"
             >
               Join Early Access Waitlist
               <ArrowRight className="w-4 h-4" />
