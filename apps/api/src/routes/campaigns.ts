@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { requireAuth, requireScope, rejectApiKeyMutation, type Env } from '../lib/auth.js';
 import { getAdvertiserByOwnerEmail } from '../services/advertisers.js';
 import {
@@ -8,6 +9,7 @@ import {
   updateCampaign,
   approveAgentPurchaseCampaign,
   rejectAgentPurchaseCampaign,
+  extendCampaign,
   type CreateCampaignContext,
 } from '../services/campaigns.js';
 import { getApiKeyRecord } from '../services/api-keys.js';
@@ -95,6 +97,24 @@ campaignsRouter.post('/:id/reject', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
   const cmp = await rejectAgentPurchaseCampaign(c.req.param('id'), adv.id);
+  return c.json(cmp);
+});
+
+const ExtendBodySchema = z.object({ endsAt: z.coerce.date() });
+
+// Extension re-acquires a wallet hold — dashboard-only, like approve/reject
+// and every other operation that commits funds.
+campaignsRouter.post('/:id/extend', async (c) => {
+  const user = c.get('user');
+  if (user.apiKeyId) {
+    throw new AppError(403, 'API keys cannot extend campaigns', 'FORBIDDEN');
+  }
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const body = ExtendBodySchema.parse(await c.req.json());
+  const cmp = await extendCampaign(c.req.param('id'), adv.id, body.endsAt);
   return c.json(cmp);
 });
 

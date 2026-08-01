@@ -23,10 +23,12 @@
 ### Task 1: `extendCampaign` service function with emulator tests
 
 **Files:**
+
 - Modify: `apps/api/src/services/campaigns.ts` (add function after `updateCampaignStatus`, ~line 618)
 - Test: `apps/api/tests/campaign-extend.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: `getAvailableBalanceInTransaction(t, advertiserId, opts?)` from `./wallet.js` (already imported), `pushCacheForCampaign` from `../lib/push-cache.js` (already imported), `FieldValue` from `firebase-admin/firestore` (already imported), `AppError`, `campaignConverter`, `CampaignSchema`, `isRedisConfigured`.
 - Produces: `extendCampaign(campaignId: string, advertiserId: string, newEndsAt: Date): Promise<Campaign>` — throws `AppError(404 NOT_FOUND | 400 BAD_REQUEST | 400 NO_REMAINING_BUDGET | 400 INSUFFICIENT_FUNDS)`. Task 2's route calls exactly this.
 
@@ -152,10 +154,7 @@ describe('extendCampaign', () => {
     // Zero the leftover directly: accrual (not chargeCampaign) is what
     // decrements remainingIsk in production, and running the whole accrual
     // pipeline here would test the wrong unit.
-    await db
-      .collection(COLLECTIONS.campaigns)
-      .doc(cmp.id)
-      .update({ 'budget.remainingIsk': 0 });
+    await db.collection(COLLECTIONS.campaigns).doc(cmp.id).update({ 'budget.remainingIsk': 0 });
 
     await expect(extendCampaign(cmp.id, adv.id, tomorrow())).rejects.toMatchObject({
       status: 400,
@@ -191,7 +190,7 @@ describe('extendCampaign', () => {
     ).rejects.toMatchObject({ status: 400 });
   });
 
-  it('rejects another advertiser\'s campaign', async () => {
+  it("rejects another advertiser's campaign", async () => {
     const { adv, creative } = await seedFundedAdvertiser(10_000);
     const cmp = await seedCompletedCampaign(adv, creative, 10_000);
     const other = await createAdvertiser({
@@ -363,10 +362,12 @@ git commit -m "feat(api): extendCampaign service — completed campaigns re-ente
 ### Task 2: `POST /v1/campaigns/:id/extend` route
 
 **Files:**
+
 - Modify: `apps/api/src/routes/campaigns.ts` (add route after the `/:id/reject` handler, ~line 100)
 - Test: `apps/api/tests/campaign-extend-route.test.ts` (new)
 
 **Interfaces:**
+
 - Consumes: `extendCampaign(campaignId, advertiserId, newEndsAt)` from Task 1; existing route helpers `getAdvertiserByOwnerEmail`, `AppError`; Zod.
 - Produces: `POST /v1/campaigns/:id/extend` accepting `{ endsAt: string }` (ISO date), returning the updated campaign JSON. 403 for `ak_` keys. Task 3's dashboard hook calls exactly this.
 
@@ -512,11 +513,13 @@ git commit -m "feat(api): POST /v1/campaigns/:id/extend — dashboard-only route
 ### Task 3: Dashboard — Framlengja herferð flow (and remove the broken button)
 
 **Files:**
+
 - Modify: `apps/dashboard/src/hooks/useCampaigns.ts` (add hook after `useUpdateCampaign`, ~line 130)
 - Modify: `apps/dashboard/src/pages/advertiser/CampaignDetail.tsx` (button block at lines 303–322; add modal near the existing edit modal)
 - Test: `apps/dashboard/src/pages/advertiser/CampaignDetail.test.tsx` only if a component-test pattern already fits (see Step 4) — otherwise rely on typecheck/lint and the API tests; do not build new test infrastructure for this.
 
 **Interfaces:**
+
 - Consumes: `POST /v1/campaigns/:id/extend` from Task 2 via `apiFetch` (`apps/dashboard/src/lib/api.ts`); `useQueryClient`/`useMutation` (TanStack Query, same as `useUpdateCampaign`); `campaign.status`, `campaign.budget.remainingIsk` already on the page's campaign object.
 - Produces: `useExtendCampaign()` hook returning a mutation with `mutateAsync({ id, endsAt })`.
 
@@ -547,43 +550,45 @@ export function useExtendCampaign() {
 In `CampaignDetail.tsx`, the block at lines 303–322 currently renders the toggle for every non-pending status. Change the logic to three cases:
 
 ```tsx
-{campaign.status === 'completed' ? (
-  campaign.budget.remainingIsk > 0 ? (
-    <Button
-      variant="primary"
-      onClick={() => setIsExtendModalOpen(true)}
-      className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
-    >
-      <Play size={14} />
-      <span>Framlengja herferð</span>
-    </Button>
+{
+  campaign.status === 'completed' ? (
+    campaign.budget.remainingIsk > 0 ? (
+      <Button
+        variant="primary"
+        onClick={() => setIsExtendModalOpen(true)}
+        className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+      >
+        <Play size={14} />
+        <span>Framlengja herferð</span>
+      </Button>
+    ) : (
+      <span className="text-xs font-semibold text-slate-400">
+        Herferðin kláraði fjárhæðina — lokið.
+      </span>
+    )
   ) : (
-    <span className="text-xs font-semibold text-slate-400">
-      Herferðin kláraði fjárhæðina — lokið.
-    </span>
-  )
-) : (
-  campaign.status !== 'pending_approval' && (
-    <Button
-      variant={campaign.status === 'active' ? 'secondary' : 'primary'}
-      onClick={toggleCampaignStatus}
-      loading={toggling}
-      className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
-    >
-      {campaign.status === 'active' ? (
-        <>
-          <Pause size={14} />
-          <span>Stöðva birtingar</span>
-        </>
-      ) : (
-        <>
-          <Play size={14} />
-          <span>Ræsa herferð</span>
-        </>
-      )}
-    </Button>
-  )
-)}
+    campaign.status !== 'pending_approval' && (
+      <Button
+        variant={campaign.status === 'active' ? 'secondary' : 'primary'}
+        onClick={toggleCampaignStatus}
+        loading={toggling}
+        className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+      >
+        {campaign.status === 'active' ? (
+          <>
+            <Pause size={14} />
+            <span>Stöðva birtingar</span>
+          </>
+        ) : (
+          <>
+            <Play size={14} />
+            <span>Ræsa herferð</span>
+          </>
+        )}
+      </Button>
+    )
+  );
+}
 ```
 
 - [ ] **Step 3: Add the extend modal**
@@ -623,45 +628,47 @@ const handleExtend = async (e: React.FormEvent) => {
 Modal JSX next to the existing edit modal, following the page's modal markup conventions (copy the edit modal's wrapper/overlay classes):
 
 ```tsx
-{isExtendModalOpen && (
-  <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-      <h2 className="text-lg font-bold text-slate-900 mb-2">Framlengja herferð</h2>
-      <p className="text-sm text-slate-600 mb-4">
-        Eftirstöðvar upp á {campaign.budget.remainingIsk.toLocaleString('is-IS')} kr. verða
-        frátaknar á ný og birtingar hefjast strax.
-      </p>
-      <form onSubmit={handleExtend} className="space-y-4">
-        <label className="block">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Nýr lokadagur
-          </span>
-          <input
-            type="date"
-            required
-            min={new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0]}
-            value={extendEndsAt}
-            onChange={(e) => setExtendEndsAt(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </label>
-        {extendError && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
-            {extendError}
+{
+  isExtendModalOpen && (
+    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+        <h2 className="text-lg font-bold text-slate-900 mb-2">Framlengja herferð</h2>
+        <p className="text-sm text-slate-600 mb-4">
+          Eftirstöðvar upp á {campaign.budget.remainingIsk.toLocaleString('is-IS')} kr. verða
+          frátaknar á ný og birtingar hefjast strax.
+        </p>
+        <form onSubmit={handleExtend} className="space-y-4">
+          <label className="block">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Nýr lokadagur
+            </span>
+            <input
+              type="date"
+              required
+              min={new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0]}
+              value={extendEndsAt}
+              onChange={(e) => setExtendEndsAt(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+          </label>
+          {extendError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
+              {extendError}
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setIsExtendModalOpen(false)} type="button">
+              Hætta við
+            </Button>
+            <Button variant="primary" type="submit" loading={extendCampaignMutation.isPending}>
+              Framlengja
+            </Button>
           </div>
-        )}
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setIsExtendModalOpen(false)} type="button">
-            Hætta við
-          </Button>
-          <Button variant="primary" type="submit" loading={extendCampaignMutation.isPending}>
-            Framlengja
-          </Button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 ```
 
 Import `useExtendCampaign` alongside the existing `useCampaigns` imports. If the page already uses a shared `Modal` component (check the edit modal), use that instead of the raw overlay above.
