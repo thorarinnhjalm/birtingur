@@ -1,3 +1,8 @@
+import { FLAT_CPM_ISK, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+
+const CPM = FLAT_CPM_ISK.toLocaleString('is-IS');
+const PUBLISHER_SHARE = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
+
 export interface BlogPostData {
   slug: string;
   title: string;
@@ -181,6 +186,102 @@ export const BLOG_POSTS: BlogPostData[] = [
       {
         type: 'p',
         text: 'Fyrir stórfyrirtæki með milljóna fjárhagsáætlanir sem þurfa flókna alhliða ráðgjöf og birtingar í sjónvarpi og prentmiðlum getur hefðbundið birtingahús verið rétti kosturinn. En fyrir vefauglýsingar, sérstaklega hjá litlum og meðalstórum fyrirtækjum sem vilja fimi, gagnsæi og hámarks nýtingu á hverri krónu, getur sjálfsafgreiðslukerfi eins og Birtingur hentað betur.',
+      },
+    ],
+  },
+  {
+    slug: 'hvad-eru-birtingar-cpm-verd',
+    title: 'Hvað eru birtingar? CPM, birtingaspá og verð vefauglýsinga',
+    description: `Birting (impression) er hver sýning auglýsingar fyrir raunverulegum lesanda. Hér útskýrum við hvernig birtingar eru taldar, hvað CPM þýðir og hvað vefauglýsingar kosta á Íslandi.`,
+    date: '1. ágúst 2026',
+    readTime: '5 mín lestur',
+    category: 'Auglýsendur',
+    intro: `Birting (á ensku „impression") er ein sýning auglýsingar fyrir lesanda á vefsíðu. Verð vefauglýsinga er nær alltaf gefið upp sem CPM — verð fyrir hverjar 1.000 birtingar. Hjá Birtingi er CPM-verðið fast: ${CPM} kr. fyrir hverjar 1.000 birtingar, óháð flokki og árstíma.`,
+    content: [
+      { type: 'h2', text: 'Hvað telst vera birting?' },
+      {
+        type: 'p',
+        text: 'Birting telst þegar auglýsing birtist á skjá lesanda. Það er þó munur á kerfum: sum telja birtingu um leið og auglýsingin er sótt, jafnvel þótt hún sjáist aldrei. Birtingur fylgir alþjóðlegum IAB-viðmiðum um sýnileika (viewability) — birting telst aðeins eftir að auglýsingin hefur raunverulega sést á skjánum. Tvíteknar og óeðlilegar birtingar eru síaðar frá áður en þær eru gjaldfærðar.',
+      },
+      { type: 'h2', text: 'Hvað þýðir CPM?' },
+      {
+        type: 'p',
+        text: `CPM stendur fyrir „Cost Per Mille" — kostnað fyrir hverjar 1.000 birtingar. Ef CPM-verðið er ${CPM} kr. og þú setur 20.000 kr. í herferð færðu um það bil ${Math.round(20000 / FLAT_CPM_ISK) * 1000} birtingar. Reikniformúlan er einföld: fjárhæð ÷ CPM × 1.000 = fjöldi birtinga.`,
+      },
+      { type: 'h3', text: 'Fast verð eða uppboð?' },
+      {
+        type: 'p',
+        text: `Flest erlend auglýsingakerfi nota uppboðsfyrirkomulag (RTB) þar sem verðið sveiflast eftir eftirspurn og erfitt er að áætla kostnað fyrirfram. Birtingur fer aðra leið: eitt fast CPM-verð, ${CPM} kr., í öllum efnisflokkum. Þú veist því upp á krónu hvað herferðin kostar áður en hún fer í loftið.`,
+      },
+      { type: 'h2', text: 'Hvað er birtingaspá?' },
+      {
+        type: 'p',
+        text: 'Birtingaspá er mat á því hversu margar birtingar eru í boði í tilteknum efnisflokki á næstunni, byggt á raunverulegri umferð vefjanna í flokknum. Í kaupferlinu hjá Birtingi sérðu birtingaspá fyrir valda flokka áður en þú greiðir — svo þú getir metið hvort fjárhæðin skili þeirri dreifingu sem þú vilt.',
+      },
+      { type: 'h2', text: 'Hvað verður um peninginn?' },
+      {
+        type: 'p',
+        text: `Af hverjum 1.000 birtingum renna ${PUBLISHER_SHARE}% af nettótekjunum til útgefandans — vefsins sem birtir auglýsinguna — og ${DEFAULT_PLATFORM_FEE_PERCENT}% eru þjónustuþóknun Birtings. Útgefendur fá útborgað mánaðarlega þegar inneign nær ${MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr. lágmarki. Þannig sérðu nákvæmlega hvert auglýsingaféð þitt fer — enginn falinn milliliðakostnaður.`,
+      },
+      { type: 'h2', text: 'Algengar spurningar um birtingar' },
+      { type: 'h3', text: 'Er smellur það sama og birting?' },
+      {
+        type: 'p',
+        text: 'Nei. Birting er sýning auglýsingarinnar; smellur er þegar lesandi smellir á hana. Hlutfallið þar á milli kallast smellihlutfall (CTR). Hjá Birtingi greiðir þú fyrir birtingar (CPM), ekki smelli.',
+      },
+      { type: 'h3', text: 'Get ég fylgst með birtingum herferðarinnar?' },
+      {
+        type: 'p',
+        text: 'Já — í stjórnborðinu sérðu birtingar og smelli hverrar herferðar, og tölurnar uppfærast á klukkustundar fresti.',
+      },
+    ],
+  },
+  {
+    slug: 'vefbordar-staerdir-og-bordagerd',
+    title: 'Vefborðar: stærðir, hönnun og sjálfvirk borðagerð',
+    description:
+      'Hvaða stærðir af vefborðum þarftu og hvað einkennir góðan auglýsingaborða? Yfirlit yfir IAB-staðalstærðir og hvernig hægt er að láta útbúa borðana sjálfkrafa.',
+    date: '1. ágúst 2026',
+    readTime: '4 mín lestur',
+    category: 'Tækni',
+    intro:
+      'Vefborðar (display-borðar) eru myndauglýsingarnar sem birtast á vefsíðum — efst á síðu, í hliðarstiku eða inni í efni. Til að herferð nái yfir öll auglýsingapláss þarf borða í nokkrum staðalstærðum, og hér er farið yfir hverjar þær eru og hvernig þú kemur þér upp borðum án hönnuðar.',
+    content: [
+      { type: 'h2', text: 'Hvaða stærðir af vefborðum eru notaðar?' },
+      {
+        type: 'p',
+        text: 'Vefborðar fylgja alþjóðlegum staðalstærðum frá IAB (Interactive Advertising Bureau) svo sami borði passi í sambærileg pláss á ólíkum vefjum. Á íslenskum vefjum eru þessar stærðir algengastar — og þetta eru jafnframt stærðirnar sem auglýsingapláss hjá Birtingi nota:',
+      },
+      {
+        type: 'ul',
+        items: [
+          '728×90 (Leaderboard) — láréttur borði efst eða neðst á síðu.',
+          '300×250 (Medium Rectangle) — ferhyrningur í hliðarstiku eða inni í efni; algengasta stærðin.',
+          '300×600 (Half Page) — hár borði í hliðarstiku með miklu plássi fyrir skilaboð.',
+          '320×100 (Mobile Banner) — borði sniðinn fyrir símaskjái.',
+          '980×120 (Billboard) — breiður borði fyrir stærri skjái, algengur á íslenskum fréttavefjum.',
+        ],
+      },
+      { type: 'h2', text: 'Hvað einkennir góðan vefborða?' },
+      {
+        type: 'ul',
+        items: [
+          'Ein skýr skilaboð: fyrirsögn, stutt lýsing og hnappur — ekki meira.',
+          'Læsilegt letur í nægri stærð, líka í minnstu útgáfunni.',
+          'Góð birtuskil milli texta og bakgrunns.',
+          'Vörumerkið sýnilegt svo lesandinn viti strax frá hverjum auglýsingin er.',
+          'Áfangasíðan passar við skilaboðin — borði sem lofar einu en lendir á öðru skilar litlu.',
+        ],
+      },
+      { type: 'h2', text: 'Áttu enga borða? Sjálfvirk borðagerð' },
+      {
+        type: 'p',
+        text: 'Þú þarft hvorki hönnuð né hönnunarforrit til að auglýsa hjá Birtingi. Í kaupferlinu límir þú inn slóðina á vefsíðuna þína og kerfið les hana, skrifar tillögur að auglýsingatexta á íslensku og útbýr borða í öllum þeim staðalstærðum sem auglýsingaplássin í völdu flokkunum þínum nota. Þú velur tillögu, getur breytt fyrirsögn, undirtexta og hnappatexta að vild, og staðfestir áður en nokkuð fer í loftið.',
+      },
+      { type: 'h2', text: 'Tæknilegar kröfur' },
+      {
+        type: 'p',
+        text: 'Ef þú hleður upp eigin borðum tekur Birtingur við PNG, JPEG og WebP myndum (að hámarki 2 MB). Allt auglýsingaefni fer í gegnum efnisskimun áður en það birtist á vefjum útgefenda — það á jafnt við um upphlaðna borða og borða úr sjálfvirku borðagerðinni.',
       },
     ],
   },

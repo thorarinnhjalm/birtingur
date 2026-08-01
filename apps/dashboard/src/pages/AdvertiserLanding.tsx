@@ -195,7 +195,7 @@ export default function AdvertiserLanding() {
     // Dynamic SEO Metadata setup
     const titleText = activeRegion
       ? `Auglýsa á netinu ${activeRegion.dative} | Einföld birtingaþjónusta`
-      : 'Auglýsa á netinu: Einföld birtingaþjónusta fyrir fyrirtæki | Birtingur';
+      : `Auglýsingar á netinu fyrir fyrirtæki — fast ${fmtNum(FLAT_CPM_ISK)} kr. CPM | Birtingur`;
     const descriptionText = activeRegion
       ? `Auglýstu ${activeRegion.dative} með flokkakaupum á íslenskum vefjum. Fast ${fmtNum(FLAT_CPM_ISK)} kr. CPM verð, engin uppboð. Skráðu þig á biðlista!`
       : `Auglýstu á íslenskum vefsíðum eftir efnisflokkum á föstu ${fmtNum(FLAT_CPM_ISK)} kr. CPM verði. Engin uppboð, ekkert flækjustig. Skráðu þig á biðlista!`;

@@ -44,5 +44,16 @@ Birtingur hosts a native Dual-Sided Model Context Protocol (MCP) server at `http
 - GDPR & ePrivacy Compliance Guide: https://www.birtingur.app/en/guides/privacy-first-display-ads-gdpr
 - Food & Culinary Advertising Playbook: https://www.birtingur.app/en/guides/food-culinary-blog-advertising-guide
 - Tech & Finance Blog Monetization: https://www.birtingur.app/en/guides/tech-finance-blog-monetization-guide
+
+### Icelandic Guides (handbækur, in Icelandic)
+
+- Guide Directory (Icelandic): https://www.birtingur.app/handbaekur
+- How to Advertise Online in Iceland: https://www.birtingur.app/handbaekur/vefauglysingar-island-handbok
+- Increase Website Ad Revenue: https://www.birtingur.app/handbaekur/auka-auglysingatekjur-vefsidu
+- Cookieless Advertising & GDPR (Icelandic): https://www.birtingur.app/handbaekur/kokulausar-auglysingar-gdpr
+- Self-Service Platforms vs Traditional Media Agencies: https://www.birtingur.app/handbaekur/sjalfvirk-kerfi-vs-birtingahus
+- What Are Ad Impressions? CPM & Pricing Explained: https://www.birtingur.app/handbaekur/hvad-eru-birtingar-cpm-verd
+- Banner Sizes & Automatic Banner Generation: https://www.birtingur.app/handbaekur/vefbordar-staerdir-og-bordagerd
+
 - MCP Server Endpoint: https://mcp.birtingur.app/
 - API Endpoint: https://api.birtingur.app/

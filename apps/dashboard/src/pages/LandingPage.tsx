@@ -79,9 +79,8 @@ export default function LandingPage() {
 
   // Dynamic SEO Metadata setup
   useEffect(() => {
-    const titleText = 'Birtingur — Einföld birtingaþjónusta og auglýsingar á netinu';
-    const descriptionText =
-      'Viltu auglýsa á netinu eða selja auglýsingapláss? Birtingur er sjálfvirk og kökulaus birtingaþjónusta fyrir íslenskar vefauglýsingar. Skráðu þig á biðlista.';
+    const titleText = `Birtingaþjónusta á netinu — fast ${fmtNum(FLAT_CPM_ISK)} kr. CPM verð | Birtingur`;
+    const descriptionText = `Sjálfvirk og kökulaus birtingaþjónusta fyrir íslenskar vefauglýsingar: fast ${fmtNum(FLAT_CPM_ISK)} kr. CPM, engin uppboð og enginn milliliður. Skráðu þig á biðlista.`;
 
     updateSEO(titleText, descriptionText, '');
 

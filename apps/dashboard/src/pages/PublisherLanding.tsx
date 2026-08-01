@@ -194,7 +194,7 @@ export default function PublisherLanding() {
     // Dynamic SEO Metadata setup
     const titleText = activeRegion
       ? `Selja auglýsingar á vefsíðu ${activeRegion.dative} | Tekjur af vefnum`
-      : 'Selja auglýsingar á vefsíðu: Breyttu vefumferð í tekjur | Birtingur';
+      : 'Selja auglýsingar á netinu: Tekjur af vefsíðunni þinni | Birtingur';
     const descriptionText = activeRegion
       ? `Ertu með vefsíðu eða blogg ${activeRegion.dative}? Birtingur gerir þér kleift að sýna vandaðar íslenskar vefauglýsingar og fá ${PUBLISHER_SHARE_PERCENT}% tekjuskiptingu. Byrjaðu núna!`
       : `Breyttu vefumferðinni þinni í tekjur. Sýndu vandaðar íslenskar vefauglýsingar án rakningar frá þriðja aðila og fáðu ${PUBLISHER_SHARE_PERCENT}% af auglýsingatekjum. Sækja kóða og byrja strax!`;
