@@ -24,6 +24,10 @@ const BANNED = [
   { re: /(are|is) switching from/i, why: 'pre-launch network: nobody is "switching" yet (1fff519)' },
   { re: /high[- ]cpm/i, why: 'pricing is a flat CPM for every category — no high-CPM tiers' },
   { re: /\d[\d,.]* ?\+ (publishers|creators|sites|users|sessions|útgefend)/i, why: 'invented scale numbers' },
+  { re: /outperform|\bbeats\b/i, why: 'superiority claims over competitors need citations we do not have' },
+  { re: /fully compliant|compliant by design/i, why: 'legal compliance promises are banned — educational framing only (8393f47)' },
+  { re: /without consent banners?/i, why: 'consent-banner promises are legal claims; the snippet itself is consent-gated' },
+  { re: /\b(choose|prefer|chose)\b.{0,40}\bover (mediavine|ezoic|adsense|google)/i, why: 'pre-launch network: no adoption claims versus named competitors' },
 ];
 
 const failures = [];
@@ -43,6 +47,9 @@ const pagesDir = join(dashboardRoot, 'src', 'pages');
 for (const f of readdirSync(pagesDir).filter((f) => f.startsWith('English') && f.endsWith('.tsx'))) {
   scanText(readFileSync(join(pagesDir, f), 'utf8'), (line) => `src/pages/${f}:${line}`);
 }
+
+const llmsPath = join(dashboardRoot, 'public', 'llms.txt');
+scanText(readFileSync(llmsPath, 'utf8'), (line) => `public/llms.txt:${line}`);
 
 const snapshotsPath = join(dashboardRoot, 'prerender', 'snapshots.json');
 try {

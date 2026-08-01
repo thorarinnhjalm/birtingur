@@ -266,7 +266,7 @@ export default function CampaignCreate() {
     // rendered by the router) — the buy-flow spec's own full-viewport header
     // strip is intentionally not reproduced here to avoid a duplicate chrome
     // bar; "Hætta við" is preserved as the ghost button on step 1 instead.
-    <div className="max-w-[760px] mx-auto pb-[110px]">
+    <div className="max-w-190 mx-auto pb-27.5">
       <Eyebrow>Ný herferð</Eyebrow>
       <div className="mt-4">
         <EditorialH1>Stofna herferð</EditorialH1>
@@ -370,7 +370,7 @@ export default function CampaignCreate() {
                             : [...prev, cat.slug],
                         );
                       }}
-                      className="relative border-[1.5px] border-slate-200 bg-white rounded-[14px] px-[22px] py-5 cursor-pointer flex flex-col gap-2 transition-colors select-none"
+                      className="relative border-[1.5px] border-slate-200 bg-white rounded-[14px] px-5.5 py-5 cursor-pointer flex flex-col gap-2 transition-colors select-none"
                     >
                       {isSelected && (
                         <span className="absolute inset-[-1.5px] border-[1.5px] border-primary rounded-[14px] bg-primary/6 pointer-events-none" />
@@ -507,7 +507,7 @@ export default function CampaignCreate() {
               </PillButton>
             </div>
 
-            <div className="mt-[34px] bg-[#f1f5fd] border border-[#dbe4f7] rounded-[18px] px-8 py-[30px]">
+            <div className="mt-8.5 bg-[#f1f5fd] border border-[#dbe4f7] rounded-[18px] px-8 py-7.5">
               <Eyebrow>Áætluð birting</Eyebrow>
               <div className="flex items-baseline gap-3.5 mt-3">
                 <span
@@ -524,7 +524,7 @@ export default function CampaignCreate() {
                 verði.
               </p>
               {selectedCategories.length > 0 && (
-                <div className="mt-[18px] pt-[18px] border-t border-[#dbe4f7] text-sm text-slate-600">
+                <div className="mt-4.5 pt-4.5 border-t border-[#dbe4f7] text-sm text-slate-600">
                   Laust pláss í {selectedCategories.length} völdum flokkum:{' '}
                   <strong className="text-slate-900 font-bold tabular-nums">
                     ~{fmtNum(selectedDailyInventory)}
@@ -588,7 +588,7 @@ export default function CampaignCreate() {
               // of remounting a fresh CreativeGenerator, which would reset
               // its internal wizard state and force a full copy+render redo.
               <>
-                <div className="mt-6 flex items-center gap-4 rounded-[14px] border border-slate-200 bg-white px-[22px] py-5">
+                <div className="mt-6 flex items-center gap-4 rounded-[14px] border border-slate-200 bg-white px-5.5 py-5">
                   {creative && (
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-slate-100">
                       <img
@@ -627,12 +627,6 @@ export default function CampaignCreate() {
                   <CreativeGenerator
                     categories={selectedCategories}
                     onComplete={(createdCreatives) => {
-                      // Every requested size was created as a real Creative
-                      // (they're already in the library) — pick one this
-                      // flow's step 4 preview uses as `creative`. 300x250 is
-                      // the most common size; fall back to whatever came
-                      // first. B2: ALL of them (not just the primary) are
-                      // kept in `creatives` for final submission.
                       const primary =
                         createdCreatives.find((c) => c.width === 300 && c.height === 250) ??
                         createdCreatives[0];
@@ -724,20 +718,16 @@ export default function CampaignCreate() {
         </section>
       )}
 
-      {/* Step 4: Staðfesta — summary (name, schedule, categories, budget,
-            chosen creative preview) + payment, ending in the submit CTA.
-            handleFinalSubmit / useCreateCampaign unchanged from the old
-            step-3 "Greiðsla" section. */}
       {step === 4 && (
         <section style={{ marginTop: 'clamp(48px,6vw,72px)' }}>
           <h2 className="m-0 text-2xl font-extrabold tracking-[-0.02em]">Yfirlit og staðfesting</h2>
-          <p className="mt-3 mb-[26px] max-w-[52ch] text-[15px] leading-normal text-slate-500">
+          <p className="mt-3 mb-6.5 max-w-[52ch] text-[15px] leading-normal text-slate-500">
             Fjárhæðin er sótt af inneigninni í veskinu þínu. Þú fyllir á veskið með korti í gegnum
             Teya ef inneign vantar.
           </p>
 
           {creative && (
-            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center gap-4">
+            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-5.5 py-5 flex items-center gap-4">
               <div className="w-20 h-20 bg-slate-100 rounded overflow-hidden flex items-center justify-center shrink-0">
                 <img
                   src={creative.imageUrl}
@@ -750,9 +740,6 @@ export default function CampaignCreate() {
                 <span className="font-bold text-slate-900">
                   {creative.width} × {creative.height} px
                 </span>
-                {/* B2: every rendered size is submitted with the campaign,
-                    not just this preview thumbnail — make that visible here
-                    rather than implying only the pictured size ships. */}
                 {creatives.length > 1 && (
                   <span className="block text-xs font-semibold text-primary mt-0.5">
                     {creatives.length} stærðir
@@ -763,7 +750,7 @@ export default function CampaignCreate() {
           )}
 
           {selectedCategories.length > 0 && (
-            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-[22px] py-5 text-sm space-y-3">
+            <div className="mb-6 bg-white border border-slate-200 rounded-[14px] px-5.5 py-5 text-sm space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="block text-xs font-semibold text-slate-500">
@@ -803,7 +790,7 @@ export default function CampaignCreate() {
             </div>
           )}
 
-          <div className="bg-background border border-slate-200 rounded-[14px] px-[22px] py-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="bg-background border border-slate-200 rounded-[14px] px-5.5 py-5 flex items-center justify-between gap-4 flex-wrap">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
                 Núverandi inneign í veskinu þínu
@@ -827,7 +814,7 @@ export default function CampaignCreate() {
             )}
           </div>
 
-          <div className="mt-[26px] flex flex-col gap-[15px]">
+          <div className="mt-6.5 flex flex-col gap-3.75">
             <div className="flex justify-between items-center">
               <span className="text-[15px] text-slate-600">Fjárhæð herferðar</span>
               <span className="text-[15px] text-slate-900 tabular-nums">
@@ -849,10 +836,10 @@ export default function CampaignCreate() {
             </div>
           </div>
 
-          <div className="mt-[30px]">
+          <div className="mt-7.5">
             {walletSufficient ? (
               <Button
-                className="w-full h-[52px]"
+                className="w-full h-13"
                 loading={submitting}
                 disabled={selectedCategories.length === 0 || !creative}
                 onClick={handleFinalSubmit}
@@ -860,7 +847,7 @@ export default function CampaignCreate() {
                 Hefja birtingu af inneign
               </Button>
             ) : (
-              <Button className="w-full h-[52px]" onClick={() => navigate('/advertiser/topup')}>
+              <Button className="w-full h-13" onClick={() => navigate('/advertiser/topup')}>
                 Fylla fyrst á veskið
               </Button>
             )}

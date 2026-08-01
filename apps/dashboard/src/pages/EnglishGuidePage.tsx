@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import PublicHeader from '@/components/layout/PublicHeader';
+import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Clock, ArrowLeft, ArrowRight, Share2 } from 'lucide-react';
 
 export interface ArticleMeta {
   slug: string;
@@ -19,7 +20,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
   'cookieless-advertising-2026': {
     slug: 'cookieless-advertising-2026',
     category: 'Privacy & Compliance',
-    title: 'Cookieless Advertising in 2026: Why Category Networks Outperform Tracking Cookies',
+    title: 'Cookieless Advertising in 2026: How Category Networks Replace Tracking Cookies',
     subtitle:
       'As third-party tracking cookies vanish and privacy regulations tighten, contextual category display networks are proving to be both more profitable for creators and more effective for brands.',
     description:
@@ -144,11 +145,12 @@ export const ARTICLES: Record<string, ArticleMeta> = {
   'mediavine-ezoic-alternatives-cookieless': {
     slug: 'mediavine-ezoic-alternatives-cookieless',
     category: 'Creator Monetization',
-    title: 'Why Independent Creators Choose Category Networks over Mediavine & Ezoic',
+    title:
+      'Mediavine & Ezoic Alternatives: How Cookieless Category Networks Compare for Independent Creators',
     subtitle:
       'A side-by-side analysis of traditional ad management networks versus modern, lightweight category display networks.',
     description:
-      'Compare Mediavine, Ezoic, and Birtingur: discover why independent bloggers prefer 80% revenue share with zero tracking cookies and fast page speeds.',
+      'Compare Mediavine, Ezoic, and Birtingur: an 80% revenue share model with zero tracking cookies and a single lightweight embed.',
     date: 'August 2026',
     readTime: '6 min read',
     sections: [
@@ -169,7 +171,8 @@ export const ARTICLES: Record<string, ArticleMeta> = {
   'flat-cpm-vs-programmatic-rtb': {
     slug: 'flat-cpm-vs-programmatic-rtb',
     category: 'Creator Monetization',
-    title: 'Flat CPM vs. Programmatic Auctions: Why Category Network Pricing Beats Bidding Wars',
+    title:
+      'Flat CPM vs. Programmatic Auctions: How Category Network Pricing Differs from Auction Bidding',
     subtitle:
       'Understand how flat CPM category buying eliminates programmatic ad tax, auction volatility, and opaque middleman fees.',
     description:
@@ -194,9 +197,9 @@ export const ARTICLES: Record<string, ArticleMeta> = {
   'privacy-first-display-ads-gdpr': {
     slug: 'privacy-first-display-ads-gdpr',
     category: 'Privacy & Compliance',
-    title: 'The Complete GDPR & ePrivacy Guide to Website Monetization Without Consent Banners',
+    title: 'GDPR, ePrivacy and Display Ads: How Cookieless Category Serving Simplifies Compliance',
     subtitle:
-      'How to monetize digital content legally in Europe without annoying visitors with intrusive CMP cookie consent banners.',
+      'An educational guide to how cookieless, category-based ad serving interacts with GDPR and ePrivacy rules for European creators.',
     description:
       'An educational legal and technical guide to GDPR & ePrivacy compliance in display advertising through cookieless contextual targeting.',
     date: 'August 2026',
@@ -208,11 +211,11 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Privacy-by-Design Display Architecture',
-        p: 'Birtingur serves ads entirely in-context based on interest category matching. Our ad serving mechanism sets zero tracking cookies, drops no cross-site beacons, and performs no reader profiling. Because no personal data is tracked or shared across domains, websites avoid complex consent banner requirements for ad serving.',
+        p: 'Birtingur serves ads entirely in-context based on interest category matching. The ad serving mechanism sets zero tracking cookies, drops no cross-site beacons, and performs no reader profiling — even the first-party frequency-capping identifier is consent-gated. Because the ad layer tracks no personal data across domains, it adds far less consent overhead than cookie-based networks; each publisher remains responsible for their own site-wide compliance.',
       },
       {
         h2: 'Retaining Reader Trust & Regulatory Compliance',
-        p: 'Publishers and brands can operate with full peace of mind. By prioritizing privacy by design, your website stays fully compliant with European data privacy laws while providing a clean, respectful experience for every reader.',
+        p: 'Privacy by design keeps the ad stack from adding tracking risk to your site while providing a clean, respectful experience for every reader. This guide is educational — it is not legal advice for your specific site.',
       },
     ],
   },
@@ -315,6 +318,21 @@ export default function EnglishGuidePage() {
     }
   }, [article, slug]);
 
+  const handleShare = () => {
+    if (navigator.share && article) {
+      navigator
+        .share({
+          title: article.title,
+          text: article.description,
+          url: window.location.href,
+        })
+        .catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   if (!article) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
@@ -323,8 +341,12 @@ export default function EnglishGuidePage() {
           <p className="text-slate-600 mb-6 text-sm">
             The guide article you are looking for does not exist or has been moved.
           </p>
-          <Link to="/en/guides">
-            <Button variant="primary">← Browse All Guides</Button>
+          <Link
+            to="/en/guides"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Browse All Guides
           </Link>
         </div>
       </div>
@@ -332,101 +354,87 @@ export default function EnglishGuidePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased flex flex-col justify-between">
-      <div>
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-          <div className="mx-auto flex h-20 max-w-4xl items-center justify-between px-4 sm:px-6">
-            <Link
-              to="/en/guides"
-              className="text-lg font-extrabold text-slate-900 no-underline flex items-center gap-2"
-            >
-              <span className="text-primary font-black">Birtingur</span>
-              <span className="text-slate-300 font-light">/</span>
-              <span className="text-slate-600 text-sm font-bold">Guides</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link
-                to="/en/guides"
-                className="text-xs font-bold text-slate-600 hover:text-primary hidden sm:inline"
-              >
-                All Guides
-              </Link>
-              <Link to="/en#waitlist-section">
-                <Button variant="primary" className="text-xs font-bold py-2 px-3.5">
-                  Join Waitlist →
-                </Button>
-              </Link>
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white">
+      {/* Background Ambient Gradients */}
+      <div className="absolute top-0 left-1/4 w-150 h-150 rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
+      <div className="absolute top-1/3 right-10 w-125 h-125 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
+
+      <PublicHeader />
+
+      <main className="grow pt-28 pb-20">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Link */}
+          <Link
+            to="/en/guides"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition mb-8 group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            Back to Guides Catalog
+          </Link>
+
+          {/* Article Header */}
+          <header className="mb-10">
+            <div className="flex items-center justify-between gap-4 mb-4 text-xs font-semibold text-slate-400">
+              <span className="bg-slate-100 text-slate-650 px-2.5 py-1 rounded-lg">
+                {article.category}
+              </span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{article.readTime}</span>
+                </div>
+                <span>•</span>
+                <span>{article.date}</span>
+              </div>
             </div>
-          </div>
-        </header>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
+              {article.title}
+            </h1>
+            <p className="text-lg text-slate-650 font-medium leading-relaxed border-l-4 border-blue-500 pl-4 py-1 mb-8">
+              {article.subtitle}
+            </p>
+          </header>
 
-        <main className="py-16 px-4 sm:px-6 max-w-3xl mx-auto">
-          <div className="flex items-center gap-2 mb-4">
-            <Link to="/en/guides" className="text-xs font-bold text-primary hover:underline">
-              ← Guides Catalog
-            </Link>
-            <span className="text-slate-300">•</span>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-700 border border-slate-200">
-              {article.category}
-            </span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            {article.title}
-          </h1>
-          <p className="mt-4 text-lg text-slate-600 leading-relaxed font-medium">
-            {article.subtitle}
-          </p>
-
-          <div className="mt-8 border-y border-slate-200 py-4 flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
-            <span>
-              Published {article.date} • {article.readTime}
-            </span>
-            <span>100% Cookie-Free</span>
-          </div>
-
-          <div className="mt-10 space-y-10">
+          {/* Article Sections */}
+          <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed space-y-6">
             {article.sections.map((sec) => (
-              <div key={sec.h2} className="prose prose-slate max-w-none">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-3">{sec.h2}</h2>
-                <p className="text-slate-600 leading-relaxed text-base">{sec.p}</p>
+              <div key={sec.h2} className="space-y-3">
+                <h2 className="text-2xl font-black text-slate-900 pt-4 pb-1">{sec.h2}</h2>
+                <p className="text-base sm:text-[17px] text-slate-650 leading-relaxed">{sec.p}</p>
               </div>
             ))}
           </div>
 
-          <Card className="mt-14 p-8 bg-slate-50 border border-slate-200 rounded-2xl text-center shadow-sm">
-            <span className="text-3xl mb-2 block">🚀</span>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">
-              Ready for Privacy-First Display Ads?
-            </h3>
-            <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
+          {/* Share Action */}
+          <div className="flex items-center justify-between pt-8 border-t border-slate-200 mt-12 mb-16">
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition cursor-pointer bg-transparent border-0 p-0"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Share Article
+            </button>
+          </div>
+
+          {/* Call To Action Box */}
+          <div className="bg-linear-to-br from-blue-600 to-indigo-650 text-white rounded-2xl p-8 sm:p-10 shadow-xl shadow-blue-500/10 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+            <h3 className="text-2xl font-black mb-3">Ready for Privacy-First Display Ads?</h3>
+            <p className="text-white/80 text-sm max-w-lg mx-auto mb-6 leading-relaxed">
               Join creators and brands testing Birtingur’s cookie-free category display network.
             </p>
-            <Link to="/en#waitlist-section">
-              <Button
-                variant="primary"
-                className="py-3.5 px-6 text-sm font-bold shadow-md shadow-primary/20"
-              >
-                Join Early Access Waitlist →
-              </Button>
-            </Link>
-          </Card>
-
-          <div className="mt-10 pt-8 border-t border-slate-200 flex justify-between items-center text-xs font-bold text-primary">
-            <Link to="/en/guides" className="hover:underline">
-              ← Back to All Guides
-            </Link>
-            <Link to="/en" className="hover:underline">
-              Visit English Landing Page →
+            <Link
+              to="/en#waitlist-section"
+              className="inline-flex items-center gap-2 bg-white text-blue-700 px-6 py-3 rounded-xl text-xs font-black hover:bg-slate-50 transition shadow-sm"
+            >
+              Join Early Access Waitlist
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
 
-      <footer className="border-t border-slate-200 bg-slate-900 py-10 px-4 text-center text-xs text-slate-400">
-        © {new Date().getFullYear()} Birtingur. All rights reserved. 100% Cookie-Free & Privacy
-        First.
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

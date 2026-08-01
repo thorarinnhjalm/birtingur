@@ -52,14 +52,15 @@ const FEATURED_GUIDES = [
   {
     slug: 'mediavine-ezoic-alternatives-cookieless',
     category: 'Creator Monetization',
-    title: 'Why Independent Creators Choose Category Networks over Mediavine & Ezoic',
+    title:
+      'Mediavine & Ezoic Alternatives: How Cookieless Category Networks Compare for Independent Creators',
     desc: 'Discover why creators prefer 80% revenue share with zero tracking cookies and fast page load speeds.',
     readTime: '6 min read',
   },
   {
     slug: 'privacy-first-display-ads-gdpr',
     category: 'Privacy & Compliance',
-    title: 'The Complete GDPR & ePrivacy Guide to Website Monetization Without Consent Banners',
+    title: 'GDPR, ePrivacy and Display Ads: How Cookieless Category Serving Simplifies Compliance',
     desc: 'How to monetize digital content legally in Europe without annoying visitors with intrusive CMP cookie banners.',
     readTime: '6 min read',
   },
@@ -83,8 +84,8 @@ const ENGLISH_FAQS = [
     a: 'Traditional programmatic ad buying is bogged down by middleman tax, auction bidding wars, and intrusive tracker scripts that slow down websites. Birtingur lets brands buy an entire interest category (e.g. Food & Culinary) with a single campaign budget at a transparent flat CPM price.',
   },
   {
-    q: 'Is Birtingur fully GDPR and ePrivacy compliant?',
-    a: 'Yes. By eliminating third-party cookies, tracking beacons, and invasive user profiling, Birtingur is built privacy-first by design. Websites embedding Birtingur retain reader trust without complex cookie banner obligations.',
+    q: 'How does Birtingur approach GDPR and ePrivacy?',
+    a: 'Birtingur is built privacy-first by design: no third-party cookies, no tracking beacons, no user profiling, and a consent-gated first-party frequency cap. That design keeps the ad layer from adding tracking obligations to your site — each publisher remains responsible for their own overall compliance.',
   },
 ];
 

@@ -243,7 +243,7 @@ export default function FaqPage() {
           style={{ paddingTop: 'clamp(64px,9vw,112px)', paddingBottom: 'clamp(40px,6vw,64px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <Eyebrow className="mb-[18px] block">Hjálp & svör</Eyebrow>
+            <Eyebrow className="mb-4.5 block">Hjálp & svör</Eyebrow>
             <EditorialH1>Algengar spurningar</EditorialH1>
             <p className="mt-5 max-w-[62ch] text-[17px] leading-[1.6] text-slate-600">
               Leitaðu í spurningunum hér að neðan eða veldu efnisflokk til að finna svör um kaup á
@@ -292,7 +292,7 @@ export default function FaqPage() {
         {/* ============ FAQ LIST ============ */}
         <section style={{ paddingBottom: 'clamp(72px,10vw,128px)' }}>
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <div className="mx-auto max-w-[760px]">
+            <div className="mx-auto max-w-190">
               {filteredFaqs.length === 0 ? (
                 <div className="rounded-card border border-slate-200 bg-slate-50 p-10 text-center">
                   <h3 className="m-0 text-base font-bold text-slate-900">

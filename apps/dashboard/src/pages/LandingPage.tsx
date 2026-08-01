@@ -181,7 +181,7 @@ export default function LandingPage() {
               className="flex flex-wrap items-end justify-between gap-10"
               style={{ marginTop: 'clamp(36px,5vw,64px)' }}
             >
-              <div className="max-w-[560px]">
+              <div className="max-w-140">
                 <p
                   className="m-0 font-normal text-slate-700"
                   style={{ fontSize: 'clamp(18px,2vw,22px)', lineHeight: 1.55 }}
@@ -214,7 +214,7 @@ export default function LandingPage() {
             >
               {MINI_FEATURES.map((f) => (
                 <div key={f.title}>
-                  <div className="mb-[18px] h-[3px] w-[30px] bg-primary" />
+                  <div className="mb-4.5 h-0.75 w-7.5 bg-primary" />
                   <div
                     className="font-bold text-slate-900"
                     style={{
@@ -267,7 +267,7 @@ export default function LandingPage() {
               paddingRight: 'clamp(24px,5vw,72px)',
             }}
           >
-            <Eyebrow className="mb-[22px] block">Svona virkar það</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Svona virkar það</Eyebrow>
             <h2
               className="m-0 max-w-[18ch] font-extrabold text-slate-900"
               style={{
@@ -282,7 +282,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
               {HOW_IT_WORKS_STEPS.map((s) => (
                 <Card key={s.n} className="h-full">
-                  <div className="flex min-h-[236px] flex-col gap-[18px] p-1">
+                  <div className="flex min-h-59 flex-col gap-4.5 p-1">
                     <span className="text-[44px] leading-none font-extrabold tracking-[-0.03em] text-primary tabular-nums">
                       {s.n}
                     </span>
@@ -311,7 +311,7 @@ export default function LandingPage() {
               paddingRight: 'clamp(24px,5vw,72px)',
             }}
           >
-            <span className="mb-[22px] inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
+            <span className="mb-5.5 inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
               Gagnsætt verð
             </span>
             <h2
@@ -363,7 +363,7 @@ export default function LandingPage() {
               {CATEGORY_LABELS.map((label) => (
                 <span
                   key={label}
-                  className="rounded-full border border-white/20 bg-white/10 px-[18px] py-2 text-sm font-medium text-slate-200"
+                  className="rounded-full border border-white/20 bg-white/10 px-4.5 py-2 text-sm font-medium text-slate-200"
                 >
                   {label}
                 </span>
@@ -384,7 +384,7 @@ export default function LandingPage() {
               paddingRight: 'clamp(24px,5vw,72px)',
             }}
           >
-            <Eyebrow className="mb-[22px] block">Af hverju Birtingur</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Af hverju Birtingur</Eyebrow>
             <h2
               className="m-0 max-w-[16ch] font-extrabold text-slate-900"
               style={{
@@ -397,7 +397,7 @@ export default function LandingPage() {
               Kostir sem skipta máli
             </h2>
             <div className="grid grid-cols-1 gap-x-14 gap-y-10 sm:grid-cols-2 md:grid-cols-3">
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Eitt fast verð — {fmtNum(FLAT_CPM_ISK)} kr. CPM
                 </h3>
@@ -406,7 +406,7 @@ export default function LandingPage() {
                   flækjustig.
                 </p>
               </div>
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Flokkakaup í stað stakra plássa
                 </h3>
@@ -415,7 +415,7 @@ export default function LandingPage() {
                   flokknum.
                 </p>
               </div>
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Sjáðu áætlunina áður en þú borgar
                 </h3>
@@ -423,7 +423,7 @@ export default function LandingPage() {
                   Birtingaspá fyrir hvern flokk áður en herferðin fer í loftið.
                 </p>
               </div>
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Þú ferð aldrei yfir fjárhagsáætlun
                 </h3>
@@ -431,7 +431,7 @@ export default function LandingPage() {
                   Herferðin stöðvast sjálfkrafa þegar fjárhæðinni er náð.
                 </p>
               </div>
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Aðeins raunverulegar birtingar teljast
                 </h3>
@@ -439,7 +439,7 @@ export default function LandingPage() {
                   Birting telst aðeins þegar auglýsingin sést — í samræmi við IAB-viðmið.
                 </p>
               </div>
-              <div className="border-t-2 border-primary pt-[26px]">
+              <div className="border-t-2 border-primary pt-6.5">
                 <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                   Engar vafrakökur frá þriðja aðila
                 </h3>

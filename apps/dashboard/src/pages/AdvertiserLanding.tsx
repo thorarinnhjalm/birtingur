@@ -251,7 +251,7 @@ export default function AdvertiserLanding() {
           style={{ paddingTop: 'clamp(72px,10vw,132px)', paddingBottom: 'clamp(56px,8vw,96px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <Eyebrow className="mb-[22px] block">Fyrir auglýsendur</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Fyrir auglýsendur</Eyebrow>
             <h1
               className="m-0 max-w-[18ch] font-extrabold text-slate-900"
               style={{
@@ -275,7 +275,7 @@ export default function AdvertiserLanding() {
               className="flex flex-wrap items-end justify-between gap-10"
               style={{ marginTop: 'clamp(36px,5vw,64px)' }}
             >
-              <div className="max-w-[560px]">
+              <div className="max-w-140">
                 <p
                   className="m-0 font-normal text-slate-700"
                   style={{ fontSize: 'clamp(18px,2vw,22px)', lineHeight: 1.55 }}
@@ -336,7 +336,7 @@ export default function AdvertiserLanding() {
           style={{ paddingTop: 'clamp(80px,11vw,148px)', paddingBottom: 'clamp(56px,7vw,96px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <Eyebrow className="mb-[22px] block">Svona virkar það</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Svona virkar það</Eyebrow>
             <h2
               className="m-0 max-w-[18ch] font-extrabold text-slate-900"
               style={{
@@ -351,7 +351,7 @@ export default function AdvertiserLanding() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {ADVERTISER_STEPS.map((s) => (
                 <Card key={s.n} className="h-full">
-                  <div className="flex min-h-[236px] flex-col gap-[18px] p-1">
+                  <div className="flex min-h-59 flex-col gap-4.5 p-1">
                     <span className="text-[44px] leading-none font-extrabold tracking-[-0.03em] text-primary tabular-nums">
                       {s.n}
                     </span>
@@ -394,7 +394,7 @@ export default function AdvertiserLanding() {
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
             <div className="grid grid-cols-1 gap-10 rounded-card border border-slate-200 bg-white p-8 md:grid-cols-2 md:p-12">
               <div>
-                <Eyebrow className="mb-[18px] block">Verðreiknivél</Eyebrow>
+                <Eyebrow className="mb-4.5 block">Verðreiknivél</Eyebrow>
                 <h2
                   className="m-0 font-extrabold text-slate-900"
                   style={{
@@ -483,7 +483,7 @@ export default function AdvertiserLanding() {
           style={{ paddingTop: 'clamp(72px,10vw,128px)', paddingBottom: 'clamp(72px,10vw,128px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <span className="mb-[22px] inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
+            <span className="mb-5.5 inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
               Gagnsætt verð
             </span>
             <h2
@@ -535,7 +535,7 @@ export default function AdvertiserLanding() {
               {CATEGORY_LABELS.map((label) => (
                 <span
                   key={label}
-                  className="rounded-full border border-white/20 bg-white/10 px-[18px] py-2 text-sm font-medium text-slate-200"
+                  className="rounded-full border border-white/20 bg-white/10 px-4.5 py-2 text-sm font-medium text-slate-200"
                 >
                   {label}
                 </span>
@@ -549,7 +549,7 @@ export default function AdvertiserLanding() {
           style={{ paddingTop: 'clamp(80px,11vw,148px)', paddingBottom: 'clamp(80px,11vw,148px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <Eyebrow className="mb-[22px] block">Af hverju Birtingur</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Af hverju Birtingur</Eyebrow>
             <h2
               className="m-0 max-w-[16ch] font-extrabold text-slate-900"
               style={{
@@ -563,7 +563,7 @@ export default function AdvertiserLanding() {
             </h2>
             <div className="grid grid-cols-1 gap-x-14 gap-y-10 sm:grid-cols-2 md:grid-cols-3">
               {TRUST_ITEMS.map((item) => (
-                <div key={item.title} className="border-t-2 border-primary pt-[26px]">
+                <div key={item.title} className="border-t-2 border-primary pt-6.5">
                   <h3 className="m-0 mb-3 text-xl font-bold tracking-[-0.01em] text-slate-900">
                     {item.title}
                   </h3>
@@ -622,7 +622,7 @@ export default function AdvertiserLanding() {
           style={{ paddingTop: 'clamp(56px,7vw,96px)', paddingBottom: 'clamp(56px,7vw,96px)' }}
         >
           <div className="mx-auto" style={{ maxWidth: 1180, ...SECTION_PAD_X }}>
-            <Eyebrow className="mb-[22px] block">Fleiri staðir</Eyebrow>
+            <Eyebrow className="mb-5.5 block">Fleiri staðir</Eyebrow>
             <h2
               className="m-0 mb-8 max-w-[18ch] font-extrabold text-slate-900"
               style={{
@@ -642,8 +642,8 @@ export default function AdvertiserLanding() {
                     to={`/auglysendur/${key}`}
                     className={
                       isActive
-                        ? 'rounded-full border border-primary bg-primary/6 px-4.5 py-[9px] text-[14px] font-semibold text-primary'
-                        : 'rounded-full border border-slate-200 bg-white px-4.5 py-[9px] text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary'
+                        ? 'rounded-full border border-primary bg-primary/6 px-4.5 py-2.25 text-[14px] font-semibold text-primary'
+                        : 'rounded-full border border-slate-200 bg-white px-4.5 py-2.25 text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary'
                     }
                   >
                     Auglýsa {value.dative}
@@ -652,7 +652,7 @@ export default function AdvertiserLanding() {
               })}
               <Link
                 to="/auglysendur"
-                className="rounded-full border border-slate-200 bg-white px-4.5 py-[9px] text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary"
+                className="rounded-full border border-slate-200 bg-white px-4.5 py-2.25 text-[14px] font-semibold text-slate-700 transition-colors hover:border-primary hover:text-primary"
               >
                 Allt landið
               </Link>
