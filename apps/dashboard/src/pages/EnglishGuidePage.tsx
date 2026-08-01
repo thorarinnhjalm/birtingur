@@ -49,11 +49,11 @@ const ARTICLES: Record<string, ArticleMeta> = {
     sections: [
       {
         h2: 'The Problem With Traditional Ad Networks',
-        p: 'Legacy ad platforms penalize small-to-medium bloggers with low CPM rates, heavy tracking scripts that destroy Google Core Web Vitals, and strict traffic minimums (often requiring 50,000+ sessions before acceptance).',
+        p: 'Legacy ad platforms often burden small-to-medium bloggers with low CPM rates, heavy tracking scripts that degrade site performance, and strict traffic minimums for independent blogs.',
       },
       {
         h2: 'Transparent Revenue Sharing',
-        p: 'Creators deserve transparency. Birtingur operates with an 80% net payout model — creators keep $0.80 of every dollar spent in their category with real-time dashboard analytics updated hourly.',
+        p: 'Creators deserve transparency. Birtingur operates with an 80% net payout model — creators keep 80% of ad revenue in their category with dashboard analytics updated hourly.',
       },
       {
         h2: 'Lightweight & Privacy-First Integration',

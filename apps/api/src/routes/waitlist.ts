@@ -4,53 +4,57 @@ import { COLLECTIONS, waitlistEntryConverter } from '@ada/shared/firestore';
 import type { WaitlistEntry } from '@ada/shared/types';
 import { db } from '../lib/firebase.js';
 import { generateId } from '../lib/id.js';
+import { sendWaitlistWelcomeEmail } from '../services/mail.js';
+import { isRedisConfigured, getRedis } from '../lib/redis.js';
 
 export const waitlistRoute = new Hono();
 
-// Helper to send welcome email via Resend if RESEND_API_KEY is configured
-async function sendWelcomeEmail(email: string, role: string, category?: string) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.log(`[Waitlist Email] RESEND_API_KEY unset. Skipping email to ${email}`);
-    return;
+// Simple in-memory fallback rate limiter for waitlist submissions
+const memoryRateMap = new Map<string, { count: number; expiresAt: number }>();
+
+async function isRateLimited(key: string): Promise<boolean> {
+  const limit = 5; // Max 5 waitlist submissions per hour per IP/Email
+  const windowMs = 60 * 60 * 1000;
+
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const redisKey = `ratelimit:waitlist:${key}`;
+      const count = await redis.incr(redisKey);
+      if (count === 1) {
+        await redis.expire(redisKey, 3600);
+      }
+      return count > limit;
+    } catch {
+      // Fallback to in-memory on Redis error
+    }
   }
 
-  try {
-    const htmlBody = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b;">
-        <h2 style="color: #1e3a8a;">Welcome to Birtingur Early Access!</h2>
-        <p>Thank you for joining the global waitlist for Birtingur, the privacy-first category display network.</p>
-        <p><strong>Your Registration Details:</strong></p>
-        <ul>
-          <li><strong>Role:</strong> ${role.toUpperCase()}</li>
-          ${category ? `<li><strong>Category:</strong> ${category}</li>` : ''}
-        </ul>
-        <p>We are expanding early access by region and content category. We will reach out as soon as early access opens for your profile.</p>
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #64748b;">100% Cookie-Free & Privacy First • Birtingur</p>
-      </div>
-    `;
-
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'Birtingur Early Access <hello@birtingur.app>',
-        to: [email],
-        subject: 'Welcome to Birtingur Early Access!',
-        html: htmlBody,
-      }),
-    });
-  } catch (err) {
-    console.error('[Waitlist Email Error]', err);
+  const now = Date.now();
+  const entry = memoryRateMap.get(key);
+  if (!entry || entry.expiresAt < now) {
+    memoryRateMap.set(key, { count: 1, expiresAt: now + windowMs });
+    return false;
   }
+
+  entry.count += 1;
+  return entry.count > limit;
 }
 
-// POST /v1/waitlist — Public signup endpoint
+// POST /v1/waitlist — Public signup endpoint (Rate-limited, Zod-validated, awaited Resend email)
 waitlistRoute.post('/', async (c) => {
+  const ip = c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown-ip';
+
+  if (await isRateLimited(ip)) {
+    return c.json(
+      {
+        error: 'TOO_MANY_REQUESTS',
+        message: 'Too many waitlist submissions from this IP. Please try again later.',
+      },
+      429,
+    );
+  }
+
   const body = await c.req.json().catch(() => ({}));
   const parsed = CreateWaitlistInputSchema.safeParse(body);
 
@@ -66,6 +70,17 @@ waitlistRoute.post('/', async (c) => {
   }
 
   const { email, role, websiteUrl, category, country } = parsed.data;
+
+  // Rate limit by email as well to prevent spamming single address
+  if (await isRateLimited(`email:${email}`)) {
+    return c.json(
+      {
+        error: 'TOO_MANY_REQUESTS',
+        message: 'Too many submissions for this email address.',
+      },
+      429,
+    );
+  }
 
   // Check if email is already registered on waitlist
   const existing = await db
@@ -99,8 +114,8 @@ waitlistRoute.post('/', async (c) => {
     .withConverter(waitlistEntryConverter)
     .set(entry);
 
-  // Trigger welcome email asynchronously
-  sendWelcomeEmail(email, role, category).catch(() => {});
+  // Properly AWAITED email send with SENDER_EMAIL fallback from mail.ts
+  await sendWaitlistWelcomeEmail(email, role, category);
 
   return c.json(
     {
@@ -110,32 +125,4 @@ waitlistRoute.post('/', async (c) => {
     },
     201,
   );
-});
-
-// GET /v1/waitlist/stats — Aggregated telemetry stats
-waitlistRoute.get('/stats', async (c) => {
-  const snapshot = await db.collection(COLLECTIONS.waitlist).get();
-
-  let advertisers = 0;
-  let publishers = 0;
-  let both = 0;
-  const categories: Record<string, number> = {};
-
-  snapshot.docs.forEach((doc) => {
-    const data = doc.data() as WaitlistEntry;
-    if (data.role === 'advertiser') advertisers++;
-    else if (data.role === 'publisher') publishers++;
-    else if (data.role === 'both') both++;
-
-    if (data.category) {
-      const catKey = data.category.toLowerCase().trim();
-      categories[catKey] = (categories[catKey] || 0) + 1;
-    }
-  });
-
-  return c.json({
-    total: snapshot.size,
-    roles: { advertisers, publishers, both },
-    categories,
-  });
 });

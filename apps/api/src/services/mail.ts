@@ -173,3 +173,43 @@ export async function sendAgentCampaignPendingEmail(
     html,
   });
 }
+
+/**
+ * Sendir velkominn tölvupóst á ensku á alla sem skrá sig á biðlistann (/en)
+ */
+export async function sendWaitlistWelcomeEmail(
+  toEmail: string,
+  role: string,
+  category?: string,
+): Promise<void> {
+  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+
+  // Basic HTML entity escaping to prevent HTML injection in emails
+  const safeCategory = category
+    ? category.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    : undefined;
+
+  const html = `
+<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1e293b; line-height: 1.6;">
+  <h2 style="color: #1e3a8a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Welcome to Birtingur Early Access! 🚀</h2>
+  <p>Thank you for joining the global waitlist for Birtingur, the privacy-first category display network.</p>
+  <p><strong>Your Registration Details:</strong></p>
+  <ul style="padding-left: 20px;">
+    <li><strong>Role:</strong> ${role.toUpperCase()}</li>
+    ${safeCategory ? `<li><strong>Primary Category:</strong> ${safeCategory}</li>` : ''}
+  </ul>
+  <p>We are expanding early access by region and content category. We will reach out as soon as early access opens for your profile.</p>
+  <div style="background-color: #f8fafc; border-left: 4px solid #1e3a8a; padding: 15px; margin-top: 25px; border-radius: 4px;">
+    <p style="margin: 0; font-size: 13px; color: #64748b;">100% Cookie-Free & Privacy First • Birtingur Network</p>
+  </div>
+  <p style="margin-top: 30px;">Best regards,<br><strong>The Birtingur Team</strong><br><a href="https://www.birtingur.app/en" style="color: #1e3a8a; text-decoration: none;">birtingur.app/en</a></p>
+</div>
+  `;
+
+  await sendMail({
+    from: sender,
+    to: [toEmail],
+    subject: 'Welcome to Birtingur Early Access!',
+    html,
+  });
+}

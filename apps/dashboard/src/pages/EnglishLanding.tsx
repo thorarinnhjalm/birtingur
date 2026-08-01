@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -9,25 +10,44 @@ import Logo from '@/components/ui/Logo';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
-// Mapped English Category Labels for International SEO & UX
-const ENGLISH_CATEGORY_MAP: Record<string, string> = {
-  matur: 'Food & Culinary',
-  ferdalog: 'Travel & Outdoors',
-  tiska_fegurd: 'Fashion & Beauty',
-  taekni: 'Tech & Innovation',
-  heilsa_likamsraekt: 'Health & Fitness',
-  fjarmal_vidskipti: 'Business & Finance',
-  ithrottir: 'Sports & Athletics',
-  born_foreldrar: 'Parenting & Family',
-  bilar: 'Automotive & Transport',
-  heimili_honnun: 'Home & Interior Design',
-  afthreying_menning: 'Entertainment & Culture',
-  dyr_gaeludyr: 'Pets & Animals',
+const ENGLISH_CATEGORY_INFO: Record<string, { label: string; routeSlug: string }> = {
+  matur: { label: 'Food & Culinary', routeSlug: 'food' },
+  ferdalog: { label: 'Travel & Outdoors', routeSlug: 'travel' },
+  tiska_fegurd: { label: 'Fashion & Beauty', routeSlug: 'fashion' },
+  taekni: { label: 'Tech & Innovation', routeSlug: 'tech' },
+  heilsa_likamsraekt: { label: 'Health & Fitness', routeSlug: 'health' },
+  fjarmal_vidskipti: { label: 'Business & Finance', routeSlug: 'finance' },
+  ithrottir: { label: 'Sports & Athletics', routeSlug: 'sports' },
+  born_foreldrar: { label: 'Parenting & Family', routeSlug: 'family' },
+  bilar: { label: 'Automotive & Transport', routeSlug: 'auto' },
+  heimili_honnun: { label: 'Home & Interior Design', routeSlug: 'home' },
+  afthreying_menning: { label: 'Entertainment & Culture', routeSlug: 'culture' },
+  dyr_gaeludyr: { label: 'Pets & Animals', routeSlug: 'pets' },
 };
 
-const ENGLISH_CATEGORIES = AD_CATEGORIES.map(
-  (c) => ENGLISH_CATEGORY_MAP[c.slug] || c.label.split(' & ')[0],
-);
+const ENGLISH_CATEGORIES_LIST = AD_CATEGORIES.map((c) => {
+  const info = ENGLISH_CATEGORY_INFO[c.slug];
+  return {
+    slug: c.slug,
+    label: info ? info.label : c.label.split(' & ')[0],
+    routeSlug: info ? info.routeSlug : 'food',
+  };
+});
+
+const FEATURED_GUIDES = [
+  {
+    slug: 'cookieless-advertising-2026',
+    title: 'Cookieless Advertising in 2026: Why Category Networks Outperform Tracking Cookies',
+    desc: 'Learn why cookieless contextual category advertising is replacing invasive third-party tracking cookies for creators and brands.',
+    readTime: '4 min read',
+  },
+  {
+    slug: 'adsense-alternatives-niche-blogs',
+    title: 'The Creator Guide to Monetizing Niche Blogs Without Cookie Banners',
+    desc: 'Discover how independent bloggers earn predictable ad revenue without annoying readers with intrusive tracking scripts or CMP banners.',
+    readTime: '5 min read',
+  },
+];
 
 const ENGLISH_FAQS = [
   {
@@ -175,7 +195,13 @@ export default function EnglishLanding() {
             </span>
           </div>
 
-          <div>
+          <div className="flex items-center gap-4">
+            <a
+              href="#guides-section"
+              className="text-xs font-bold text-slate-600 hover:text-primary hidden sm:inline"
+            >
+              Guides & Articles
+            </a>
             <a href="#waitlist-section">
               <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
                 Join Waitlist →
@@ -186,7 +212,7 @@ export default function EnglishLanding() {
       </header>
 
       <main className="grow">
-        {/* HERO SECTION — FULL WIDTH STACK (NO OVERLAP POSSIBLE) */}
+        {/* HERO SECTION */}
         <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-left">
           <Eyebrow className="mb-4">Cookie-Free Category Display Network</Eyebrow>
 
@@ -208,19 +234,21 @@ export default function EnglishLanding() {
             transparent flat-CPM category buying.
           </p>
 
-          {/* ACTIVE CONTENT CATEGORIES */}
+          {/* ACTIVE CONTENT CATEGORIES — CLICKABLE LINKS TO CATEGORY PAGES */}
           <div className="mt-10">
             <span className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-              Active Content Categories
+              Explore Active Content Categories (Click to view category details)
             </span>
             <div className="flex flex-wrap gap-2.5">
-              {ENGLISH_CATEGORIES.map((lbl) => (
-                <span
-                  key={lbl}
-                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+              {ENGLISH_CATEGORIES_LIST.map((c) => (
+                <Link
+                  key={c.slug}
+                  to={`/en/categories/${c.routeSlug}`}
+                  className="rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 border border-slate-200 hover:border-primary hover:bg-primary/5 hover:text-primary transition-all duration-150 inline-flex items-center gap-1.5"
                 >
-                  {lbl}
-                </span>
+                  <span>{c.label}</span>
+                  <span className="text-[10px] text-slate-400">→</span>
+                </Link>
               ))}
             </div>
           </div>
@@ -242,7 +270,7 @@ export default function EnglishLanding() {
           </div>
         </section>
 
-        {/* DEDICATED WAITLIST SECTION — PROMINENT HIGHLIGHT BOX */}
+        {/* DEDICATED WAITLIST SECTION */}
         <section className="py-16 bg-slate-900 text-white" id="waitlist-section">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10">
@@ -413,7 +441,7 @@ export default function EnglishLanding() {
                   Transparent Payouts & Stats
                 </h3>
                 <p className="mt-3 text-sm text-slate-600 leading-relaxed">
-                  Real-time analytics updated hourly. Creators receive an 80% payout share with
+                  Dashboard analytics updated hourly. Creators receive an 80% payout share with
                   clear billing and no hidden programmatic deductions.
                 </p>
               </Card>
@@ -421,8 +449,42 @@ export default function EnglishLanding() {
           </div>
         </section>
 
-        {/* COMPREHENSIVE ENGLISH FAQ SECTION (SEO & LLMO ENHANCED) */}
-        <section className="py-20 bg-white border-t border-slate-200">
+        {/* FEATURED GUIDES & EDUCATIONAL ARTICLES SECTION */}
+        <section className="py-20 bg-white border-t border-slate-200" id="guides-section">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <Eyebrow>Educational Guides & Resources</Eyebrow>
+              <h2 className="m-0 text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl mt-2">
+                Learn About Privacy-First Display Ads
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {FEATURED_GUIDES.map((g) => (
+                <Link key={g.slug} to={`/en/guides/${g.slug}`} className="no-underline group">
+                  <Card className="p-8 bg-slate-50 hover:bg-white border border-slate-200 rounded-2xl transition-all duration-200 hover:shadow-lg group-hover:border-primary/50 h-full flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-primary block mb-2">
+                        Guide • {g.readTime}
+                      </span>
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors mb-3">
+                        {g.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed">{g.desc}</p>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-bold text-primary">
+                      <span>Read Article</span>
+                      <span>→</span>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* COMPREHENSIVE ENGLISH FAQ SECTION */}
+        <section className="py-20 bg-slate-50 border-t border-slate-200">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <Eyebrow>Frequently Asked Questions</Eyebrow>

@@ -62,19 +62,21 @@ export function NumberedSection({
 
 export function BigFigure({ value, suffix }: { value: string; suffix?: string }) {
   return (
-    <div
-      className="font-extrabold leading-none text-slate-900 tabular-nums tracking-[-0.035em]"
-      style={{ fontSize: 'clamp(44px,8vw,64px)' }}
-    >
-      {value}
-      {suffix && (
-        <span
-          className="ml-3 font-semibold text-slate-500"
-          style={{ fontSize: '0.36em', letterSpacing: 0 }}
-        >
-          {suffix}
-        </span>
-      )}
+    <div className="flex flex-col">
+      <div
+        className="font-extrabold leading-none text-slate-900 tabular-nums tracking-[-0.035em] flex items-baseline flex-wrap gap-2"
+        style={{ fontSize: 'clamp(36px,5vw,56px)' }}
+      >
+        <span>{value}</span>
+        {suffix && (
+          <span
+            className="font-semibold text-slate-500"
+            style={{ fontSize: '0.4em', letterSpacing: 0, lineHeight: 1.2 }}
+          >
+            {suffix}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

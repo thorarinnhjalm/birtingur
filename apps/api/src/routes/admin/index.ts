@@ -35,6 +35,33 @@ adminRoutes.get('/stats', async (c) => {
   return c.json(stats);
 });
 
+adminRoutes.get('/waitlist/stats', async (c) => {
+  const snapshot = await db.collection('waitlist').get();
+
+  let advertisers = 0;
+  let publishers = 0;
+  let both = 0;
+  const categories: Record<string, number> = {};
+
+  snapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    if (data.role === 'advertiser') advertisers++;
+    else if (data.role === 'publisher') publishers++;
+    else if (data.role === 'both') both++;
+
+    if (data.category) {
+      const catKey = String(data.category).toLowerCase().trim();
+      categories[catKey] = (categories[catKey] || 0) + 1;
+    }
+  });
+
+  return c.json({
+    total: snapshot.size,
+    roles: { advertisers, publishers, both },
+    categories,
+  });
+});
+
 adminRoutes.get('/diagnostics', async (c) => {
   const diagnosticResult: Record<string, any> = {};
 
