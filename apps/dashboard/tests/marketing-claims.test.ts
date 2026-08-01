@@ -93,12 +93,12 @@ describe('Landing pages describe statistics honestly', () => {
     expect(landing).not.toContain('3 mín');
   });
 
-  // The category inventory forecast IS computed live per request
-  // (services/inventory.ts is uncached), so this wording is accurate and
-  // must survive the cleanup — do not "fix" it.
-  it('keeps the accurate real-time forecast claim', () => {
-    expect(landing).toContain('Rauntíma birtingaspá');
-    expect(advertiser).toContain('Rauntíma birtingaspá');
+  // Superseded by b991d78: the forecast computation runs per request, but its
+  // inputs are hourly-aggregated stats (and the size variant sits behind a
+  // 10-minute cache), and AGENTS.md bans "rauntíma" in public copy outright.
+  it('does not call the inventory forecast real-time', () => {
+    expect(landing).not.toContain('Rauntíma birtingaspá');
+    expect(advertiser).not.toContain('Rauntíma birtingaspá');
   });
 });
 
