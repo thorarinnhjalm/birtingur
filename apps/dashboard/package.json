@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src && node scripts/check-marketing-claims.mjs"
   },
   "dependencies": {
     "@ada/shared": "workspace:*",
