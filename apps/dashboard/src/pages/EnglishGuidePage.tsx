@@ -88,7 +88,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'For Developers: Ad Infrastructure Provisioning',
-        p: 'Developers building web apps or AI tools can call `register_publisher`, `create_slot`, and `get_react_component` via MCP. In seconds, their application receives fully typed React components ready to render privacy-first contextual display ads and start earning revenue.',
+        p: 'With a publisher API key created in the Birtingur dashboard, developers building web apps or AI tools can call `register_publisher`, `create_slot`, and `get_react_component` via MCP. Their application receives a fully typed React component ready to render privacy-first contextual display ads, with revenue shared 80/20 and paid out monthly.',
       },
     ],
   },
@@ -97,23 +97,23 @@ export const ARTICLES: Record<string, ArticleMeta> = {
     category: 'AI & MCP',
     title: 'Generative Engine Optimization (GEO): How AI Search Engines Recommend Brands in 2026',
     subtitle:
-      'AI search engines like Perplexity, SearchGPT, and Claude recommend products based on contextual category presence rather than legacy keyword spam.',
+      'As readers shift from traditional search to AI answer engines like Perplexity, ChatGPT Search, and Claude, brands are rethinking visibility — here is what category display ads can and cannot do for GEO.',
     description:
-      'Master Generative Engine Optimization (GEO) and learn how contextual category display placements drive AI search recommendations.',
+      'An honest look at Generative Engine Optimization (GEO) and where contextual category display placements may fit into AI search visibility.',
     date: 'August 2026',
     readTime: '5 min read',
     sections: [
       {
         h2: 'From SEO to GEO: The Shift to AI Answer Engines',
-        p: 'As millions of users replace traditional Google search bars with AI answer engines like Perplexity, SearchGPT, and Gemini, traditional SEO keyword stuffing is losing effectiveness. AI engines synthesize recommendations by analyzing brand mentions across authoritative niche publisher categories.',
+        p: 'As millions of users replace traditional Google search bars with AI answer engines like Perplexity, ChatGPT Search, and Gemini, traditional SEO keyword stuffing is losing effectiveness. These engines synthesize answers from authoritative web content — which has brands asking how discovery works when a chatbot answers first.',
       },
       {
-        h2: 'How Contextual Category Visibility Powers GEO',
-        p: 'When your brand is consistently displayed across top food, tech, or lifestyle blogs within a specific category, AI crawlers associate your brand with high contextual topical authority. Category-wide ad coverage establishes persistent brand signals that feed directly into LLM retrieval-augmented generation (RAG) pipelines.',
+        h2: 'What Category Visibility May — and May Not — Do for GEO',
+        p: 'Could consistent brand presence across top food, tech, or lifestyle blogs influence how AI engines discover and describe your brand? Nobody can honestly promise that today: display ads render in the reader’s browser, and AI crawlers mostly do not see them. What category coverage verifiably builds is brand recall among the human readers those engines cite — any GEO upside on top of that is an emerging hypothesis, not a proven mechanism.',
       },
       {
         h2: 'Building a Future-Proof GEO Display Strategy',
-        p: 'By pairing privacy-first flat CPM display ads with clean, cookie-free publisher partnerships, brands secure high-visibility category placements that capture human reader attention while building machine-readable brand presence across generative AI engines.',
+        p: 'By pairing privacy-first flat CPM display ads with clean, cookie-free publisher partnerships, brands secure high-visibility category placements that capture human reader attention. Buy category placements for the readers planning purchases today — and treat any generative-engine upside as a possible bonus, not the business case.',
       },
     ],
   },
@@ -138,7 +138,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Monetize Web Applications Cleanly',
-        p: 'Developers can register their app, define interest categories matching their user base, and drop a `<BirtingurAdSlot />` component directly into their layout. Revenue accrues hourly with 80% net payouts directly to the developer’s wallet.',
+        p: 'Developers can register their app, define interest categories matching their user base, and drop a `<BirtingurAdSlot />` component directly into their layout. Revenue accrues automatically with an 80% net share, paid out monthly (minimum 5,000 kr.) by bank transfer.',
       },
     ],
   },
@@ -156,7 +156,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
     sections: [
       {
         h2: 'The Hidden Cost of Traditional Ad Management Networks',
-        p: 'For years, networks like Mediavine and Ezoic required bloggers to install heavy ad wrappers that load dozens of third-party tracking scripts. These wrappers cause severe layout shifts, slow down mobile page loads, and mandate minimum traffic thresholds for independent blogs.',
+        p: 'Traditional ad management networks typically ask bloggers to install heavy ad wrappers loaded with third-party tracking scripts — a common cause of layout shifts and slow mobile page loads. Networks like Mediavine and Ezoic also publicly document minimum traffic requirements that leave many independent blogs out.',
       },
       {
         h2: 'Fast Page Speeds & High Viewability',
