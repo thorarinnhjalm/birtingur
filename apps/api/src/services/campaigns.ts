@@ -617,6 +617,92 @@ export async function updateCampaignStatus(
 }
 
 /**
+ * Extend a COMPLETED campaign that still has leftover budget: new endsAt,
+ * status back to `active`. The two "cannot be reactivated" guards above
+ * exist because a generic status flip would re-acquire a wallet hold
+ * without passing the committed-funds gate — this path exists precisely to
+ * go THROUGH that gate, using the same transaction + fundsVersion-bump
+ * serialization as createCampaign, so the invariant holds by construction.
+ * Dashboard-only by policy (route rejects ak_ keys); no MCP path commits
+ * funds.
+ */
+export async function extendCampaign(
+  campaignId: string,
+  advertiserId: string,
+  newEndsAt: Date,
+): Promise<Campaign> {
+  if (newEndsAt.getTime() <= Date.now()) {
+    throw new AppError(400, 'endsAt must be in the future', 'BAD_REQUEST');
+  }
+
+  const advRef = db.collection(COLLECTIONS.advertisers).doc(advertiserId);
+  const cmpRef = db
+    .collection(COLLECTIONS.campaigns)
+    .doc(campaignId)
+    .withConverter(campaignConverter);
+
+  const extended = await db.runTransaction(async (t: Transaction): Promise<Campaign> => {
+    const snap = await t.get(cmpRef);
+    const existing = snap.exists ? snap.data()! : null;
+    if (!existing || existing.advertiserId !== advertiserId) {
+      throw new AppError(404, 'Campaign not found', 'NOT_FOUND');
+    }
+    if (existing.status !== 'completed') {
+      throw new AppError(400, 'Only completed campaigns can be extended', 'BAD_REQUEST');
+    }
+    if (existing.budget.remainingIsk <= 0) {
+      throw new AppError(
+        400,
+        'Campaign has no remaining budget to extend with',
+        'NO_REMAINING_BUDGET',
+      );
+    }
+
+    // Completed campaigns are not fund-holding, so the leftover is currently
+    // released; excludeCampaignId is belt-and-braces should that ever change.
+    const { availableIsk } = await getAvailableBalanceInTransaction(t, advertiserId, {
+      excludeCampaignId: campaignId,
+    });
+    if (availableIsk < existing.budget.remainingIsk) {
+      throw new AppError(
+        400,
+        `Insufficient available funds to re-reserve ${existing.budget.remainingIsk} ISK ` +
+          `(available ${availableIsk} ISK)`,
+        'INSUFFICIENT_FUNDS',
+      );
+    }
+
+    const next = CampaignSchema.parse({
+      ...existing,
+      status: 'active',
+      schedule: { ...existing.schedule, endsAt: newEndsAt },
+    });
+
+    // Same serialization write as createCampaign: forces concurrent
+    // transactions on this advertiser to conflict and retry serially.
+    t.update(advRef, { fundsVersion: FieldValue.increment(1) });
+    // Targeted update (never whole-doc set): a concurrent accrual write to
+    // budget.remainingIsk between our read and this write must survive.
+    t.update(db.collection(COLLECTIONS.campaigns).doc(campaignId), {
+      status: 'active',
+      'schedule.endsAt': newEndsAt,
+    });
+    return next;
+  });
+
+  // Completion deleted budget:{id}/pace_limit:{id} and the serving gate is
+  // fail-closed (missing key = 0) — reseed now so serving resumes without
+  // waiting up to 10 min for cron-refresh-cache. pushCacheForCampaign sets
+  // both keys from the fresh doc and restores slot mappings. Redis being
+  // down is non-fatal: the cron reseeds, under-serving in the meantime.
+  if (isRedisConfigured()) {
+    await pushCacheForCampaign(campaignId);
+  }
+
+  return extended;
+}
+
+/**
  * Owner approval for a campaign an agent bought above its API key's
  * autoApproveLimitIsk (tagged `pendingReason: 'agent_purchase'` at create
  * time — see createCampaign above). Only valid on campaigns still carrying
