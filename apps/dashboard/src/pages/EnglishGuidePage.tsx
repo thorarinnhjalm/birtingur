@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import PublicHeader from '@/components/layout/PublicHeader';
-import PublicFooter from '@/components/layout/PublicFooter';
+import EnglishHeader from '@/components/layout/EnglishHeader';
+import EnglishFooter from '@/components/layout/EnglishFooter';
 import { updateSEO } from '@/lib/seo';
 import { Clock, ArrowLeft, ArrowRight, Share2 } from 'lucide-react';
 
@@ -359,7 +359,7 @@ export default function EnglishGuidePage() {
       <div className="absolute top-0 left-1/4 w-150 h-150 rounded-full bg-blue-500/5 blur-[120px] pointer-events-none -z-10" />
       <div className="absolute top-1/3 right-10 w-125 h-125 rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none -z-10" />
 
-      <PublicHeader />
+      <EnglishHeader />
 
       <main className="grow pt-28 pb-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -434,7 +434,7 @@ export default function EnglishGuidePage() {
         </div>
       </main>
 
-      <PublicFooter />
+      <EnglishFooter />
     </div>
   );
 }

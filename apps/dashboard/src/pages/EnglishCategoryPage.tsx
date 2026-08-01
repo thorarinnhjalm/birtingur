@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import PublicHeader from '@/components/layout/PublicHeader';
-import PublicFooter from '@/components/layout/PublicFooter';
+import { useParams, Link } from 'react-router-dom';
+import EnglishHeader from '@/components/layout/EnglishHeader';
+import EnglishFooter from '@/components/layout/EnglishFooter';
 import { updateSEO } from '@/lib/seo';
 import { Card } from '@/components/ui/Card';
 import { Eyebrow } from '@/components/ui/editorial';
@@ -13,7 +13,6 @@ interface CategoryMeta {
   description: string;
   creatorHook: string;
   brandHook: string;
-  icon: string;
 }
 
 const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
@@ -26,7 +25,6 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       'Earn an 80% revenue share on your food blog without slowing down page load or placing ugly programmatic ad clutter.',
     brandHook:
       'Reach engaged foodies during meal prep and grocery planning with category-wide placement across independent food blogs.',
-    icon: '🍽️',
   },
   tech: {
     title: 'Tech & Innovation Category Ad Network',
@@ -37,7 +35,6 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       'Monetize developer and tech publications with privacy-respecting, lightweight ad snippets.',
     brandHook:
       'Promote SaaS tools, developer APIs, and tech products directly to tech-savvy audiences.',
-    icon: '💻',
   },
   travel: {
     title: 'Travel & Outdoors Display Ad Network',
@@ -48,7 +45,6 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       'Turn your travel guides and destination reviews into predictable ad revenue with zero cookie banners required.',
     brandHook:
       'Place your travel gear, hotel, or booking platform in front of active trip planners.',
-    icon: '✈️',
   },
   fashion: {
     title: 'Fashion & Beauty Category Display Network',
@@ -58,7 +54,6 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
     creatorHook: 'Keep your aesthetic clean and premium while earning an 80% net revenue share.',
     brandHook:
       'Showcase apparel, cosmetics, and lifestyle brands to highly targeted style audiences.',
-    icon: '👗',
   },
   finance: {
     title: 'Business & Finance Display Ad Network',
@@ -69,13 +64,12 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       'Monetize business and personal finance content with transparent, flat-CPM ad revenue.',
     brandHook:
       'Target business software, fintech platforms, and professional services by audience category.',
-    icon: '📈',
   },
 };
 
 export default function EnglishCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+
   const cat = slug ? CATEGORY_DETAILS[slug] : null;
 
   useEffect(() => {
@@ -88,18 +82,10 @@ export default function EnglishCategoryPage() {
     }
   }, [cat, slug]);
 
-  const changeTab = (tab: string) => {
-    if (tab === 'advertisers') navigate('/auglysendur');
-    else if (tab === 'publishers') navigate('/midlar');
-    else if (tab === 'faq') navigate('/faq');
-    else if (tab === 'terms') navigate('/skilmalar');
-    else navigate('/');
-  };
-
   if (!cat) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
-        <PublicHeader onTabChange={changeTab} currentTab="home" />
+        <EnglishHeader />
         <main className="grow flex items-center justify-center py-20 px-4">
           <div className="text-center max-w-md">
             <h1 className="text-2xl font-bold text-slate-900 mb-4">Category Not Found</h1>
@@ -111,43 +97,21 @@ export default function EnglishCategoryPage() {
             </Link>
           </div>
         </main>
-        <PublicFooter onTabChange={changeTab} />
+        <EnglishFooter />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased selection:bg-primary selection:text-white">
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/en"
-              className="flex items-center gap-2 text-slate-900 no-underline font-extrabold text-xl tracking-tight"
-            >
-              <span className="text-primary">Birtingur</span>
-            </Link>
-            <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              {slug?.toUpperCase()}
-            </span>
-          </div>
-
-          <div>
-            <Link to="/en#waitlist-form">
-              <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
-                Join Early Access →
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <EnglishHeader />
 
       <main className="grow">
         <section
           style={{ paddingTop: 'clamp(56px,7vw,96px)', paddingBottom: 'clamp(48px,6vw,72px)' }}
         >
           <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-            <Eyebrow className="mb-3">{cat.icon} Category Display Network</Eyebrow>
+            <Eyebrow className="mb-3">Category Display Network</Eyebrow>
             <h1 className="m-0 text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
               {cat.heroHeadline}
             </h1>
@@ -182,7 +146,7 @@ export default function EnglishCategoryPage() {
             </div>
 
             <div className="mt-14 text-center">
-              <Link to="/en#waitlist-form">
+              <Link to="/en#waitlist-section">
                 <Button
                   variant="primary"
                   className="py-3.5 px-8 text-base font-bold shadow-lg shadow-primary/20"
@@ -195,10 +159,7 @@ export default function EnglishCategoryPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-slate-900 py-10 px-4 text-center text-xs text-slate-400">
-        © {new Date().getFullYear()} Birtingur. All rights reserved. Privacy-First Category Ad
-        Network.
-      </footer>
+      <EnglishFooter />
     </div>
   );
 }

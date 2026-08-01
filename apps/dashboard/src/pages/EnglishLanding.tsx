@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Bot, Zap, Check, ArrowRight, Sparkles, Lock } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Check, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Eyebrow, BigFigure, PillButton } from '@/components/ui/editorial';
+import EnglishHeader from '@/components/layout/EnglishHeader';
+import EnglishFooter from '@/components/layout/EnglishFooter';
 import type { WaitlistRole } from '@ada/shared/types';
 import { AD_CATEGORIES } from '@ada/shared';
-import Logo from '@/components/ui/Logo';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
@@ -98,6 +99,15 @@ export default function EnglishLanding() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const { hash } = useLocation();
+
+  // React Router does not scroll to #anchors on cross-route navigation, so
+  // /en#waitlist-section links from the shared English header/guide pages
+  // land at the top without this.
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+  }, [hash]);
 
   useEffect(() => {
     updateSEO(
@@ -204,35 +214,7 @@ export default function EnglishLanding() {
       </div>
 
       {/* HEADER */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <a href="/en" className="flex items-center gap-2 text-slate-900 no-underline">
-              <Logo className="h-8 w-auto text-primary" />
-            </a>
-            <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-bold text-primary uppercase tracking-wider">
-              MCP Ready
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link
-              to="/en/guides"
-              className="text-xs font-bold text-slate-600 hover:text-primary hidden sm:inline"
-            >
-              Guides & Articles
-            </Link>
-            <a href="#waitlist-section">
-              <Button variant="primary" className="text-xs font-bold py-2.5 px-4">
-                <span className="flex items-center gap-1.5">
-                  <span>Join Waitlist</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <EnglishHeader />
 
       <main className="grow">
         {/* HERO SECTION */}
@@ -296,131 +278,94 @@ export default function EnglishLanding() {
           </div>
         </section>
 
-        {/* DUAL-SIDED MCP INFRASTRUCTURE SECTION */}
-        <section className="py-20 bg-slate-900 text-white border-t border-slate-800">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block rounded-full bg-primary/20 text-primary-300 px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-3">
-                Built for AI Agents & App Builders
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight m-0">
-                Dual-Sided Model Context Protocol (MCP) Infrastructure
+        {/* MCP INFRASTRUCTURE SECTION */}
+        <section className="py-20 border-t border-slate-200">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <Eyebrow>Model Context Protocol</Eyebrow>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-3 mb-4">
+                Two Sides, One MCP Server
               </h2>
-              <p className="mt-4 text-slate-300 text-base leading-relaxed">
-                Birtingur provides an MCP server (
-                <code className="text-primary-300 font-mono text-xs">mcp.birtingur.app</code>) that
-                empowers both buying agents and publishing developers.
+              <p className="text-slate-600 text-base leading-relaxed">
+                A single endpoint at{' '}
+                <code className="text-primary font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">
+                  mcp.birtingur.app
+                </code>{' '}
+                serves both buying agents and publishing developers with typed, auditable tool
+                calls.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* ADVERTISER / AGENT SIDE */}
-              <Card className="p-8 bg-slate-800/90 border border-slate-700/80 rounded-3xl text-white flex flex-col justify-between shadow-xl">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary-300 mb-6">
-                    <Bot className="h-6 w-6 text-primary-300" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-primary-300 block mb-2">
-                    For AI Buying Agents & Marketers
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-4">
-                    Autonomous Campaign Purchasing
-                  </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed mb-6">
-                    AI agents (Claude, ChatGPT wrappers, custom agent pipelines) use tools like{' '}
-                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-primary-300">
-                      list_categories
-                    </code>{' '}
-                    and{' '}
-                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-primary-300">
-                      create_campaign
-                    </code>{' '}
-                    to evaluate target verticals, set spending caps, and buy display ads
-                    programmatically.
-                  </p>
-                  <ul className="space-y-3 text-xs text-slate-300 p-0 m-0 list-none">
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>Automated category selection & campaign deployment</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>
-                        Enforced money guardrails (<code>autoApproveLimitIsk</code>)
-                      </span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>
-                        Hourly telemetry (<code>get_wallet</code>, <code>list_campaigns</code>)
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-slate-700/80">
-                  <Link
-                    to="/en/guides/mcp-ai-agent-advertising"
-                    className="group text-xs font-bold text-primary-300 hover:text-white flex items-center justify-between no-underline"
-                  >
-                    <span>Read AI Agent Buying Guide</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
+              <Card className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                <span className="font-mono text-xs font-bold text-slate-400">01</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary mt-4 mb-1">
+                  Advertiser Tools
+                </p>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">
+                  Autonomous Campaign Buying
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed mb-5">
+                  AI agents evaluate categories, set spending caps, and deploy display campaigns
+                  through typed MCP tool calls — scoped to an API key you create and control in the
+                  dashboard.
+                </p>
+                <ul className="space-y-2.5 text-xs text-slate-600 p-0 m-0 list-none mb-6">
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>Category selection and campaign deployment</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>Enforced spending caps per API key</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>Hourly wallet and campaign telemetry</span>
+                  </li>
+                </ul>
+                <Link
+                  to="/en/guides/mcp-ai-agent-advertising"
+                  className="group inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-800 no-underline"
+                >
+                  Read the Agent Buying Guide
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
               </Card>
 
               {/* PUBLISHER / DEVELOPER SIDE */}
-              <Card className="p-8 bg-slate-800/90 border border-slate-700/80 rounded-3xl text-white flex flex-col justify-between shadow-xl">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6">
-                    <Zap className="h-6 w-6 text-emerald-400" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 block mb-2">
-                    For App Builders & Blog Creators
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-4">
-                    Streamlined Developer Ad Integration
-                  </h3>
-                  <p className="text-sm text-slate-300 leading-relaxed mb-6">
-                    Developers building web apps or AI tools can call{' '}
-                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
-                      register_publisher
-                    </code>
-                    ,{' '}
-                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
-                      create_slot
-                    </code>
-                    , and{' '}
-                    <code className="bg-slate-900 px-2 py-0.5 rounded text-xs font-mono text-emerald-400">
-                      get_react_component
-                    </code>{' '}
-                    to fetch ready-to-render React ad components without manual click-ops.
-                  </p>
-                  <ul className="space-y-3 text-xs text-slate-300 p-0 m-0 list-none">
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>Automated registration & ad slot creation via MCP</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>Typed React ad components & 5KB script snippets</span>
-                    </li>
-                    <li className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                      <span>80% net revenue split paid out monthly</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-slate-700/80">
-                  <Link
-                    to="/en/guides/ai-app-monetization-sdk-widgets"
-                    className="group text-xs font-bold text-emerald-400 hover:text-white flex items-center justify-between no-underline"
-                  >
-                    <span>Read App Developer Guide</span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
+              <Card className="p-8 bg-slate-50 border border-slate-200 rounded-2xl">
+                <span className="font-mono text-xs font-bold text-slate-400">02</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-primary mt-4 mb-1">
+                  Publisher Tools
+                </p>
+                <h3 className="text-xl font-bold text-slate-900 mb-3">Developer Ad Integration</h3>
+                <p className="text-sm text-slate-600 leading-relaxed mb-5">
+                  Register a site, create ad slots, and fetch ready-to-render React components or a
+                  5 KB script snippet — all via MCP tool calls.
+                </p>
+                <ul className="space-y-2.5 text-xs text-slate-600 p-0 m-0 list-none mb-6">
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>Automated registration and slot creation</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>Typed React components and script snippets</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                    <span>80 % net revenue split, paid monthly</span>
+                  </li>
+                </ul>
+                <Link
+                  to="/en/guides/ai-app-monetization-sdk-widgets"
+                  className="group inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 no-underline"
+                >
+                  Read the Developer Guide
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
               </Card>
             </div>
           </div>
@@ -709,21 +654,7 @@ export default function EnglishLanding() {
       </main>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 text-white">
-        <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <Logo className="h-7 w-auto text-white" />
-            <span className="text-xs text-slate-400">
-              — The MCP-Native Category Display Network
-            </span>
-          </div>
-
-          <div className="text-xs text-slate-400 text-center md:text-right">
-            © {new Date().getFullYear()} Birtingur. All rights reserved. 100% Cookie-Free & MCP
-            Native.
-          </div>
-        </div>
-      </footer>
+      <EnglishFooter />
     </div>
   );
 }
