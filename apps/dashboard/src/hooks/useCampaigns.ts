@@ -132,6 +132,20 @@ export function useUpdateCampaign() {
   });
 }
 
+export function useExtendCampaign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, endsAt }: { id: string; endsAt: string }) =>
+      apiFetch<Campaign>(`/v1/campaigns/${id}/extend`, {
+        method: 'POST',
+        body: JSON.stringify({ endsAt }),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+  });
+}
+
 /**
  * Owner approval flow for a campaign an agent bought (over MCP/API) above
  * its API key's auto-approve limit — tagged `pendingReason: 'agent_purchase'`

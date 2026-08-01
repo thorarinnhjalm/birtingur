@@ -3,6 +3,7 @@ import {
   useCampaign,
   useCampaignStats,
   useUpdateCampaign,
+  useExtendCampaign,
   useBulkCreativeStats,
 } from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
@@ -24,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { AD_CATEGORIES, FLAT_CPM_ISK, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
@@ -120,6 +121,12 @@ export default function CampaignDetail() {
   const [editTotalBudget, setEditTotalBudget] = useState(0);
   const [editError, setEditError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+
+  // Extend Modal state (completed campaigns with leftover budget)
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
+  const [extendEndsAt, setExtendEndsAt] = useState('');
+  const [extendError, setExtendError] = useState<string | null>(null);
+  const extendCampaignMutation = useExtendCampaign();
 
   useEffect(() => {
     if (id) {
@@ -236,6 +243,30 @@ export default function CampaignDetail() {
     }
   };
 
+  const handleExtend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setExtendError(null);
+    try {
+      await extendCampaignMutation.mutateAsync({
+        id: campaign.id,
+        endsAt: new Date(extendEndsAt).toISOString(),
+      });
+      setIsExtendModalOpen(false);
+    } catch (err) {
+      // apiFetch throws ApiError with a `code` from the API's error body
+      // (`services/campaigns.ts`'s extendCampaign) — match on that instead
+      // of sniffing the message text.
+      const code = err instanceof ApiError ? err.code : undefined;
+      if (code === 'INSUFFICIENT_FUNDS') {
+        setExtendError('Ekki næg inneign í veskinu til að frátaka eftirstöðvarnar á ný.');
+      } else if (code === 'NO_REMAINING_BUDGET') {
+        setExtendError('Herferðin á engar eftirstöðvar til að framlengja með.');
+      } else {
+        setExtendError('Ekki tókst að framlengja herferðina. Reyndu aftur.');
+      }
+    }
+  };
+
   const spent = campaign.budget.totalIsk - campaign.budget.remainingIsk;
   const pct = Math.min(100, Math.round((spent / campaign.budget.totalIsk) * 100)) || 0;
 
@@ -300,25 +331,42 @@ export default function CampaignDetail() {
             Breyta herferð
           </Button>
 
-          {campaign.status !== 'pending_approval' && (
-            <Button
-              variant={campaign.status === 'active' ? 'secondary' : 'primary'}
-              onClick={toggleCampaignStatus}
-              loading={toggling}
-              className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
-            >
-              {campaign.status === 'active' ? (
-                <>
-                  <Pause size={14} />
-                  <span>Stöðva birtingar</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  <span>Ræsa herferð</span>
-                </>
-              )}
-            </Button>
+          {campaign.status === 'completed' ? (
+            campaign.budget.remainingIsk > 0 ? (
+              <Button
+                variant="primary"
+                onClick={() => setIsExtendModalOpen(true)}
+                className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+              >
+                <Play size={14} />
+                <span>Framlengja herferð</span>
+              </Button>
+            ) : (
+              <span className="text-xs font-semibold text-slate-400">
+                Herferðin kláraði fjárhæðina — lokið.
+              </span>
+            )
+          ) : (
+            campaign.status !== 'pending_approval' && (
+              <Button
+                variant={campaign.status === 'active' ? 'secondary' : 'primary'}
+                onClick={toggleCampaignStatus}
+                loading={toggling}
+                className="text-xs font-bold py-2.5 px-4 flex items-center gap-1.5"
+              >
+                {campaign.status === 'active' ? (
+                  <>
+                    <Pause size={14} />
+                    <span>Stöðva birtingar</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={14} />
+                    <span>Ræsa herferð</span>
+                  </>
+                )}
+              </Button>
+            )
           )}
         </div>
       </div>
@@ -1050,6 +1098,68 @@ export default function CampaignDetail() {
                   className="text-xs font-bold"
                 >
                   Vista breytingar
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {isExtendModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <Card className="max-w-md w-full bg-white shadow-2xl overflow-hidden p-6 space-y-5 my-8">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Framlengja herferð</h3>
+              <button
+                onClick={() => setIsExtendModalOpen(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-sm text-slate-600">
+              Eftirstöðvar upp á {campaign.budget.remainingIsk.toLocaleString('is-IS')} kr. verða
+              frátaknar á ný og birtingar hefjast strax.
+            </p>
+
+            <form onSubmit={handleExtend} className="space-y-4">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Nýr lokadagur
+                </span>
+                <input
+                  type="date"
+                  required
+                  min={new Date(Date.now() + 24 * 3600 * 1000).toISOString().split('T')[0]}
+                  value={extendEndsAt}
+                  onChange={(e) => setExtendEndsAt(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+              </label>
+
+              {extendError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
+                  {extendError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsExtendModalOpen(false)}
+                  type="button"
+                  className="text-xs"
+                >
+                  Hætta við
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  loading={extendCampaignMutation.isPending}
+                  className="text-xs font-bold"
+                >
+                  Framlengja
                 </Button>
               </div>
             </form>
