@@ -57,7 +57,7 @@ const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Lightweight & Privacy-First Integration',
-        p: 'Embedding Birtingur takes less than 2 minutes: paste a single size-budgeted script snippet into your site. No third-party cookies dropped on your readers and no page slowdowns.',
+        p: 'Embedding Birtingur is a single copy-paste: add one size-budgeted script snippet to your site. No third-party cookies dropped on your readers and no page slowdowns.',
       },
     ],
   },

@@ -25,7 +25,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
     creatorHook:
       'Earn an 80% revenue share on your food blog without slowing down page load or placing ugly programmatic ad clutter.',
     brandHook:
-      'Reach engaged foodies during meal prep and grocery planning with instant category-wide placement.',
+      'Reach engaged foodies during meal prep and grocery planning with category-wide placement across independent food blogs.',
     icon: '🍽️',
   },
   tech: {

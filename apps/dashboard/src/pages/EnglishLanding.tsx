@@ -56,7 +56,7 @@ const ENGLISH_FAQS = [
   },
   {
     q: 'How do digital creators and bloggers earn money?',
-    a: 'Creators embed a single lightweight, size-budgeted script snippet on their site. Whenever ads serve in their declared content categories, creators receive 80% of net advertising revenue with complete real-time dashboard transparency.',
+    a: 'Creators embed a single lightweight, size-budgeted script snippet on their site. Whenever ads serve in their declared content categories, creators receive 80% of net advertising revenue with transparent dashboard reporting updated hourly.',
   },
   {
     q: 'What makes Category Network Buying better than traditional ad buying?',
