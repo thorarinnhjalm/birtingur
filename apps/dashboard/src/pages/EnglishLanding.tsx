@@ -61,7 +61,7 @@ const FEATURED_GUIDES = [
     slug: 'privacy-first-display-ads-gdpr',
     category: 'Privacy & Compliance',
     title: 'GDPR, ePrivacy and Display Ads: How Cookieless Category Serving Simplifies Compliance',
-    desc: 'How to monetize digital content legally in Europe without annoying visitors with intrusive CMP cookie banners.',
+    desc: 'How cookieless, category-based ad serving interacts with GDPR and ePrivacy rules for European creators.',
     readTime: '6 min read',
   },
 ];
