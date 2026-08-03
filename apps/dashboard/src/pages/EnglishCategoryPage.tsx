@@ -219,10 +219,20 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
   },
 };
 
+// Slugs that actually have a category page — EnglishLanding filters its
+// hero chips against this so it never links to the not-found state.
+export const ENGLISH_CATEGORY_PAGE_SLUGS = Object.keys(CATEGORY_DETAILS);
+
 export default function EnglishCategoryPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const cat = slug ? CATEGORY_DETAILS[slug] : null;
+  // hasOwnProperty guard: a URL like /en/categories/constructor would
+  // otherwise resolve to inherited Object.prototype members (truthy) and
+  // crash the render instead of showing the not-found state.
+  const cat =
+    slug && Object.prototype.hasOwnProperty.call(CATEGORY_DETAILS, slug)
+      ? CATEGORY_DETAILS[slug]
+      : null;
 
   useEffect(() => {
     if (cat && slug) {

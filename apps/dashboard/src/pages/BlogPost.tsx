@@ -35,9 +35,11 @@ export default function BlogPost() {
           url: window.location.href,
         })
         .catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Tengill afritaður í klemmuspjald!');
+    } else if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => alert('Tengill afritaður í klemmuspjald!'))
+        .catch(() => {});
     }
   };
 

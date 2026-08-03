@@ -745,7 +745,10 @@ export function JsonLd({ data }: { data: object }) {
 
 export default function EnglishGuidePage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = slug ? ARTICLES[slug] : null;
+  // hasOwnProperty guard: /en/guides/constructor would otherwise resolve to
+  // inherited Object.prototype members (truthy) and crash the render.
+  const article =
+    slug && Object.prototype.hasOwnProperty.call(ARTICLES, slug) ? ARTICLES[slug] : null;
 
   useEffect(() => {
     if (article && slug) {
@@ -763,28 +766,34 @@ export default function EnglishGuidePage() {
           url: window.location.href,
         })
         .catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+    } else if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => alert('Link copied to clipboard!'))
+        .catch(() => {});
     }
   };
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Guide Not Found</h1>
-          <p className="text-slate-600 mb-6 text-sm">
-            The guide article you are looking for does not exist or has been moved.
-          </p>
-          <Link
-            to="/en/guides"
-            className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-primary-800 transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Browse All Guides
-          </Link>
-        </div>
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
+        <EnglishHeader />
+        <main className="grow flex items-center justify-center p-4">
+          <div className="text-center max-w-md">
+            <h1 className="text-2xl font-bold text-slate-900 mb-4">Guide Not Found</h1>
+            <p className="text-slate-600 mb-6 text-sm">
+              The guide article you are looking for does not exist or has been moved.
+            </p>
+            <Link
+              to="/en/guides"
+              className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-primary-800 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Browse All Guides
+            </Link>
+          </div>
+        </main>
+        <EnglishFooter />
       </div>
     );
   }

@@ -181,6 +181,7 @@ export default function FaqPage() {
       'Svör við helstu spurningum um hvernig á að auglýsa á netinu á íslenskum vefsíðum eða græða á eigin vefsíðu með birtingakerfi Birtings.';
 
     updateSEO(titleText, descriptionText, '/faq');
+    window.scrollTo({ top: 0 });
 
     // FAQ JSON-LD Schema — kept in sync with the visible copy above since it
     // reads directly from faqItems.

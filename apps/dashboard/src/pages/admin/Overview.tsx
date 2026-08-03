@@ -75,7 +75,15 @@ function Home() {
     queryFn: () => apiFetch<AdminStats>('/v1/admin/stats'),
   });
   const { data: diag } = useAdminDiagnostics();
-  const { data: waitlist } = useAdminWaitlistStats();
+  const {
+    data: waitlist,
+    isLoading: waitlistLoading,
+    isError: waitlistError,
+  } = useAdminWaitlistStats();
+  // '...' while loading and an explicit error line on failure — a silent 0
+  // would be indistinguishable from "no signups yet".
+  const wl = (n: number | undefined) =>
+    waitlistLoading ? '...' : waitlistError ? '—' : (n ?? 0).toLocaleString('is-IS');
 
   return (
     <div className="space-y-8">
@@ -128,21 +136,17 @@ function Home() {
       <div>
         <h3 className="text-base font-bold text-slate-900 mb-3">Biðlisti enska vefsins (/en)</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
-            label="Skráningar alls"
-            value={(waitlist?.total ?? 0).toLocaleString('is-IS')}
-          />
-          <StatCard
-            label="Auglýsendur"
-            value={(waitlist?.roles.advertisers ?? 0).toLocaleString('is-IS')}
-          />
-          <StatCard
-            label="Útgefendur"
-            value={(waitlist?.roles.publishers ?? 0).toLocaleString('is-IS')}
-          />
-          <StatCard label="Bæði" value={(waitlist?.roles.both ?? 0).toLocaleString('is-IS')} />
+          <StatCard label="Skráningar alls" value={wl(waitlist?.total)} />
+          <StatCard label="Auglýsendur" value={wl(waitlist?.roles?.advertisers)} />
+          <StatCard label="Útgefendur" value={wl(waitlist?.roles?.publishers)} />
+          <StatCard label="Bæði" value={wl(waitlist?.roles?.both)} />
         </div>
-        {waitlist && Object.keys(waitlist.categories).length > 0 && (
+        {waitlistError && (
+          <p className="mt-2 text-xs font-semibold text-red-600">
+            Gat ekki sótt biðlistatölfræði — endurhladdu síðuna eða athugaðu API-ið.
+          </p>
+        )}
+        {waitlist?.categories && Object.keys(waitlist.categories).length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {Object.entries(waitlist.categories)
               .sort((a, b) => b[1] - a[1])
