@@ -49,7 +49,10 @@ async function createVerifiedUser(email: string): Promise<void> {
 async function signIn(page: import('@playwright/test').Page, email: string): Promise<void> {
   await page.goto('/sign-in');
   await expect(page.locator('h1')).toContainText('Skráðu þig inn');
-  await page.fill('label:has-text("Netfang") input, input[type="text"], input[type="email"]', email);
+  await page.fill(
+    'label:has-text("Netfang") input, input[type="text"], input[type="email"]',
+    email,
+  );
   await page.fill('label:has-text("Lykilorð") input, input[type="password"]', PASSWORD);
   await Promise.all([page.waitForURL(/\/role/), page.click('button[type="submit"]')]);
 }
@@ -74,7 +77,12 @@ test.describe('Birtingur E2E Onboarding & Login Flow', () => {
     await expect(advertiserCard).toBeVisible();
     await expect(advertiserCard).toContainText('Tímabundið lokuð');
     await advertiserCard.click();
-    await expect(page).not.toHaveURL(/\/advertiser/);
+    // Give any (buggy) navigation time to happen, then assert the chooser
+    // is still mounted — a bare not.toHaveURL would pass instantly and
+    // prove nothing.
+    await page.waitForTimeout(500);
+    await expect(page.locator('h1')).toContainText('Veldu þitt hlutverk');
+    await expect(page).toHaveURL(/\/role/);
   });
 
   test('fresh user proceeds down the publisher path to onboarding', async ({ page }) => {

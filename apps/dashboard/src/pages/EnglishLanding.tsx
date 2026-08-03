@@ -480,6 +480,7 @@ export default function EnglishLanding() {
                         type="text"
                         placeholder="Food, Tech, Travel..."
                         value={category}
+                        maxLength={80}
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
                       />

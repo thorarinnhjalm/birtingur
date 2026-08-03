@@ -24,9 +24,12 @@ async function isRateLimited(key: string): Promise<boolean> {
       const count = await redis.incr(redisKey);
       // Self-healing TTL: INCR+EXPIRE aren't atomic here (two HTTP calls on
       // Upstash), so a failed EXPIRE after a successful INCR would leave a
-      // counter that never expires and 429s this key forever. Re-arm the TTL
-      // whenever it's missing, not only on count === 1.
-      if (count === 1 || (await redis.ttl(redisKey)) < 0) {
+      // counter that never expires and 429s this key forever. Re-arm a
+      // missing TTL only on the deny path so the happy path stays at one
+      // round-trip.
+      if (count === 1) {
+        await redis.expire(redisKey, 3600);
+      } else if (count > limit && (await redis.ttl(redisKey)) < 0) {
         await redis.expire(redisKey, 3600);
       }
       return count > limit;
@@ -36,11 +39,16 @@ async function isRateLimited(key: string): Promise<boolean> {
   }
 
   const now = Date.now();
-  // Bounded fallback map: evict expired entries once it grows, so an
-  // attacker rotating keys can't grow it without limit.
+  // Bounded fallback map: evict expired entries first, then — if an
+  // attacker rotating fresh keys keeps it over the cap — drop oldest
+  // insertion-order entries so the map (and the sweep cost) stays bounded.
   if (memoryRateMap.size > 10_000) {
     for (const [k, v] of memoryRateMap) {
       if (v.expiresAt < now) memoryRateMap.delete(k);
+    }
+    for (const k of memoryRateMap.keys()) {
+      if (memoryRateMap.size <= 10_000) break;
+      memoryRateMap.delete(k);
     }
   }
   const entry = memoryRateMap.get(key);

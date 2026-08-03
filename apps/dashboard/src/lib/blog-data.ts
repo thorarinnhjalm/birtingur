@@ -206,7 +206,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h2', text: 'Hvað þýðir CPM?' },
       {
         type: 'p',
-        text: `CPM stendur fyrir „Cost Per Mille" — kostnað fyrir hverjar 1.000 birtingar. Ef CPM-verðið er ${CPM} kr. og þú setur 20.000 kr. í herferð færðu um það bil ${(Math.round(20000 / FLAT_CPM_ISK) * 1000).toLocaleString('is-IS')} birtingar. Reikniformúlan er einföld: fjárhæð ÷ CPM × 1.000 = fjöldi birtinga.`,
+        text: `CPM stendur fyrir „Cost Per Mille" — kostnað fyrir hverjar 1.000 birtingar. Ef CPM-verðið er ${CPM} kr. og þú setur 20.000 kr. í herferð færðu um það bil ${String(Math.round(20000 / FLAT_CPM_ISK) * 1000).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} birtingar. Reikniformúlan er einföld: fjárhæð ÷ CPM × 1.000 = fjöldi birtinga.`,
       },
       { type: 'h3', text: 'Fast verð eða uppboð?' },
       {

@@ -30,14 +30,21 @@ re-verify before acting).
 - **/handbaekur order**: newest posts sorted first (was: append order).
   Clipboard-share guard (non-secure contexts), scroll-to-top on /en and /faq,
   guide not-found view got header/footer, admin waitlist block shows
-  loading/error instead of a confident 0, `VITE_API_BASE ?? ''` same-origin
-  support. [verified]
+  loading/error instead of a confident 0, and `VITE_API_BASE` uses `??` so an
+  _explicitly empty_ value means same-origin (unset still defaults to
+  localhost:3001). [verified]
 - **e2e suite resurrected**: Playwright was collecting vitest files
   (testMatch), and the spec used the demo backdoor removed in 0c0c70a against
   production auth. Now runs on the auth emulator with provisioned verified
   accounts; 3/3 green. [verified]
-- **CLAUDE.md restored** — it had an uncommitted on-disk deletion from an
-  unknown session. [verified]
+- **CLAUDE.md restored on disk** — it had an uncommitted on-disk deletion from
+  an unknown session; git content never changed, so nothing ships in this
+  branch for it (a fresh clone was never affected). [verified]
+- Note: the extendCampaign fix has NO deterministic regression test — the
+  existing "serializes extend against a concurrent create" test is
+  order-dependent and passed both before and after the fix. Forcing the
+  phantom-insert interleaving deterministically on the emulator is an open
+  follow-up. [verified]
 
 ## Open — money-path architecture (prioritized)
 
@@ -95,6 +102,12 @@ re-verify before acting).
 - Cosmetic: nonexistent Tailwind classes (`slate-650`, `primary-800`,
   `primary-300`, …) render as no-ops across the English pages; no hreflang
   between is/en. [traced]
+- Prerender capture browser formats `is-IS` numbers with COMMAS (missing ICU
+  in the Playwright chromium build): `/auglysendur` snapshots ship "27,273",
+  "15,000" etc. — wrong decimal semantics in Icelandic. The new blog line was
+  switched to a deterministic manual formatter; the systemic fix is a
+  full-ICU capture browser or manual formatting in all marketing copy.
+  [verified]
 
 ## Test-suite status (2026-08-03)
 
