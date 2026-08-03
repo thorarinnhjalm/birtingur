@@ -3,6 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // Vitest suites (*.test.ts) share this directory — only *.spec.ts files
+  // are Playwright's; without this filter Playwright collects the vitest
+  // files and crashes on their vitest-global imports.
+  testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
