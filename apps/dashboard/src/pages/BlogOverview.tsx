@@ -6,6 +6,33 @@ import { BLOG_POSTS } from '@/lib/blog-data';
 import { updateSEO } from '@/lib/seo';
 import { Clock, ArrowRight, Sparkles } from 'lucide-react';
 
+// Newest-first render order: post dates are human-readable Icelandic strings
+// ("24. júní 2026"), so parse them rather than trusting array order — the
+// data file appends new posts at the end.
+const IS_MONTHS: Record<string, number> = {
+  janúar: 0,
+  febrúar: 1,
+  mars: 2,
+  apríl: 3,
+  maí: 4,
+  júní: 5,
+  júlí: 6,
+  ágúst: 7,
+  september: 8,
+  október: 9,
+  nóvember: 10,
+  desember: 11,
+};
+
+function postTime(date: string): number {
+  const m = date.match(/^(\d{1,2})\. (\S+) (\d{4})$/);
+  const [, day, month, year] = m ?? [];
+  if (!day || !month || !year || IS_MONTHS[month] === undefined) return 0;
+  return new Date(Number(year), IS_MONTHS[month], Number(day)).getTime();
+}
+
+const SORTED_POSTS = [...BLOG_POSTS].sort((a, b) => postTime(b.date) - postTime(a.date));
+
 export default function BlogOverview() {
   useEffect(() => {
     const titleText = 'Fræðslugreinar og handbækur um vefauglýsingar | Birtingur';
@@ -50,7 +77,7 @@ export default function BlogOverview() {
         {/* Articles Grid */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {BLOG_POSTS.map((post) => (
+            {SORTED_POSTS.map((post) => (
               <article
                 key={post.slug}
                 className="group bg-white rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 flex flex-col h-full overflow-hidden"

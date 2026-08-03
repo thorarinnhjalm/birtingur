@@ -7,7 +7,7 @@ export const CreateWaitlistInputSchema = z.object({
   email: z.string().trim().email('Invalid email address').toLowerCase(),
   role: WaitlistRoleSchema,
   websiteUrl: z.string().trim().url('Invalid website URL').optional().or(z.literal('')),
-  category: z.string().trim().optional(),
+  category: z.string().trim().max(80).optional(),
   country: z.string().trim().max(10).optional(),
 });
 

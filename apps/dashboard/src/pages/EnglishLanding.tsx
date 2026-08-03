@@ -7,10 +7,14 @@ import { Card } from '@/components/ui/Card';
 import { Eyebrow, BigFigure, PillButton } from '@/components/ui/editorial';
 import EnglishHeader from '@/components/layout/EnglishHeader';
 import EnglishFooter from '@/components/layout/EnglishFooter';
+import { ARTICLES } from './EnglishGuidePage';
+import { ENGLISH_CATEGORY_PAGE_SLUGS } from './EnglishCategoryPage';
 import type { WaitlistRole } from '@ada/shared/types';
 import { AD_CATEGORIES } from '@ada/shared';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
+// ?? (not ||): an explicitly-empty VITE_API_BASE means same-origin paths,
+// matching src/lib/api.ts — || would silently send the form to localhost.
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:3001';
 
 const ENGLISH_CATEGORY_INFO: Record<string, { label: string; routeSlug: string }> = {
   matur: { label: 'Food & Culinary', routeSlug: 'food' },
@@ -27,14 +31,16 @@ const ENGLISH_CATEGORY_INFO: Record<string, { label: string; routeSlug: string }
   dyr_gaeludyr: { label: 'Pets & Animals', routeSlug: 'pets' },
 };
 
-const ENGLISH_CATEGORIES_LIST = AD_CATEGORIES.map((c) => {
+// Only chips whose routeSlug has a real page in EnglishCategoryPage.tsx —
+// linking the rest lands visitors on "Category Not Found".
+const ENGLISH_CATEGORIES_LIST = AD_CATEGORIES.flatMap((c) => {
   const info = ENGLISH_CATEGORY_INFO[c.slug];
-  return {
-    slug: c.slug,
-    label: info ? info.label : c.label.split(' & ')[0],
-    routeSlug: info ? info.routeSlug : 'food',
-  };
+  return info && ENGLISH_CATEGORY_PAGE_SLUGS.includes(info.routeSlug)
+    ? [{ slug: c.slug, label: info.label, routeSlug: info.routeSlug }]
+    : [];
 });
+
+const GUIDE_COUNT = Object.keys(ARTICLES).length;
 
 const FEATURED_GUIDES = [
   {
@@ -105,7 +111,10 @@ export default function EnglishLanding() {
   // /en#waitlist-section links from the shared English header/guide pages
   // land at the top without this.
   useEffect(() => {
-    if (!hash) return;
+    if (!hash) {
+      window.scrollTo({ top: 0 });
+      return;
+    }
     document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
   }, [hash]);
 
@@ -471,6 +480,7 @@ export default function EnglishLanding() {
                         type="text"
                         placeholder="Food, Tech, Travel..."
                         value={category}
+                        maxLength={80}
                         onChange={(e) => setCategory(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/50 text-slate-900 text-sm font-medium"
                       />
@@ -571,7 +581,7 @@ export default function EnglishLanding() {
               <Link to="/en/guides">
                 <Button variant="secondary" className="text-xs font-bold">
                   <span className="flex items-center gap-1.5">
-                    <span>Browse All 10 Guides</span>
+                    <span>Browse All {GUIDE_COUNT} Guides</span>
                     <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </Button>
@@ -607,7 +617,7 @@ export default function EnglishLanding() {
               <Link to="/en/guides">
                 <Button variant="primary" className="py-3 px-6 text-xs font-bold">
                   <span className="flex items-center gap-2">
-                    <span>View Complete 10-Guide Catalog</span>
+                    <span>View the Complete {GUIDE_COUNT}-Guide Catalog</span>
                     <ArrowRight className="h-4 w-4" />
                   </span>
                 </Button>

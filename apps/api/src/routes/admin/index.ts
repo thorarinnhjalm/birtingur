@@ -41,7 +41,10 @@ adminRoutes.get('/waitlist/stats', async (c) => {
   let advertisers = 0;
   let publishers = 0;
   let both = 0;
-  const categories: Record<string, number> = {};
+  // Null-prototype: category is caller-supplied text, and on a plain object
+  // a key like "constructor" or "__proto__" resolves to inherited members,
+  // corrupting counts or silently dropping rows.
+  const categories: Record<string, number> = Object.create(null);
 
   snapshot.docs.forEach((doc) => {
     const data = doc.data();

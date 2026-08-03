@@ -22,7 +22,14 @@ async function isRateLimited(key: string): Promise<boolean> {
       const redis = getRedis();
       const redisKey = `ratelimit:waitlist:${key}`;
       const count = await redis.incr(redisKey);
+      // Self-healing TTL: INCR+EXPIRE aren't atomic here (two HTTP calls on
+      // Upstash), so a failed EXPIRE after a successful INCR would leave a
+      // counter that never expires and 429s this key forever. Re-arm a
+      // missing TTL only on the deny path so the happy path stays at one
+      // round-trip.
       if (count === 1) {
+        await redis.expire(redisKey, 3600);
+      } else if (count > limit && (await redis.ttl(redisKey)) < 0) {
         await redis.expire(redisKey, 3600);
       }
       return count > limit;
@@ -32,6 +39,18 @@ async function isRateLimited(key: string): Promise<boolean> {
   }
 
   const now = Date.now();
+  // Bounded fallback map: evict expired entries first, then — if an
+  // attacker rotating fresh keys keeps it over the cap — drop oldest
+  // insertion-order entries so the map (and the sweep cost) stays bounded.
+  if (memoryRateMap.size > 10_000) {
+    for (const [k, v] of memoryRateMap) {
+      if (v.expiresAt < now) memoryRateMap.delete(k);
+    }
+    for (const k of memoryRateMap.keys()) {
+      if (memoryRateMap.size <= 10_000) break;
+      memoryRateMap.delete(k);
+    }
+  }
   const entry = memoryRateMap.get(key);
   if (!entry || entry.expiresAt < now) {
     memoryRateMap.set(key, { count: 1, expiresAt: now + windowMs });
@@ -46,7 +65,10 @@ async function isRateLimited(key: string): Promise<boolean> {
 waitlistRoute.post('/', async (c) => {
   const ip = c.req.header('x-forwarded-for') || c.req.header('cf-connecting-ip') || 'unknown-ip';
 
-  if (await isRateLimited(ip)) {
+  // Prefix the dimension into the key: without it a spoofed x-forwarded-for
+  // of literally "email:victim@x.is" would increment that email's counter
+  // and lock the victim out of signing up.
+  if (await isRateLimited(`ip:${ip}`)) {
     return c.json(
       {
         error: 'TOO_MANY_REQUESTS',

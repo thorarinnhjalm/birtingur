@@ -658,6 +658,17 @@ export async function extendCampaign(
       );
     }
 
+    // Read the advertiser doc INSIDE the transaction before gating funds:
+    // the fundsVersion write below only serializes against concurrent
+    // create/update transactions if this transaction holds advRef in its
+    // read set — a blind write establishes no precondition, so without this
+    // read a create that commits first is invisible (its campaign doc is a
+    // phantom insert relative to our queries) and both holds go through.
+    const advSnap = await t.get(advRef);
+    if (!advSnap.exists) {
+      throw new AppError(404, 'Advertiser not found', 'NOT_FOUND');
+    }
+
     // Completed campaigns are not fund-holding, so the leftover is currently
     // released; excludeCampaignId is belt-and-braces should that ever change.
     const { availableIsk } = await getAvailableBalanceInTransaction(t, advertiserId, {
