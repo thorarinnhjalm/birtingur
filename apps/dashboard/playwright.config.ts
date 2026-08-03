@@ -24,11 +24,18 @@ export default defineConfig({
   ],
   webServer: [
     {
+      // NOTE: reuseExistingServer means a manually-started dev server (which
+      // lacks these env flags) will be reused and the auth-emulator tests
+      // will fail against production auth — stop it before running e2e.
       command: 'npx pnpm --filter @ada/dashboard dev',
       cwd: '../../',
       url: 'http://localhost:3000',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
+      env: {
+        VITE_AUTH_EMULATOR: '1',
+        VITE_FIREBASE_PROJECT_ID: 'birtingur-8b5a4',
+      },
     },
     {
       command: 'npx pnpm --filter @ada/api dev',

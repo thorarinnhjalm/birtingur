@@ -1,100 +1,93 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request as pwRequest } from '@playwright/test';
+
+// E2E onboarding against the Firebase AUTH EMULATOR (pnpm test:e2e starts
+// firestore+auth; playwright.config.ts starts the dev server with
+// VITE_AUTH_EMULATOR=1 so the client SDK talks to it). The old demo-login
+// backdoor was removed in 0c0c70a, so each test provisions a real,
+// email-verified account through the emulator's REST API and signs in
+// through the actual UI.
+//
+// Product state these tests encode: advertiser self-signup is CLOSED
+// (RoleSelect REGISTRATION_CLOSED) — a fresh user sees a disabled
+// advertiser card and can only proceed as publisher.
+
+const AUTH_EMULATOR = 'http://localhost:9099';
+const PROJECT_ID = 'birtingur-8b5a4';
+const PASSWORD = 'e2e-test-password-1';
+
+async function createVerifiedUser(email: string): Promise<void> {
+  const ctx = await pwRequest.newContext();
+  try {
+    const signUp = await ctx.post(
+      `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=emulator`,
+      { data: { email, password: PASSWORD, returnSecureToken: true } },
+    );
+    if (!signUp.ok()) {
+      throw new Error(`auth-emulator signUp failed (${signUp.status()}): ${await signUp.text()}`);
+    }
+    const { localId } = (await signUp.json()) as { localId: string };
+
+    // 'Bearer owner' is the emulator's admin credential; ownership checks in
+    // the app require a VERIFIED email, so flip the flag before signing in.
+    const update = await ctx.post(
+      `${AUTH_EMULATOR}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts:update`,
+      {
+        headers: { Authorization: 'Bearer owner' },
+        data: { localId, emailVerified: true },
+      },
+    );
+    if (!update.ok()) {
+      throw new Error(
+        `auth-emulator accounts:update failed (${update.status()}): ${await update.text()}`,
+      );
+    }
+  } finally {
+    await ctx.dispose();
+  }
+}
+
+async function signIn(page: import('@playwright/test').Page, email: string): Promise<void> {
+  await page.goto('/sign-in');
+  await expect(page.locator('h1')).toContainText('Skráðu þig inn');
+  await page.fill('label:has-text("Netfang") input, input[type="text"], input[type="email"]', email);
+  await page.fill('label:has-text("Lykilorð") input, input[type="password"]', PASSWORD);
+  await Promise.all([page.waitForURL(/\/role/), page.click('button[type="submit"]')]);
+}
 
 test.describe('Birtingur E2E Onboarding & Login Flow', () => {
-  test('should sign in using Demo credentials and select role', async ({ page }) => {
-    // 1. Open login page
-    await page.goto('/sign-in');
-    // Redesigned sign-in (auth.dc.html): the h1 is now "Skráðu þig inn";
-    // "Birtingur" moved to the logo lockup above the card.
-    await expect(page.locator('h1')).toContainText('Skráðu þig inn');
+  test('signs in with a verified emulator account and lands on role select', async ({ page }) => {
+    const email = `e2e_signin_${Date.now()}@example.com`;
+    await createVerifiedUser(email);
 
-    // 2. Fill login details for Demo account
-    await page.fill('label:has-text("Netfang") input, input[type="text"]', 'DemoA');
-    await page.fill('label:has-text("Lykilorð") input, input[type="password"]', 'password');
-
-    // 3. Click Sign In and wait for redirect to the role selector (bypass default dashboard auto-redirect)
-    await Promise.all([page.waitForURL(/\/role/), page.click('button[type="submit"]')]);
-
-    // Force show the chooser if it auto-redirects too fast
-    await page.goto('/role?select=true');
+    await signIn(page, email);
     await expect(page.locator('h1')).toContainText('Veldu þitt hlutverk');
-
-    // 4. Test selecting the advertiser role
-    const advertiserCard = page.locator('#role_advertiser');
-    await expect(advertiserCard).toBeVisible();
-    await advertiserCard.click();
-
-    // 5. Verify navigation to the advertiser dashboard
-    await page.waitForURL(/\/advertiser/);
-    await expect(page).toHaveURL(/.*\/advertiser.*/);
   });
 
-  test('should allow switching roles', async ({ page }) => {
-    // Sign in and go to role select screen directly
-    await page.goto('/sign-in');
-    await page.fill('label:has-text("Netfang") input, input[type="text"]', 'DemoA');
-    await page.fill('label:has-text("Lykilorð") input, input[type="password"]', 'password');
-    await Promise.all([page.waitForURL(/\/role/), page.click('button[type="submit"]')]);
+  test('advertiser signup is closed for a fresh user', async ({ page }) => {
+    const email = `e2e_adv_${Date.now()}@example.com`;
+    await createVerifiedUser(email);
+    await signIn(page, email);
 
-    // Force show chooser
-    await page.goto('/role?select=true');
+    // The advertiser card renders in its disabled "registration closed"
+    // variant — clicking it must NOT navigate to /advertiser.
+    const advertiserCard = page.locator('#role_advertiser');
+    await expect(advertiserCard).toBeVisible();
+    await expect(advertiserCard).toContainText('Tímabundið lokuð');
+    await advertiserCard.click();
+    await expect(page).not.toHaveURL(/\/advertiser/);
+  });
 
-    // Select publisher role
+  test('fresh user proceeds down the publisher path to onboarding', async ({ page }) => {
+    const email = `e2e_pub_${Date.now()}@example.com`;
+    await createVerifiedUser(email);
+    await signIn(page, email);
+
     const publisherCard = page.locator('#role_publisher');
     await expect(publisherCard).toBeVisible();
     await publisherCard.click();
 
-    // Verify navigation to publisher dashboard
-    await page.waitForURL(/\/publisher/);
-    await expect(page).toHaveURL(/.*\/publisher.*/);
-  });
-
-  test('should complete advertiser onboarding flow from scratch for a new user', async ({
-    page,
-  }) => {
-    // 1. Open login page
-    await page.goto('/sign-in');
-
-    // Use a unique name for the new user so we get a fresh onboarding experience
-    const uniqueUser = `DemoNewUser_${Date.now()}`;
-    await page.fill('label:has-text("Netfang") input, input[type="text"]', uniqueUser);
-    await page.fill('label:has-text("Lykilorð") input, input[type="password"]', 'password');
-
-    // Sign in and wait for redirect to /role
-    await Promise.all([page.waitForURL(/\/role/), page.click('button[type="submit"]')]);
-
-    // Choose advertiser role
-    const advertiserCard = page.locator('#role_advertiser');
-    await expect(advertiserCard).toBeVisible();
-    await advertiserCard.click();
-
-    // Verify redirect to onboarding step 1
-    await page.waitForURL(/\/advertiser\/onboarding/);
-    await expect(page.locator('h1')).toContainText('Greindu vefsíðuna þína');
-
-    // Fill domain and click analyze
-    await page.fill('label:has-text("Vefslóð fyrirtækis") input', 'datera.is');
-    await page.click('button:has-text("Greina vefsíðu")');
-
-    // Wait for step 2 form
-    await expect(page.locator('h2')).toContainText('Stofna auglýsendaaðgang');
-
-    // Verify company name is auto-filled
-    const companyNameInput = page.locator('label:has-text("Nafn fyrirtækis") input');
-    await expect(companyNameInput).not.toHaveValue('');
-
-    // Fill in required info
-    await page.fill('label:has-text("Kennitala fyrirtækis") input', '550621-1230');
-    await page.fill('label:has-text("VSK-númer") input', '123456');
-    await page.fill('label:has-text("Netfang fyrir reikninga") input', 'billing@datera.is');
-
-    // Click finish registration and wait for dashboard redirect
-    await Promise.all([
-      page.waitForURL(/\/advertiser$/),
-      page.click('button:has-text("Ljúka skráningu")'),
-    ]);
-
-    // Verify we are on the advertiser dashboard
-    await expect(page).toHaveURL(/.*\/advertiser$/);
+    // No publisher profile exists yet, so RoleSelect routes to onboarding.
+    await page.waitForURL(/\/publisher\/onboarding/);
+    await expect(page).toHaveURL(/\/publisher\/onboarding/);
   });
 });
