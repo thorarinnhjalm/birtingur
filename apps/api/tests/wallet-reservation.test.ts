@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/lib/firebase';
 import { COLLECTIONS, ledgerEntryConverter } from '@ada/shared/firestore';
-import { clearFirestoreEmulator } from './helpers/emulator';
+import { clearFirestoreEmulator, retryOnEmulatorContention } from './helpers/emulator';
 import { createAdvertiser } from '../src/services/advertisers';
 import { createCreative } from '../src/services/creatives';
 import { StubAutoScanner } from '../src/services/auto-scan/stub';
@@ -181,12 +181,20 @@ describe('Committed-funds wallet reservation', () => {
     expect(b.status).toBe('active');
   });
 
+  // Both contenders are wrapped in retryOnEmulatorContention (see
+  // helpers/emulator.ts): the emulator surfaces its lock-timeout abort with a
+  // wording the SDK does not auto-retry, unlike production Firestore. The
+  // retried loser re-reads the winner's campaign and fails clean with
+  // INSUFFICIENT_FUNDS, exactly like the SDK's own retry against the real
+  // backend. Test timeout raised to 45s: each emulator contention round costs
+  // ~3-4.5s and the artifact retries can stack a few of them — the default
+  // 20s testTimeout was itself a flake source under full-suite load.
   it('lets exactly one of two concurrent creates through when they would jointly oversubscribe the wallet', async () => {
     const { adv, creative } = await seedFundedAdvertiser(100_000);
 
     const results = await Promise.allSettled([
-      createCampaign(adv.id, campaignInput(creative.id, 60_000)),
-      createCampaign(adv.id, campaignInput(creative.id, 60_000)),
+      retryOnEmulatorContention(() => createCampaign(adv.id, campaignInput(creative.id, 60_000))),
+      retryOnEmulatorContention(() => createCampaign(adv.id, campaignInput(creative.id, 60_000))),
     ]);
 
     const fulfilled = results.filter(
@@ -201,7 +209,7 @@ describe('Committed-funds wallet reservation', () => {
 
     const { availableIsk } = await getAvailableBalance(adv.id);
     expect(availableIsk).toBe(40_000);
-  });
+  }, 45_000);
 
   it('keeps available balance invariant under spend accrual, still allowing a campaign that fits', async () => {
     const { adv, creative } = await seedFundedAdvertiser(100_000);
