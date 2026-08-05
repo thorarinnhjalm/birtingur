@@ -1,4 +1,4 @@
-"use strict";(()=>{var w=Object.defineProperty;var $=(d,n,e)=>n in d?w(d,n,{enumerable:!0,configurable:!0,writable:!0,value:e}):d[n]=e;var s=(d,n,e)=>$(d,typeof n!="symbol"?n+"":n,e);var j="http://localhost:3001",f=class extends HTMLElement{constructor(){super();s(this,"publisherKey",null);s(this,"period","30d");s(this,"theme","auto");this.attachShadow({mode:"open"})}static get observedAttributes(){return["publisher-key","period","theme"]}connectedCallback(){this.publisherKey=this.getAttribute("publisher-key"),this.period=this.getAttribute("period")||"30d",this.theme=this.getAttribute("theme")||"auto",this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&(e==="publisher-key"&&(this.publisherKey=t),e==="period"&&(this.period=t),e==="theme"&&(this.theme=t),this.isConnected&&(this.render(),this.fetchData()))}getActiveTheme(){return this.theme==="dark"?"dark":this.theme==="light"?"light":typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}async fetchData(){if(!this.publisherKey){this.showError("Enginn publisher-key gefinn upp.");return}try{let e=this.period==="30d"?"30":"7",i=await fetch(`${j}/v1/widgets/publisher/stats?timeframe=${e}`,{headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"}});if(!i.ok)throw new Error(`API skila\xF0i villu: ${i.status}`);let t=await i.json();this.showData(t)}catch(e){console.error("Error fetching publisher stats widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja t\xF6lfr\xE6\xF0i. Athuga\xF0u lykilinn \xFEinn.")}}getStyles(){let e=this.getActiveTheme()==="dark";return`
+"use strict";(()=>{var w=Object.defineProperty;var $=(o,n,e)=>n in o?w(o,n,{enumerable:!0,configurable:!0,writable:!0,value:e}):o[n]=e;var a=(o,n,e)=>$(o,typeof n!="symbol"?n+"":n,e);var j="http://localhost:3001",m=class extends HTMLElement{constructor(){super();a(this,"publisherKey",null);a(this,"period","30d");a(this,"theme","auto");this.attachShadow({mode:"open"})}static get observedAttributes(){return["publisher-key","period","theme"]}connectedCallback(){this.publisherKey=this.getAttribute("publisher-key"),this.period=this.getAttribute("period")||"30d",this.theme=this.getAttribute("theme")||"auto",this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&(e==="publisher-key"&&(this.publisherKey=t),e==="period"&&(this.period=t),e==="theme"&&(this.theme=t),this.isConnected&&(this.render(),this.fetchData()))}getActiveTheme(){return this.theme==="dark"?"dark":this.theme==="light"?"light":typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}async fetchData(){if(!this.publisherKey){this.showError("Enginn publisher-key gefinn upp.");return}try{let e=this.period==="30d"?"30":"7",i=await fetch(`${j}/v1/widgets/publisher/stats?timeframe=${e}`,{headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"}});if(!i.ok)throw new Error(`API skila\xF0i villu: ${i.status}`);let t=await i.json();this.showData(t)}catch(e){console.error("Error fetching publisher stats widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja t\xF6lfr\xE6\xF0i. Athuga\xF0u lykilinn \xFEinn.")}}getStyles(){let e=this.getActiveTheme()==="dark";return`
       :host {
         display: block;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -30,9 +30,14 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
         margin-bottom: 20px;
+      }
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
       @media (max-width: 600px) {
         .grid {
@@ -114,7 +119,7 @@
       <div class="error-card">
         <div>\u26A0\uFE0F ${e}</div>
       </div>
-    `}formatNum(e){return new Intl.NumberFormat("is-IS").format(e)}formatIsk(e){return`${this.formatNum(e)} kr.`}showData(e){let i=this.getActiveTheme()==="dark",t=e.impressions>0?e.spendIsk/e.impressions*1e3:0,r=e.history||[],l="";if(r.length>1){let a=Math.max(...r.map(p=>p.impressions),1),o=`M ${r.map((p,b)=>{let h=b/(r.length-1)*100,v=45-p.impressions/a*35;return`${h},${v}`}).join(" L ")}`,g=`${o} L 100,50 L 0,50 Z`;l=`
+    `}formatNum(e){return new Intl.NumberFormat("is-IS").format(e)}formatIsk(e){return`${this.formatNum(e)} kr.`}showData(e){var s;let i=this.getActiveTheme()==="dark",t=e.impressions>0?e.spendIsk/e.impressions*1e3:0,r=e.history||[],d="";if(r.length>1){let l=Math.max(...r.map(h=>h.impressions),1),p=`M ${r.map((h,g)=>{let v=g/(r.length-1)*100,x=45-h.impressions/l*35;return`${v},${x}`}).join(" L ")}`,f=`${p} L 100,50 L 0,50 Z`;d=`
         <div class="sparkline-container">
           <div class="sparkline-label">Birtingarfl\xE6\xF0i yfir t\xEDmabili\xF0</div>
           <svg viewBox="0 0 100 50" class="sparkline-svg" preserveAspectRatio="none">
@@ -124,8 +129,8 @@
                 <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <path d="${g}" fill="url(#sparklineGrad)" />
-            <path d="${o}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="${f}" fill="url(#sparklineGrad)" />
+            <path d="${p}" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
       `}this.shadowRoot.innerHTML=`
@@ -137,6 +142,10 @@
         </div>
         
         <div class="grid">
+          <div class="metric-card">
+            <div class="metric-label">Vefumfer\xF0</div>
+            <div class="metric-value">${this.formatNum((s=e.pageviews)!=null?s:0)}</div>
+          </div>
           <div class="metric-card">
             <div class="metric-label">Heildarbirtingar</div>
             <div class="metric-value">${this.formatNum(e.impressions)}</div>
@@ -151,9 +160,9 @@
           </div>
         </div>
         
-        ${l}
+        ${d}
       </div>
-    `}};var x="http://localhost:3001",m=class extends HTMLElement{constructor(){super();s(this,"publisherKey",null);s(this,"items",[]);s(this,"loading",!0);s(this,"rejectingCampaignId",null);this.attachShadow({mode:"open"})}static get observedAttributes(){return["publisher-key"]}connectedCallback(){this.publisherKey=this.getAttribute("publisher-key"),this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&e==="publisher-key"&&(this.publisherKey=t,this.isConnected&&(this.render(),this.fetchData()))}async fetchData(){if(!this.publisherKey){this.showError("Enginn publisher-key gefinn upp.");return}this.loading=!0,this.render();try{let e=await fetch(`${x}/v1/widgets/publisher/pending-approvals`,{headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"}});if(!e.ok)throw new Error(`API skila\xF0i villu: ${e.status}`);let i=await e.json();this.items=i.items||[],this.loading=!1,this.render()}catch(e){console.error("Error fetching publisher approval queue widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja ums\xF3knir. Athuga\xF0u lykilinn \xFEinn.")}}async handleApprove(e){if(!this.publisherKey)return;let i=this.shadowRoot.getElementById(`card-${e}`);i&&(i.style.opacity="0.5");try{if(!(await fetch(`${x}/v1/widgets/publisher/approvals/${e}`,{method:"POST",headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"},body:JSON.stringify({action:"approve"})})).ok)throw new Error("Approve action failed");this.dispatchEvent(new CustomEvent("approve",{detail:{campaignId:e},bubbles:!0,composed:!0})),this.animateRemove(e)}catch(t){alert("Ekki t\xF3kst a\xF0 sam\xFEykkja herfer\xF0."),i&&(i.style.opacity="1")}}async handleRejectSubmit(e,i){if(!this.publisherKey)return;let t=this.shadowRoot.getElementById(`card-${e}`);t&&(t.style.opacity="0.5");try{if(!(await fetch(`${x}/v1/widgets/publisher/approvals/${e}`,{method:"POST",headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"},body:JSON.stringify({action:"reject",reason:i})})).ok)throw new Error("Reject action failed");this.dispatchEvent(new CustomEvent("reject",{detail:{campaignId:e,reason:i},bubbles:!0,composed:!0})),this.rejectingCampaignId=null,this.animateRemove(e)}catch(r){alert("Ekki t\xF3kst a\xF0 hafna herfer\xF0."),t&&(t.style.opacity="1")}}animateRemove(e){let i=this.shadowRoot.getElementById(`card-${e}`);i?(i.style.transition="all 0.4s ease-out",i.style.opacity="0",i.style.transform="translateX(50px)",setTimeout(()=>{i.style.maxHeight="0px",i.style.padding="0px",i.style.margin="0px",i.style.borderWidth="0px",setTimeout(()=>{this.items=this.items.filter(t=>t.campaignId!==e),this.render()},300)},400)):(this.items=this.items.filter(t=>t.campaignId!==e),this.render())}toggleRejectForm(e){this.rejectingCampaignId=e,this.render()}getStyles(){let e=this.getAttribute("theme")==="dark"||this.getAttribute("theme")!=="light"&&typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;return`
+    `}};var y="http://localhost:3001",u=class extends HTMLElement{constructor(){super();a(this,"publisherKey",null);a(this,"items",[]);a(this,"loading",!0);a(this,"rejectingCampaignId",null);this.attachShadow({mode:"open"})}static get observedAttributes(){return["publisher-key"]}connectedCallback(){this.publisherKey=this.getAttribute("publisher-key"),this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&e==="publisher-key"&&(this.publisherKey=t,this.isConnected&&(this.render(),this.fetchData()))}async fetchData(){if(!this.publisherKey){this.showError("Enginn publisher-key gefinn upp.");return}this.loading=!0,this.render();try{let e=await fetch(`${y}/v1/widgets/publisher/pending-approvals`,{headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"}});if(!e.ok)throw new Error(`API skila\xF0i villu: ${e.status}`);let i=await e.json();this.items=i.items||[],this.loading=!1,this.render()}catch(e){console.error("Error fetching publisher approval queue widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja ums\xF3knir. Athuga\xF0u lykilinn \xFEinn.")}}async handleApprove(e){if(!this.publisherKey)return;let i=this.shadowRoot.getElementById(`card-${e}`);i&&(i.style.opacity="0.5");try{if(!(await fetch(`${y}/v1/widgets/publisher/approvals/${e}`,{method:"POST",headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"},body:JSON.stringify({action:"approve"})})).ok)throw new Error("Approve action failed");this.dispatchEvent(new CustomEvent("approve",{detail:{campaignId:e},bubbles:!0,composed:!0})),this.animateRemove(e)}catch(t){alert("Ekki t\xF3kst a\xF0 sam\xFEykkja herfer\xF0."),i&&(i.style.opacity="1")}}async handleRejectSubmit(e,i){if(!this.publisherKey)return;let t=this.shadowRoot.getElementById(`card-${e}`);t&&(t.style.opacity="0.5");try{if(!(await fetch(`${y}/v1/widgets/publisher/approvals/${e}`,{method:"POST",headers:{Authorization:`Bearer ${this.publisherKey}`,"Content-Type":"application/json"},body:JSON.stringify({action:"reject",reason:i})})).ok)throw new Error("Reject action failed");this.dispatchEvent(new CustomEvent("reject",{detail:{campaignId:e,reason:i},bubbles:!0,composed:!0})),this.rejectingCampaignId=null,this.animateRemove(e)}catch(r){alert("Ekki t\xF3kst a\xF0 hafna herfer\xF0."),t&&(t.style.opacity="1")}}animateRemove(e){let i=this.shadowRoot.getElementById(`card-${e}`);i?(i.style.transition="all 0.4s ease-out",i.style.opacity="0",i.style.transform="translateX(50px)",setTimeout(()=>{i.style.maxHeight="0px",i.style.padding="0px",i.style.margin="0px",i.style.borderWidth="0px",setTimeout(()=>{this.items=this.items.filter(t=>t.campaignId!==e),this.render()},300)},400)):(this.items=this.items.filter(t=>t.campaignId!==e),this.render())}toggleRejectForm(e){this.rejectingCampaignId=e,this.render()}getStyles(){let e=this.getAttribute("theme")==="dark"||this.getAttribute("theme")!=="light"&&typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;return`
       :host {
         display: block;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -375,7 +384,7 @@
         <div class="empty-state">
           <p>\u{1F389} Engar augl\xFDsingar b\xED\xF0a sam\xFEykktar. Fr\xE1b\xE6rt!</p>
         </div>
-      `;return}let i=this.items.map(t=>{let r=this.rejectingCampaignId===t.campaignId,l=`${t.creative.width}x${t.creative.height}px`,a="";return t.budget.mode==="cpm_capped"?a="Birtingarherfer\xF0 (CPM)":a=`Fastakaup pl\xE1ss (${new Intl.NumberFormat("is-IS").format(t.budget.totalIsk)} kr.)`,`
+      `;return}let i=this.items.map(t=>{let r=this.rejectingCampaignId===t.campaignId,d=`${t.creative.width}x${t.creative.height}px`,s="";return t.budget.mode==="cpm_capped"?s="Birtingarherfer\xF0 (CPM)":s=`Fastakaup pl\xE1ss (${new Intl.NumberFormat("is-IS").format(t.budget.totalIsk)} kr.)`,`
         <div class="item-card" id="card-${t.campaignId}">
           <div class="preview-container">
             <img class="preview-img" src="${t.creative.imageUrl}" alt="Augl\xFDsinga creative" />
@@ -387,10 +396,10 @@
               
               <div class="meta-grid">
                 <div class="meta-item">
-                  <span class="meta-label">St\xE6r\xF0:</span>${l}
+                  <span class="meta-label">St\xE6r\xF0:</span>${d}
                 </div>
                 <div class="meta-item">
-                  <span class="meta-label">Grei\xF0sla:</span>${a}
+                  <span class="meta-label">Grei\xF0sla:</span>${s}
                 </div>
               </div>
             </div>
@@ -428,7 +437,7 @@
           ${i}
         </div>
       </div>
-    `,this.items.forEach(t=>{let r=this.shadowRoot.getElementById(`approve-${t.campaignId}`);r&&r.addEventListener("click",()=>this.handleApprove(t.campaignId));let l=this.shadowRoot.getElementById(`reject-trigger-${t.campaignId}`);l&&l.addEventListener("click",()=>this.toggleRejectForm(t.campaignId));let a=this.shadowRoot.getElementById(`cancel-rej-${t.campaignId}`);a&&a.addEventListener("click",()=>this.toggleRejectForm(null));let c=this.shadowRoot.getElementById(`submit-rej-${t.campaignId}`);c&&c.addEventListener("click",()=>{let o=this.shadowRoot.getElementById(`reason-${t.campaignId}`),g=o?o.value.trim():"";this.handleRejectSubmit(t.campaignId,g)})})}};var E="http://localhost:3001",u=class extends HTMLElement{constructor(){super();s(this,"campaignId",null);s(this,"viewerKey",null);s(this,"loading",!0);s(this,"stats",null);this.attachShadow({mode:"open"})}static get observedAttributes(){return["campaign-id","viewer-key","theme"]}connectedCallback(){this.campaignId=this.getAttribute("campaign-id"),this.viewerKey=this.getAttribute("viewer-key"),this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&(e==="campaign-id"&&(this.campaignId=t),e==="viewer-key"&&(this.viewerKey=t),this.isConnected&&(this.render(),this.fetchData()))}getActiveTheme(){let e=this.getAttribute("theme")||"auto";return e==="dark"?"dark":e==="light"?"light":typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}async fetchData(){if(!this.campaignId||!this.viewerKey){this.showError("Vantar campaign-id e\xF0a viewer-key.");return}this.loading=!0,this.render();try{let e=await fetch(`${E}/v1/widgets/campaign/stats`,{headers:{Authorization:`Bearer ${this.viewerKey}`,"Content-Type":"application/json"}});if(!e.ok)throw new Error(`API skila\xF0i villu: ${e.status}`);let i=await e.json();this.stats=i.stats,this.loading=!1,this.render()}catch(e){console.error("Error fetching campaign stats widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja herfer\xF0aruppl\xFDsingar.")}}getStyles(){let e=this.getActiveTheme()==="dark";return`
+    `,this.items.forEach(t=>{let r=this.shadowRoot.getElementById(`approve-${t.campaignId}`);r&&r.addEventListener("click",()=>this.handleApprove(t.campaignId));let d=this.shadowRoot.getElementById(`reject-trigger-${t.campaignId}`);d&&d.addEventListener("click",()=>this.toggleRejectForm(t.campaignId));let s=this.shadowRoot.getElementById(`cancel-rej-${t.campaignId}`);s&&s.addEventListener("click",()=>this.toggleRejectForm(null));let l=this.shadowRoot.getElementById(`submit-rej-${t.campaignId}`);l&&l.addEventListener("click",()=>{let c=this.shadowRoot.getElementById(`reason-${t.campaignId}`),p=c?c.value.trim():"";this.handleRejectSubmit(t.campaignId,p)})})}};var E="http://localhost:3001",b=class extends HTMLElement{constructor(){super();a(this,"campaignId",null);a(this,"viewerKey",null);a(this,"loading",!0);a(this,"stats",null);this.attachShadow({mode:"open"})}static get observedAttributes(){return["campaign-id","viewer-key","theme"]}connectedCallback(){this.campaignId=this.getAttribute("campaign-id"),this.viewerKey=this.getAttribute("viewer-key"),this.render(),this.fetchData()}attributeChangedCallback(e,i,t){i!==t&&(e==="campaign-id"&&(this.campaignId=t),e==="viewer-key"&&(this.viewerKey=t),this.isConnected&&(this.render(),this.fetchData()))}getActiveTheme(){let e=this.getAttribute("theme")||"auto";return e==="dark"?"dark":e==="light"?"light":typeof window!="undefined"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}async fetchData(){if(!this.campaignId||!this.viewerKey){this.showError("Vantar campaign-id e\xF0a viewer-key.");return}this.loading=!0,this.render();try{let e=await fetch(`${E}/v1/widgets/campaign/stats`,{headers:{Authorization:`Bearer ${this.viewerKey}`,"Content-Type":"application/json"}});if(!e.ok)throw new Error(`API skila\xF0i villu: ${e.status}`);let i=await e.json();this.stats=i.stats,this.loading=!1,this.render()}catch(e){console.error("Error fetching campaign stats widget:",e),this.showError("Ekki t\xF3kst a\xF0 s\xE6kja herfer\xF0aruppl\xFDsingar.")}}getStyles(){let e=this.getActiveTheme()==="dark";return`
       :host {
         display: block;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -527,7 +536,7 @@
           <div class="spinner"></div>
           S\xE6ki herfer\xF0aruppl\xFDsingar...
         </div>
-      `;return}if(!this.stats){this.showError("Engin t\xF6lfr\xE6\xF0ig\xF6gn fundust.");return}let e=this.getActiveTheme()==="dark",t=`${(this.stats.impressions>0?this.stats.clicks/this.stats.impressions*100:0).toFixed(2)}%`,r=o=>new Intl.NumberFormat("is-IS").format(o),a=[...this.stats.hours||[]].reverse(),c="";if(a.length>1){let o=Math.max(...a.map(h=>h.impressions),1),p=`M ${a.map((h,v)=>{let y=v/(a.length-1)*100,k=35-h.impressions/o*28;return`${y},${k}`}).join(" L ")}`,b=`${p} L 100,40 L 0,40 Z`;c=`
+      `;return}if(!this.stats){this.showError("Engin t\xF6lfr\xE6\xF0ig\xF6gn fundust.");return}let e=this.getActiveTheme()==="dark",t=`${(this.stats.impressions>0?this.stats.clicks/this.stats.impressions*100:0).toFixed(2)}%`,r=c=>new Intl.NumberFormat("is-IS").format(c),s=[...this.stats.hours||[]].reverse(),l="";if(s.length>1){let c=Math.max(...s.map(g=>g.impressions),1),f=`M ${s.map((g,v)=>{let x=v/(s.length-1)*100,k=35-g.impressions/c*28;return`${x},${k}`}).join(" L ")}`,h=`${f} L 100,40 L 0,40 Z`;l=`
         <div class="sparkline-container">
           <div class="sparkline-label">Birtingarfl\xE6\xF0i herfer\xF0ar (s\xED\xF0ustu dagar/t\xEDmar)</div>
           <svg viewBox="0 0 100 40" class="sparkline-svg" preserveAspectRatio="none">
@@ -537,8 +546,8 @@
                 <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
               </linearGradient>
             </defs>
-            <path d="${b}" fill="url(#campaignSparklineGrad)" />
-            <path d="${p}" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="${h}" fill="url(#campaignSparklineGrad)" />
+            <path d="${f}" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
       `}this.shadowRoot.innerHTML=`
@@ -563,6 +572,6 @@
           </div>
         </div>
         
-        ${c}
+        ${l}
       </div>
-    `}};typeof window!="undefined"&&(customElements.get("adplatform-stats")||customElements.define("adplatform-stats",f),customElements.get("adplatform-approval-queue")||customElements.define("adplatform-approval-queue",m),customElements.get("adplatform-campaign-stats")||customElements.define("adplatform-campaign-stats",u));})();
+    `}};typeof window!="undefined"&&(customElements.get("adplatform-stats")||customElements.define("adplatform-stats",m),customElements.get("adplatform-approval-queue")||customElements.define("adplatform-approval-queue",u),customElements.get("adplatform-campaign-stats")||customElements.define("adplatform-campaign-stats",b));})();
