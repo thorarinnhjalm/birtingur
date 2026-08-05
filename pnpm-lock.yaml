@@ -256,6 +256,9 @@ importers:
       '@firebase/rules-unit-testing':
         specifier: ^4.0.1
         version: 4.0.1(firebase@11.10.0)
+      firebase:
+        specifier: ^11.0.0
+        version: 11.10.0
       firebase-admin:
         specifier: ^12.1.0
         version: 12.7.0

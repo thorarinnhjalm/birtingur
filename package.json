@@ -14,7 +14,7 @@
     "verify": "pnpm format:check && pnpm typecheck && pnpm lint",
     "prepare": "git config core.hooksPath .githooks || true",
     "emulator": "firebase --config firebase/firebase.json emulators:start",
-    "test:rules": "firebase --config firebase/firebase.json emulators:exec --only firestore 'npx pnpm --filter @ada/firebase-tests test'",
+    "test:rules": "firebase --config firebase/firebase.json emulators:exec --only firestore,storage 'npx pnpm --filter @ada/firebase-tests test'",
     "test:api": "firebase --config firebase/firebase.json emulators:exec --only firestore 'npx pnpm --filter @ada/api test'",
     "test:e2e": "export PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" && firebase --config firebase/firebase.json emulators:exec --only firestore,auth 'npx playwright test -c apps/dashboard/playwright.config.ts'"
   },

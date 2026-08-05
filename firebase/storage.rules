@@ -11,10 +11,37 @@ service firebase.storage {
       return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Creatives uploaded by advertisers, served publicly via CDN
+    // Creatives uploaded by advertisers, served publicly via CDN.
+    //
+    // Storage rules cannot read Firestore, so {advertiserId} cannot be matched
+    // against the caller's advertiser profile here. What the rules CAN do is
+    // make the path append-only: an object may be created but never replaced
+    // or deleted by a client. That closes the damaging case — overwriting an
+    // already-approved creative swaps the image real visitors see on publisher
+    // sites, with no Firestore write and no trip through auto-scan or the
+    // approval queue. The dashboard generates a unique filename per upload
+    // (`${Date.now()}-${random}.${ext}`, see pages/advertiser/CreativeLibrary.tsx
+    // and CampaignCreate.tsx), so it never overwrites and is unaffected.
+    //
+    // Writing a NEW object into someone else's prefix is still possible for any
+    // signed-in user, but that is inert: a stray file is only ever served if its
+    // URL is attached to a Creative through the API, which enforces ownership
+    // and runs auto-scan. Scoping the path to the caller (uid-based paths, or an
+    // advertiserId custom claim, or moving uploads behind the API) is the real
+    // fix and is tracked separately.
     match /creatives/{advertiserId}/{filename} {
       allow read: if true;  // Public read (served on publisher sites)
+      // `resource == null` is the append-only guard: it holds only when no
+      // object exists at this path yet, so an upload can create but never
+      // replace. (Checked explicitly rather than relying on the create/update
+      // split, which does not distinguish an overwrite here.)
+      //
+      // Deliberately NOT gated on email_verified: sign-in supports both Google
+      // (always verified) and email/password (pages/SignIn.tsx), and existing
+      // password accounts are not necessarily verified — requiring it would
+      // silently stop real advertisers from uploading.
       allow write: if isSignedIn()
+                   && resource == null
                    && request.auth.token.email != null
                    && request.resource.size < 2 * 1024 * 1024  // 2 MB
                    && request.resource.contentType.matches('image/(png|jpeg|webp)');
