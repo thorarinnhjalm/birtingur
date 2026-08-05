@@ -119,7 +119,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
             'money',
             // Only publisher stats carry pageviews (slot traffic incl. no-fill).
             ...(mode === 'publisher' ? (['pageviews'] as const) : []),
-          ] as MetricKey[]
+          ] satisfies readonly MetricKey[]
         ).map((key) => {
           const tabLabel =
             key === 'impressions'
