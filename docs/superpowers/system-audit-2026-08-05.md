@@ -11,6 +11,27 @@ code by the primary session before being reported. Findings marked
 **[unverified]** come from the audit and still need a first-hand read before
 anyone acts on them.
 
+## Status
+
+Updated as findings are dealt with, so this file stays usable rather than
+becoming a snapshot of one afternoon.
+
+| Finding                                         | Status                                        |
+| ----------------------------------------------- | --------------------------------------------- |
+| Clicks never reach the advertiser               | Fixed — PR #5                                 |
+| `type=pageview` bypassed signature verification | Fixed — PR #5 (found while verifying above)   |
+| Creative uploads could be overwritten by anyone | Fixed — PR #6                                 |
+| One malformed campaign doc stops all serving    | Fixed — PR #7                                 |
+| Payouts below the monthly minimum are dropped   | Open — needs owner decision (changes payouts) |
+| Publisher VAT disbursed but never collected     | Blocked — needs an accountant's answer        |
+| Accrual ceiling and lossy drain                 | Open — growth trap, not urgent                |
+| Reconciliation has no publisher-side coverage   | Open                                          |
+| Remaining "reported but not verified" items     | Open — verify before acting                   |
+
+Three of the "reported but not verified" items were verified first-hand and are
+in the fixed rows above (storage rules, sweep crash, pageview forgery). The rest
+of that list has not been re-read yet.
+
 ## Verdict
 
 The architecture is genuinely good and the weaknesses are at the edges — where
