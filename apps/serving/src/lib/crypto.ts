@@ -44,7 +44,7 @@ import { getRedis } from './redis.js';
  * burns the signature and the visitor's subsequent click is rejected as a
  * replay — the ad is paid for but never delivers a visit.
  */
-export type SignatureKind = 'imp' | 'clk';
+export type SignatureKind = 'imp' | 'clk' | 'pv';
 
 /**
  * Returns true if this signature is seen for the first time FOR THIS KIND;

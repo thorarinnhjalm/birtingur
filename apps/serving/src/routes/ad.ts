@@ -57,9 +57,11 @@ adRoute.get('/', async (c) => {
     // Even when the slot cache is empty (expired or never populated), return a tracking
     // pixel so we can record a pageview. Without this, uncached-slot visits are invisible
     // to stats — a silent black hole that makes it look like the publisher has zero traffic.
+    const ts = Date.now();
+    const signature = createSignature('cre_nocache', slotId, token, ts);
     return c.json({
       empty: true,
-      impressionPixel: `/v1/impression?c=cre_nocache&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview`,
+      impressionPixel: `/v1/impression?c=cre_nocache&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
     });
   }
 

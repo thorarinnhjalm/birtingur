@@ -285,6 +285,48 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
+  // `type=pageview` used to route straight past signature verification, so
+  // anyone who knew a slot id — it sits in the publisher's page source — could
+  // write unlimited pageviews for that slot and inflate the traffic and
+  // fill-rate figures the publisher dashboard reports.
+  it('ignores a pageview with no signature', async () => {
+    const res = await app.request(
+      '/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview',
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
+  });
+
+  it('ignores a pageview whose signature does not match', async () => {
+    const ts = Date.now();
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=deadbeef`,
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
+  });
+
+  it('records a correctly signed fallback pageview', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'pageview', slotId: 'slot_a', publisherId: 'pub_a' }),
+    );
+  });
+
+  it('counts a replayed signed pageview only once', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
+    const url = `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`;
+    await app.request(url);
+    await app.request(url);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(1);
+  });
+
   it('drops stale impression when slot cache expired between serve and view', async () => {
     // Creative exists in our mock but slot_b does NOT — simulating a TTL expiry
     const ts = Date.now();
