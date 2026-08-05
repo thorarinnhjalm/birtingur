@@ -77,7 +77,7 @@ impressionRoute.get('/', async (c) => {
         return pixelResponse();
       }
 
-      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
+      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'imp');
       if (!fresh) {
         return pixelResponse();
       }
