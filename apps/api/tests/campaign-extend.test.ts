@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { clearFirestoreEmulator } from './helpers/emulator';
+import { clearFirestoreEmulator, retryOnEmulatorContention } from './helpers/emulator';
 import { createAdvertiser } from '../src/services/advertisers';
 import { createCreative } from '../src/services/creatives';
 import { StubAutoScanner } from '../src/services/auto-scan/stub';
@@ -166,26 +166,32 @@ describe('extendCampaign', () => {
     });
   });
 
+  // Both contenders are wrapped in retryOnEmulatorContention (see
+  // helpers/emulator.ts) so the emulator's non-retryable lock-timeout wording
+  // can't kill both arms and leave `fulfilled` empty; timeout raised to 45s
+  // because each emulator contention round costs ~3-4.5s.
   it('serializes extend against a concurrent create (oversubscription race)', async () => {
     const { adv, creative } = await seedFundedAdvertiser(10_000);
     const expired = await seedCompletedCampaign(adv, creative, 10_000);
 
     const results = await Promise.allSettled([
-      extendCampaign(expired.id, adv.id, tomorrow()),
-      createCampaign(
-        adv.id,
-        {
-          ...campaignInput(creative.id, 10_000),
-          schedule: {
-            startsAt: new Date(),
-            endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+      retryOnEmulatorContention(() => extendCampaign(expired.id, adv.id, tomorrow())),
+      retryOnEmulatorContention(() =>
+        createCampaign(
+          adv.id,
+          {
+            ...campaignInput(creative.id, 10_000),
+            schedule: {
+              startsAt: new Date(),
+              endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+            },
           },
-        },
-        { channel: 'dashboard' },
+          { channel: 'dashboard' },
+        ),
       ),
     ]);
 
     const fulfilled = results.filter((r) => r.status === 'fulfilled');
     expect(fulfilled).toHaveLength(1); // wallet covers exactly one of the two
-  });
+  }, 45_000);
 });
