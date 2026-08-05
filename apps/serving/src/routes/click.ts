@@ -33,7 +33,7 @@ clickRoute.get('/', async (c) => {
     return c.text('Bad Request: Invalid or expired tracking token', 400);
   }
 
-  const fresh = await claimSignatureOnce(sig, CLICK_MAX_AGE_MS / 1000);
+  const fresh = await claimSignatureOnce(sig, CLICK_MAX_AGE_MS / 1000, 'clk');
   if (!fresh) {
     return c.text('Already counted', 409);
   }

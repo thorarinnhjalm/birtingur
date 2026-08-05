@@ -46,7 +46,35 @@ impressionRoute.get('/', async (c) => {
       creativeId === 'cre_nocache' ||
       typeParam === 'pageview';
 
+    // Signature is required for EVERY branch, pageviews included. `type` comes
+    // from the query string, so before this check anyone who knew a slot id —
+    // it sits in the publisher's page source — could append `&type=pageview`
+    // and write unlimited traffic events for that slot, inflating the pageview
+    // and fill-rate figures the publisher dashboard reports. Every pixel the
+    // ad route hands out is signed (routes/ad.ts), so nothing legitimate loses
+    // out.
+    const tsStr = c.req.query('ts') ?? '0';
+    const sig = c.req.query('sig') ?? '';
+    const ts = parseInt(tsStr, 10);
+    const age = Date.now() - ts;
+    if (
+      !verifySignature(creativeId, slotId, token, ts, sig) ||
+      age < 0 ||
+      age > IMPRESSION_MAX_AGE_MS
+    ) {
+      // Invalid or expired signature: ignore silently (still return the pixel).
+      return pixelResponse();
+    }
+
     if (isFallback) {
+      // Claimed under its own kind: a house-ad fallback reuses one signature
+      // for its pageview pixel AND its click URL, so sharing a namespace would
+      // make one cancel the other (see SignatureKind in lib/crypto.ts).
+      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'pv');
+      if (!fresh) {
+        return pixelResponse();
+      }
+
       const slot = await getSlotCache(slotId);
       if (slot?.publisherId) {
         void logEvent({
@@ -65,19 +93,7 @@ impressionRoute.get('/', async (c) => {
       // belongs to. Logging with publisherId='' would write to a garbage Firestore
       // path (stats/publishers//YYYYMMDD) and accumulate junk data.
     } else {
-      // Validate signature to prevent impression fraud
-      const tsStr = c.req.query('ts') ?? '0';
-      const sig = c.req.query('sig') ?? '';
-      const ts = parseInt(tsStr, 10);
-      const isValid = verifySignature(creativeId, slotId, token, ts, sig);
-      const age = Date.now() - ts;
-
-      if (!isValid || age < 0 || age > IMPRESSION_MAX_AGE_MS) {
-        // Invalid signature or expired signature: ignore silently (still return pixel)
-        return pixelResponse();
-      }
-
-      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000);
+      const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'imp');
       if (!fresh) {
         return pixelResponse();
       }
