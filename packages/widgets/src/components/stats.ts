@@ -110,9 +110,14 @@ export class AdplatformStats extends HTMLElement {
       }
       .grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
         margin-bottom: 20px;
+      }
+      @media (max-width: 800px) {
+        .grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
       @media (max-width: 600px) {
         .grid {
@@ -217,6 +222,9 @@ export class AdplatformStats extends HTMLElement {
     impressions: number;
     clicks: number;
     spendIsk: number;
+    // Slot traffic incl. no-fill pageviews; absent in stale/cached API
+    // responses from before the field existed, so render it as 0 then.
+    pageviews?: number;
     history: { date: string; impressions: number; clicks: number; spendIsk: number }[];
   }) {
     const isDark = this.getActiveTheme() === 'dark';
@@ -264,6 +272,10 @@ export class AdplatformStats extends HTMLElement {
         </div>
         
         <div class="grid">
+          <div class="metric-card">
+            <div class="metric-label">Vefumferð</div>
+            <div class="metric-value">${this.formatNum(data.pageviews ?? 0)}</div>
+          </div>
           <div class="metric-card">
             <div class="metric-label">Heildarbirtingar</div>
             <div class="metric-value">${this.formatNum(data.impressions)}</div>

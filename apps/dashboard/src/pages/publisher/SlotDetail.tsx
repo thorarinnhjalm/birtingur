@@ -14,6 +14,8 @@ import {
   Eye,
   MousePointerClick,
   Banknote,
+  Globe,
+  Percent,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useSlotStats } from '@/hooks/useSlotStats';
@@ -55,6 +57,12 @@ export default function SlotDetail() {
   const { data: slot, isLoading, isError, refetch } = usePublisherSlot(id);
   const { data: slotStats } = useSlotStats(id);
   const [copied, setCopied] = useState(false);
+  // null = no explicit choice; default resolves to earnings, except a slot
+  // with traffic but no fills yet defaults to the traffic curve so it never
+  // greets its publisher with a flat zero line.
+  const [historyMetricChoice, setHistoryMetricChoice] = useState<'money' | 'pageviews' | null>(
+    null,
+  );
   const [previewCategory, setPreviewCategory] = useState<string>('matur');
   const [simulationDetails, setSimulationDetails] = useState<{
     ts: number;
@@ -116,7 +124,7 @@ export default function SlotDetail() {
               <div className="space-y-1">
                 <h4 className="font-bold text-slate-900 text-sm">Samþættingu ekki lokið</h4>
                 <p className="leading-relaxed text-slate-500 font-medium">
-                  Við höfum ekki greint neinar beiðnir (pageviews) á þessu auglýsingaplássi ennþá.
+                  Við höfum ekki greint neina vefumferð (flettingar) á þessu auglýsingaplássi ennþá.
                   Gakktu úr skugga um að þú hafir fellt inn HTML kóðabútinn rétt á síðuna þína og að
                   hún sé að fá umferð.
                 </p>
@@ -140,7 +148,21 @@ export default function SlotDetail() {
       )}
 
       {/* Mælikvarðar (Stats Cards) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <Card className="p-6 flex items-center gap-5 shadow-sm">
+          <div className="w-12 h-12 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center shrink-0">
+            <Globe size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Vefumferð
+            </p>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+              {slotStats ? slotStats.pageviews.toLocaleString('is-IS') : '0'}
+            </p>
+          </div>
+        </Card>
+
         <Card className="p-6 flex items-center gap-5 shadow-sm">
           <div className="w-12 h-12 bg-sky-50 text-sky-700 rounded-full flex items-center justify-center shrink-0">
             <Eye size={22} />
@@ -180,73 +202,125 @@ export default function SlotDetail() {
             </p>
           </div>
         </Card>
+
+        <Card className="p-6 flex items-center gap-5 shadow-sm">
+          <div className="w-12 h-12 bg-amber-50 text-amber-700 rounded-full flex items-center justify-center shrink-0">
+            <Percent size={22} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Fyllihlutfall
+            </p>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+              {slotStats && slotStats.pageviews > 0
+                ? `${Math.round((slotStats.impressions / slotStats.pageviews) * 100)}%`
+                : '0%'}
+            </p>
+          </div>
+        </Card>
       </div>
 
       {/* History Chart Card */}
-      <Card className="p-6 space-y-4">
-        <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2">
-          Tekjusaga (síðustu 30 dagar)
-        </h3>
+      {(() => {
+        const historyMetric =
+          historyMetricChoice ??
+          (slotStats && slotStats.impressions === 0 && slotStats.pageviews > 0
+            ? 'pageviews'
+            : 'money');
+        const isTraffic = historyMetric === 'pageviews';
+        const lineColor = isTraffic ? '#0ea5e9' : '#2563eb';
+        return (
+          <Card className="p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-bold text-slate-800">Saga (síðustu 30 dagar)</h3>
+              <div className="flex gap-2">
+                {(['money', 'pageviews'] as const).map((key) => {
+                  const active = historyMetric === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setHistoryMetricChoice(key)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                        active
+                          ? 'bg-primary border-primary text-white shadow-[0_2px_4px_rgba(30,58,138,0.15)]'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      {key === 'money' ? 'Áætlaðar tekjur' : 'Vefumferð'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-        {!slotStats || slotStats.impressions === 0 ? (
-          <div className="h-48 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <span className="material-symbols-outlined text-3xl">insights</span>
-            <p className="text-xs font-semibold">Engin gögn enn</p>
-          </div>
-        ) : (
-          <div className="h-48 opacity-90">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={slotStats.history}
-                margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="slotEarningsGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey={(h: any) => Math.round(h.spendIsk * 0.8)}
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#slotEarningsGradient)"
-                />
-                <RechartsTooltip
-                  cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 1 }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const val = payload[0]!.value as number;
-                      const label = payload[0]!.payload.date;
-                      let formattedDate = label;
-                      try {
-                        const parsed = new Date(label);
-                        if (!isNaN(parsed.getTime())) {
-                          formattedDate = parsed.toLocaleDateString('is-IS', {
-                            day: '2-digit',
-                            month: 'short',
-                          });
-                        }
-                      } catch {
-                        /* keep the raw date string when parsing fails */
+            {!slotStats || (slotStats.impressions === 0 && slotStats.pageviews === 0) ? (
+              <div className="h-48 flex flex-col items-center justify-center text-slate-400 gap-2">
+                <span className="material-symbols-outlined text-3xl">insights</span>
+                <p className="text-xs font-semibold">Engin gögn enn</p>
+              </div>
+            ) : (
+              <div className="h-48 opacity-90">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={slotStats.history}
+                    margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="slotHistoryGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={lineColor} stopOpacity={0.25} />
+                        <stop offset="100%" stopColor={lineColor} stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey={
+                        isTraffic
+                          ? (h: any) => h.pageviews || 0
+                          : (h: any) => Math.round(h.spendIsk * 0.8)
                       }
-                      return (
-                        <div className="bg-slate-950/95 backdrop-blur text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border border-slate-800">
-                          <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
-                          <p className="text-sm font-bold text-sky-400">{formatIsk(val)}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </Card>
+                      stroke={lineColor}
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#slotHistoryGradient)"
+                    />
+                    <RechartsTooltip
+                      cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 1 }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const val = payload[0]!.value as number;
+                          const label = payload[0]!.payload.date;
+                          let formattedDate = label;
+                          try {
+                            const parsed = new Date(label);
+                            if (!isNaN(parsed.getTime())) {
+                              formattedDate = parsed.toLocaleDateString('is-IS', {
+                                day: '2-digit',
+                                month: 'short',
+                              });
+                            }
+                          } catch {
+                            /* keep the raw date string when parsing fails */
+                          }
+                          return (
+                            <div className="bg-slate-950/95 backdrop-blur text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border border-slate-800">
+                              <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
+                              <p className="text-sm font-bold text-sky-400">
+                                {isTraffic ? val.toLocaleString('is-IS') : formatIsk(val)}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Performance by Advertiser & Campaign Card */}
       <Card className="p-6">

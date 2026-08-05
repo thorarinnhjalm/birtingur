@@ -22,10 +22,10 @@ interface AnalyticsChartProps {
   mode: 'publisher' | 'advertiser';
 }
 
+type MetricKey = 'impressions' | 'clicks' | 'ctr' | 'money' | 'pageviews';
+
 export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
-  const [selectedMetric, setSelectedMetric] = useState<'impressions' | 'clicks' | 'ctr' | 'money'>(
-    'impressions',
-  );
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('impressions');
 
   if (!data || data.length === 0) {
     return (
@@ -61,6 +61,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
       label,
       ctr,
       money,
+      pageviews: d.pageviews || 0,
     };
   });
 
@@ -87,6 +88,13 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
           color: '#8b5cf6', // purple-500
           formatter: (v: number) => `${v.toLocaleString('is-IS')} kr.`,
         };
+      case 'pageviews':
+        return {
+          label: 'Vefumferð',
+          dataKey: 'pageviews',
+          color: '#0ea5e9', // sky-500
+          formatter: (v: number) => v.toLocaleString('is-IS'),
+        };
       default:
         return {
           label: 'Birtingar',
@@ -103,7 +111,16 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
     <div className="space-y-4">
       {/* Metric Selector Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-slate-100 pb-3">
-        {(['impressions', 'clicks', 'ctr', 'money'] as const).map((key) => {
+        {(
+          [
+            'impressions',
+            'clicks',
+            'ctr',
+            'money',
+            // Only publisher stats carry pageviews (slot traffic incl. no-fill).
+            ...(mode === 'publisher' ? (['pageviews'] as const) : []),
+          ] as MetricKey[]
+        ).map((key) => {
           const tabLabel =
             key === 'impressions'
               ? 'Birtingar'
@@ -111,9 +128,11 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
                 ? 'Smellir'
                 : key === 'ctr'
                   ? 'CTR (Smellihlutfall)'
-                  : mode === 'publisher'
-                    ? 'Áætlaðar tekjur'
-                    : 'Kostnaður';
+                  : key === 'pageviews'
+                    ? 'Vefumferð'
+                    : mode === 'publisher'
+                      ? 'Áætlaðar tekjur'
+                      : 'Kostnaður';
 
           const active = selectedMetric === key;
           return (
