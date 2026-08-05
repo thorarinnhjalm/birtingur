@@ -22,8 +22,26 @@ export async function GET(req) {
     // Sweep expired campaigns to `completed` BEFORE refreshing the cache, so
     // a campaign that just got swept is never re-cached as servable for this
     // tick — see sweepExpiredCampaigns in services/campaigns.ts.
-    const sweptExpiredCampaigns = await sweepExpiredCampaigns();
+    //
+    // The sweep is isolated: refreshing the cache is the load-bearing half of
+    // this cron (`budget:{id}` keys carry a 1h TTL and the serve-time gate is
+    // fail-closed, so skipping a refresh stops all ads within the hour),
+    // whereas a missed sweep only delays releasing a fund hold until the next
+    // tick. Never let the cheap half take down the critical one.
+    let sweptExpiredCampaigns = 0;
+    let sweepError = null;
+    try {
+      sweptExpiredCampaigns = await sweepExpiredCampaigns();
+    } catch (err) {
+      sweepError = err;
+      console.error('[cron-refresh-cache] sweep failed, continuing to cache refresh:', err);
+    }
+
     const refreshed = await refreshAllActiveSlotCaches();
+
+    if (sweepError) {
+      await alertCronFailure('cron-refresh-cache-sweep', sweepError);
+    }
     await recordHeartbeat('cron-refresh-cache');
     return new Response(JSON.stringify({ refreshed, sweptExpiredCampaigns }), {
       headers: { 'Content-Type': 'application/json' },
