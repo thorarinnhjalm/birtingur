@@ -876,10 +876,27 @@ export async function sweepExpiredCampaigns(): Promise<number> {
       .get();
 
     for (const doc of snap.docs) {
-      const campaign = doc.data();
-      if (campaign.schedule.endsAt.getTime() < now) {
-        await updateCampaignStatus(campaign.id, 'completed');
-        swept++;
+      // Isolate every document. `doc.data()` Zod-parses through
+      // campaignConverter and throws on a malformed doc, and
+      // updateCampaignStatus can throw on its own; either would otherwise
+      // abort the whole sweep. That matters far beyond this function: the
+      // 10-minute cron (api/cron-refresh-cache.js) runs the sweep BEFORE
+      // refreshAllActiveSlotCaches, so an abort here means the cache is never
+      // refreshed, every `budget:{id}` key expires on its 1h TTL, and the
+      // fail-closed serve-time gate reads them as 0 — one bad document would
+      // stop all ads on every publisher site within the hour.
+      try {
+        const campaign = doc.data();
+        if (campaign.schedule.endsAt.getTime() < now) {
+          await updateCampaignStatus(campaign.id, 'completed');
+          swept++;
+        }
+      } catch (err) {
+        // Log the message, not the error object: a ZodError carries a deep
+        // issue tree that some console implementations fail to serialize, and
+        // a throw here would defeat the whole point of this catch.
+        const reason = err instanceof Error ? err.message : String(err);
+        console.error(`[sweepExpiredCampaigns] skipping campaign ${doc.id}: ${reason}`);
       }
     }
   }
