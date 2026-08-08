@@ -49,6 +49,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     impressions: number;
     clicks: number;
     byPublisher: Record<string, { impressions: number; clicks: number }>;
+    byPublisherCreative: Record<string, Record<string, { impressions: number; clicks: number }>>;
   }
   interface CreativeStats {
     impressions: number;
@@ -88,6 +89,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: 0,
         clicks: 0,
         byPublisher: {},
+        byPublisherCreative: {},
       };
       if (ev.type === 'impression') {
         cb.impressions++;
@@ -101,6 +103,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
           cb.byPublisher[ev.publisherId] = { impressions: 0, clicks: 0 };
         }
         cb.byPublisher[ev.publisherId]!.clicks++;
+      }
+      if (ev.creativeId) {
+        const forPub = (cb.byPublisherCreative[ev.publisherId] ??= {});
+        const forCreative = (forPub[ev.creativeId] ??= { impressions: 0, clicks: 0 });
+        if (ev.type === 'impression') forCreative.impressions++;
+        else forCreative.clicks++;
       }
       campaignHour.set(ch, cb);
 
@@ -154,6 +162,17 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       updateData[`byPublisher.${pubId}.impressions`] = FieldValue.increment(pubStats.impressions);
       updateData[`byPublisher.${pubId}.clicks`] = FieldValue.increment(pubStats.clicks);
       updateData[`byPublisher.${pubId}.spendIsk`] = FieldValue.increment(pubSpendIsk);
+    }
+
+    for (const [pubId, creatives] of Object.entries(b.byPublisherCreative)) {
+      for (const [creativeId, cStats] of Object.entries(creatives)) {
+        updateData[`byPublisherCreative.${pubId}.${creativeId}.impressions`] = FieldValue.increment(
+          cStats.impressions,
+        );
+        updateData[`byPublisherCreative.${pubId}.${creativeId}.clicks`] = FieldValue.increment(
+          cStats.clicks,
+        );
+      }
     }
 
     batch.set(ref, updateData, { merge: true });

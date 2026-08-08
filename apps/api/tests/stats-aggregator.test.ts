@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { aggregateEvents } from '../src/services/stats-aggregator';
+import type { QueuedEvent } from '../src/services/stats-aggregator';
 
 let mockStatsDocs: Record<string, any> = {};
 
@@ -168,5 +169,59 @@ describe('aggregateEvents', () => {
     const crePath = `stats/creatives/cre_fallback_birtingur/2026060214`;
     expect(mockStatsDocs[crePath]).toBeDefined();
     expect(mockStatsDocs[crePath].pageviews).toBe(1);
+  });
+
+  describe('byPublisherCreative', () => {
+    function makeEvent(overrides: Partial<QueuedEvent> = {}): QueuedEvent {
+      return {
+        type: 'impression',
+        slotId: 'slot_1',
+        publisherId: 'pub_a',
+        creativeId: 'cre_1',
+        campaignId: 'cmp_1',
+        advertiserId: 'adv_1',
+        country: 'IS',
+        visitorToken: 'v1',
+        ts: Date.UTC(2026, 7, 8, 12, 30, 0),
+        ...overrides,
+      };
+    }
+
+    it('nests impressions and clicks per publisher per creative on the campaign hour doc', async () => {
+      await aggregateEvents([
+        makeEvent(),
+        makeEvent(),
+        makeEvent({ creativeId: 'cre_2' }),
+        makeEvent({ publisherId: 'pub_b' }),
+        makeEvent({ type: 'click', creativeId: 'cre_2' }),
+      ]);
+
+      const doc = mockStatsDocs['stats/campaigns/cmp_1/2026080812'];
+      expect(doc.byPublisherCreative).toEqual({
+        pub_a: {
+          cre_1: { impressions: 2, clicks: 0 },
+          cre_2: { impressions: 1, clicks: 1 },
+        },
+        pub_b: {
+          cre_1: { impressions: 1, clicks: 0 },
+        },
+      });
+      // existing per-publisher totals unchanged
+      expect(doc.byPublisher.pub_a.impressions).toBe(3);
+    });
+
+    it('increments across separate batches instead of overwriting', async () => {
+      await aggregateEvents([makeEvent()]);
+      await aggregateEvents([makeEvent()]);
+      const doc = mockStatsDocs['stats/campaigns/cmp_1/2026080812'];
+      expect(doc.byPublisherCreative.pub_a.cre_1.impressions).toBe(2);
+    });
+
+    it('skips events with an empty creativeId', async () => {
+      await aggregateEvents([makeEvent({ creativeId: '' })]);
+      const doc = mockStatsDocs['stats/campaigns/cmp_1/2026080812'];
+      expect(doc.byPublisherCreative).toBeUndefined();
+      expect(doc.byPublisher.pub_a.impressions).toBe(1);
+    });
   });
 });
