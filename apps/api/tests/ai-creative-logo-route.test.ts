@@ -47,58 +47,94 @@ interface MockPreviewManifest {
 let mockAdvertisers: MockAdvertiser[] = [];
 let mockPreviews: MockPreviewManifest[] = [];
 
-vi.mock('../src/lib/firebase', () => ({
-  auth: { verifyIdToken: vi.fn() },
-  db: {
-    collection: vi.fn((colName: string) => ({
-      doc: vi.fn((id: string) => {
-        const docGet = async () => {
-          let data: Record<string, unknown> | null | undefined;
-          if (colName === 'advertisers') {
-            data = mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>;
-          } else if (colName === 'generated_previews') {
-            data = mockPreviews.find((p) => p.id === id) as unknown as Record<string, unknown>;
-          }
-          return { exists: data != null, data: () => data };
-        };
-        const docSet = async (val: unknown) => {
-          if (colName === 'advertisers') mockAdvertisers.push(val as MockAdvertiser);
-          else if (colName === 'generated_previews') {
-            mockPreviews = mockPreviews.filter((p) => p.id !== id);
-            mockPreviews.push({ id, ...(val as Omit<MockPreviewManifest, 'id'>) });
-          }
-        };
-        return {
-          id,
-          get: vi.fn(docGet),
-          set: vi.fn(docSet),
-          withConverter: vi.fn(() => ({ get: vi.fn(docGet), set: vi.fn(docSet) })),
-        };
-      }),
-      where: vi.fn((prop: string, _op: string, val: unknown) => {
-        const runQuery = async () => {
-          let list: Record<string, unknown>[] = [];
-          if (colName === 'advertisers')
-            list = mockAdvertisers as unknown as Record<string, unknown>[];
-          const filtered = list.filter((item) => item[prop] === val);
-          return {
-            empty: filtered.length === 0,
-            docs: filtered.map((item) => ({ data: () => item })),
+vi.mock('../src/lib/firebase', () => {
+  // Shared doc-ref factory (MINOR-6): `updatePreviewManifestLogo` calls
+  // `db.doc('generated_previews/<id>')` directly (not
+  // `db.collection(...).doc(...)`) for the field-level `.update()` — so this
+  // mock's top-level `db.doc(path)` and `db.collection(colName).doc(id)`
+  // both need to hand back the SAME shape, backed by the SAME in-memory
+  // store, or the two call sites would silently diverge.
+  function makeDocRef(colName: string, id: string) {
+    const docGet = async () => {
+      let data: Record<string, unknown> | null | undefined;
+      if (colName === 'advertisers') {
+        data = mockAdvertisers.find((a) => a.id === id) as unknown as Record<string, unknown>;
+      } else if (colName === 'generated_previews') {
+        data = mockPreviews.find((p) => p.id === id) as unknown as Record<string, unknown>;
+      }
+      return { exists: data != null, data: () => data };
+    };
+    const docSet = async (val: unknown) => {
+      if (colName === 'advertisers') mockAdvertisers.push(val as MockAdvertiser);
+      else if (colName === 'generated_previews') {
+        mockPreviews = mockPreviews.filter((p) => p.id !== id);
+        mockPreviews.push({ id, ...(val as Omit<MockPreviewManifest, 'id'>) });
+      }
+    };
+    // Mirrors real Firestore: `.update()` on a nonexistent doc throws
+    // (NOT_FOUND) — `updatePreviewManifestLogo` avoids relying on that by
+    // checking existence first, but this still models the real behavior
+    // faithfully in case a test exercises the raw path.
+    const docUpdate = async (partial: Record<string, unknown>) => {
+      if (colName === 'generated_previews') {
+        const idx = mockPreviews.findIndex((p) => p.id === id);
+        if (idx === -1) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
+        mockPreviews[idx] = { ...mockPreviews[idx], ...partial } as MockPreviewManifest;
+      } else if (colName === 'advertisers') {
+        const idx = mockAdvertisers.findIndex((a) => a.id === id);
+        if (idx === -1) throw Object.assign(new Error('NOT_FOUND'), { code: 5 });
+        mockAdvertisers[idx] = { ...mockAdvertisers[idx], ...partial } as MockAdvertiser;
+      }
+    };
+    return {
+      id,
+      get: vi.fn(docGet),
+      set: vi.fn(docSet),
+      update: vi.fn(docUpdate),
+      withConverter: vi.fn(() => ({
+        get: vi.fn(docGet),
+        set: vi.fn(docSet),
+        update: vi.fn(docUpdate),
+      })),
+    };
+  }
+
+  return {
+    auth: { verifyIdToken: vi.fn() },
+    db: {
+      collection: vi.fn((colName: string) => ({
+        doc: vi.fn((id: string) => makeDocRef(colName, id)),
+        where: vi.fn((prop: string, _op: string, val: unknown) => {
+          const runQuery = async () => {
+            let list: Record<string, unknown>[] = [];
+            if (colName === 'advertisers')
+              list = mockAdvertisers as unknown as Record<string, unknown>[];
+            const filtered = list.filter((item) => item[prop] === val);
+            return {
+              empty: filtered.length === 0,
+              docs: filtered.map((item) => ({ data: () => item })),
+            };
           };
-        };
-        const builder: any = {
-          where: vi.fn(() => builder),
-          limit: vi.fn(() => builder),
-          get: vi.fn(runQuery),
-          withConverter: vi.fn(() => ({ get: vi.fn(runQuery) })),
-        };
-        return builder;
+          const builder: any = {
+            where: vi.fn(() => builder),
+            limit: vi.fn(() => builder),
+            get: vi.fn(runQuery),
+            withConverter: vi.fn(() => ({ get: vi.fn(runQuery) })),
+          };
+          return builder;
+        }),
+        get: vi.fn(async () => ({ docs: [] })),
+      })),
+      // `db.doc('collection/id')` shorthand — used by
+      // updatePreviewManifestLogo's raw (non-converter) update ref.
+      doc: vi.fn((path: string) => {
+        const idx = path.lastIndexOf('/');
+        return makeDocRef(path.slice(0, idx), path.slice(idx + 1));
       }),
-      get: vi.fn(async () => ({ docs: [] })),
-    })),
-  },
-  storage: {},
-}));
+    },
+    storage: {},
+  };
+});
 
 // 1x1 transparent PNG (same fixture ai-creative-logo.test.ts uses)
 const TINY_PNG_BASE64 =
@@ -225,6 +261,21 @@ describe('AI creative logo upload-override and skip routes', () => {
     expect(res.status).toBe(200);
     expect(mockCheckGenerationRateLimit).toHaveBeenCalledTimes(1);
     expect(mockCheckGenerationRateLimit).toHaveBeenCalledWith('gen-logo', 'adv_gen1');
+  });
+
+  // MINOR-5 (adversarial review): Zod body validation must run BEFORE the
+  // gen-logo rate-limit check, so a malformed body is rejected for free
+  // without consuming a quota slot.
+  it('rejects a malformed body with 400 before touching the rate limiter', async () => {
+    await seedCopyManifest();
+    mockCheckGenerationRateLimit.mockClear();
+    const res = await app.request('/v1/creatives/generate/logo', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({ imageBase64: '', mime: 'image/png' }), // fails min(1)
+    });
+    expect(res.status).toBe(400);
+    expect(mockCheckGenerationRateLimit).not.toHaveBeenCalled();
   });
 
   it('404s DELETE when no manifest exists yet', async () => {

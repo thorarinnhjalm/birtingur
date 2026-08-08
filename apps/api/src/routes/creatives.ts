@@ -18,7 +18,7 @@ import { chooseCreativeUploader } from '../services/ai-creative/storage.js';
 import { generateCreativeCopy } from '../services/ai-creative/copy.js';
 import { renderCreativeVariant } from '../services/ai-creative/render-variant.js';
 import { normalizeLogoBuffer } from '../services/ai-creative/logo.js';
-import { getPreviewManifest, savePreviewManifest } from '../services/ai-creative/previews.js';
+import { getPreviewManifest, updatePreviewManifestLogo } from '../services/ai-creative/previews.js';
 import { confirmGeneratedCreatives } from '../services/ai-creative/confirm.js';
 import { SsrfBlockedError, extractSiteContext } from '../services/ai-creative/index.js';
 import { checkGenerationRateLimit } from '../lib/rate-limit.js';
@@ -269,12 +269,19 @@ creativesRouter.post('/generate/logo', async (c) => {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
 
+  // MINOR-5 (adversarial review): free syntactic validation (Zod parse)
+  // before the paid/quota'd rate-limit check — same "reject garbage for
+  // free first" ordering the copy/render routes already use (see the Fix 12
+  // comment on the copy route above). Previously the rate limit ran first,
+  // so a malformed body could consume a caller's daily gen-logo quota before
+  // ever being rejected.
+  const body = UploadLogoBodySchema.parse(await c.req.json());
+
   const { allowed } = await checkGenerationRateLimit('gen-logo', adv.id);
   if (!allowed) {
     throw new AppError(429, 'Hámarksfjöldi lógó-upphleðslna á dag er náður.', 'RATE_LIMITED');
   }
 
-  const body = UploadLogoBodySchema.parse(await c.req.json());
   const raw = Buffer.from(body.imageBase64, 'base64');
   if (raw.length === 0 || raw.length > 1024 * 1024) {
     throw new AppError(400, 'Lógó má mest vera 1MB', 'BAD_REQUEST');
@@ -284,6 +291,10 @@ creativesRouter.post('/generate/logo', async (c) => {
     throw new AppError(400, 'Ógild eða óstudd lógómynd', 'BAD_REQUEST');
   }
 
+  // Fail fast (before any Storage I/O) when there's no manifest to attach a
+  // logo to — the actual write below is a field-level update (MINOR-6), but
+  // this upfront existence check is what avoids paying for an upload that
+  // would just be discarded on a 404.
   const manifest = await getPreviewManifest(adv.id);
   if (!manifest) {
     throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
@@ -298,16 +309,21 @@ creativesRouter.post('/generate/logo', async (c) => {
     pngBuffer: normalized.buffer,
     contentType: normalized.mime,
   });
-  const updated = {
-    ...manifest,
-    logo: {
-      url,
-      storagePath: `creatives/${adv.id}/${filename}`,
-      mime: normalized.mime,
-      source: 'uploaded' as const,
-    },
-  };
-  await savePreviewManifest(updated);
+  // MINOR-6 (adversarial review): field-level update of ONLY `logo`, not a
+  // read-spread-write of the whole manifest — see the doc comment on
+  // updatePreviewManifestLogo for the race this closes (a concurrent render
+  // save resurrecting a stale logo). Re-checks existence internally (in case
+  // the manifest was deleted between the check above and here) and returns
+  // the freshly re-read manifest.
+  const updated = await updatePreviewManifestLogo(adv.id, {
+    url,
+    storagePath: `creatives/${adv.id}/${filename}`,
+    mime: normalized.mime,
+    source: 'uploaded' as const,
+  });
+  if (!updated) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
   return c.json(updated);
 });
 
@@ -321,12 +337,13 @@ creativesRouter.delete('/generate/logo', async (c) => {
   if (!adv) {
     throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
   }
-  const manifest = await getPreviewManifest(adv.id);
-  if (!manifest) {
+  // MINOR-6 (adversarial review): field-level update, not read-spread-write
+  // — see updatePreviewManifestLogo's doc comment. Its own existence check
+  // supplies the 404-when-no-manifest semantics this route already had.
+  const updated = await updatePreviewManifestLogo(adv.id, null);
+  if (!updated) {
     throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
   }
-  const updated = { ...manifest, logo: null };
-  await savePreviewManifest(updated);
   return c.json(updated);
 });
 
