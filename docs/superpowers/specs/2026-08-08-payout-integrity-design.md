@@ -47,13 +47,19 @@ Owner decisions taken during brainstorming (2026-08-08):
 `services/payouts.ts` changes:
 
 - **Basis:** for each publisher, payable = Σ`publisher_credit` with
-  `createdAt ≤ periodEnd` − Σ prior `payout` ledger entries (absolute
-  values). Pay when payable ≥ `MIN_PAYOUT_ISK`. The period window is no
-  longer the query filter — it only names the run.
+  `createdAt ≤ periodEnd` − Σ `netIsk` over ALL that publisher's prior
+  payout **docs** (every status — pending, processing, completed). Docs,
+  not ledger entries: the ledger `payout` entry only lands when the owner
+  marks the transfer complete (`markPayoutCompleted`), so subtracting
+  ledger entries would double-count credits sitting behind a created-but-
+  not-yet-transferred payout on the next run. Pay when payable ≥
+  `MIN_PAYOUT_ISK`. The period window is no longer the query filter — it
+  only names the run.
 - **Idempotency:** payout docs get the deterministic id
   `pay_{publisherId}_{YYYYMM}` written with `.create()`; a re-run after a
   partial failure hits ALREADY_EXISTS and skips instead of double-paying.
-  The ledger `payout` entry is written in the same transaction as the doc.
+  The ledger entry stays where it is today — appended at
+  `markPayoutCompleted`, when money actually moves.
 - **Review breakdown:** each payout doc carries `currentPeriodIsk` (credits
   dated inside the run's month) and `carriedForwardIsk` (the rest), summing
   to the gross basis. The admin payout list surfaces both columns.
@@ -98,11 +104,15 @@ Reconciliation stays strictly read-only — it never mutates money state.
 
 - **Loop the drain** like `cron-aggregate` does (batches until the queue is
   empty or a per-run batch cap is hit), removing the ~48k/day ceiling.
-- **Re-queue on failure:** events popped but not successfully processed are
-  pushed back onto `events:accrual` (lpush, preserving order semantics is
-  not required — accrual is count-based per publisher) so a mid-batch crash
-  delays billing instead of destroying it. The existing signature dedup
-  (`seen:{sig}`) already makes reprocessing safe.
+- **Re-queue on failure:** accrual events carry no signature, so safety
+  comes from scoping, not dedup. Processing is grouped per campaign (it
+  already is); on an unexpected per-campaign error, THAT campaign's events
+  are pushed back onto `events:accrual` and the loop continues with the
+  next campaign; on an infrastructure-level failure, all not-yet-processed
+  campaigns' events are pushed back. Events whose campaign finished
+  charging are never re-queued (re-charging them would double-bill). The
+  charge→credit pair within one campaign remains non-atomic, as today —
+  the improvement is that a crash no longer destroys the whole batch.
 - **Queue-depth visibility:** `events:accrual` depth joins the heartbeat
   payload and `cron-diagnostics`; `checkCronHeartbeats` alerts when depth
   grows across consecutive runs (a draining cron that can't keep up).
