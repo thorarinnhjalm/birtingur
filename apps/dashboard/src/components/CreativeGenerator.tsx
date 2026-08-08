@@ -205,6 +205,41 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
     onError: (err) => setError(errMessage(err, 'Ekki tókst að útbúa útlitið.')),
   });
 
+  const logoDeleteMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<GeneratedPreviewManifest>('/v1/creatives/generate/logo', { method: 'DELETE' }),
+    onSuccess: (m) => setManifest(m),
+    onError: () => setError('Ekki tókst að fjarlægja lógóið.'),
+  });
+
+  const logoUploadMutation = useMutation({
+    mutationFn: (body: { imageBase64: string; mime: string }) =>
+      apiFetch<GeneratedPreviewManifest>('/v1/creatives/generate/logo', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: (m) => setManifest(m),
+    onError: () => setError('Ekki tókst að hlaða upp lógóinu. Hámark 1MB, PNG/JPEG/SVG.'),
+  });
+
+  // `file` is typed `any` rather than the DOM `File` type: this repo's
+  // eslint.config.js only whitelists a subset of browser globals for
+  // no-undef (see CreativeLibrary.tsx's own selectedFile state for the same
+  // workaround) and this task's file list doesn't include eslint.config.js.
+  function uploadLogoFile(file: any) {
+    if (file.size > 1024 * 1024) {
+      setError('Lógó má mest vera 1MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const imageBase64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+      logoUploadMutation.mutate({ imageBase64, mime: file.type });
+    };
+    reader.readAsDataURL(file);
+  }
+
   const confirmMutation = useMutation({
     mutationFn: (variantId: string) =>
       apiFetch<Creative[]>('/v1/creatives/generate/confirm', {
@@ -543,6 +578,41 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
             Veldu hvort útlitið á að vera dökkt og áberandi eða létt og einfalt — við teiknum
             bakgrunn og allar völdu stærðirnar í einu.
           </p>
+
+          {/* Lógó — confirm / skip / upload (2026-08-08 design). The scraped logo is
+              never rendered into a banner without being shown here first. */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-700">Lógó í borðanum</p>
+            {manifest?.logo ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={manifest.logo.url}
+                  alt="Lógó auglýsanda"
+                  className="h-10 w-auto max-w-[120px] rounded border border-slate-200 bg-white p-1 object-contain"
+                />
+                <Button type="button" variant="ghost" onClick={() => logoDeleteMutation.mutate()}>
+                  Sleppa lógói
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400">
+                Ekkert lógó fannst á síðunni — þú getur hlaðið upp þínu eigin.
+              </p>
+            )}
+            <label className="text-xs text-primary font-semibold cursor-pointer inline-block">
+              Hlaða upp eigin lógói
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml"
+                className="sr-only"
+                aria-label="Hlaða upp eigin lógói"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadLogoFile(file);
+                }}
+              />
+            </label>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <Card

@@ -398,3 +398,56 @@ test('Finding #10: warns that "Endurgera útlit" spends one of the daily render 
     screen.getByText('Endurgerð notar eitt af 10 leyfðum útlitsgerðum dagsins.'),
   ).toBeDefined();
 });
+
+// Task 5 (creative-logo-embed, 2026-08-08): the Útlit step surfaces
+// manifest.logo before it's ever composited into a rendered banner, with
+// explicit skip / upload-your-own affordances alongside it.
+const LOGO = {
+  url: 'https://storage.example.test/creatives/adv_1/logo_x.png',
+  storagePath: 'creatives/adv_1/logo_x.png',
+  mime: 'image/png',
+  source: 'scraped',
+};
+
+async function walkToUtlitStep(manifestWithLogo: unknown) {
+  mockedApiFetch.mockResolvedValueOnce(manifestWithLogo as any);
+  renderWithClient(<CreativeGenerator onComplete={vi.fn()} />);
+  await advanceFromSizesStep();
+  await generateCopy();
+  fireEvent.click(screen.getByText('Blómabúð Vesturbæjar'));
+  fireEvent.click(screen.getByText('Halda áfram í útlit →'));
+  await screen.findByText('Áberandi (bold)');
+}
+
+test('utlit step shows the scraped logo with skip and upload actions', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+
+  expect(screen.getByAltText('Lógó auglýsanda')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Sleppa lógói' })).toBeDefined();
+  expect(screen.getByLabelText('Hlaða upp eigin lógói')).toBeDefined();
+});
+
+test('skip calls DELETE and removes the logo preview', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+  expect(screen.getByAltText('Lógó auglýsanda')).toBeDefined();
+
+  mockedApiFetch.mockResolvedValueOnce({ ...COPY_MANIFEST, logo: null } as any);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Sleppa lógói' }));
+
+  await waitFor(() =>
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/creatives/generate/logo', {
+      method: 'DELETE',
+    }),
+  );
+  await waitFor(() => {
+    expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
+  });
+});
+
+test('utlit step without a logo shows only the upload affordance', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: null });
+
+  expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
+  expect(screen.getByLabelText('Hlaða upp eigin lógói')).toBeDefined();
+});
