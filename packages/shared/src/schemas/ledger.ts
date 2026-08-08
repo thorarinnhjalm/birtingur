@@ -58,6 +58,9 @@ export const PayoutSchema = z
     platformFeeIsk: z.number().int().nonnegative(),
     netIsk: z.number().int().nonnegative(),
     vatIsk: z.number().int().nonnegative().default(0),
+    /** Review breakdown (2026-08-08 design): how much of netIsk arose in the run's own period vs was carried forward from earlier months. Optional — docs predating the carry-forward fix lack them. */
+    currentPeriodIsk: z.number().int().nonnegative().optional(),
+    carriedForwardIsk: z.number().int().nonnegative().optional(),
     status: PayoutStatusSchema,
     bankReference: z.string(),
   })
