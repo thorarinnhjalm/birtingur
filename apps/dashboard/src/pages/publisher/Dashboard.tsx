@@ -500,7 +500,11 @@ function PublisherHome() {
                     <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
                     <td className="py-3">{site.pageviews.toLocaleString('is-IS')}</td>
                     <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
-                    <td className="py-3 text-right">{formatIsk(site.spendIsk)}</td>
+                    <td className="py-3 text-right">
+                      {formatIsk(
+                        Math.round(site.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)),
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -520,7 +524,9 @@ function PublisherHome() {
             <div>
               <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Frammistaða</h2>
               <p className="m-0 mt-1.5 text-sm text-slate-500">
-                Birtingar og tekjur af öllum vefjum yfir tímabilið
+                {siteId
+                  ? 'Birtingar og tekjur yfir tímabilið'
+                  : 'Birtingar og tekjur af öllum vefjum yfir tímabilið'}
               </p>
             </div>
           </div>
@@ -605,104 +611,112 @@ function PublisherHome() {
                 </tr>
               </thead>
               <tbody>
-                {publishers.map((pub) => {
-                  const pubSlots =
-                    (slots as any[])?.filter((s: any) => s.publisherId === pub.id) || [];
-                  if (pubSlots.length === 0) {
-                    return (
-                      <tr key={pub.id} className="border-b border-surface-container bg-slate-50/50">
-                        <td colSpan={7} className="px-5 py-4 text-xs font-semibold text-slate-400">
-                          <span className="inline-flex items-center gap-1.5">
-                            <Globe size={14} />
-                            {pub.domain} — Engin auglýsingapláss skráð.
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return (
-                    <Fragment key={pub.id}>
-                      <tr className="select-none border-y border-outline-variant bg-slate-50/80">
-                        <td
-                          colSpan={7}
-                          className="px-5 py-3 text-xs font-extrabold tracking-wide text-slate-800"
-                        >
-                          <span className="flex items-center gap-1.5 uppercase">
-                            <Globe size={14} className="text-slate-500" />
-                            {pub.displayName} ({pub.domain})
-                          </span>
-                        </td>
-                      </tr>
-                      {pubSlots.map((s: any) => (
+                {publishers
+                  .filter((p) => !siteId || p.id === siteId)
+                  .map((pub) => {
+                    const pubSlots =
+                      (slots as any[])?.filter((s: any) => s.publisherId === pub.id) || [];
+                    if (pubSlots.length === 0) {
+                      return (
                         <tr
-                          key={s.id}
-                          className="cursor-pointer border-b border-surface-container transition-colors hover:bg-slate-50"
-                          onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                          key={pub.id}
+                          className="border-b border-surface-container bg-slate-50/50"
                         >
-                          <td className="px-5 py-[22px] align-middle">
-                            <div className="flex min-w-0 flex-col">
-                              <span className="max-w-[200px] truncate text-[15px] font-semibold text-slate-900">
-                                {s.name}
-                              </span>
-                              <span className="max-w-[200px] truncate text-[13px] text-slate-500">
-                                {pub.domain}
-                                {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
-                                  ? s.placement.pageMatcher
-                                  : ''}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-[22px] align-middle">
-                            <span className="whitespace-nowrap rounded-md bg-surface-container px-3 py-1 text-xs font-semibold text-slate-600">
-                              {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
-                            </span>
-                          </td>
-                          <td className="px-5 py-[22px] align-middle">
-                            <div className="flex flex-col gap-1">
-                              <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>
-                                {s.status === 'active' ? 'Virk' : 'Óvirk'}
-                              </Badge>
-                              {s.status === 'active' && (!s.stats || s.stats.pageviews === 0) && (
-                                <span className="inline-flex w-fit items-center gap-1 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
-                                  <AlertTriangle size={12} />
-                                  Engin virkni greind
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-5 py-[22px] text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
-                            {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
-                          </td>
-                          <td className="px-5 py-[22px] text-right align-middle text-[15px] text-slate-700 tabular-nums">
-                            {s.stats ? s.stats.clicks.toLocaleString('is-IS') : '0'}
-                          </td>
-                          <td className="px-5 py-[22px] text-right align-middle text-[15px] text-slate-700 tabular-nums">
-                            {s.stats && s.stats.impressions > 0
-                              ? `${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
-                                  .toFixed(2)
-                                  .replace('.', ',')}%`
-                              : '0,00%'}
-                          </td>
-                          <td className="px-5 py-[22px] text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
-                            {s.stats
-                              ? formatIsk(
-                                  Math.round(
-                                    s.stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
-                                  ),
-                                )
-                              : '0 kr.'}
-                            <span className="block text-[10px] font-medium text-slate-500">
-                              {s.pricing.mode === 'cpm'
-                                ? `${formatIsk(s.pricing.cpmIsk)} CPM`
-                                : `${formatIsk(s.pricing.slotPriceIsk)} / ${s.pricing.slotPeriodDays}d`}
+                          <td
+                            colSpan={7}
+                            className="px-5 py-4 text-xs font-semibold text-slate-400"
+                          >
+                            <span className="inline-flex items-center gap-1.5">
+                              <Globe size={14} />
+                              {pub.domain} — Engin auglýsingapláss skráð.
                             </span>
                           </td>
                         </tr>
-                      ))}
-                    </Fragment>
-                  );
-                })}
+                      );
+                    }
+
+                    return (
+                      <Fragment key={pub.id}>
+                        <tr className="select-none border-y border-outline-variant bg-slate-50/80">
+                          <td
+                            colSpan={7}
+                            className="px-5 py-3 text-xs font-extrabold tracking-wide text-slate-800"
+                          >
+                            <span className="flex items-center gap-1.5 uppercase">
+                              <Globe size={14} className="text-slate-500" />
+                              {pub.displayName} ({pub.domain})
+                            </span>
+                          </td>
+                        </tr>
+                        {pubSlots.map((s: any) => (
+                          <tr
+                            key={s.id}
+                            className="cursor-pointer border-b border-surface-container transition-colors hover:bg-slate-50"
+                            onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                          >
+                            <td className="px-5 py-[22px] align-middle">
+                              <div className="flex min-w-0 flex-col">
+                                <span className="max-w-[200px] truncate text-[15px] font-semibold text-slate-900">
+                                  {s.name}
+                                </span>
+                                <span className="max-w-[200px] truncate text-[13px] text-slate-500">
+                                  {pub.domain}
+                                  {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
+                                    ? s.placement.pageMatcher
+                                    : ''}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-[22px] align-middle">
+                              <span className="whitespace-nowrap rounded-md bg-surface-container px-3 py-1 text-xs font-semibold text-slate-600">
+                                {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
+                              </span>
+                            </td>
+                            <td className="px-5 py-[22px] align-middle">
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>
+                                  {s.status === 'active' ? 'Virk' : 'Óvirk'}
+                                </Badge>
+                                {s.status === 'active' && (!s.stats || s.stats.pageviews === 0) && (
+                                  <span className="inline-flex w-fit items-center gap-1 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                    <AlertTriangle size={12} />
+                                    Engin virkni greind
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-5 py-[22px] text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
+                              {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
+                            </td>
+                            <td className="px-5 py-[22px] text-right align-middle text-[15px] text-slate-700 tabular-nums">
+                              {s.stats ? s.stats.clicks.toLocaleString('is-IS') : '0'}
+                            </td>
+                            <td className="px-5 py-[22px] text-right align-middle text-[15px] text-slate-700 tabular-nums">
+                              {s.stats && s.stats.impressions > 0
+                                ? `${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
+                                    .toFixed(2)
+                                    .replace('.', ',')}%`
+                                : '0,00%'}
+                            </td>
+                            <td className="px-5 py-[22px] text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
+                              {s.stats
+                                ? formatIsk(
+                                    Math.round(
+                                      s.stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
+                                    ),
+                                  )
+                                : '0 kr.'}
+                              <span className="block text-[10px] font-medium text-slate-500">
+                                {s.pricing.mode === 'cpm'
+                                  ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                                  : `${formatIsk(s.pricing.slotPriceIsk)} / ${s.pricing.slotPeriodDays}d`}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })}
               </tbody>
             </table>
             <div className="flex justify-center border-t border-outline-variant bg-surface-container-low px-5 py-4">
