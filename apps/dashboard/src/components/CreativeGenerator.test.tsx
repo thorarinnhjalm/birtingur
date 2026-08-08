@@ -451,3 +451,40 @@ test('utlit step without a logo shows only the upload affordance', async () => {
   expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
   expect(screen.getByLabelText('Hlaða upp eigin lógói')).toBeDefined();
 });
+
+// Important review finding on commit 5b17803: the logo POST/DELETE and the
+// render call are all non-transactional read-spread-write on the same
+// manifest doc — without a pending/disabled guard, a rapid double-click (or
+// a click while a render is in flight) can fire the mutation twice and
+// clobber whichever manifest write lands last. The "Sleppa lógói" button
+// must disable itself the instant its own mutation is pending.
+test('rapid double-click on "Sleppa lógói" only issues one DELETE call while it is pending', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+
+  let resolveDelete: (value: unknown) => void = () => {};
+  const deletePromise = new Promise((resolve) => {
+    resolveDelete = resolve;
+  });
+  mockedApiFetch.mockReturnValueOnce(deletePromise as any);
+
+  const skipButton = screen.getByRole('button', { name: 'Sleppa lógói' });
+  fireEvent.click(skipButton);
+
+  // The DELETE mutation is now pending (its mock promise is still
+  // unresolved) — the button must already be disabled so a second click
+  // while it's in flight is a no-op, not a second DELETE call.
+  await waitFor(() =>
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/creatives/generate/logo', {
+      method: 'DELETE',
+    }),
+  );
+  fireEvent.click(skipButton);
+
+  const deleteCalls = mockedApiFetch.mock.calls.filter(
+    ([url]) => url === '/v1/creatives/generate/logo',
+  );
+  expect(deleteCalls.length).toBe(1);
+
+  resolveDelete({ ...COPY_MANIFEST, logo: null });
+  await waitFor(() => expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull());
+});

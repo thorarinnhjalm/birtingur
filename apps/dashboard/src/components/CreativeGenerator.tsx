@@ -307,6 +307,12 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
 
   const currentStepIndex = WIZARD_STEPS.indexOf(wizardStep);
   const renderedVariant = manifest?.variants.find((v) => v.variantId === selectedVariantId);
+  // Guards the logo skip/upload controls: the logo POST/DELETE and the
+  // render call are all non-transactional read-spread-write on the same
+  // manifest doc, so any of them in flight makes a concurrent logo mutation
+  // unsafe (see the comment at the logo panel's usage site).
+  const logoBusy =
+    renderMutation.isPending || logoDeleteMutation.isPending || logoUploadMutation.isPending;
 
   return (
     <div className="space-y-5">
@@ -580,7 +586,12 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
           </p>
 
           {/* Lógó — confirm / skip / upload (2026-08-08 design). The scraped logo is
-              never rendered into a banner without being shown here first. */}
+              never rendered into a banner without being shown here first.
+              logoBusy also covers renderMutation: the logo POST/DELETE and the
+              render call are all non-transactional read-spread-write on the
+              same manifest doc, so letting the logo controls stay interactive
+              while a render is in flight (up to a minute) lets a skip/upload
+              silently clobber whichever manifest write lands last. */}
           <div className="space-y-2">
             <p className="text-xs font-semibold text-slate-700">Lógó í borðanum</p>
             {manifest?.logo ? (
@@ -590,7 +601,13 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
                   alt="Lógó auglýsanda"
                   className="h-10 w-auto max-w-[120px] rounded border border-slate-200 bg-white p-1 object-contain"
                 />
-                <Button type="button" variant="ghost" onClick={() => logoDeleteMutation.mutate()}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  loading={logoDeleteMutation.isPending}
+                  disabled={logoBusy}
+                  onClick={() => logoDeleteMutation.mutate()}
+                >
                   Sleppa lógói
                 </Button>
               </div>
@@ -599,13 +616,20 @@ export function CreativeGenerator({ onComplete, onCancel, categories }: Creative
                 Ekkert lógó fannst á síðunni — þú getur hlaðið upp þínu eigin.
               </p>
             )}
-            <label className="text-xs text-primary font-semibold cursor-pointer inline-block">
+            <label
+              className={
+                logoBusy
+                  ? 'text-xs text-primary/40 font-semibold cursor-not-allowed inline-block'
+                  : 'text-xs text-primary font-semibold cursor-pointer inline-block'
+              }
+            >
               Hlaða upp eigin lógói
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/svg+xml"
                 className="sr-only"
                 aria-label="Hlaða upp eigin lógói"
+                disabled={logoBusy}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) uploadLogoFile(file);
