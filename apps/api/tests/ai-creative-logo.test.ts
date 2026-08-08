@@ -59,6 +59,20 @@ describe('logo candidate extraction', () => {
       'https://example.is/favicon-24.png',
     ]);
   });
+
+  // IMPORTANT-2 (adversarial review): a hostile page can declare an
+  // unbounded number of icon links, each becoming a distinct candidate URL —
+  // acquireScrapedLogo tries them serially at up to 5s/1MB each, so an
+  // unbounded list is a request-stalling amplifier. The list must be capped.
+  it('caps the candidate list at 4 even when the page declares many more icons', () => {
+    const manyIcons = Array.from(
+      { length: 50 },
+      (_, i) => `<link rel="icon" href="/icon-${i}.png">`,
+    ).join('\n');
+    const HTML_MANY = `<html><head>${manyIcons}</head><body></body></html>`;
+    const candidates = extractLogoCandidates(HTML_MANY, 'https://example.is/');
+    expect(candidates).toHaveLength(4);
+  });
 });
 
 describe('acquireScrapedLogo', () => {
@@ -135,7 +149,54 @@ describe('acquireScrapedLogo', () => {
     });
     expect(logo).toBeNull();
   });
+
+  // IMPORTANT-2 (adversarial review): an already-exceeded deadline must stop
+  // the loop before it makes a single fetch — this is what actually bounds
+  // the overall wall-clock cost of a hostile candidate list.
+  it('returns null and never fetches when the deadline has already passed', async () => {
+    const logo = await acquireScrapedLogo({
+      advertiserId: 'adv_1',
+      candidates: ['https://example.is/a.png', 'https://example.is/b.png'],
+      uploader: new StubCreativeUploader(),
+      deadline: Date.now() - 1,
+    });
+    expect(logo).toBeNull();
+    expect(fetchBinaryMock).not.toHaveBeenCalled();
+  });
+
+  it('stops trying further candidates once the deadline passes mid-loop', async () => {
+    fetchBinaryMock.mockImplementation(async () => {
+      // Simulate the deadline elapsing during the first (slow) candidate.
+      await new Promise((r) => setTimeout(r, 5));
+      return {
+        body: TINY_PNG,
+        finalUrl: 'x',
+        contentType: 'image/vnd.microsoft.icon',
+        truncated: false,
+      };
+    });
+    const logo = await acquireScrapedLogo({
+      advertiserId: 'adv_1',
+      candidates: [
+        'https://example.is/a.png',
+        'https://example.is/b.png',
+        'https://example.is/c.png',
+      ],
+      uploader: new StubCreativeUploader(),
+      deadline: Date.now() + 2,
+    });
+    expect(logo).toBeNull();
+    // First candidate is always attempted (deadline checked at loop top);
+    // the deadline elapsing during that fetch must prevent later candidates.
+    expect(fetchBinaryMock.mock.calls.length).toBeLessThan(3);
+  });
 });
+
+// 1x1 opaque black JPEG (minimal valid JFIF)
+const TINY_JPEG = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+  'base64',
+);
 
 describe('normalizeLogoBuffer', () => {
   it('passes png/jpeg through and rejects unsupported types', () => {
@@ -154,5 +215,41 @@ describe('normalizeLogoBuffer', () => {
 
   it('returns null for an undecodable svg', () => {
     expect(normalizeLogoBuffer(Buffer.from('<svg'), 'image/svg+xml')).toBeNull();
+  });
+
+  // CRITICAL-1 (adversarial review): a tiny-width, huge-height viewBox
+  // rasterizes to a giant canvas once fitTo scales it to SVG_RASTER_SIZE
+  // wide (e.g. viewBox="0 0 1 600" -> 512x307200, ~629MB RGBA) — reachable
+  // via upload OR a hostile scraped landing-page logo.svg. Must be rejected
+  // BEFORE the allocating .render() call, not just eventually survive it.
+  it('rejects an extreme-aspect-ratio SVG that would blow up the rasterized canvas', () => {
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 600"><rect width="1" height="600" fill="red"/></svg>',
+    );
+    expect(normalizeLogoBuffer(svg, 'image/svg+xml')).toBeNull();
+  });
+
+  it('still rasterizes a normal-aspect-ratio SVG that stays well under the height ceiling', () => {
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect width="200" height="100" fill="blue"/></svg>',
+    );
+    const out = normalizeLogoBuffer(svg, 'image/svg+xml');
+    expect(out?.mime).toBe('image/png');
+    expect(out!.buffer.subarray(1, 4).toString()).toBe('PNG');
+  });
+
+  // MINOR-4 (adversarial review): magic bytes must match the declared mime
+  // regardless of what the caller/scrape claimed — a PNG blob labelled
+  // image/jpeg (or vice versa) must not be stored under a lying content type.
+  it('rejects PNG bytes labelled image/jpeg', () => {
+    expect(normalizeLogoBuffer(TINY_PNG, 'image/jpeg')).toBeNull();
+  });
+
+  it('rejects JPEG bytes labelled image/png', () => {
+    expect(normalizeLogoBuffer(TINY_JPEG, 'image/png')).toBeNull();
+  });
+
+  it('accepts JPEG bytes correctly labelled image/jpeg', () => {
+    expect(normalizeLogoBuffer(TINY_JPEG, 'image/jpeg')?.mime).toBe('image/jpeg');
   });
 });

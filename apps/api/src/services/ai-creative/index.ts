@@ -112,7 +112,14 @@ export function extractLogoCandidates(html: string, baseUrl: string): string[] {
     .sort((a, b) => b.size - a.size);
   for (const icon of icons) push(icon.href);
 
-  return candidates;
+  // IMPORTANT-2 (adversarial review): a hostile landing page can declare
+  // thousands of apple-touch-icon/icon <link> tags, each becoming a distinct
+  // candidate URL (dedup is by URL only). `acquireScrapedLogo` below tries
+  // candidates serially at up to 5s/1MB each, so an unbounded list is a
+  // request-stalling amplifier. Four candidates is already generous — the
+  // priority ordering above means the first one or two are almost always the
+  // ones that actually get used.
+  return candidates.slice(0, 4);
 }
 
 /**
