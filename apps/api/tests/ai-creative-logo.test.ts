@@ -252,4 +252,53 @@ describe('normalizeLogoBuffer', () => {
   it('accepts JPEG bytes correctly labelled image/jpeg', () => {
     expect(normalizeLogoBuffer(TINY_JPEG, 'image/jpeg')?.mime).toBe('image/jpeg');
   });
+
+  // Blocking finding (adversarial re-review, follow-up to CRITICAL-1): the
+  // SVG raster bomb had a PNG/JPEG twin — normalizeLogoBuffer stored
+  // PNG/JPEG bytes undecoded, but resvg still decodes+rasterizes the
+  // EMBEDDED image at banner-render time. A flat-color PNG compresses a huge
+  // declared canvas into well under the 1MB cap, so dimensions must be read
+  // from the header (IHDR for PNG, SOF0/1/2 for JPEG) WITHOUT decoding, and
+  // rejected past MAX_RASTER_DIMENSION (4096) before the bytes are ever
+  // stored/rasterized.
+  describe('raster-dimension ceiling (PNG/JPEG headers, no decode)', () => {
+    function makePngWithDimensions(width: number, height: number): Buffer {
+      const buf = Buffer.alloc(24);
+      // 8-byte PNG signature
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(buf, 0);
+      buf.writeUInt32BE(13, 8); // IHDR chunk length
+      buf.write('IHDR', 12, 'ascii');
+      buf.writeUInt32BE(width, 16);
+      buf.writeUInt32BE(height, 20);
+      return buf;
+    }
+
+    it('rejects a crafted PNG header declaring 50000x50000', () => {
+      const bomb = makePngWithDimensions(50_000, 50_000);
+      expect(normalizeLogoBuffer(bomb, 'image/png')).toBeNull();
+    });
+
+    it('still passes a normal small PNG', () => {
+      expect(normalizeLogoBuffer(TINY_PNG, 'image/png')?.mime).toBe('image/png');
+    });
+
+    it('parses real JPEG dimensions and passes a normal small JPEG', () => {
+      expect(normalizeLogoBuffer(TINY_JPEG, 'image/jpeg')?.mime).toBe('image/jpeg');
+    });
+
+    it('rejects an unparseable PNG header (valid magic bytes, too short for IHDR)', () => {
+      // Passes hasPngMagicBytes (first 4 bytes) but is too short for
+      // pngDimensions to read the IHDR width/height fields.
+      const short = Buffer.alloc(12);
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(short, 0);
+      expect(normalizeLogoBuffer(short, 'image/png')).toBeNull();
+    });
+
+    it('rejects an unparseable JPEG header (valid SOI, no SOF segment before EOI)', () => {
+      // FFD8 (SOI) immediately followed by FFD9 (EOI) — valid magic bytes,
+      // but jpegDimensions never finds an SOF0/1/2 segment to read from.
+      const noSof = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+      expect(normalizeLogoBuffer(noSof, 'image/jpeg')).toBeNull();
+    });
+  });
 });

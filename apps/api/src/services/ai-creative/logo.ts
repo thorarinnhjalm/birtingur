@@ -32,6 +32,71 @@ function hasJpegMagicBytes(buffer: Buffer): boolean {
   return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
 }
 
+// Adversarial re-review (blocking): the SVG raster bomb (CRITICAL-1) had a
+// twin in the PNG/JPEG passthrough path — normalizeLogoBuffer stored
+// PNG/JPEG bytes undecoded, but resvg still has to decode+rasterize the
+// EMBEDDED logo image at banner-render time (templates.ts's `<image>` tag,
+// via render.ts's resvg pass). A flat-color PNG compresses extremely well,
+// so a 1MB file can legitimately declare pixel dimensions in the tens of
+// thousands — same OOM class as the SVG bomb, a different input path. Ceiling
+// chosen to match: no legitimate logo mark needs a dimension above this.
+const MAX_RASTER_DIMENSION = 4096;
+
+/** Parses PNG width/height straight out of the IHDR chunk header — no
+ * decoding. Chunk layout: 8-byte signature, then [4-byte length][4-byte type
+ * "IHDR"][4-byte width][4-byte height BE]..., so width/height sit at fixed
+ * offsets 16-19 / 20-23 for any valid PNG (IHDR is always the first chunk).
+ * Returns null when the buffer is too short or the chunk type isn't IHDR
+ * (never throws, matches this module's "always null, never throws" contract). */
+function pngDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer.length < 24) return null;
+  if (buffer.toString('ascii', 12, 16) !== 'IHDR') return null;
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+}
+
+/** Parses JPEG width/height by scanning markers for the first SOF0/SOF1/SOF2
+ * (baseline/extended-sequential/progressive) segment and reading its
+ * height/width fields — no decoding. Segment layout after the 2-byte marker:
+ * [2-byte length incl. itself][1-byte precision][2-byte height BE][2-byte
+ * width BE]... Returns null if SOI is missing, a marker byte is malformed, or
+ * the scan runs off the buffer end without finding an SOF segment. */
+function jpegDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+  let offset = 2;
+  while (offset + 1 < buffer.length) {
+    if (buffer[offset] !== 0xff) return null; // not a marker — malformed/unparseable
+    const marker = buffer[offset + 1]!;
+    // Markers with no length-prefixed payload: SOI, TEM, RSTn (0xD0-0xD7).
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      offset += 2;
+      continue;
+    }
+    if (marker === 0xd9) return null; // EOI reached — no SOF segment found
+    if (offset + 4 > buffer.length) return null;
+    const segmentLength = buffer.readUInt16BE(offset + 2);
+    if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) {
+      if (offset + 9 > buffer.length) return null;
+      return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+    }
+    if (segmentLength < 2) return null; // malformed segment length
+    offset += 2 + segmentLength;
+  }
+  return null;
+}
+
+function withinRasterCeiling(dims: { width: number; height: number } | null): boolean {
+  if (!dims) return false;
+  const { width, height } = dims;
+  return (
+    Number.isFinite(width) &&
+    Number.isFinite(height) &&
+    width > 0 &&
+    height > 0 &&
+    width <= MAX_RASTER_DIMENSION &&
+    height <= MAX_RASTER_DIMENSION
+  );
+}
+
 /**
  * Normalizes a fetched logo asset to PNG or JPEG bytes, rejecting anything
  * else (`image/gif`, `image/vnd.microsoft.icon`, etc.) — `GeneratedLogoSchema`
@@ -40,8 +105,13 @@ function hasJpegMagicBytes(buffer: Buffer): boolean {
  * compositing, and everything else is unsupported. Returns null (never
  * throws) when the content type is unsupported, the SVG fails to parse, the
  * SVG's aspect ratio would blow up the rasterized canvas past
- * `MAX_RASTER_HEIGHT` once scaled to `SVG_RASTER_SIZE` wide, or (PNG/JPEG)
- * the declared mime doesn't match the buffer's actual magic bytes.
+ * `MAX_RASTER_HEIGHT` once scaled to `SVG_RASTER_SIZE` wide, (PNG/JPEG) the
+ * declared mime doesn't match the buffer's actual magic bytes, or (PNG/JPEG)
+ * the header-declared pixel dimensions exceed `MAX_RASTER_DIMENSION` — a
+ * flat-color PNG/JPEG can compress a huge declared canvas into well under the
+ * 1MB fetch/upload cap, and resvg still decodes+rasterizes it at full
+ * declared size when compositing the banner (same OOM class as the SVG-bomb
+ * fix above, a different input path).
  */
 export function normalizeLogoBuffer(
   buffer: Buffer,
@@ -49,10 +119,12 @@ export function normalizeLogoBuffer(
 ): { buffer: Buffer; mime: 'image/png' | 'image/jpeg' } | null {
   const type = contentType.split(';')[0]!.trim().toLowerCase();
   if (type === 'image/png') {
-    return hasPngMagicBytes(buffer) ? { buffer, mime: 'image/png' } : null;
+    if (!hasPngMagicBytes(buffer) || !withinRasterCeiling(pngDimensions(buffer))) return null;
+    return { buffer, mime: 'image/png' };
   }
   if (type === 'image/jpeg' || type === 'image/jpg') {
-    return hasJpegMagicBytes(buffer) ? { buffer, mime: 'image/jpeg' } : null;
+    if (!hasJpegMagicBytes(buffer) || !withinRasterCeiling(jpegDimensions(buffer))) return null;
+    return { buffer, mime: 'image/jpeg' };
   }
   if (type === 'image/svg+xml') {
     try {

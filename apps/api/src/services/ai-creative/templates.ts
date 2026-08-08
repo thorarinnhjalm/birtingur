@@ -560,7 +560,21 @@ function logoChipLayer(
 export function renderBannerSvg(input: RenderBannerInput): string {
   const { width, height, copy, templateId } = input;
   const palette = PALETTE[templateId];
-  const layout = computeBannerLayout({ width, height, copy, hasLogo: input.logoPng != null });
+  // Computed up front (rather than separately near the chip-emission code
+  // below) so `hasLogo` and the chip's own draw condition are gated on the
+  // EXACT same truthy check — ride-along fix (adversarial re-review): the
+  // layout gate used to be `input.logoPng != null` while the chip-drawing
+  // gate below was string truthiness, so an empty-string `logoPng` reserved
+  // headline space for a chip that then never got drawn. A single variable,
+  // checked the same way in both places, makes that class of drift
+  // impossible.
+  const logoPngBase64 =
+    input.logoPng == null
+      ? null
+      : typeof input.logoPng === 'string'
+        ? input.logoPng
+        : input.logoPng.toString('base64');
+  const layout = computeBannerLayout({ width, height, copy, hasLogo: !!logoPngBase64 });
   const useBackground = templateId === 'bold' && !!input.backgroundPng;
   const backgroundPngBase64 = useBackground
     ? typeof input.backgroundPng === 'string'
@@ -614,12 +628,6 @@ export function renderBannerSvg(input: RenderBannerInput): string {
     palette.ctaText,
   );
 
-  const logoPngBase64 =
-    input.logoPng == null
-      ? null
-      : typeof input.logoPng === 'string'
-        ? input.logoPng
-        : input.logoPng.toString('base64');
   const logoLayer = logoPngBase64
     ? logoChipLayer(width, height, logoPngBase64, input.logoMime ?? 'image/png', ctaBox)
     : '';

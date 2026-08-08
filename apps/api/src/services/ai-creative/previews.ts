@@ -32,9 +32,17 @@ export async function getPreviewManifest(
  * a full-document `.set()`) landed between this route's read and its write,
  * the render's later save would silently resurrect the manifest state from
  * BEFORE the logo change — the logo edit is lost with no error to anyone.
- * `.update({ logo })` only touches that one field, so it can never clobber
- * (or be clobbered by, for the logo field specifically) a concurrent
- * render's unrelated field writes.
+ * `.update({ logo })` only touches that one field, so this write can no
+ * longer clobber a concurrent render's OTHER fields (images, status, etc.) —
+ * the direction that mattered for the original bug report. This does NOT
+ * close the reverse direction: `savePreviewManifest` still does a
+ * whole-document `.set()`, so a render that started before this logo update
+ * and finishes after it will still overwrite `logo` back to whatever it read
+ * at render-start, silently discarding a mid-render logo change. Closing
+ * that fully would need render's own save to also become field-scoped (or
+ * the two paths to share a transaction) — out of scope here; the dashboard's
+ * `logoBusy` guard (CreativeGenerator.tsx) is the current mitigation, by
+ * disabling the logo controls while a render is in flight.
  *
  * Existence is checked explicitly first (rather than relying on `.update()`
  * throwing on a missing doc) so the 404-when-no-manifest contract the two

@@ -371,6 +371,27 @@ describe('logo compositing', () => {
       const svg = renderBannerSvg({ ...baseInput(), templateId, logoPng: null });
       expect(svg).not.toContain('logo-chip');
     });
+
+    // Ride-along fix (adversarial re-review): computeBannerLayout's hasLogo
+    // gate used to be `logoPng != null` (true for '') while the chip-drawing
+    // gate was string truthiness (false for '') — an empty-string logoPng
+    // reserved headline space for a chip that never got drawn. Both gates
+    // now derive from the same `!!logoPngBase64` check, so this must be
+    // symmetric with the `null` case above on a strip-tier size, where the
+    // headline-reservation logic actually kicks in.
+    it(`reserves no headline space and draws no chip in ${templateId} when logoPng is an empty string`, () => {
+      const svg = renderBannerSvg({
+        width: 728,
+        height: 90,
+        copy: COPY,
+        templateId,
+        logoPng: '',
+      });
+      expect(svg).not.toContain('logo-chip');
+      const layout = computeBannerLayout({ width: 728, height: 90, copy: COPY, hasLogo: false });
+      const headlineBox = layout.boxes.headline!;
+      expect(svg).toContain(`x="${headlineBox.x}"`);
+    });
   }
 
   it('uses the jpeg mime in the data URI when logoMime says so', () => {
