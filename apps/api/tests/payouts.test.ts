@@ -134,6 +134,66 @@ describe('generateMonthlyPayouts — cumulative basis', () => {
     expect(docs.size).toBe(1);
   });
 
+  it('genuinely collides on ALREADY_EXISTS: a same-period rerun that crosses the minimum again is caught and skipped, not thrown', async () => {
+    // Unlike the "is idempotent" test above (whose rerun computes netIsk=0
+    // and skips via the minimum check, never reaching .create()), this one
+    // forces the second run to actually attempt .create() on the SAME doc
+    // id (payoutDocId depends only on publisherId + periodEnd's YYYYMM) by
+    // adding enough NEW in-period credits that netIsk crosses the minimum
+    // again after subtracting the first run's payout doc.
+    await seedPublisher('pub_collide');
+    await credit('pub_collide', MIN_PAYOUT_ISK, new Date(Date.UTC(2026, 7, 5)));
+    const first = await generateMonthlyPayouts(P_START, P_END);
+    expect(first).toHaveLength(1);
+    expect(first[0]!.id).toBe(payoutDocId('pub_collide', P_END));
+
+    // More credits land in the SAME period, pushing the unpaid remainder
+    // back over the minimum: totalIsk (2*MIN) - paid (MIN) = MIN.
+    await credit('pub_collide', MIN_PAYOUT_ISK, new Date(Date.UTC(2026, 7, 20)));
+
+    // The doc id collides with the first run's doc -> ALREADY_EXISTS (code
+    // 6) is caught, logged, and skipped -> the function resolves (does not
+    // throw) and reports nothing created for this period.
+    const second = await generateMonthlyPayouts(P_START, P_END);
+    expect(second).toEqual([]);
+
+    const docs = await db.collection(COLLECTIONS.payouts).get();
+    expect(docs.size).toBe(1); // no duplicate doc
+    expect(docs.docs[0]!.data().netIsk).toBe(MIN_PAYOUT_ISK); // original doc untouched
+  });
+
+  it('clamps currentPeriodIsk to netIsk so carriedForwardIsk is never negative', async () => {
+    // Reconstructs the overlap case: a publisher's unpaid remainder (netIsk)
+    // can be smaller than the raw in-period credit sum (periodByPublisher)
+    // whenever a run's periodStart reaches back before an earlier payout's
+    // periodEnd, so part of what looks like "this period's" credits was
+    // already paid out. Using a deliberately wide second window (a
+    // different YYYYMM than the first payout, so no doc-id collision) makes
+    // the clamped result directly observable via the returned/persisted doc.
+    await seedPublisher('pub_clamp');
+    const creditBefore = MIN_PAYOUT_ISK + 1000;
+    await credit('pub_clamp', creditBefore, new Date(Date.UTC(2026, 6, 15))); // July, before P_START
+    const first = await generateMonthlyPayouts(P_START, P_END); // August
+    expect(first).toHaveLength(1);
+    expect(first[0]!.netIsk).toBe(creditBefore);
+
+    await credit('pub_clamp', MIN_PAYOUT_ISK, new Date(Date.UTC(2026, 8, 10))); // September
+    // Window deliberately overlaps back into July, so periodByPublisher
+    // (July+Sept credits) exceeds netIsk (Sept credit only, since July's
+    // was already paid out above) -> currentPeriodIsk must clamp down.
+    const wideStart = new Date(Date.UTC(2026, 6, 1));
+    const wideEnd = new Date(Date.UTC(2026, 8, 30, 23, 59, 59));
+    const second = await generateMonthlyPayouts(wideStart, wideEnd);
+
+    expect(second).toHaveLength(1);
+    const payout = second[0]!;
+    expect(payout.id).not.toBe(first[0]!.id); // different YYYYMM, no collision
+    expect(payout.netIsk).toBe(MIN_PAYOUT_ISK);
+    expect(payout.currentPeriodIsk).toBe(MIN_PAYOUT_ISK); // clamped, not creditBefore + MIN
+    expect(payout.carriedForwardIsk).toBe(0); // never negative
+    expect(payout.currentPeriodIsk! + payout.carriedForwardIsk!).toBe(payout.netIsk);
+  });
+
   it('holds VAT: vatIsk is computed and stored but excluded from the completed disbursement ledger entry', async () => {
     await seedPublisher('pub_vat', '123456');
     await credit('pub_vat', 20_000, new Date(Date.UTC(2026, 7, 5)));
