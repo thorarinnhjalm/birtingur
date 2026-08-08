@@ -1,7 +1,27 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ssrfGuardedFetch, SsrfBlockedError, __testing__ } from '../src/services/ai-creative/ssrf';
+import {
+  ssrfGuardedFetch,
+  ssrfGuardedFetchBinary,
+  SsrfBlockedError,
+  __testing__,
+} from '../src/services/ai-creative/ssrf';
 
 const { isPrivateIp } = __testing__;
+
+// `ssrfGuardedFetchBinary`'s tests below use a plain hostname (example.com)
+// rather than a literal IP, so the guard's real DNS resolution step runs —
+// mock it the same way `global.fetch` is mocked, resolving to a public IP so
+// the tests stay hermetic/offline while still exercising the guard's
+// hostname → lookup() → isPrivateIp() path (not just the literal-IP
+// shortcut the other tests above take).
+vi.mock('node:dns/promises', () => ({
+  lookup: vi.fn(async (hostname: string) => {
+    if (hostname === 'example.com') {
+      return [{ address: '93.184.216.34', family: 4 }];
+    }
+    throw new Error(`unexpected DNS lookup for ${hostname} in tests`);
+  }),
+}));
 
 describe('SSRF guard: isPrivateIp', () => {
   it('flags loopback addresses', () => {
@@ -143,5 +163,45 @@ describe('SSRF guard: ssrfGuardedFetch', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(ssrfGuardedFetch('https://93.184.216.34/')).rejects.toThrow(SsrfBlockedError);
+  });
+});
+
+/** Stubs `global.fetch` to resolve once with the given status/headers/body. */
+function mockFetchOnce(opts: { status: number; headers: Record<string, string>; body: Buffer }) {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+    new Response(new Uint8Array(opts.body), { status: opts.status, headers: opts.headers }),
+  );
+}
+
+describe('ssrfGuardedFetchBinary', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns raw bytes and content type', async () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    mockFetchOnce({ status: 200, headers: { 'content-type': 'image/png' }, body: png });
+    const res = await ssrfGuardedFetchBinary('https://example.com/logo.png');
+    expect(res.contentType).toBe('image/png');
+    expect(Buffer.compare(res.body, png)).toBe(0);
+    expect(res.truncated).toBe(false);
+  });
+
+  it('marks bodies over the cap as truncated', async () => {
+    mockFetchOnce({
+      status: 200,
+      headers: { 'content-type': 'image/png' },
+      body: Buffer.alloc(64 * 1024, 1),
+    });
+    const res = await ssrfGuardedFetchBinary('https://example.com/big.png', {
+      maxBytes: 16 * 1024,
+    });
+    expect(res.truncated).toBe(true);
+  });
+
+  it('applies the SSRF guard (https only)', async () => {
+    await expect(ssrfGuardedFetchBinary('http://example.com/logo.png')).rejects.toThrow(
+      SsrfBlockedError,
+    );
   });
 });

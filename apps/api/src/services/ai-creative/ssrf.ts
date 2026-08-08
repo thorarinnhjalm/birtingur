@@ -217,13 +217,24 @@ export interface SafeFetchResult {
   contentType: string | null;
 }
 
+export interface SafeBinaryFetchResult {
+  body: Buffer;
+  finalUrl: string;
+  contentType: string | null;
+  truncated: boolean; // true when the cap cut the body off — callers must discard
+}
+
 /**
- * Fetches `urlString` with the SSRF guard applied to the initial URL and to
- * every redirect hop (manual redirect handling — `fetch`'s automatic
- * redirect-following would re-request a validated-then-redirected URL without
- * ever re-checking it). Caps response size and total time.
+ * Shared redirect/validation loop behind both `ssrfGuardedFetch` (text) and
+ * `ssrfGuardedFetchBinary` (raw bytes, for logo downloads) — the SSRF guard
+ * and manual-redirect handling only need to exist once. Caps response size
+ * at `maxBytes` and total time; `truncated` tells the caller the returned
+ * buffer stopped short of the full body.
  */
-export async function ssrfGuardedFetch(urlString: string): Promise<SafeFetchResult> {
+async function ssrfGuardedFetchCore(
+  urlString: string,
+  maxBytes: number,
+): Promise<{ buffer: Buffer; finalUrl: string; contentType: string | null; truncated: boolean }> {
   let current: URL;
   try {
     current = new URL(urlString);
@@ -270,23 +281,61 @@ export async function ssrfGuardedFetch(urlString: string): Promise<SafeFetchResu
     // or wrong), so read the stream and stop once the cap is hit.
     const reader = response.body?.getReader();
     if (!reader) {
-      return { body: await response.text(), finalUrl: current.toString(), contentType };
+      const text = await response.text();
+      return {
+        buffer: Buffer.from(text, 'utf-8'),
+        finalUrl: current.toString(),
+        contentType,
+        truncated: false,
+      };
     }
     const chunks: Uint8Array[] = [];
     let total = 0;
+    let truncated = false;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      if (total > MAX_BODY_BYTES) {
+      if (total > maxBytes) {
+        truncated = true;
         await reader.cancel();
         break;
       }
       chunks.push(value);
     }
     const buffer = Buffer.concat(chunks.map((c) => Buffer.from(c)));
-    return { body: buffer.toString('utf-8'), finalUrl: current.toString(), contentType };
+    return { buffer, finalUrl: current.toString(), contentType, truncated };
   }
+}
+
+/**
+ * Fetches `urlString` with the SSRF guard applied to the initial URL and to
+ * every redirect hop (manual redirect handling — `fetch`'s automatic
+ * redirect-following would re-request a validated-then-redirected URL without
+ * ever re-checking it). Caps response size and total time.
+ */
+export async function ssrfGuardedFetch(urlString: string): Promise<SafeFetchResult> {
+  const { buffer, finalUrl, contentType } = await ssrfGuardedFetchCore(urlString, MAX_BODY_BYTES);
+  return { body: buffer.toString('utf-8'), finalUrl, contentType };
+}
+
+const MAX_BINARY_BYTES = 1024 * 1024;
+
+/**
+ * Same SSRF guard and redirect handling as `ssrfGuardedFetch`, but returns
+ * raw bytes instead of decoding as utf-8 text — for fetching binary assets
+ * (advertiser logos) rather than HTML landing pages. Defaults to a 1 MB cap,
+ * smaller than a typical landing-page HTML cap since logos are small images.
+ */
+export async function ssrfGuardedFetchBinary(
+  urlString: string,
+  opts?: { maxBytes?: number },
+): Promise<SafeBinaryFetchResult> {
+  const { buffer, finalUrl, contentType, truncated } = await ssrfGuardedFetchCore(
+    urlString,
+    opts?.maxBytes ?? MAX_BINARY_BYTES,
+  );
+  return { body: buffer, finalUrl, contentType, truncated };
 }
 
 // Exported for unit tests that need to exercise the guard directly without a network call.
