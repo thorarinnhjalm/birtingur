@@ -49,6 +49,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     impressions: number;
     clicks: number;
     byPublisher: Record<string, { impressions: number; clicks: number }>;
+    byPublisherCreative: Record<string, Record<string, { impressions: number; clicks: number }>>;
   }
   interface CreativeStats {
     impressions: number;
@@ -88,6 +89,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         impressions: 0,
         clicks: 0,
         byPublisher: {},
+        byPublisherCreative: {},
       };
       if (ev.type === 'impression') {
         cb.impressions++;
@@ -102,12 +104,24 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         }
         cb.byPublisher[ev.publisherId]!.clicks++;
       }
+      if (ev.creativeId) {
+        const forPub = (cb.byPublisherCreative[ev.publisherId] ??= {});
+        const forCreative = (forPub[ev.creativeId] ??= { impressions: 0, clicks: 0 });
+        if (ev.type === 'impression') forCreative.impressions++;
+        else forCreative.clicks++;
+      }
       campaignHour.set(ch, cb);
 
-      const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
-      if (ev.type === 'impression') crb.impressions++;
-      else crb.clicks++;
-      creativeHour.set(cr, crb);
+      // Guard the same way the pageview branch above does: an empty creativeId
+      // produces a doc path like "stats/creatives//204008xx" (a bare "//"),
+      // which firebase-admin's path validator rejects and would abort the
+      // whole batch commit — losing every other bucket's writes along with it.
+      if (ev.creativeId) {
+        const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
+        if (ev.type === 'impression') crb.impressions++;
+        else crb.clicks++;
+        creativeHour.set(cr, crb);
+      }
 
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
@@ -137,6 +151,16 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     }
   }
 
+  // NOTE ON MERGE SEMANTICS: firebase-admin's `batch.set(ref, data, { merge: true })`
+  // does NOT split dotted-key field names into nested paths — only `update()` does
+  // that. A key literally named "byPublisher.pub_a.impressions" would land as a flat
+  // top-level field with a dot in its name, invisible to any reader doing
+  // `data.byPublisher`. `set(..., { merge: true })` DOES recursively merge nested
+  // *object* literals (verified against the emulator: two batches each incrementing
+  // `{ byPublisher: { pub_a: { impressions: FieldValue.increment(n) } } }` accumulate
+  // instead of overwriting each other). So every per-key breakdown below must be built
+  // as a nested object with `FieldValue.increment` at the leaves, never as a dotted
+  // field-path string.
   const batch = db.batch();
 
   for (const [key, b] of campaignHour) {
@@ -149,11 +173,32 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       spendIsk: FieldValue.increment(totalSpendIsk),
     };
 
-    for (const [pubId, pubStats] of Object.entries(b.byPublisher)) {
-      const pubSpendIsk = Math.round((pubStats.impressions / 1000) * FLAT_CPM_ISK);
-      updateData[`byPublisher.${pubId}.impressions`] = FieldValue.increment(pubStats.impressions);
-      updateData[`byPublisher.${pubId}.clicks`] = FieldValue.increment(pubStats.clicks);
-      updateData[`byPublisher.${pubId}.spendIsk`] = FieldValue.increment(pubSpendIsk);
+    if (Object.keys(b.byPublisher).length > 0) {
+      const byPublisher: Record<string, any> = {};
+      for (const [pubId, pubStats] of Object.entries(b.byPublisher)) {
+        const pubSpendIsk = Math.round((pubStats.impressions / 1000) * FLAT_CPM_ISK);
+        byPublisher[pubId] = {
+          impressions: FieldValue.increment(pubStats.impressions),
+          clicks: FieldValue.increment(pubStats.clicks),
+          spendIsk: FieldValue.increment(pubSpendIsk),
+        };
+      }
+      updateData.byPublisher = byPublisher;
+    }
+
+    if (Object.keys(b.byPublisherCreative).length > 0) {
+      const byPublisherCreative: Record<string, any> = {};
+      for (const [pubId, creatives] of Object.entries(b.byPublisherCreative)) {
+        const forPub: Record<string, any> = {};
+        for (const [creativeId, cStats] of Object.entries(creatives)) {
+          forPub[creativeId] = {
+            impressions: FieldValue.increment(cStats.impressions),
+            clicks: FieldValue.increment(cStats.clicks),
+          };
+        }
+        byPublisherCreative[pubId] = forPub;
+      }
+      updateData.byPublisherCreative = byPublisherCreative;
     }
 
     batch.set(ref, updateData, { merge: true });
@@ -180,13 +225,15 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
-    if (b.byCampaign) {
+    if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
+      const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
-        updateData[`byCampaign.${campaignId}.impressions`] = FieldValue.increment(
-          campStats.impressions,
-        );
-        updateData[`byCampaign.${campaignId}.clicks`] = FieldValue.increment(campStats.clicks);
+        byCampaign[campaignId] = {
+          impressions: FieldValue.increment(campStats.impressions),
+          clicks: FieldValue.increment(campStats.clicks),
+        };
       }
+      updateData.byCampaign = byCampaign;
     }
     batch.set(ref, updateData, { merge: true });
   }
@@ -199,13 +246,15 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
-    if (b.byCampaign) {
+    if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
+      const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
-        updateData[`byCampaign.${campaignId}.impressions`] = FieldValue.increment(
-          campStats.impressions,
-        );
-        updateData[`byCampaign.${campaignId}.clicks`] = FieldValue.increment(campStats.clicks);
+        byCampaign[campaignId] = {
+          impressions: FieldValue.increment(campStats.impressions),
+          clicks: FieldValue.increment(campStats.clicks),
+        };
       }
+      updateData.byCampaign = byCampaign;
     }
     batch.set(ref, updateData, { merge: true });
   }

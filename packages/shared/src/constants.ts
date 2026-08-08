@@ -118,3 +118,13 @@ export const SENSITIVE_AD_CATEGORY_SLUGS = SENSITIVE_AD_CATEGORIES.map(
   (c) => c.slug,
 ) as readonly string[];
 export type SensitiveAdCategory = (typeof SENSITIVE_AD_CATEGORIES)[number]['slug'];
+
+/**
+ * Synthetic byCreative key for the campaign-stats "legacy remainder" row: stats
+ * recorded before per-creative-per-site attribution shipped (or lost to a since-
+ * fixed aggregation bug) can't be attributed to a specific creative, so the
+ * unattributed impressions/clicks are bucketed under this sentinel id instead of
+ * being dropped. Shared so `apps/api`'s campaign-stats service and the dashboard's
+ * CampaignDetail page agree on the literal without either hardcoding it.
+ */
+export const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
