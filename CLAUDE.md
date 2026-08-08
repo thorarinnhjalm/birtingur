@@ -33,7 +33,7 @@ pnpm test:rules        # runs Firestore security-rules tests
 pnpm emulator          # standalone emulator (firestore:8080, auth:9099, storage:9199, UI:4000)
 ```
 
-Run a single test file/case: `pnpm --filter @ada/api test -- tests/campaigns.test.ts -t "case name"` — but only with an emulator running (wrap in `firebase --config firebase/firebase.json emulators:exec '...'` otherwise).
+Run a single test file/case: `pnpm --filter @ada/api test -- tests/campaigns.test.ts -t "case name"` — but only with an emulator running (wrap in `firebase --config firebase/firebase.json emulators:exec --only firestore '...'` otherwise). The `--only firestore` matters: without it the storage emulator boots too and the firebase CLI exports `FIREBASE_STORAGE_EMULATOR_HOST`, which flips `chooseCreativeUploader()` to the real uploader and fails ~7 ai-creative route tests with `storage.bucket is not a function` — a confusing "pre-existing failure" that isn't one under `pnpm test:api` (whose script passes `--only firestore`).
 
 `@ada/shared`, `@ada/dashboard`, `@ada/serving`, and `@ada/snippet` tests are plain `vitest` (no emulator). `pnpm test:e2e` runs the dashboard Playwright suite (boots firestore+auth emulators; needs OpenJDK on PATH).
 

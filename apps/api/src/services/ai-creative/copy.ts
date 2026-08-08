@@ -4,6 +4,8 @@ import { generateId } from '../../lib/id.js';
 import type { SiteContext } from './index.js';
 import type { CreativeGenerator } from './gemini.js';
 import { savePreviewManifest } from './previews.js';
+import { acquireScrapedLogo } from './logo.js';
+import type { CreativeUploader } from './storage.js';
 
 export interface GenerateCreativeCopyParams {
   advertiserId: string;
@@ -17,22 +19,38 @@ export interface GenerateCreativeCopyParams {
   ctx: SiteContext;
   variantsCount: number;
   generator: CreativeGenerator;
+  /** Used to persist the auto-scraped logo (creative-logo-embed, 2026-08-08
+   * design), if `ctx.logoCandidates` yields a viable one. */
+  uploader: CreativeUploader;
 }
 
 /**
  * Step 1 of the split generation flow (creative-wizard, 2026-07-27 plan):
- * Gemini (or rule-based fallback) copy variants only — no background
- * generation, no rendering, no Storage uploads. Persists a manifest with
+ * Gemini (or rule-based fallback) copy variants, plus best-effort advertiser
+ * logo acquisition (creative-logo-embed, 2026-08-08 design) — no background
+ * generation, no per-size banner rendering. Persists a manifest with
  * `status: 'copy'` and every variant's `images` empty; rendering is deferred
  * to `render-variant.ts`'s `renderCreativeVariant`, which only runs for the
  * ONE variant + sizes the advertiser actually picks in the "Texti" wizard
- * step. Keeping this step text-only is what makes it fast enough (~seconds)
- * to show as live copy suggestions before any rendering cost is paid.
+ * step.
+ *
+ * This step is NOT purely text-only: `acquireScrapedLogo` (logo.ts) does
+ * real network I/O and, on success, one Storage upload. It fetches
+ * `ctx.logoCandidates` in priority order via the SSRF-guarded
+ * `ssrfGuardedFetchBinary` — each candidate capped at 1 MB / 5s — stopping at
+ * the first one that normalizes to PNG/JPEG, and uploads at most once. It's
+ * still fast enough for the live-copy UX (~seconds) because the work is
+ * bounded (a handful of small binary fetches, not a full page fetch) and
+ * every failure — network error, timeout, truncation, an unsupported/
+ * undecodable image type — short-circuits straight to `null` rather than
+ * retrying; it never blocks on the actually-slow parts of the old one-shot
+ * route (Gemini background generation, per-size SVG rendering), which stay
+ * deferred to the render step.
  */
 export async function generateCreativeCopy(
   params: GenerateCreativeCopyParams,
 ): Promise<GeneratedPreviewManifest> {
-  const { advertiserId, ctx, variantsCount, generator } = params;
+  const { advertiserId, ctx, variantsCount, generator, uploader } = params;
 
   const copyVariants = await generator.generateCopy(ctx, variantsCount);
 
@@ -41,6 +59,12 @@ export async function generateCreativeCopy(
     copy,
     images: [],
   }));
+
+  const logo = await acquireScrapedLogo({
+    advertiserId,
+    candidates: ctx.logoCandidates,
+    uploader,
+  });
 
   const manifest = GeneratedPreviewManifestSchema.parse({
     id: advertiserId,
@@ -52,6 +76,7 @@ export async function generateCreativeCopy(
       siteName: ctx.siteName,
       ogImage: ctx.ogImage,
     },
+    logo,
     createdAt: new Date(),
     status: 'copy',
     variants,

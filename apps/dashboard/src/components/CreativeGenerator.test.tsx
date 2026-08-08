@@ -398,3 +398,125 @@ test('Finding #10: warns that "Endurgera útlit" spends one of the daily render 
     screen.getByText('Endurgerð notar eitt af 10 leyfðum útlitsgerðum dagsins.'),
   ).toBeDefined();
 });
+
+// Task 5 (creative-logo-embed, 2026-08-08): the Útlit step surfaces
+// manifest.logo before it's ever composited into a rendered banner, with
+// explicit skip / upload-your-own affordances alongside it.
+const LOGO = {
+  url: 'https://storage.example.test/creatives/adv_1/logo_x.png',
+  storagePath: 'creatives/adv_1/logo_x.png',
+  mime: 'image/png',
+  source: 'scraped',
+};
+
+async function walkToUtlitStep(manifestWithLogo: unknown) {
+  mockedApiFetch.mockResolvedValueOnce(manifestWithLogo as any);
+  renderWithClient(<CreativeGenerator onComplete={vi.fn()} />);
+  await advanceFromSizesStep();
+  await generateCopy();
+  fireEvent.click(screen.getByText('Blómabúð Vesturbæjar'));
+  fireEvent.click(screen.getByText('Halda áfram í útlit →'));
+  await screen.findByText('Áberandi (bold)');
+}
+
+test('utlit step shows the scraped logo with skip and upload actions', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+
+  expect(screen.getByAltText('Lógó auglýsanda')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Sleppa lógói' })).toBeDefined();
+  expect(screen.getByLabelText('Hlaða upp eigin lógói')).toBeDefined();
+});
+
+test('skip calls DELETE and removes the logo preview', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+  expect(screen.getByAltText('Lógó auglýsanda')).toBeDefined();
+
+  mockedApiFetch.mockResolvedValueOnce({ ...COPY_MANIFEST, logo: null } as any);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Sleppa lógói' }));
+
+  await waitFor(() =>
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/creatives/generate/logo', {
+      method: 'DELETE',
+    }),
+  );
+  await waitFor(() => {
+    expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
+  });
+});
+
+test('utlit step without a logo shows only the upload affordance', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: null });
+
+  expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
+  expect(screen.getByLabelText('Hlaða upp eigin lógói')).toBeDefined();
+});
+
+// MINOR-7 (adversarial review): no test previously covered the upload path
+// at all — only the pre-seeded scraped-logo display and skip/DELETE flow
+// were exercised. FileReader is available in jsdom, so a small fake PNG
+// File dispatched to the hidden file input should drive the same
+// read-as-data-URL -> base64 -> POST /generate/logo pipeline `uploadLogoFile`
+// implements, and the resulting manifest (with the new logo) should re-render.
+test('upload path reads the file, POSTs it with its mime type, and updates the manifest', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: null });
+  expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull();
+
+  const uploadedLogo = { ...LOGO, source: 'uploaded' };
+  mockedApiFetch.mockResolvedValueOnce({ ...COPY_MANIFEST, logo: uploadedLogo } as any);
+
+  // `window.File` rather than the bare `File` global — this repo's
+  // eslint.config.js only whitelists a subset of browser globals for
+  // no-undef (`window` is one of them, `File` isn't; same workaround
+  // CreativeGenerator.tsx itself uses for the `file` param's type).
+  const file = new window.File([new Uint8Array([1, 2, 3, 4])], 'logo.png', { type: 'image/png' });
+  const fileInput = screen.getByLabelText('Hlaða upp eigin lógói') as HTMLInputElement;
+  fireEvent.change(fileInput, { target: { files: [file] } });
+
+  await waitFor(() => {
+    const call = mockedApiFetch.mock.calls.find(([url]) => url === '/v1/creatives/generate/logo');
+    expect(call).toBeDefined();
+    const [, init] = call as [string, RequestInit];
+    expect(init.method).toBe('POST');
+    expect(init.body as string).toContain('"mime":"image/png"');
+  });
+
+  await waitFor(() => expect(screen.getByAltText('Lógó auglýsanda')).toBeDefined());
+});
+
+// Important review finding on commit 5b17803: the logo POST/DELETE and the
+// render call are all non-transactional read-spread-write on the same
+// manifest doc — without a pending/disabled guard, a rapid double-click (or
+// a click while a render is in flight) can fire the mutation twice and
+// clobber whichever manifest write lands last. The "Sleppa lógói" button
+// must disable itself the instant its own mutation is pending.
+test('rapid double-click on "Sleppa lógói" only issues one DELETE call while it is pending', async () => {
+  await walkToUtlitStep({ ...COPY_MANIFEST, logo: LOGO });
+
+  let resolveDelete: (value: unknown) => void = () => {};
+  const deletePromise = new Promise((resolve) => {
+    resolveDelete = resolve;
+  });
+  mockedApiFetch.mockReturnValueOnce(deletePromise as any);
+
+  const skipButton = screen.getByRole('button', { name: 'Sleppa lógói' });
+  fireEvent.click(skipButton);
+
+  // The DELETE mutation is now pending (its mock promise is still
+  // unresolved) — the button must already be disabled so a second click
+  // while it's in flight is a no-op, not a second DELETE call.
+  await waitFor(() =>
+    expect(mockedApiFetch).toHaveBeenCalledWith('/v1/creatives/generate/logo', {
+      method: 'DELETE',
+    }),
+  );
+  fireEvent.click(skipButton);
+
+  const deleteCalls = mockedApiFetch.mock.calls.filter(
+    ([url]) => url === '/v1/creatives/generate/logo',
+  );
+  expect(deleteCalls.length).toBe(1);
+
+  resolveDelete({ ...COPY_MANIFEST, logo: null });
+  await waitFor(() => expect(screen.queryByAltText('Lógó auglýsanda')).toBeNull());
+});

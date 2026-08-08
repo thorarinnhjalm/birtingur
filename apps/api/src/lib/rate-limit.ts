@@ -9,12 +9,18 @@ import { getRedis, isRedisConfigured } from './redis.js';
  *  - `gen-render`: background-image generation (optional) + per-size SVG
  *    rendering + rasterization + Storage uploads — the expensive step, so
  *    it keeps the historical single `/generate` route's 10/day cap.
+ *  - `gen-logo`: advertiser-supplied logo upload-override for the wizard's
+ *    "Útlit" step (creative-logo-embed, 2026-08-08 design) — no Gemini call
+ *    at all (just normalization + a Storage upload), but still worth a daily
+ *    cap to bound Storage churn; 20/day matches `gen-copy`'s generous limit
+ *    since retrying a bad upload should feel cheap.
  */
-export type RateLimitBucket = 'gen-copy' | 'gen-render';
+export type RateLimitBucket = 'gen-copy' | 'gen-render' | 'gen-logo';
 
 const BUCKET_LIMITS: Record<RateLimitBucket, number> = {
   'gen-copy': 20,
   'gen-render': 10,
+  'gen-logo': 20,
 };
 
 /**

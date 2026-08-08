@@ -16,6 +16,12 @@ const COPY = {
   cta: 'Sjá nánar',
 };
 
+/** Minimal valid renderBannerSvg input (300x250), reused by tests that only
+ * care about one specific input field and don't want to repeat the rest. */
+function baseInput(): { width: number; height: number; copy: GeneratedCopyVariant } {
+  return { width: 300, height: 250, copy: COPY };
+}
+
 describe('renderBannerSvg', () => {
   it('produces a valid SVG root element sized to the requested dimensions for every IAB size, in both templates', () => {
     for (const size of IAB_STANDARD_SIZES) {
@@ -348,4 +354,134 @@ describe('bold-template scrim WCAG contrast', () => {
 
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
+});
+
+const TINY_PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+describe('logo compositing', () => {
+  for (const templateId of ['bold', 'light'] as const) {
+    it(`renders the logo chip in the ${templateId} template when logoPng is set`, () => {
+      const svg = renderBannerSvg({ ...baseInput(), templateId, logoPng: TINY_PNG_B64 });
+      expect(svg).toContain(`data:image/png;base64,${TINY_PNG_B64}`);
+      expect(svg).toContain('class="logo-chip"');
+    });
+
+    it(`omits the logo entirely in ${templateId} when logoPng is null`, () => {
+      const svg = renderBannerSvg({ ...baseInput(), templateId, logoPng: null });
+      expect(svg).not.toContain('logo-chip');
+    });
+
+    // Ride-along fix (adversarial re-review): computeBannerLayout's hasLogo
+    // gate used to be `logoPng != null` (true for '') while the chip-drawing
+    // gate was string truthiness (false for '') — an empty-string logoPng
+    // reserved headline space for a chip that never got drawn. Both gates
+    // now derive from the same `!!logoPngBase64` check, so this must be
+    // symmetric with the `null` case above on a strip-tier size, where the
+    // headline-reservation logic actually kicks in.
+    it(`reserves no headline space and draws no chip in ${templateId} when logoPng is an empty string`, () => {
+      const svg = renderBannerSvg({
+        width: 728,
+        height: 90,
+        copy: COPY,
+        templateId,
+        logoPng: '',
+      });
+      expect(svg).not.toContain('logo-chip');
+      const layout = computeBannerLayout({ width: 728, height: 90, copy: COPY, hasLogo: false });
+      const headlineBox = layout.boxes.headline!;
+      expect(svg).toContain(`x="${headlineBox.x}"`);
+    });
+  }
+
+  it('uses the jpeg mime in the data URI when logoMime says so', () => {
+    const svg = renderBannerSvg({
+      ...baseInput(),
+      templateId: 'bold',
+      logoPng: TINY_PNG_B64,
+      logoMime: 'image/jpeg',
+    });
+    expect(svg).toContain('data:image/jpeg;base64,');
+  });
+
+  it('still renders a valid PNG through resvg with a logo present', () => {
+    const svg = renderBannerSvg({ ...baseInput(), templateId: 'bold', logoPng: TINY_PNG_B64 });
+    const png = renderSvgToPng(svg);
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
+  });
+
+  /** Pins the corner-flip decision (see `logoChipLayer` in templates.ts):
+   * `strip`/`compact` tiers right-anchor the CTA, so the default bottom-right
+   * chip must flip to bottom-left; `stacked` tiers left-anchor the CTA, so
+   * the default bottom-right chip must stay put. Asserts on which HALF of
+   * the canvas the chip's `x` falls in, not exact pixels, so this survives
+   * tweaks to the chip's size/margin constants while still pinning which
+   * branch of the flip logic fired. */
+  function extractLogoChipX(svg: string): number {
+    const match = svg.match(/<g class="logo-chip">\s*<rect x="([\d.]+)"/);
+    if (!match) throw new Error('logo-chip rect not found in SVG');
+    return Number(match[1]);
+  }
+
+  it('flips the chip to the left half on a strip-tier size (728x90) where the default corner would overlap the CTA', () => {
+    const svg = renderBannerSvg({
+      width: 728,
+      height: 90,
+      copy: COPY,
+      templateId: 'bold',
+      logoPng: TINY_PNG_B64,
+    });
+    const chipX = extractLogoChipX(svg);
+    expect(chipX).toBeLessThan(728 / 2);
+  });
+
+  it('keeps the chip in the right half on a stacked-tier size (300x250) where the default corner clears the CTA', () => {
+    const svg = renderBannerSvg({ ...baseInput(), templateId: 'bold', logoPng: TINY_PNG_B64 });
+    const chipX = extractLogoChipX(svg);
+    expect(chipX).toBeGreaterThan(300 / 2);
+  });
+
+  // CRITICAL-3 (adversarial review): on strip-tier sizes the CTA collision
+  // always flips the logo chip to bottom-left, which — before this fix —
+  // always overlapped the headline's starting x (padX), painting the white
+  // chip over the first ~2 characters of the headline (fill-opacity 0.94,
+  // painted last in the SVG so it's on top). computeBannerLayout now
+  // reserves room for the flipped chip and shifts the headline right of it
+  // when hasLogo is set.
+  function extractChipRect(svg: string): Box {
+    const match = svg.match(
+      /<g class="logo-chip">\s*<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/,
+    );
+    if (!match) throw new Error('logo-chip rect not found in SVG');
+    return { x: Number(match[1]), y: Number(match[2]), w: Number(match[3]), h: Number(match[4]) };
+  }
+  function boxesOverlap(a: Box, b: Box): boolean {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  for (const [w, h] of [
+    [728, 90],
+    [980, 120],
+  ] as const) {
+    it(`keeps the logo chip clear of the headline text on strip-tier ${w}x${h}`, () => {
+      const svg = renderBannerSvg({
+        width: w,
+        height: h,
+        copy: COPY,
+        templateId: 'bold',
+        logoPng: TINY_PNG_B64,
+      });
+      const chipBox = extractChipRect(svg);
+      const layout = computeBannerLayout({ width: w, height: h, copy: COPY, hasLogo: true });
+      const headlineBox = layout.boxes.headline!;
+      expect(boxesOverlap(chipBox, headlineBox)).toBe(false);
+
+      // 728x90's chip must still flip to the left half (existing corner-flip
+      // contract, pinned above) — the fix must not change WHICH corner it
+      // picks, only make the headline get out of its way.
+      if (w === 728 && h === 90) {
+        expect(chipBox.x).toBeLessThan(w / 2);
+      }
+    });
+  }
 });

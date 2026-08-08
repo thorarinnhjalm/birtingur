@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { GeneratedCopyVariantSchema, IAB_STANDARD_SIZES } from '@ada/shared';
@@ -16,7 +17,8 @@ import { GeminiCreativeGenerator } from '../services/ai-creative/gemini.js';
 import { chooseCreativeUploader } from '../services/ai-creative/storage.js';
 import { generateCreativeCopy } from '../services/ai-creative/copy.js';
 import { renderCreativeVariant } from '../services/ai-creative/render-variant.js';
-import { getPreviewManifest } from '../services/ai-creative/previews.js';
+import { normalizeLogoBuffer } from '../services/ai-creative/logo.js';
+import { getPreviewManifest, updatePreviewManifestLogo } from '../services/ai-creative/previews.js';
 import { confirmGeneratedCreatives } from '../services/ai-creative/confirm.js';
 import { SsrfBlockedError, extractSiteContext } from '../services/ai-creative/index.js';
 import { checkGenerationRateLimit } from '../lib/rate-limit.js';
@@ -136,6 +138,7 @@ creativesRouter.post('/generate/copy', async (c) => {
     ctx,
     variantsCount: body.variants ?? 3,
     generator: creativeGenerator,
+    uploader: creativeUploader,
   });
   return c.json(manifest, 201);
 });
@@ -245,6 +248,103 @@ creativesRouter.post('/generate/confirm', async (c) => {
   const body = ConfirmBodySchema.parse(await c.req.json());
   const created = await confirmGeneratedCreatives(adv.id, body, scanner);
   return c.json(created, 201);
+});
+
+const UploadLogoBodySchema = z.object({
+  imageBase64: z.string().min(1).max(1_400_000), // ~1MB after base64 inflation
+  mime: z.enum(['image/png', 'image/jpeg', 'image/svg+xml']),
+});
+
+// Advertiser logo upload-override for the wizard's "Útlit" step
+// (creative-logo-embed, 2026-08-08 design): lets the advertiser replace
+// whatever `/generate/copy` auto-scraped (or supply one when scraping found
+// nothing) before rendering. Registered here (with the other `/generate/*`
+// literals) for the same routing reason as `/generate/copy` etc. — literal
+// segments must come before the `:id` param route below.
+creativesRouter.post('/generate/logo', async (c) => {
+  const user = c.get('user');
+  rejectApiKeyMutation(user, 'upload creative logo');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+
+  // MINOR-5 (adversarial review): free syntactic validation (Zod parse)
+  // before the paid/quota'd rate-limit check — same "reject garbage for
+  // free first" ordering the copy/render routes already use (see the Fix 12
+  // comment on the copy route above). Previously the rate limit ran first,
+  // so a malformed body could consume a caller's daily gen-logo quota before
+  // ever being rejected.
+  const body = UploadLogoBodySchema.parse(await c.req.json());
+
+  const { allowed } = await checkGenerationRateLimit('gen-logo', adv.id);
+  if (!allowed) {
+    throw new AppError(429, 'Hámarksfjöldi lógó-upphleðslna á dag er náður.', 'RATE_LIMITED');
+  }
+
+  const raw = Buffer.from(body.imageBase64, 'base64');
+  if (raw.length === 0 || raw.length > 1024 * 1024) {
+    throw new AppError(400, 'Lógó má mest vera 1MB', 'BAD_REQUEST');
+  }
+  const normalized = normalizeLogoBuffer(raw, body.mime);
+  if (!normalized) {
+    throw new AppError(400, 'Ógild eða óstudd lógómynd', 'BAD_REQUEST');
+  }
+
+  // Fail fast (before any Storage I/O) when there's no manifest to attach a
+  // logo to — the actual write below is a field-level update (MINOR-6), but
+  // this upfront existence check is what avoids paying for an upload that
+  // would just be discarded on a 404.
+  const manifest = await getPreviewManifest(adv.id);
+  if (!manifest) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
+
+  const uploader = chooseCreativeUploader();
+  const ext = normalized.mime === 'image/png' ? 'png' : 'jpg';
+  const filename = `logo_${randomUUID()}.${ext}`;
+  const url = await uploader.upload({
+    advertiserId: adv.id,
+    filename,
+    pngBuffer: normalized.buffer,
+    contentType: normalized.mime,
+  });
+  // MINOR-6 (adversarial review): field-level update of ONLY `logo`, not a
+  // read-spread-write of the whole manifest — see the doc comment on
+  // updatePreviewManifestLogo for the race this closes (a concurrent render
+  // save resurrecting a stale logo). Re-checks existence internally (in case
+  // the manifest was deleted between the check above and here) and returns
+  // the freshly re-read manifest.
+  const updated = await updatePreviewManifestLogo(adv.id, {
+    url,
+    storagePath: `creatives/${adv.id}/${filename}`,
+    mime: normalized.mime,
+    source: 'uploaded' as const,
+  });
+  if (!updated) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
+  return c.json(updated);
+});
+
+// Skip/clear action for the wizard's "Útlit" step's logo picker — reverts to
+// rendering without a logo (or drops back to whatever `/generate/copy`
+// scraped, if the advertiser re-runs it) without needing a whole new manifest.
+creativesRouter.delete('/generate/logo', async (c) => {
+  const user = c.get('user');
+  rejectApiKeyMutation(user, 'remove creative logo');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  // MINOR-6 (adversarial review): field-level update, not read-spread-write
+  // — see updatePreviewManifestLogo's doc comment. Its own existence check
+  // supplies the 404-when-no-manifest semantics this route already had.
+  const updated = await updatePreviewManifestLogo(adv.id, null);
+  if (!updated) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
+  return c.json(updated);
 });
 
 creativesRouter.get('/', async (c) => {

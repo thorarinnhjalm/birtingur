@@ -2,7 +2,22 @@ import { randomUUID } from 'node:crypto';
 import { storage } from '../../lib/firebase.js';
 
 export interface CreativeUploader {
-  upload(params: { advertiserId: string; filename: string; pngBuffer: Buffer }): Promise<string>;
+  upload(params: {
+    advertiserId: string;
+    filename: string;
+    /** Despite the name, may carry JPEG bytes when `contentType` is
+     * `'image/jpeg'` (advertiser logos can be either) — kept as `pngBuffer`
+     * to avoid touching every existing call site for banner PNGs. */
+    pngBuffer: Buffer;
+    /** Defaults to `'image/png'` when omitted (every pre-existing caller
+     * uploads PNG banners). */
+    contentType?: 'image/png' | 'image/jpeg';
+  }): Promise<string>;
+  /** Downloads a previously-uploaded object's bytes, keyed by the same
+   * `storagePath` `upload` implicitly produces (creative-logo-embed,
+   * 2026-08-08 design) — used to fetch an advertiser's stored logo back for
+   * compositing into a rendered banner. */
+  download(storagePath: string): Promise<Buffer>;
 }
 
 /**
@@ -31,24 +46,31 @@ export class FirebaseCreativeUploader implements CreativeUploader {
     advertiserId,
     filename,
     pngBuffer,
+    contentType = 'image/png',
   }: {
     advertiserId: string;
     filename: string;
     pngBuffer: Buffer;
+    contentType?: 'image/png' | 'image/jpeg';
   }): Promise<string> {
     const bucket = storage.bucket();
     const path = `creatives/${advertiserId}/${filename}`;
     const file = bucket.file(path);
     const token = randomUUID();
     await file.save(pngBuffer, {
-      contentType: 'image/png',
+      contentType,
       metadata: {
-        contentType: 'image/png',
+        contentType,
         metadata: { firebaseStorageDownloadTokens: token },
       },
     });
     const encodedPath = encodeURIComponent(path);
     return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${token}`;
+  }
+
+  async download(storagePath: string): Promise<Buffer> {
+    const [buffer] = await storage.bucket().file(storagePath).download();
+    return buffer;
   }
 }
 
@@ -71,6 +93,15 @@ export class StubCreativeUploader implements CreativeUploader {
     filename: string;
   }): Promise<string> {
     return `https://storage.example.test/creatives/${advertiserId}/${filename}`;
+  }
+
+  /** Fixed tiny PNG so render tests can exercise the logo-compositing path
+   * without touching a storage emulator. */
+  async download(): Promise<Buffer> {
+    return Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
   }
 }
 

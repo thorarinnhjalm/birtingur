@@ -81,6 +81,21 @@ export const GeneratedPreviewManifestStatusSchema = z.enum(['copy', 'rendered'])
 export type GeneratedPreviewManifestStatus = z.infer<typeof GeneratedPreviewManifestStatusSchema>;
 
 /**
+ * Advertiser logo persisted on the manifest for banner compositing
+ * (creative-logo-embed, 2026-08-08 design). `mime` deliberately excludes
+ * `image/svg+xml` — an uploaded/scraped SVG logo is rasterized to PNG before
+ * storage, so nothing downstream (the resvg-js compositing step) ever has to
+ * parse SVG as a foreign asset type.
+ */
+export const GeneratedLogoSchema = z.object({
+  url: z.string().url(),
+  storagePath: z.string().min(1),
+  mime: z.enum(['image/png', 'image/jpeg']),
+  source: z.enum(['scraped', 'uploaded']),
+});
+export type GeneratedLogo = z.infer<typeof GeneratedLogoSchema>;
+
+/**
  * Server-side record of the split `/v1/creatives/generate/copy` +
  * `/v1/creatives/generate/render` flow (creative-wizard, 2026-07-27 plan;
  * originally a one-shot `/v1/creatives/generate`), keyed by advertiser (one
@@ -106,6 +121,12 @@ export const GeneratedPreviewManifestSchema = z.object({
   // `/generate/copy` call overwrites it with a fresh (extract-bearing)
   // manifest — better to tolerate the gap than 500 on a stale-but-valid doc.
   extract: ExtractedSiteContextSchema.optional(),
+  /** Advertiser logo for banner compositing (2026-08-08 design). Null/absent =
+   * no logo (render exactly as before). `scraped` = auto-found on the landing
+   * page at the copy step; `uploaded` = advertiser override via
+   * POST /v1/creatives/generate/logo. Never rendered without the advertiser
+   * having seen it in the wizard's "Útlit" step. */
+  logo: GeneratedLogoSchema.nullable().optional(),
   createdAt: z.date(),
   // Defaults to 'rendered' (Fix 6, same reasoning as `extract` above): the
   // old one-shot route never wrote a `status` field either, but its
