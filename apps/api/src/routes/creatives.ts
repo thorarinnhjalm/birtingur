@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { GeneratedCopyVariantSchema, IAB_STANDARD_SIZES } from '@ada/shared';
@@ -16,7 +17,8 @@ import { GeminiCreativeGenerator } from '../services/ai-creative/gemini.js';
 import { chooseCreativeUploader } from '../services/ai-creative/storage.js';
 import { generateCreativeCopy } from '../services/ai-creative/copy.js';
 import { renderCreativeVariant } from '../services/ai-creative/render-variant.js';
-import { getPreviewManifest } from '../services/ai-creative/previews.js';
+import { normalizeLogoBuffer } from '../services/ai-creative/logo.js';
+import { getPreviewManifest, savePreviewManifest } from '../services/ai-creative/previews.js';
 import { confirmGeneratedCreatives } from '../services/ai-creative/confirm.js';
 import { SsrfBlockedError, extractSiteContext } from '../services/ai-creative/index.js';
 import { checkGenerationRateLimit } from '../lib/rate-limit.js';
@@ -246,6 +248,86 @@ creativesRouter.post('/generate/confirm', async (c) => {
   const body = ConfirmBodySchema.parse(await c.req.json());
   const created = await confirmGeneratedCreatives(adv.id, body, scanner);
   return c.json(created, 201);
+});
+
+const UploadLogoBodySchema = z.object({
+  imageBase64: z.string().min(1).max(1_400_000), // ~1MB after base64 inflation
+  mime: z.enum(['image/png', 'image/jpeg', 'image/svg+xml']),
+});
+
+// Advertiser logo upload-override for the wizard's "Útlit" step
+// (creative-logo-embed, 2026-08-08 design): lets the advertiser replace
+// whatever `/generate/copy` auto-scraped (or supply one when scraping found
+// nothing) before rendering. Registered here (with the other `/generate/*`
+// literals) for the same routing reason as `/generate/copy` etc. — literal
+// segments must come before the `:id` param route below.
+creativesRouter.post('/generate/logo', async (c) => {
+  const user = c.get('user');
+  rejectApiKeyMutation(user, 'upload creative logo');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+
+  const { allowed } = await checkGenerationRateLimit('gen-logo', adv.id);
+  if (!allowed) {
+    throw new AppError(429, 'Hámarksfjöldi lógó-upphleðslna á dag er náður.', 'RATE_LIMITED');
+  }
+
+  const body = UploadLogoBodySchema.parse(await c.req.json());
+  const raw = Buffer.from(body.imageBase64, 'base64');
+  if (raw.length === 0 || raw.length > 1024 * 1024) {
+    throw new AppError(400, 'Lógó má mest vera 1MB', 'BAD_REQUEST');
+  }
+  const normalized = normalizeLogoBuffer(raw, body.mime);
+  if (!normalized) {
+    throw new AppError(400, 'Ógild eða óstudd lógómynd', 'BAD_REQUEST');
+  }
+
+  const manifest = await getPreviewManifest(adv.id);
+  if (!manifest) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
+
+  const uploader = chooseCreativeUploader();
+  const ext = normalized.mime === 'image/png' ? 'png' : 'jpg';
+  const filename = `logo_${randomUUID()}.${ext}`;
+  const url = await uploader.upload({
+    advertiserId: adv.id,
+    filename,
+    pngBuffer: normalized.buffer,
+    contentType: normalized.mime,
+  });
+  const updated = {
+    ...manifest,
+    logo: {
+      url,
+      storagePath: `creatives/${adv.id}/${filename}`,
+      mime: normalized.mime,
+      source: 'uploaded' as const,
+    },
+  };
+  await savePreviewManifest(updated);
+  return c.json(updated);
+});
+
+// Skip/clear action for the wizard's "Útlit" step's logo picker — reverts to
+// rendering without a logo (or drops back to whatever `/generate/copy`
+// scraped, if the advertiser re-runs it) without needing a whole new manifest.
+creativesRouter.delete('/generate/logo', async (c) => {
+  const user = c.get('user');
+  rejectApiKeyMutation(user, 'remove creative logo');
+  const adv = await getAdvertiserByOwnerEmail(user.email);
+  if (!adv) {
+    throw new AppError(404, 'Advertiser profile not found', 'NOT_FOUND');
+  }
+  const manifest = await getPreviewManifest(adv.id);
+  if (!manifest) {
+    throw new AppError(404, 'No generation in progress', 'NOT_FOUND');
+  }
+  const updated = { ...manifest, logo: null };
+  await savePreviewManifest(updated);
+  return c.json(updated);
 });
 
 creativesRouter.get('/', async (c) => {
