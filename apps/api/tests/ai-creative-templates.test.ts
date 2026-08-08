@@ -419,4 +419,48 @@ describe('logo compositing', () => {
     const chipX = extractLogoChipX(svg);
     expect(chipX).toBeGreaterThan(300 / 2);
   });
+
+  // CRITICAL-3 (adversarial review): on strip-tier sizes the CTA collision
+  // always flips the logo chip to bottom-left, which — before this fix —
+  // always overlapped the headline's starting x (padX), painting the white
+  // chip over the first ~2 characters of the headline (fill-opacity 0.94,
+  // painted last in the SVG so it's on top). computeBannerLayout now
+  // reserves room for the flipped chip and shifts the headline right of it
+  // when hasLogo is set.
+  function extractChipRect(svg: string): Box {
+    const match = svg.match(
+      /<g class="logo-chip">\s*<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/,
+    );
+    if (!match) throw new Error('logo-chip rect not found in SVG');
+    return { x: Number(match[1]), y: Number(match[2]), w: Number(match[3]), h: Number(match[4]) };
+  }
+  function boxesOverlap(a: Box, b: Box): boolean {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  for (const [w, h] of [
+    [728, 90],
+    [980, 120],
+  ] as const) {
+    it(`keeps the logo chip clear of the headline text on strip-tier ${w}x${h}`, () => {
+      const svg = renderBannerSvg({
+        width: w,
+        height: h,
+        copy: COPY,
+        templateId: 'bold',
+        logoPng: TINY_PNG_B64,
+      });
+      const chipBox = extractChipRect(svg);
+      const layout = computeBannerLayout({ width: w, height: h, copy: COPY, hasLogo: true });
+      const headlineBox = layout.boxes.headline!;
+      expect(boxesOverlap(chipBox, headlineBox)).toBe(false);
+
+      // 728x90's chip must still flip to the left half (existing corner-flip
+      // contract, pinned above) — the fix must not change WHICH corner it
+      // picks, only make the headline get out of its way.
+      if (w === 728 && h === 90) {
+        expect(chipBox.x).toBeLessThan(w / 2);
+      }
+    });
+  }
 });

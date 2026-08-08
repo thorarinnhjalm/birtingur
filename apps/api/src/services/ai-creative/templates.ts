@@ -273,6 +273,12 @@ export function computeBannerLayout(input: {
   width: number;
   height: number;
   copy: GeneratedCopyVariant;
+  /** Whether a logo chip will be composited onto this banner (creative-logo-
+   * embed, 2026-08-08). Only consulted on the `strip` tier — see the
+   * CRITICAL-3 fix comment on `headlineStartX` below. Defaults to false, so
+   * every existing caller that doesn't pass it gets byte-identical geometry
+   * to before this fix. */
+  hasLogo?: boolean;
 }): BannerLayoutResult {
   const { width, height, copy } = input;
   const tier = tierFor(width, height);
@@ -289,9 +295,26 @@ export function computeBannerLayout(input: {
     ctaW = Math.min(ctaW, Math.round(innerW * 0.62));
     const ctaX = Math.max(padX, width - padX - ctaW);
     const ctaY = (height - ctaPillH) / 2;
+    const ctaBox: Box = { x: ctaX, y: ctaY, w: ctaW, h: ctaPillH };
 
     const gap = 12;
-    const availableWidth = Math.max(20, ctaX - padX - gap);
+    // CRITICAL-3 (adversarial review): on the strip tier the CTA is always
+    // right-anchored, so `logoChipLayer`'s default bottom-right logo chip
+    // always collides with it and flips to bottom-left — landing exactly
+    // where the headline starts (x: padX), painting over its first ~2
+    // characters. Reserve room for that flipped chip up front by computing
+    // where it WOULD land (same geometry/collision logic `logoChipLayer`
+    // uses below) and starting the headline to its right, instead of
+    // discovering the overlap only after text has already been laid out.
+    let headlineStartX = padX;
+    if (input.hasLogo) {
+      const rightChip = logoChipGeometry(width, height, 'bottom-right');
+      if (boxesOverlap(rightChip.box, ctaBox)) {
+        const leftChip = logoChipGeometry(width, height, 'bottom-left');
+        headlineStartX = Math.max(headlineStartX, leftChip.box.x + leftChip.box.w + gap);
+      }
+    }
+    const availableWidth = Math.max(20, ctaX - headlineStartX - gap);
     const headlineCap = Math.round(clamp(height * 0.3, 16, 30));
     const headlineFloor = 13;
     const fitted = fitHeadlineBlock(
@@ -304,12 +327,11 @@ export function computeBannerLayout(input: {
     );
     const baselineY = height / 2 + fitted.fontSize * 0.32;
     const headlineBox: Box = {
-      x: padX,
+      x: headlineStartX,
       y: baselineY - fitted.fontSize * TEXT_ASCENT,
       w: Math.min(fitted.width, availableWidth),
       h: textBlockHeight(fitted.fontSize, 1, HEADLINE_LINE_MULT),
     };
-    const ctaBox: Box = { x: ctaX, y: ctaY, w: ctaW, h: ctaPillH };
     enforceHorizontalGap(headlineBox, ctaBox, MIN_GAP);
 
     return {
@@ -538,7 +560,7 @@ function logoChipLayer(
 export function renderBannerSvg(input: RenderBannerInput): string {
   const { width, height, copy, templateId } = input;
   const palette = PALETTE[templateId];
-  const layout = computeBannerLayout({ width, height, copy });
+  const layout = computeBannerLayout({ width, height, copy, hasLogo: input.logoPng != null });
   const useBackground = templateId === 'bold' && !!input.backgroundPng;
   const backgroundPngBase64 = useBackground
     ? typeof input.backgroundPng === 'string'
