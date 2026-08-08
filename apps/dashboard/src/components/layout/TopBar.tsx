@@ -10,6 +10,7 @@ import {
   type Notification,
 } from '@/hooks/useNotifications';
 import { formatRelative } from '@/lib/format';
+import { SiteSwitcher } from '../SiteSwitcher';
 
 // Mock notifications helper removed
 
@@ -207,6 +208,8 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
 
       {/* Profile & Notifications & Logout */}
       <div className="flex items-center gap-4">
+        {isPublisher && <SiteSwitcher />}
+
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
           <button
