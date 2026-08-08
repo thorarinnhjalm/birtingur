@@ -28,14 +28,9 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, Fragment } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
-import { AD_CATEGORIES, FLAT_CPM_ISK, type Creative } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK, UNATTRIBUTED_CREATIVE_ID, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
-
-// Synthetic byCreative key for the legacy-remainder row (stats recorded
-// before per-creative attribution shipped). Duplicated from the API's
-// literal because the dashboard does not import from @ada/api.
-const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
 
 const REGION_LABELS: Record<string, string> = {
   all: 'Allt landið',
@@ -828,7 +823,9 @@ export default function CampaignDetail() {
                               <div className="flex items-center gap-1.5">
                                 {expandable && (
                                   <button
+                                    type="button"
                                     aria-label={`Sundurliðun eftir auglýsingu: ${pub.displayName}`}
+                                    aria-expanded={isExpanded}
                                     onClick={() =>
                                       setExpandedPubs((s) => ({ ...s, [pub.id]: !s[pub.id] }))
                                     }

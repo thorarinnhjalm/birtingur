@@ -1,5 +1,5 @@
 import { test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CampaignDetail from './CampaignDetail';
 import { apiFetch } from '@/lib/api';
@@ -84,10 +84,6 @@ function setupApiMockWithStats(campaign: ReturnType<typeof campaignFixture>, sta
   });
 }
 
-function renderPage() {
-  return renderWithClient();
-}
-
 beforeEach(() => {
   mockedApiFetch.mockReset();
 });
@@ -165,7 +161,7 @@ const STATS_WITH_CREATIVES = {
 
 test('expands a publisher row to creative sub-rows', async () => {
   setupApiMockWithStats(campaignFixture(), STATS_WITH_CREATIVES);
-  renderPage();
+  renderWithClient();
   const toggle = await screen.findByRole('button', {
     name: 'Sundurliðun eftir auglýsingu: Pizzadeig',
   });
@@ -177,9 +173,61 @@ test('expands a publisher row to creative sub-rows', async () => {
 
 test('publisher with a single creative gets no expand toggle', async () => {
   setupApiMockWithStats(campaignFixture(), STATS_WITH_CREATIVES);
-  renderPage();
+  renderWithClient();
   await screen.findByText('Pizzadeig');
   expect(
     screen.queryByRole('button', { name: 'Sundurliðun eftir auglýsingu: Bíladella' }),
   ).toBeNull();
+});
+
+const STATS_WITH_UNATTRIBUTED = {
+  ...STATS_WITH_CREATIVES,
+  byPublisher: {
+    ...STATS_WITH_CREATIVES.byPublisher,
+    pub_a: {
+      ...STATS_WITH_CREATIVES.byPublisher.pub_a,
+      byCreative: {
+        ...STATS_WITH_CREATIVES.byPublisher.pub_a.byCreative,
+        // Deliberately the largest impression count of the three, to prove the
+        // unattributed row sorts last on identity, not on its numbers.
+        __unattributed: {
+          impressions: 999,
+          clicks: 5,
+          label: 'Eldri gögn (fyrir sundurliðun)',
+          imageUrl: null,
+        },
+      },
+    },
+  },
+};
+
+test('unattributed remainder row renders muted/italic and sorts last regardless of impressions', async () => {
+  setupApiMockWithStats(campaignFixture(), STATS_WITH_UNATTRIBUTED);
+  const { container } = renderWithClient();
+  const toggle = await screen.findByRole('button', {
+    name: 'Sundurliðun eftir auglýsingu: Pizzadeig',
+  });
+  expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  fireEvent.click(toggle);
+  expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+  const legacyLabel = screen.getByText('Eldri gögn (fyrir sundurliðun)');
+  expect(legacyLabel.className).toContain('text-slate-400');
+  expect(legacyLabel.className).toContain('italic');
+
+  // "Frammistaða eftir birtingavettvangi" is the second table on the page (the
+  // first is the empty per-creative table, since advertiserCreatives is []).
+  const tables = container.querySelectorAll('table');
+  const siteTable = tables[1]!;
+  const rowTexts = within(siteTable)
+    .getAllByRole('row')
+    .map((r) => r.textContent || '');
+  const legacyRowIndex = rowTexts.findIndex((t) => t.includes('Eldri gögn'));
+  const cre1RowIndex = rowTexts.findIndex((t) => t.includes('300×250'));
+  const cre2RowIndex = rowTexts.findIndex((t) => t.includes('728×90'));
+  expect(legacyRowIndex).toBeGreaterThan(-1);
+  expect(cre1RowIndex).toBeGreaterThan(-1);
+  expect(cre2RowIndex).toBeGreaterThan(-1);
+  expect(legacyRowIndex).toBeGreaterThan(cre1RowIndex);
+  expect(legacyRowIndex).toBeGreaterThan(cre2RowIndex);
 });
