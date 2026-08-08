@@ -22,11 +22,13 @@
 ### Task 1: API — `bySite` subtotals and `?publisherId=` filter
 
 **Files:**
+
 - Modify: `apps/api/src/services/publisher-stats.ts` (`getAggregatedPublisherStats`, ~line 171)
 - Modify: `apps/api/src/routes/publishers.ts` (`GET /stats` handler, ~line 33)
 - Test: `apps/api/tests/publisher-routes.test.ts` (append)
 
 **Interfaces:**
+
 - Consumes: `getPublisherStats(publisherId, timeframeDays)` and `getPublishersByOwnerEmail(email)` (both exist).
 - Produces (exact shapes Tasks 2–3 rely on):
 
@@ -225,12 +227,14 @@ git commit -m "feat(api): publisher stats site filter and per-site subtotals"
 ### Task 2: `useSiteFilter` hook + `SiteSwitcher` in the TopBar
 
 **Files:**
+
 - Create: `apps/dashboard/src/hooks/useSiteFilter.ts`
 - Create: `apps/dashboard/src/components/SiteSwitcher.tsx`
 - Modify: `apps/dashboard/src/components/layout/TopBar.tsx` (render the switcher for the publisher area)
 - Test: `apps/dashboard/src/components/SiteSwitcher.test.tsx` (new)
 
 **Interfaces:**
+
 - Consumes: `usePublishers()` from `@/hooks/usePublisher` (`Publisher[]` with `id`, `displayName`, `domain`).
 - Produces: `useSiteFilter(): { siteId: string | null; setSiteId: (id: string | null) => void }` — Task 3's pages call this. `siteId` is only ever a publisher id the current user owns (foreign/stale ids resolve to `null`).
 
@@ -392,12 +396,14 @@ git commit -m "feat(dashboard): site switcher for multi-site publishers"
 ### Task 3: Wire the filter into Dashboard, Earnings, SlotList + per-site overview table
 
 **Files:**
+
 - Modify: `apps/dashboard/src/pages/publisher/Dashboard.tsx` (stats query ~line 57, `StatsResponse` interface ~line 37, new overview section)
 - Modify: `apps/dashboard/src/pages/publisher/Earnings.tsx` (stats query ~line 29 — also switches endpoint, see below)
 - Modify: `apps/dashboard/src/pages/publisher/SlotList.tsx` (site cards loop ~line 120)
 - Test: `apps/dashboard/src/pages/publisher/Dashboard.test.tsx` (new)
 
 **Interfaces:**
+
 - Consumes: `useSiteFilter()` (Task 2); `bySite?: SiteBreakdown[]` on the stats response (Task 1, fields `publisherId/displayName/domain/impressions/clicks/pageviews/spendIsk`).
 - Produces: UI only.
 
@@ -413,8 +419,24 @@ const BY_SITE_STATS = {
   pageviews: 3000,
   history: [],
   bySite: [
-    { publisherId: 'pub_a', displayName: 'Vefur A', domain: 'vefur-a.is', impressions: 1000, clicks: 10, pageviews: 2000, spendIsk: 550 },
-    { publisherId: 'pub_b', displayName: 'Vefur B', domain: 'vefur-b.is', impressions: 500, clicks: 5, pageviews: 1000, spendIsk: 275 },
+    {
+      publisherId: 'pub_a',
+      displayName: 'Vefur A',
+      domain: 'vefur-a.is',
+      impressions: 1000,
+      clicks: 10,
+      pageviews: 2000,
+      spendIsk: 550,
+    },
+    {
+      publisherId: 'pub_b',
+      displayName: 'Vefur B',
+      domain: 'vefur-b.is',
+      impressions: 500,
+      clicks: 5,
+      pageviews: 1000,
+      spendIsk: 275,
+    },
   ],
 };
 
@@ -430,9 +452,7 @@ test('clicking a site row narrows the filter', async () => {
   renderPage();
   fireEvent.click(await screen.findByText('Vefur B'));
   await vi.waitFor(() => {
-    expect(mockedApiFetch).toHaveBeenCalledWith(
-      expect.stringContaining('publisherId=pub_b'),
-    );
+    expect(mockedApiFetch).toHaveBeenCalledWith(expect.stringContaining('publisherId=pub_b'));
   });
 });
 ```
@@ -476,22 +496,24 @@ const { data: stats } = useQuery<StatsResponse>({
 Below the existing stat cards, render the overview when unfiltered and multi-site (`!siteId && stats?.bySite && stats.bySite.length > 1`) — a `Card` with the same table classes as the campaign-detail site table (`text-xs font-medium border-collapse`, header row `text-slate-400 font-semibold uppercase tracking-wider`), heading `Yfirlit eftir vefjum`, columns Vefur / Birtingar / Flettingar / Smellir / Tekjur:
 
 ```tsx
-{stats.bySite.map((site) => (
-  <tr
-    key={site.publisherId}
-    onClick={() => setSiteId(site.publisherId)}
-    className="hover:bg-slate-50 cursor-pointer"
-  >
-    <td className="py-3">
-      <div className="font-semibold text-slate-900">{site.displayName}</div>
-      <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
-    </td>
-    <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
-    <td className="py-3">{site.pageviews.toLocaleString('is-IS')}</td>
-    <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
-    <td className="py-3 text-right">{formatIsk(site.spendIsk)}</td>
-  </tr>
-))}
+{
+  stats.bySite.map((site) => (
+    <tr
+      key={site.publisherId}
+      onClick={() => setSiteId(site.publisherId)}
+      className="hover:bg-slate-50 cursor-pointer"
+    >
+      <td className="py-3">
+        <div className="font-semibold text-slate-900">{site.displayName}</div>
+        <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
+      </td>
+      <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
+      <td className="py-3">{site.pageviews.toLocaleString('is-IS')}</td>
+      <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
+      <td className="py-3 text-right">{formatIsk(site.spendIsk)}</td>
+    </tr>
+  ));
+}
 ```
 
 (`bySite` is pre-sorted by impressions server-side. Revenue column shows gross `spendIsk`, matching the page's existing figures.)

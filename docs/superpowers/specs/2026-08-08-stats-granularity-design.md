@@ -13,7 +13,7 @@ Two reporting gaps, one per role:
    a weak site is a targeting problem or a creative problem.
 2. **Publishers** who own several sites (one publisher doc per domain, looked up
    via `getPublishersByOwnerEmail`) get one summed figure: `GET
-   /v1/publishers/stats` aggregates across all their publisher ids before the
+/v1/publishers/stats` aggregates across all their publisher ids before the
    dashboard ever sees the data. Firestore already stores per-site
    (`stats/publishers/{id}/{day}`) and per-slot
    (`stats/publisher_slots/{id}_{slotId}/{day}`) documents, so the granularity

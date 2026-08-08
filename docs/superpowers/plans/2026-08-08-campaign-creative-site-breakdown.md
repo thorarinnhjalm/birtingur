@@ -22,10 +22,12 @@
 ### Task 1: Aggregator writes `byPublisherCreative`
 
 **Files:**
+
 - Modify: `apps/api/src/services/stats-aggregator.ts` (CampaignBucket interface ~line 47, event loop ~lines 87–105, write phase ~lines 145–160)
 - Test: `apps/api/tests/stats-aggregator.test.ts` (append to existing `describe`; the file already mocks `../src/lib/firebase` with a `mockStatsDocs` map that applies dot-path increments)
 
 **Interfaces:**
+
 - Consumes: existing `aggregateEvents(events: QueuedEvent[])` and the test file's `mockStatsDocs` record.
 - Produces: hourly campaign docs additionally contain `byPublisherCreative: { [publisherId]: { [creativeId]: { impressions: number; clicks: number } } }`. Task 2 reads this field.
 
@@ -162,10 +164,12 @@ git commit -m "feat(api): aggregate campaign stats per publisher per creative"
 ### Task 2: `getCampaignStats` returns `byCreative` with unattributed remainder
 
 **Files:**
+
 - Modify: `apps/api/src/services/campaign-stats.ts`
 - Test: `apps/api/tests/campaign-stats.test.ts` (new file)
 
 **Interfaces:**
+
 - Consumes: `byPublisherCreative` doc field from Task 1; `getCreative(id): Promise<Creative | null>` from `./creatives.js`; `getPublisherById` (already imported).
 - Produces (exact shapes Task 3 relies on):
 
@@ -435,11 +439,13 @@ git commit -m "feat(api): per-creative breakdown with unattributed remainder in 
 ### Task 3: Expandable creative rows in the campaign detail table
 
 **Files:**
+
 - Modify: `apps/dashboard/src/hooks/useCampaigns.ts` (~line 33, the stats response type)
 - Modify: `apps/dashboard/src/pages/advertiser/CampaignDetail.tsx` (~lines 770–824, the "Frammistaða eftir birtingavettvangi" table)
 - Test: `apps/dashboard/src/pages/advertiser/CampaignDetail.test.tsx` (append)
 
 **Interfaces:**
+
 - Consumes: `byCreative?: Record<string, { impressions: number; clicks: number; label: string; imageUrl: string | null }>` on each `byPublisher` entry (Task 2). The `'__unattributed'` key is matched literally in the UI (duplicate the string as a local const; the dashboard does not import from `@ada/api`).
 - Produces: UI only.
 
@@ -461,8 +467,18 @@ const STATS_WITH_CREATIVES = {
       displayName: 'Pizzadeig',
       domain: 'pizzadeig.is',
       byCreative: {
-        cre_1: { impressions: 60, clicks: 8, label: '300×250', imageUrl: 'https://cdn.example/1.png' },
-        cre_2: { impressions: 40, clicks: 2, label: '728×90', imageUrl: 'https://cdn.example/2.png' },
+        cre_1: {
+          impressions: 60,
+          clicks: 8,
+          label: '300×250',
+          imageUrl: 'https://cdn.example/1.png',
+        },
+        cre_2: {
+          impressions: 40,
+          clicks: 2,
+          label: '728×90',
+          imageUrl: 'https://cdn.example/2.png',
+        },
       },
     },
     pub_b: {
@@ -472,7 +488,12 @@ const STATS_WITH_CREATIVES = {
       displayName: 'Bíladella',
       domain: 'biladella.is',
       byCreative: {
-        cre_1: { impressions: 20, clicks: 1, label: '300×250', imageUrl: 'https://cdn.example/1.png' },
+        cre_1: {
+          impressions: 20,
+          clicks: 1,
+          label: '300×250',
+          imageUrl: 'https://cdn.example/1.png',
+        },
       },
     },
   },
@@ -483,7 +504,9 @@ const STATS_WITH_CREATIVES = {
 test('expands a publisher row to creative sub-rows', async () => {
   setupApiMockWithStats(campaignFixture(), STATS_WITH_CREATIVES);
   renderPage();
-  const toggle = await screen.findByRole('button', { name: 'Sundurliðun eftir auglýsingu: Pizzadeig' });
+  const toggle = await screen.findByRole('button', {
+    name: 'Sundurliðun eftir auglýsingu: Pizzadeig',
+  });
   expect(screen.queryByText('728×90')).not.toBeInTheDocument();
   fireEvent.click(toggle);
   expect(screen.getByText('300×250')).toBeInTheDocument();
