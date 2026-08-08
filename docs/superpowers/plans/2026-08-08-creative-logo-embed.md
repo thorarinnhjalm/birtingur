@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - ESM: relative imports inside a package use the `.js` extension even from `.ts` sources; `apps/api/tests/*` follows the existing no-suffix import style.
-- API tests run against the Firestore emulator; single-file runs wrapped: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/<file>.ts"`. Never run two emulator invocations concurrently (port contention corrupts results — learned 2026-08-08).
+- API tests run against the Firestore emulator; single-file runs wrapped: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/<file>.ts"`. Never run two emulator invocations concurrently (port contention corrupts results — learned 2026-08-08).
 - Dashboard tests are plain vitest, and the package has NO jest-dom: use `getBy*` + `toBeDefined()` for presence, `queryBy*` + `toBeNull()` for absence.
 - `@ada/shared` is the dependency root: after editing its schemas run `pnpm --filter @ada/shared build` before typechecking dependents.
 - All UI copy Icelandic. Dashboard styling uses existing Tailwind classes/brand tokens (raw hex is fine inside server-side SVG generation in `templates.ts`, which already uses it).
@@ -97,7 +97,7 @@ If the existing file has no reusable `mockFetchOnce` helper, add one next to the
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-ssrf.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-ssrf.test.ts"`
 Expected: new tests FAIL (`ssrfGuardedFetchBinary` not exported); existing tests PASS.
 
 - [ ] **Step 3: Implement**
@@ -147,7 +147,7 @@ Preserve today's exact behavior for the string path (including the reader-less f
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-ssrf.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-ssrf.test.ts"`
 Expected: PASS. Then `pnpm --filter @ada/shared build && pnpm --filter @ada/shared test && pnpm --filter @ada/api typecheck`.
 
 - [ ] **Step 5: Commit**
@@ -316,7 +316,7 @@ Where the test needs `extractSiteContextFromHtml`: if `extractSiteContext` can't
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-logo.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-logo.test.ts"`
 Expected: FAIL — `logo.ts` does not exist, `extractLogoCandidates` not exported.
 
 - [ ] **Step 3: Implement**
@@ -454,7 +454,7 @@ and `logo` goes into the manifest object (`logo,` before `variants`). The route 
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-logo.test.ts tests/ai-creative-extract-copy.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-logo.test.ts tests/ai-creative-extract-copy.test.ts"`
 Expected: PASS (the extract/copy suite guards against regressions in `extractSiteContext`/`generateCreativeCopy` — update its `generateCreativeCopy` call sites for the new `uploader` param with `new StubCreativeUploader()`).
 
 - [ ] **Step 5: Commit**
@@ -541,7 +541,7 @@ it('DELETE clears the logo (skip action)', async () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-logo-route.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-logo-route.test.ts"`
 Expected: FAIL with 404s from Hono (routes missing).
 
 - [ ] **Step 3: Implement**
@@ -617,7 +617,7 @@ Imports: `normalizeLogoBuffer` from the logo service, `randomUUID` from `node:cr
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-logo-route.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-logo-route.test.ts"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -696,7 +696,7 @@ describe('logo compositing', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-templates.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-templates.test.ts"`
 Expected: new tests FAIL (unknown input fields ignored, no `logo-chip` in output); existing tests PASS.
 
 - [ ] **Step 3: Implement**
@@ -772,7 +772,7 @@ and pass `logoPng: logoPngBase64, logoMime` into `renderBannerSvg` (the `uploade
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `firebase --config firebase/firebase.json emulators:exec "pnpm --filter @ada/api test -- tests/ai-creative-templates.test.ts tests/ai-creative-previews.test.ts tests/ai-creative-render-lazy-fonts.test.ts"`
+Run: `firebase --config firebase/firebase.json emulators:exec --only firestore "pnpm --filter @ada/api test -- tests/ai-creative-templates.test.ts tests/ai-creative-previews.test.ts tests/ai-creative-render-lazy-fonts.test.ts"`
 Expected: PASS (the two extra suites cover render-variant regressions). Then `pnpm --filter @ada/api typecheck`.
 
 - [ ] **Step 5: Commit**
