@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { usePublisherSlots, usePublishers } from '@/hooks/usePublisher';
+import { useSiteFilter } from '@/hooks/useSiteFilter';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -49,6 +50,7 @@ export default function SlotList() {
   // already used by the sibling SlotCreate.tsx and Dashboard.tsx pages for
   // this exact multi-site purpose.
   const { data: publishers, isLoading: isPubsLoading } = usePublishers();
+  const { siteId } = useSiteFilter();
 
   if (isSlotsLoading || isPubsLoading) return <LoadingState />;
 
@@ -118,110 +120,116 @@ export default function SlotList() {
           Dashboard.tsx sibling reads), net of the platform fee for revenue —
           not a new fetch. */}
       <div className="flex flex-col gap-[22px]">
-        {sites.map((site) => {
-          const siteSlots = (
-            (slots ?? []) as (Slot & { stats?: { impressions: number; spendIsk: number } })[]
-          ).filter((s) => s.publisherId === site.id);
-          const status = siteStatusMeta(site.status);
-          const categoryLabel =
-            site.categories.length > 0
-              ? site.categories
-                  .map((cat) => AD_CATEGORIES.find((a) => a.slug === cat)?.label || cat)
-                  .join(', ')
-              : 'Almennt';
+        {sites
+          .filter((site) => !siteId || site.id === siteId)
+          .map((site) => {
+            const siteSlots = (
+              (slots ?? []) as (Slot & { stats?: { impressions: number; spendIsk: number } })[]
+            ).filter((s) => s.publisherId === site.id);
+            const status = siteStatusMeta(site.status);
+            const categoryLabel =
+              site.categories.length > 0
+                ? site.categories
+                    .map((cat) => AD_CATEGORIES.find((a) => a.slug === cat)?.label || cat)
+                    .join(', ')
+                : 'Almennt';
 
-          const totalImpressions = siteSlots.reduce(
-            (sum, s) => sum + (s.stats?.impressions || 0),
-            0,
-          );
-          const totalGrossIsk = siteSlots.reduce((sum, s) => sum + (s.stats?.spendIsk || 0), 0);
-          const totalNetIsk = Math.round(totalGrossIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
+            const totalImpressions = siteSlots.reduce(
+              (sum, s) => sum + (s.stats?.impressions || 0),
+              0,
+            );
+            const totalGrossIsk = siteSlots.reduce((sum, s) => sum + (s.stats?.spendIsk || 0), 0);
+            const totalNetIsk = Math.round(
+              totalGrossIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
+            );
 
-          // "Skoða kóða" opens the embed snippet for this site — the
-          // real snippet/copy affordance is per-slot (SlotDetail.tsx), so
-          // this routes to the site's first slot rather than inventing a
-          // combined site-wide code block that doesn't exist in the data
-          // model. Disabled when the site has no slots yet (nothing to view).
-          const firstSlot = siteSlots[0];
+            // "Skoða kóða" opens the embed snippet for this site — the
+            // real snippet/copy affordance is per-slot (SlotDetail.tsx), so
+            // this routes to the site's first slot rather than inventing a
+            // combined site-wide code block that doesn't exist in the data
+            // model. Disabled when the site has no slots yet (nothing to view).
+            const firstSlot = siteSlots[0];
 
-          return (
-            <div
-              key={site.id}
-              className="rounded-card border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-5">
-                <div className="flex min-w-[200px] flex-col gap-1.5">
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="m-0 text-[17px] font-bold tracking-[-0.01em] text-slate-900">
-                      {site.domain}
-                    </h3>
-                    <Badge variant={status.variant}>{status.label}</Badge>
+            return (
+              <div
+                key={site.id}
+                className="rounded-card border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-5">
+                  <div className="flex min-w-[200px] flex-col gap-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <h3 className="m-0 text-[17px] font-bold tracking-[-0.01em] text-slate-900">
+                        {site.domain}
+                      </h3>
+                      <Badge variant={status.variant}>{status.label}</Badge>
+                    </div>
+                    <span className="text-[13px] text-slate-500">{categoryLabel}</span>
                   </div>
-                  <span className="text-[13px] text-slate-500">{categoryLabel}</span>
+
+                  <div className="flex flex-wrap gap-9">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
+                        Birtingar
+                      </div>
+                      <div className="mt-1.5 text-[17px] font-bold tabular-nums text-slate-900">
+                        {totalImpressions > 0 ? totalImpressions.toLocaleString('is-IS') : '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
+                        Tekjur
+                      </div>
+                      <div className="mt-1.5 text-[17px] font-bold tabular-nums text-slate-900">
+                        {totalNetIsk > 0 ? formatIsk(totalNetIsk) : '—'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2.5">
+                    <Button
+                      variant="secondary"
+                      disabled={!firstSlot}
+                      onClick={() => firstSlot && navigate(`/publisher/slots/${firstSlot.id}`)}
+                      className="text-xs"
+                    >
+                      Skoða kóða
+                    </Button>
+                    {/* Remove-site control omitted: no delete-publisher endpoint exists. */}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-9">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                      Birtingar
+                <div className="mt-[22px] border-t border-slate-100 pt-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
+                    Auglýsingapláss
+                  </p>
+                  {siteSlots.length === 0 ? (
+                    <p className="text-sm text-slate-400">Engin pláss skráð fyrir þennan vef.</p>
+                  ) : (
+                    <div className="flex flex-col gap-2.5">
+                      {siteSlots.map((s) => {
+                        const slotStatus = slotStatusMeta(s.status);
+                        const sizeLabel = s.sizes
+                          .map((sz) => `${sz.width}×${sz.height}`)
+                          .join(', ');
+                        return (
+                          <div
+                            key={s.id}
+                            className="flex cursor-pointer items-center justify-between"
+                            onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                          >
+                            <span className="text-sm text-slate-700">
+                              {s.name} — {sizeLabel}
+                            </span>
+                            <Badge variant={slotStatus.variant}>{slotStatus.label}</Badge>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="mt-1.5 text-[17px] font-bold tabular-nums text-slate-900">
-                      {totalImpressions > 0 ? totalImpressions.toLocaleString('is-IS') : '—'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                      Tekjur
-                    </div>
-                    <div className="mt-1.5 text-[17px] font-bold tabular-nums text-slate-900">
-                      {totalNetIsk > 0 ? formatIsk(totalNetIsk) : '—'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2.5">
-                  <Button
-                    variant="secondary"
-                    disabled={!firstSlot}
-                    onClick={() => firstSlot && navigate(`/publisher/slots/${firstSlot.id}`)}
-                    className="text-xs"
-                  >
-                    Skoða kóða
-                  </Button>
-                  {/* Remove-site control omitted: no delete-publisher endpoint exists. */}
+                  )}
                 </div>
               </div>
-
-              <div className="mt-[22px] border-t border-slate-100 pt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                  Auglýsingapláss
-                </p>
-                {siteSlots.length === 0 ? (
-                  <p className="text-sm text-slate-400">Engin pláss skráð fyrir þennan vef.</p>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    {siteSlots.map((s) => {
-                      const slotStatus = slotStatusMeta(s.status);
-                      const sizeLabel = s.sizes.map((sz) => `${sz.width}×${sz.height}`).join(', ');
-                      return (
-                        <div
-                          key={s.id}
-                          className="flex cursor-pointer items-center justify-between"
-                          onClick={() => navigate(`/publisher/slots/${s.id}`)}
-                        >
-                          <span className="text-sm text-slate-700">
-                            {s.name} — {sizeLabel}
-                          </span>
-                          <Badge variant={slotStatus.variant}>{slotStatus.label}</Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
     </div>
   );

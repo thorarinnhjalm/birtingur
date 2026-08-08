@@ -19,6 +19,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { StatCard } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
 import { usePublishers, usePublisherSlots } from '@/hooks/usePublisher';
+import { useSiteFilter } from '@/hooks/useSiteFilter';
 import { formatIsk } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -46,6 +47,15 @@ interface StatsResponse {
     spendIsk: number;
     pageviews: number;
   }[];
+  bySite?: {
+    publisherId: string;
+    displayName: string;
+    domain: string;
+    impressions: number;
+    clicks: number;
+    pageviews: number;
+    spendIsk: number;
+  }[];
 }
 
 function PublisherHome() {
@@ -54,9 +64,13 @@ function PublisherHome() {
   const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(
     !!publishers && publishers.length > 0,
   );
+  const { siteId, setSiteId } = useSiteFilter();
   const { data: stats } = useQuery<StatsResponse>({
-    queryKey: ['publisher', 'stats', timeframe],
-    queryFn: () => apiFetch<StatsResponse>(`/v1/publishers/stats?timeframe=${timeframe}`),
+    queryKey: ['publisher', 'stats', timeframe, siteId],
+    queryFn: () =>
+      apiFetch<StatsResponse>(
+        `/v1/publishers/stats?timeframe=${timeframe}${siteId ? `&publisherId=${siteId}` : ''}`,
+      ),
     enabled: !!publishers && publishers.length > 0,
   });
   const navigate = useNavigate();
@@ -443,6 +457,57 @@ function PublisherHome() {
           }
         />
       </div>
+
+      {/* ===== PER-SITE OVERVIEW =====
+          Not in the template — added so a multi-site publisher can see which
+          site drives their numbers before narrowing with the SiteSwitcher.
+          Only shown unfiltered (siteId === null) and for owners with more
+          than one site; a single-site owner never has bySite on the response
+          at all (see the /v1/publishers/stats contract), so this section is
+          simply absent for them — zero UI change. Table classes mirror the
+          advertiser CampaignDetail.tsx "Frammistaða eftir birtingavettvangi"
+          table (text-xs font-medium border-collapse, slate-400 uppercase
+          header row) for visual consistency across the two apps. Clicking a
+          row narrows the SiteSwitcher-backed filter via setSiteId, same
+          affordance as picking the site from the dropdown. */}
+      {!siteId && stats?.bySite && stats.bySite.length > 1 && (
+        <Card>
+          <h2 className="m-0 mb-4 text-[19px] font-bold tracking-[-0.015em]">
+            Yfirlit eftir vefjum
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-medium border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                  <th className="py-2.5">Vefur</th>
+                  <th className="py-2.5">Birtingar</th>
+                  <th className="py-2.5">Flettingar</th>
+                  <th className="py-2.5">Smellir</th>
+                  <th className="py-2.5 text-right">Tekjur</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {stats.bySite.map((site) => (
+                  <tr
+                    key={site.publisherId}
+                    onClick={() => setSiteId(site.publisherId)}
+                    className="hover:bg-slate-50 cursor-pointer"
+                  >
+                    <td className="py-3">
+                      <div className="font-semibold text-slate-900">{site.displayName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
+                    </td>
+                    <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
+                    <td className="py-3">{site.pageviews.toLocaleString('is-IS')}</td>
+                    <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
+                    <td className="py-3 text-right">{formatIsk(site.spendIsk)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* ===== CHART =====
           Card title/subtitle copied verbatim from publisher-dashboard.dc.html;
