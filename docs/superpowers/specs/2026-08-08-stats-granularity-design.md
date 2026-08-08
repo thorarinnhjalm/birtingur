@@ -62,14 +62,16 @@ and enriches with publisher `displayName` + `domain`. Extend each entry:
 byPublisher[pubId] = {
   impressions, clicks, spendIsk, displayName, domain,   // unchanged
   byCreative: {
-    [creativeId]: { impressions, clicks, name, thumbnailUrl }
+    [creativeId]: { impressions, clicks, label, imageUrl }
   }
 }
 ```
 
-Creative metadata comes from one batched fetch of the campaign's creatives
-(they are already loaded on this page's sibling endpoints; the service fetches
-by id and tolerates deleted creatives by falling back to the id as name).
+Creatives have no name field (`CreativeSchema`: `imageUrl`, `width`, `height`,
+`clickUrl`, …), so `label` is the size string (`"300×250"`) and `imageUrl` the
+creative image for a thumbnail. Metadata comes from one batched `getCreative`
+fetch per unique creative id; a deleted creative falls back to its id as label
+with a null imageUrl.
 `spendIsk` stays at the publisher level only — spend is CPM-derived and
 per-creative spend would just restate impressions.
 
@@ -96,8 +98,8 @@ TanStack Query hooks keep their shape (the response type in
 `useCampaigns.ts` gets the optional `byCreative` field).
 
 - Each publisher row gets a chevron; clicking toggles an inline group of
-  creative sub-rows (indented, lighter background, thumbnail at ~32px, creative
-  name, impressions, clicks, CTR — no eCPC/spend columns, cells left blank).
+  creative sub-rows (indented, lighter background, thumbnail at ~32px, size
+  label, impressions, clicks, CTR — no eCPC/spend columns, cells left blank).
 - Rows with exactly one creative and no unattributed remainder render without a
   chevron — expanding would only repeat the parent line.
 - Sub-rows sort by impressions, matching the parent sort.
@@ -135,7 +137,7 @@ response includes:
 
 ```
 bySite: [{ publisherId, displayName, domain, impressions, clicks,
-           pageviews, earningsIsk }]
+           pageviews, spendIsk }]
 ```
 
 This costs no extra reads — `getAggregatedPublisherStats` already fetches each
@@ -156,6 +158,10 @@ Pages honoring the filter:
 
 - **Dashboard.tsx** and **Earnings.tsx**: pass `publisherId` through to the
   stats query (`queryKey` includes it, so switching sites refetches cleanly).
+  Earnings.tsx today calls `GET /v1/publishers/me/stats`, which resolves only
+  the caller's **first** publisher doc — multi-site owners already see
+  under-reported earnings there. Part B fixes this by pointing Earnings at the
+  shared `/v1/publishers/stats` endpoint (aggregate by default, filterable).
 - **SlotList.tsx**: client-side filter on the already-loaded slots by
   `publisherId` — no API change.
 - Payouts list on Earnings stays unfiltered (payouts are per payout run, not
