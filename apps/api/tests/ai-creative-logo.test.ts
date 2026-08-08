@@ -36,6 +36,29 @@ describe('logo candidate extraction', () => {
       'https://example.is/favicon-32.png',
     ]);
   });
+
+  it('skips a logo-matching <img> with no usable src and keeps scanning for the next one', () => {
+    const HTML_LAZY = `
+      <html><body>
+        <img class="logo lazyload" data-src="/lazy-logo.png" alt="Merki">
+        <img class="site-logo" src="/real-logo.png" alt="Merki">
+      </body></html>`;
+    const candidates = extractLogoCandidates(HTML_LAZY, 'https://example.is/');
+    expect(candidates).toEqual(['https://example.is/real-logo.png']);
+  });
+
+  it('picks the largest declared size out of a multi-size sizes attribute', () => {
+    const HTML_MULTI_SIZE = `
+      <html><head>
+        <link rel="icon" sizes="16x16 32x32 48x48" href="/favicon-multi.png">
+        <link rel="icon" sizes="24x24" href="/favicon-24.png">
+      </head><body></body></html>`;
+    const candidates = extractLogoCandidates(HTML_MULTI_SIZE, 'https://example.is/');
+    expect(candidates).toEqual([
+      'https://example.is/favicon-multi.png',
+      'https://example.is/favicon-24.png',
+    ]);
+  });
 });
 
 describe('acquireScrapedLogo', () => {
@@ -71,7 +94,7 @@ describe('acquireScrapedLogo', () => {
     expect(fetchBinaryMock).toHaveBeenCalledTimes(2);
   });
 
-  it('returns null when every candidate fails, is truncated, or has a bad type', async () => {
+  it('returns null when every candidate has an unsupported content type', async () => {
     fetchBinaryMock.mockResolvedValue({
       body: TINY_PNG,
       finalUrl: 'https://example.is/x.ico',
@@ -81,6 +104,33 @@ describe('acquireScrapedLogo', () => {
     const logo = await acquireScrapedLogo({
       advertiserId: 'adv_1',
       candidates: ['https://example.is/x.ico'],
+      uploader: new StubCreativeUploader(),
+    });
+    expect(logo).toBeNull();
+  });
+
+  it('returns null when every candidate is truncated', async () => {
+    fetchBinaryMock.mockResolvedValue({
+      body: TINY_PNG,
+      finalUrl: 'https://example.is/big.png',
+      contentType: 'image/png',
+      truncated: true,
+    });
+    const logo = await acquireScrapedLogo({
+      advertiserId: 'adv_1',
+      candidates: ['https://example.is/big.png'],
+      uploader: new StubCreativeUploader(),
+    });
+    expect(logo).toBeNull();
+  });
+
+  it('returns null when every candidate fails outright (network error)', async () => {
+    fetchBinaryMock
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'));
+    const logo = await acquireScrapedLogo({
+      advertiserId: 'adv_1',
+      candidates: ['https://example.is/a.png', 'https://example.is/b.png'],
       uploader: new StubCreativeUploader(),
     });
     expect(logo).toBeNull();
