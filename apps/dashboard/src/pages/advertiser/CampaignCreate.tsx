@@ -229,8 +229,11 @@ export default function CampaignCreate() {
       // campaigns); its message is English and numeric. Translate the case
       // an Icelandic advertiser can actually act on.
       if (err?.code === 'INSUFFICIENT_FUNDS') {
+        // Don't suggest pausing another campaign: paused campaigns still hold
+        // their remaining budget (FUND_HOLDING_STATUSES includes 'paused'), so
+        // topping up is the only action that actually frees room.
         setError(
-          'Laus inneign dugar ekki fyrir herferðinni — hluti inneignarinnar er frátekinn í aðrar virkar herferðir. Fylltu á veskið eða losaðu inneign með því að stöðva aðra herferð.',
+          'Laus inneign nægir ekki fyrir herferðina — hluti inneignarinnar er frátekinn í aðrar virkar herferðir. Fylltu á veskið til að halda áfram.',
         );
       } else {
         setError(err.message || 'Ekki tókst að stofna herferð. Reyndu aftur.');
@@ -815,7 +818,7 @@ export default function CampaignCreate() {
               {walletCommitted > 0 && (
                 <div className="text-xs text-slate-500 mt-1 tabular-nums">
                   Þar af frátekið í aðrar herferðir: {fmtNum(walletCommitted)} kr. · Laust:{' '}
-                  {fmtNum(walletAvailable)} kr.
+                  {fmtNum(Math.max(0, walletAvailable))} kr.
                 </div>
               )}
             </div>

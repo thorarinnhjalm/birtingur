@@ -265,8 +265,11 @@ test('Finding #3: returning to step 3 shows a completed panel instead of a fresh
 // committed to another active campaign saw "Nóg inneign — engin áfylling
 // þarf" and then hit the server's raw English INSUFFICIENT_FUNDS rejection.
 test('confirm step uses AVAILABLE balance, not gross: fully-committed wallet shows top-up path and the committed breakdown', async () => {
+  // Gross balance comfortably covers the campaign total; ONLY the available
+  // figure fails. This is what pins the fix: with the old gross-balance gate
+  // this wallet passes and the test fails.
   setupApiMock(undefined, {
-    wallet: { advertiserId: 'adv_1', balanceIsk: 19_980, committedIsk: 19_980, availableIsk: 0 },
+    wallet: { advertiserId: 'adv_1', balanceIsk: 100_000, committedIsk: 100_000, availableIsk: 0 },
   });
   renderWithClient();
   await fillBasicsAndProceed();
@@ -309,6 +312,6 @@ test('a server-side INSUFFICIENT_FUNDS rejection surfaces as Icelandic copy, not
 
   fireEvent.click(screen.getByText('Hefja birtingu af inneign'));
 
-  await screen.findByText(/Laus inneign dugar ekki/);
+  await screen.findByText(/Laus inneign nægir ekki/);
   expect(screen.queryByText(/Insufficient available balance/)).toBeNull();
 });
