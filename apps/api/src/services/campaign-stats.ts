@@ -1,10 +1,13 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, UNATTRIBUTED_CREATIVE_ID } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { getPublisherById } from './publishers.js';
 import { getCreative } from './creatives.js';
 
-export const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
+// Re-exported so existing import sites (`import { UNATTRIBUTED_CREATIVE_ID } from
+// '../src/services/campaign-stats'`, e.g. campaign-stats.test.ts) keep working. The
+// canonical definition now lives in @ada/shared so the dashboard can share it too.
+export { UNATTRIBUTED_CREATIVE_ID };
 
 export interface CreativeSiteBreakdown {
   impressions: number;
@@ -165,7 +168,9 @@ export async function getCampaignStats(
   const enrichedByPublisher: Record<string, PublisherStatsBreakdown> = {};
 
   if (publisherIds.length > 0) {
-    const pubSnaps = await Promise.all(publisherIds.map((pubId) => getPublisherById(pubId)));
+    const pubSnaps = await Promise.all(
+      publisherIds.map((pubId) => getPublisherById(pubId).catch(() => null)),
+    );
 
     for (let i = 0; i < publisherIds.length; i++) {
       const pubId = publisherIds[i]!;
@@ -185,7 +190,7 @@ export async function getCampaignStats(
     const creativeIds = [
       ...new Set(Object.values(byPublisherCreativeAggregate).flatMap((m) => Object.keys(m))),
     ];
-    const creatives = await Promise.all(creativeIds.map((id) => getCreative(id)));
+    const creatives = await Promise.all(creativeIds.map((id) => getCreative(id).catch(() => null)));
     const creativeMeta = new Map(
       creativeIds.map((id, i) => {
         const cre = creatives[i];
@@ -213,9 +218,9 @@ export async function getCampaignStats(
       }
       const restImp = entry.impressions - attributedImp;
       const restClk = entry.clicks - attributedClk;
-      if (restImp > 0 || restClk > 0) {
+      if (restImp > 0) {
         byCreative[UNATTRIBUTED_CREATIVE_ID] = {
-          impressions: Math.max(0, restImp),
+          impressions: restImp,
           clicks: Math.max(0, restClk),
           label: 'Eldri gögn (fyrir sundurliðun)',
           imageUrl: null,
