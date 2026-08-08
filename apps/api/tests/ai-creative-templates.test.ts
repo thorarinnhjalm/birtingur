@@ -388,4 +388,35 @@ describe('logo compositing', () => {
     const png = renderSvgToPng(svg);
     expect(png.subarray(1, 4).toString()).toBe('PNG');
   });
+
+  /** Pins the corner-flip decision (see `logoChipLayer` in templates.ts):
+   * `strip`/`compact` tiers right-anchor the CTA, so the default bottom-right
+   * chip must flip to bottom-left; `stacked` tiers left-anchor the CTA, so
+   * the default bottom-right chip must stay put. Asserts on which HALF of
+   * the canvas the chip's `x` falls in, not exact pixels, so this survives
+   * tweaks to the chip's size/margin constants while still pinning which
+   * branch of the flip logic fired. */
+  function extractLogoChipX(svg: string): number {
+    const match = svg.match(/<g class="logo-chip">\s*<rect x="([\d.]+)"/);
+    if (!match) throw new Error('logo-chip rect not found in SVG');
+    return Number(match[1]);
+  }
+
+  it('flips the chip to the left half on a strip-tier size (728x90) where the default corner would overlap the CTA', () => {
+    const svg = renderBannerSvg({
+      width: 728,
+      height: 90,
+      copy: COPY,
+      templateId: 'bold',
+      logoPng: TINY_PNG_B64,
+    });
+    const chipX = extractLogoChipX(svg);
+    expect(chipX).toBeLessThan(728 / 2);
+  });
+
+  it('keeps the chip in the right half on a stacked-tier size (300x250) where the default corner clears the CTA', () => {
+    const svg = renderBannerSvg({ ...baseInput(), templateId: 'bold', logoPng: TINY_PNG_B64 });
+    const chipX = extractLogoChipX(svg);
+    expect(chipX).toBeGreaterThan(300 / 2);
+  });
 });
