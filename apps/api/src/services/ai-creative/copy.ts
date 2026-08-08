@@ -4,6 +4,8 @@ import { generateId } from '../../lib/id.js';
 import type { SiteContext } from './index.js';
 import type { CreativeGenerator } from './gemini.js';
 import { savePreviewManifest } from './previews.js';
+import { acquireScrapedLogo } from './logo.js';
+import type { CreativeUploader } from './storage.js';
 
 export interface GenerateCreativeCopyParams {
   advertiserId: string;
@@ -17,6 +19,9 @@ export interface GenerateCreativeCopyParams {
   ctx: SiteContext;
   variantsCount: number;
   generator: CreativeGenerator;
+  /** Used to persist the auto-scraped logo (creative-logo-embed, 2026-08-08
+   * design), if `ctx.logoCandidates` yields a viable one. */
+  uploader: CreativeUploader;
 }
 
 /**
@@ -32,7 +37,7 @@ export interface GenerateCreativeCopyParams {
 export async function generateCreativeCopy(
   params: GenerateCreativeCopyParams,
 ): Promise<GeneratedPreviewManifest> {
-  const { advertiserId, ctx, variantsCount, generator } = params;
+  const { advertiserId, ctx, variantsCount, generator, uploader } = params;
 
   const copyVariants = await generator.generateCopy(ctx, variantsCount);
 
@@ -41,6 +46,12 @@ export async function generateCreativeCopy(
     copy,
     images: [],
   }));
+
+  const logo = await acquireScrapedLogo({
+    advertiserId,
+    candidates: ctx.logoCandidates,
+    uploader,
+  });
 
   const manifest = GeneratedPreviewManifestSchema.parse({
     id: advertiserId,
@@ -52,6 +63,7 @@ export async function generateCreativeCopy(
       siteName: ctx.siteName,
       ogImage: ctx.ogImage,
     },
+    logo,
     createdAt: new Date(),
     status: 'copy',
     variants,

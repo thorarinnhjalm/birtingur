@@ -72,6 +72,11 @@ export async function renderCreativeVariant(
     description: manifest.extract?.description ?? '',
     siteName: manifest.extract?.siteName ?? '',
     ogImage: manifest.extract?.ogImage,
+    // Logo acquisition already happened at the copy step (see copy.ts) and
+    // its result is persisted on `manifest.logo`, not re-derived here — this
+    // reconstructed context is only used for background-image generation,
+    // which never reads logoCandidates.
+    logoCandidates: [],
   };
 
   // One background call for the whole variant, reused across every

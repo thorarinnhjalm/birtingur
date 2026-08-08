@@ -2,7 +2,17 @@ import { randomUUID } from 'node:crypto';
 import { storage } from '../../lib/firebase.js';
 
 export interface CreativeUploader {
-  upload(params: { advertiserId: string; filename: string; pngBuffer: Buffer }): Promise<string>;
+  upload(params: {
+    advertiserId: string;
+    filename: string;
+    /** Despite the name, may carry JPEG bytes when `contentType` is
+     * `'image/jpeg'` (advertiser logos can be either) — kept as `pngBuffer`
+     * to avoid touching every existing call site for banner PNGs. */
+    pngBuffer: Buffer;
+    /** Defaults to `'image/png'` when omitted (every pre-existing caller
+     * uploads PNG banners). */
+    contentType?: 'image/png' | 'image/jpeg';
+  }): Promise<string>;
 }
 
 /**
@@ -31,19 +41,21 @@ export class FirebaseCreativeUploader implements CreativeUploader {
     advertiserId,
     filename,
     pngBuffer,
+    contentType = 'image/png',
   }: {
     advertiserId: string;
     filename: string;
     pngBuffer: Buffer;
+    contentType?: 'image/png' | 'image/jpeg';
   }): Promise<string> {
     const bucket = storage.bucket();
     const path = `creatives/${advertiserId}/${filename}`;
     const file = bucket.file(path);
     const token = randomUUID();
     await file.save(pngBuffer, {
-      contentType: 'image/png',
+      contentType,
       metadata: {
-        contentType: 'image/png',
+        contentType,
         metadata: { firebaseStorageDownloadTokens: token },
       },
     });

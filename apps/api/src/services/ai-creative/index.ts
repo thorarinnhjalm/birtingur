@@ -13,6 +13,7 @@ export interface SiteContext {
   description: string;
   siteName: string;
   ogImage?: string;
+  logoCandidates: string[];
 }
 
 function decodeHtmlEntities(s: string): string {
@@ -26,10 +27,71 @@ function decodeHtmlEntities(s: string): string {
 }
 
 /**
- * Fetches and extracts `<title>`, meta description, og:image and og:site_name
- * from a landing page via plain regex (no cheerio/DOM parser, per the plan —
- * this is a small, bounded extraction and a full HTML parser is unwarranted
- * dependency weight for it). The fetch itself goes through the SSRF guard.
+ * Pure candidate extraction for the advertiser's logo (creative-logo-embed,
+ * 2026-08-08 design) — no fetch, so it's directly unit-testable against an
+ * HTML fixture. Priority order, highest-quality first:
+ *  1. `<link rel="apple-touch-icon">` (largest declared `sizes` first) —
+ *     these are near-always a clean square logo mark, not a favicon-sized
+ *     glyph.
+ *  2. The first `<img>` whose src/alt/class mentions "logo".
+ *  3. `<link rel="icon">` (largest declared `sizes` first) — a last resort,
+ *     since a bare favicon is often too small/generic to look good in a
+ *     rendered banner.
+ * `og:image` is deliberately NEVER a candidate here — it's typically a hero
+ * photo, not a logo mark, and stays a separate field on SiteContext.
+ * Candidates are resolved to absolute URLs against `baseUrl` and deduped;
+ * an unparseable href is skipped rather than aborting extraction.
+ */
+export function extractLogoCandidates(html: string, baseUrl: string): string[] {
+  const candidates: string[] = [];
+  const push = (raw: string | undefined) => {
+    if (!raw) return;
+    try {
+      const abs = new URL(decodeHtmlEntities(raw.trim()), baseUrl).toString();
+      if (!candidates.includes(abs)) candidates.push(abs);
+    } catch {
+      /* unparseable href — skip */
+    }
+  };
+
+  // 1. apple-touch-icon (largest `sizes` first when several are declared)
+  const appleIcons = [
+    ...html.matchAll(/<link[^>]+rel=["']apple-touch-icon(?:-precomposed)?["'][^>]*>/gi),
+  ]
+    .map((m) => ({
+      href: m[0].match(/href=["']([^"']+)["']/i)?.[1],
+      size: parseInt(m[0].match(/sizes=["'](\d+)x/i)?.[1] ?? '0', 10),
+    }))
+    .sort((a, b) => b.size - a.size);
+  for (const icon of appleIcons) push(icon.href);
+
+  // 2. first <img> whose src/alt/class mentions "logo"
+  for (const m of html.matchAll(/<img[^>]*>/gi)) {
+    const tag = m[0];
+    if (/(?:src|alt|class)=["'][^"']*logo[^"']*["']/i.test(tag)) {
+      push(tag.match(/src=["']([^"']+)["']/i)?.[1]);
+      break;
+    }
+  }
+
+  // 3. <link rel="icon">, largest declared size first
+  const icons = [...html.matchAll(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi)]
+    .map((m) => ({
+      href: m[0].match(/href=["']([^"']+)["']/i)?.[1],
+      size: parseInt(m[0].match(/sizes=["'](\d+)x/i)?.[1] ?? '0', 10),
+    }))
+    .sort((a, b) => b.size - a.size);
+  for (const icon of icons) push(icon.href);
+
+  return candidates;
+}
+
+/**
+ * Fetches and extracts `<title>`, meta description, og:image, og:site_name
+ * and logo candidates from a landing page via plain regex (no cheerio/DOM
+ * parser, per the plan — this is a small, bounded extraction and a full HTML
+ * parser is unwarranted dependency weight for it). The fetch itself goes
+ * through the SSRF guard.
  *
  * The extracted text is later interpolated into a Gemini prompt — treat it as
  * hostile: a malicious landing page could embed prompt-injection text in its
@@ -73,6 +135,7 @@ export async function extractSiteContext(url: string): Promise<SiteContext> {
     description,
     siteName: siteName || new URL(finalUrl).hostname,
     ogImage,
+    logoCandidates: extractLogoCandidates(html, finalUrl),
   };
 }
 

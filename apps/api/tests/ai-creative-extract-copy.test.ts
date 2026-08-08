@@ -62,7 +62,13 @@ describe('extractSiteContext', () => {
 describe('ruleBasedCopyVariants', () => {
   it('produces exactly n variants, each within the character caps', () => {
     const variants = ruleBasedCopyVariants(
-      { url: 'https://a.is', title: 'A', description: 'B'.repeat(200), siteName: 'A' },
+      {
+        url: 'https://a.is',
+        title: 'A',
+        description: 'B'.repeat(200),
+        siteName: 'A',
+        logoCandidates: [],
+      },
       3,
     );
     expect(variants).toHaveLength(3);
@@ -74,7 +80,13 @@ describe('ruleBasedCopyVariants', () => {
   });
 
   it('clamps n to at least 1 and at most the number of built-in variants', () => {
-    const ctx = { url: 'https://a.is', title: 'A', description: '', siteName: 'A' };
+    const ctx = {
+      url: 'https://a.is',
+      title: 'A',
+      description: '',
+      siteName: 'A',
+      logoCandidates: [],
+    };
     expect(ruleBasedCopyVariants(ctx, 0)).toHaveLength(1);
     expect(ruleBasedCopyVariants(ctx, 99)).toHaveLength(3);
   });
@@ -93,14 +105,26 @@ describe('GeminiCreativeGenerator without GEMINI_API_KEY', () => {
 
   it('generateCopy falls back to rule-based variants (keyless pipeline works end-to-end)', async () => {
     const gen = new GeminiCreativeGenerator();
-    const ctx = { url: 'https://a.is', title: 'Titill', description: 'Lýsing', siteName: 'A' };
+    const ctx = {
+      url: 'https://a.is',
+      title: 'Titill',
+      description: 'Lýsing',
+      siteName: 'A',
+      logoCandidates: [],
+    };
     const variants = await gen.generateCopy(ctx, 2);
     expect(variants).toEqual(ruleBasedCopyVariants(ctx, 2));
   });
 
   it('generateBackground returns null (flat-template fallback)', async () => {
     const gen = new GeminiCreativeGenerator();
-    const ctx = { url: 'https://a.is', title: 'Titill', description: 'Lýsing', siteName: 'A' };
+    const ctx = {
+      url: 'https://a.is',
+      title: 'Titill',
+      description: 'Lýsing',
+      siteName: 'A',
+      logoCandidates: [],
+    };
     const bg = await gen.generateBackground(ctx, 0);
     expect(bg).toBeNull();
   });
@@ -115,7 +139,13 @@ describe('StubCreativeGenerator', () => {
       }),
     );
     const gen = new StubCreativeGenerator();
-    const ctx = { url: 'https://a.is', title: 'Titill', description: 'Lýsing', siteName: 'A' };
+    const ctx = {
+      url: 'https://a.is',
+      title: 'Titill',
+      description: 'Lýsing',
+      siteName: 'A',
+      logoCandidates: [],
+    };
     const variants = await gen.generateCopy(ctx, 2);
     expect(variants).toHaveLength(2);
     expect(await gen.generateBackground(ctx, 0)).toBeNull();

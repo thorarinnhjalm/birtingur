@@ -136,6 +136,7 @@ creativesRouter.post('/generate/copy', async (c) => {
     ctx,
     variantsCount: body.variants ?? 3,
     generator: creativeGenerator,
+    uploader: creativeUploader,
   });
   return c.json(manifest, 201);
 });
