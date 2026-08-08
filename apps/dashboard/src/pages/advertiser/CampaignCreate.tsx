@@ -225,13 +225,30 @@ export default function CampaignCreate() {
       });
       navigate('/advertiser/campaigns');
     } catch (err: any) {
-      setError(err.message || 'Ekki tókst að stofna herferð. Reyndu aftur.');
+      // The server gates on AVAILABLE balance (balance − committed to other
+      // campaigns); its message is English and numeric. Translate the case
+      // an Icelandic advertiser can actually act on.
+      if (err?.code === 'INSUFFICIENT_FUNDS') {
+        // Don't suggest pausing another campaign: paused campaigns still hold
+        // their remaining budget (FUND_HOLDING_STATUSES includes 'paused'), so
+        // topping up is the only action that actually frees room.
+        setError(
+          'Laus inneign nægir ekki fyrir herferðina — hluti inneignarinnar er frátekinn í aðrar virkar herferðir. Fylltu á veskið til að halda áfram.',
+        );
+      } else {
+        setError(err.message || 'Ekki tókst að stofna herferð. Reyndu aftur.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
   const walletBalance = walletQuery.data?.balanceIsk ?? 0;
+  const walletCommitted = walletQuery.data?.committedIsk ?? 0;
+  // Funds committed to other active campaigns can't back a new one — the
+  // server enforces this (INSUFFICIENT_FUNDS), so the UI must gate on the
+  // same number or it promises money that isn't spendable.
+  const walletAvailable = walletQuery.data?.availableIsk ?? walletBalance;
 
   // Live forecast — math per the buy-flow spec's renderVals(): flat CPM, 30-day
   // flight, 24% VAT. Uses the shared constants instead of the spec's magic numbers.
@@ -239,8 +256,8 @@ export default function CampaignCreate() {
   const perDayImpressions = Math.round(totalImpressions / 30);
   const vsk = Math.round(totalBudget * VAT_RATE);
   const grandTotal = totalBudget + vsk;
-  const walletSufficient = walletBalance >= grandTotal;
-  const topUpNeeded = Math.max(0, grandTotal - walletBalance);
+  const walletSufficient = walletAvailable >= grandTotal;
+  const topUpNeeded = Math.max(0, grandTotal - walletAvailable);
   const selectedDailyInventory = selectedCategories.reduce((sum, slug) => {
     const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
     return sum + (forecast?.availableDailyImpressions ?? 0);
@@ -798,6 +815,12 @@ export default function CampaignCreate() {
               <div className="text-[22px] font-extrabold text-slate-900 tracking-[-0.02em] mt-1.5 tabular-nums">
                 {fmtNum(walletBalance)} kr.
               </div>
+              {walletCommitted > 0 && (
+                <div className="text-xs text-slate-500 mt-1 tabular-nums">
+                  Þar af frátekið í aðrar herferðir: {fmtNum(walletCommitted)} kr. · Laust:{' '}
+                  {fmtNum(Math.max(0, walletAvailable))} kr.
+                </div>
+              )}
             </div>
             {walletSufficient ? (
               <span className="text-sm text-slate-900 font-semibold">

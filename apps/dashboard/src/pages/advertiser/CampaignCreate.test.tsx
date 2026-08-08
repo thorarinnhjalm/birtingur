@@ -105,17 +105,21 @@ const CREATED_CREATIVES = [
   },
 ];
 
-function setupApiMock(onCreateCampaign?: (body: any) => void) {
+function setupApiMock(
+  onCreateCampaign?: (body: any) => void,
+  overrides?: { wallet?: unknown; createError?: Error },
+) {
   mockedApiFetch.mockImplementation(async (url: unknown, opts?: unknown) => {
     const u = url as string;
     const o = (opts ?? {}) as { method?: string; body?: string };
-    if (u === '/v1/advertisers/me/wallet') return WALLET as any;
+    if (u === '/v1/advertisers/me/wallet') return (overrides?.wallet ?? WALLET) as any;
     if (u === '/v1/categories/inventory') return CATEGORY_INVENTORY as any;
     if (u.startsWith('/v1/categories/sizes')) return SIZES_RESPONSE as any;
     if (u === '/v1/creatives/generate/copy') return COPY_MANIFEST as any;
     if (u === '/v1/creatives/generate/render') return RENDERED_MANIFEST as any;
     if (u === '/v1/creatives/generate/confirm') return CREATED_CREATIVES as any;
     if (u === '/v1/campaigns' && o.method === 'POST') {
+      if (overrides?.createError) throw overrides.createError;
       onCreateCampaign?.(JSON.parse(o.body ?? '{}'));
       return { id: 'cmp_1' } as any;
     }
@@ -253,4 +257,61 @@ test('Finding #3: returning to step 3 shows a completed panel instead of a fresh
       'Flokkarnir sem þú valdir í Kaup-skrefinu ráða því á hvaða stærðum auglýsingin þín birtist — hér sérðu dreifinguna áður en nokkuð er búið til.',
     ),
   ).toBeDefined();
+});
+
+// Real-world bug (2026-08-08): the wallet endpoint returns balanceIsk,
+// committedIsk and availableIsk, but the confirm step compared the campaign
+// total against GROSS balance. An advertiser whose entire balance was
+// committed to another active campaign saw "Nóg inneign — engin áfylling
+// þarf" and then hit the server's raw English INSUFFICIENT_FUNDS rejection.
+test('confirm step uses AVAILABLE balance, not gross: fully-committed wallet shows top-up path and the committed breakdown', async () => {
+  // Gross balance comfortably covers the campaign total; ONLY the available
+  // figure fails. This is what pins the fix: with the old gross-balance gate
+  // this wallet passes and the test fails.
+  setupApiMock(undefined, {
+    wallet: { advertiserId: 'adv_1', balanceIsk: 100_000, committedIsk: 100_000, availableIsk: 0 },
+  });
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  expect(screen.queryByText('Nóg inneign — engin áfylling þarf')).toBeNull();
+  expect(screen.getByText('Fylla fyrst á veskið')).toBeDefined();
+  expect(screen.getByText(/frátekið í aðrar herferðir/)).toBeDefined();
+});
+
+test('a wallet response without availableIsk (old shape) falls back to gross balance', async () => {
+  // The default WALLET fixture is the old shape with a large balance — the
+  // sufficient path must keep working exactly as before.
+  setupApiMock();
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  expect(screen.getByText('Nóg inneign — engin áfylling þarf')).toBeDefined();
+  expect(screen.getByText('Hefja birtingu af inneign')).toBeDefined();
+});
+
+test('a server-side INSUFFICIENT_FUNDS rejection surfaces as Icelandic copy, not the raw English message', async () => {
+  const { ApiError } = await import('@/lib/api');
+  setupApiMock(undefined, {
+    // Sufficient-looking wallet (race: funds committed elsewhere between load
+    // and submit) so the submit button renders and the server rejects.
+    createError: new (ApiError as any)(
+      400,
+      'INSUFFICIENT_FUNDS',
+      'Insufficient available balance (balance 19980 ISK, committed to other campaigns 19980 ISK, available 0 ISK) for campaign budget of 15000 ISK',
+    ),
+  });
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  fireEvent.click(screen.getByText('Hefja birtingu af inneign'));
+
+  await screen.findByText(/Laus inneign nægir ekki/);
+  expect(screen.queryByText(/Insufficient available balance/)).toBeNull();
 });
