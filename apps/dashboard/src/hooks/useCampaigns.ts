@@ -38,6 +38,10 @@ export interface CampaignStatsResponse {
       spendIsk: number;
       displayName: string;
       domain: string;
+      byCreative?: Record<
+        string,
+        { impressions: number; clicks: number; label: string; imageUrl: string | null }
+      >;
     }
   >;
 }

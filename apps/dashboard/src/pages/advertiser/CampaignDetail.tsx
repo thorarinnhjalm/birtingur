@@ -23,12 +23,19 @@ import {
   Check,
   Copy,
   X,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import { AD_CATEGORIES, FLAT_CPM_ISK, type Creative } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
+
+// Synthetic byCreative key for the legacy-remainder row (stats recorded
+// before per-creative attribution shipped). Duplicated from the API's
+// literal because the dashboard does not import from @ada/api.
+const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
 
 const REGION_LABELS: Record<string, string> = {
   all: 'Allt landið',
@@ -61,6 +68,7 @@ export default function CampaignDetail() {
     startDate?: string;
     endDate?: string;
   }>({ timeframeDays: 30 });
+  const [expandedPubs, setExpandedPubs] = useState<Record<string, boolean>>({});
 
   const { data: campaign, isLoading, isError, refetch } = useCampaign(id);
   const { data: stats, isLoading: isStatsLoading } = useCampaignStats(id, activeRange);
@@ -802,18 +810,95 @@ export default function CampaignDetail() {
                           : 0;
                       const ecpc =
                         pub.clicks > 0 ? formatIsk(Math.round(pub.spendIsk / pub.clicks)) : '0 kr.';
+                      const creatives = Object.entries(pub.byCreative ?? {})
+                        .map(([id, c]) => ({ id, ...c }))
+                        .sort((a, b) =>
+                          a.id === UNATTRIBUTED_CREATIVE_ID
+                            ? 1
+                            : b.id === UNATTRIBUTED_CREATIVE_ID
+                              ? -1
+                              : b.impressions - a.impressions,
+                        );
+                      const expandable = creatives.length > 1;
+                      const isExpanded = expandable && !!expandedPubs[pub.id];
                       return (
-                        <tr key={pub.id} className="hover:bg-slate-50/50">
-                          <td className="py-3">
-                            <div className="font-semibold text-slate-900">{pub.displayName}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">{pub.domain}</div>
-                          </td>
-                          <td className="py-3">{pub.impressions.toLocaleString('is-IS')}</td>
-                          <td className="py-3">{pub.clicks.toLocaleString('is-IS')}</td>
-                          <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
-                          <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
-                          <td className="py-3 text-right">{formatIsk(pub.spendIsk)}</td>
-                        </tr>
+                        <Fragment key={pub.id}>
+                          <tr className="hover:bg-slate-50/50">
+                            <td className="py-3">
+                              <div className="flex items-center gap-1.5">
+                                {expandable && (
+                                  <button
+                                    aria-label={`Sundurliðun eftir auglýsingu: ${pub.displayName}`}
+                                    onClick={() =>
+                                      setExpandedPubs((s) => ({ ...s, [pub.id]: !s[pub.id] }))
+                                    }
+                                    className="p-0.5 -ml-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown size={14} />
+                                    ) : (
+                                      <ChevronRight size={14} />
+                                    )}
+                                  </button>
+                                )}
+                                <div>
+                                  <div className="font-semibold text-slate-900">
+                                    {pub.displayName}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono">
+                                    {pub.domain}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3">{pub.impressions.toLocaleString('is-IS')}</td>
+                            <td className="py-3">{pub.clicks.toLocaleString('is-IS')}</td>
+                            <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
+                            <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
+                            <td className="py-3 text-right">{formatIsk(pub.spendIsk)}</td>
+                          </tr>
+                          {isExpanded &&
+                            creatives.map((cre) => {
+                              const creCtr =
+                                cre.impressions > 0
+                                  ? Math.min(100, (cre.clicks / cre.impressions) * 100)
+                                  : 0;
+                              const legacy = cre.id === UNATTRIBUTED_CREATIVE_ID;
+                              return (
+                                <tr key={`${pub.id}_${cre.id}`} className="bg-slate-50/60">
+                                  <td className="py-2 pl-7">
+                                    <div className="flex items-center gap-2">
+                                      {cre.imageUrl && (
+                                        <img
+                                          src={cre.imageUrl}
+                                          alt=""
+                                          className="h-8 w-auto max-w-14 rounded border border-slate-200 object-contain bg-white"
+                                        />
+                                      )}
+                                      <span
+                                        className={
+                                          legacy ? 'text-slate-400 italic' : 'text-slate-600'
+                                        }
+                                      >
+                                        {cre.label}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-2 text-slate-500">
+                                    {cre.impressions.toLocaleString('is-IS')}
+                                  </td>
+                                  <td className="py-2 text-slate-500">
+                                    {cre.clicks.toLocaleString('is-IS')}
+                                  </td>
+                                  <td className="py-2 text-slate-500">
+                                    {creCtr.toFixed(1).replace('.', ',')}%
+                                  </td>
+                                  <td />
+                                  <td />
+                                </tr>
+                              );
+                            })}
+                        </Fragment>
                       );
                     })
                 )}

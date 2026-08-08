@@ -1,5 +1,5 @@
 import { test, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CampaignDetail from './CampaignDetail';
 import { apiFetch } from '@/lib/api';
@@ -70,6 +70,24 @@ function renderWithClient() {
   );
 }
 
+// Thin helpers for tests that need a custom stats response (e.g. the
+// per-creative breakdown) without duplicating the mock wiring above.
+function setupApiMockWithStats(campaign: ReturnType<typeof campaignFixture>, stats: unknown) {
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    const u = url as string;
+    if (u === '/v1/campaigns/cmp_1') return campaign as any;
+    if (u.startsWith('/v1/campaigns/cmp_1/stats')) return stats as any;
+    if (u === '/v1/campaigns/cmp_1/widget-key') return { key: 'wk_test' } as any;
+    if (u === '/v1/creatives') return [] as any;
+    if (u.startsWith('/v1/creatives/stats')) return {} as any;
+    throw new Error(`Unhandled apiFetch call in test: ${u}`);
+  });
+}
+
+function renderPage() {
+  return renderWithClient();
+}
+
 beforeEach(() => {
   mockedApiFetch.mockReset();
 });
@@ -98,4 +116,70 @@ test('completed campaign with no remaining budget shows the explanation, no reac
   expect(await screen.findByText('Herferðin kláraði fjárhæðina — lokið.')).toBeDefined();
   expect(screen.queryByText('Framlengja herferð')).toBeNull();
   expect(screen.queryByText('Ræsa herferð')).toBeNull();
+});
+
+const STATS_WITH_CREATIVES = {
+  impressions: 100,
+  clicks: 10,
+  spendIsk: 55,
+  hours: [],
+  byPublisher: {
+    pub_a: {
+      impressions: 100,
+      clicks: 10,
+      spendIsk: 55,
+      displayName: 'Pizzadeig',
+      domain: 'pizzadeig.is',
+      byCreative: {
+        cre_1: {
+          impressions: 60,
+          clicks: 8,
+          label: '300×250',
+          imageUrl: 'https://cdn.example/1.png',
+        },
+        cre_2: {
+          impressions: 40,
+          clicks: 2,
+          label: '728×90',
+          imageUrl: 'https://cdn.example/2.png',
+        },
+      },
+    },
+    pub_b: {
+      impressions: 20,
+      clicks: 1,
+      spendIsk: 11,
+      displayName: 'Bíladella',
+      domain: 'biladella.is',
+      byCreative: {
+        cre_1: {
+          impressions: 20,
+          clicks: 1,
+          label: '300×250',
+          imageUrl: 'https://cdn.example/1.png',
+        },
+      },
+    },
+  },
+};
+
+test('expands a publisher row to creative sub-rows', async () => {
+  setupApiMockWithStats(campaignFixture(), STATS_WITH_CREATIVES);
+  renderPage();
+  const toggle = await screen.findByRole('button', {
+    name: 'Sundurliðun eftir auglýsingu: Pizzadeig',
+  });
+  expect(screen.queryByText('728×90')).toBeNull();
+  fireEvent.click(toggle);
+  expect(screen.getByText('300×250')).toBeDefined();
+  expect(screen.getByText('728×90')).toBeDefined();
+});
+
+test('publisher with a single creative gets no expand toggle', async () => {
+  setupApiMockWithStats(campaignFixture(), STATS_WITH_CREATIVES);
+  renderPage();
+  await screen.findByText('Pizzadeig');
+  expect(
+    screen.queryByRole('button', { name: 'Sundurliðun eftir auglýsingu: Bíladella' }),
+  ).toBeNull();
 });
