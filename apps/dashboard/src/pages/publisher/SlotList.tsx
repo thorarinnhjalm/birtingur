@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { usePublisherSlots, usePublishers } from '@/hooks/usePublisher';
+import { useSiteFilter } from '@/hooks/useSiteFilter';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -49,10 +50,12 @@ export default function SlotList() {
   // already used by the sibling SlotCreate.tsx and Dashboard.tsx pages for
   // this exact multi-site purpose.
   const { data: publishers, isLoading: isPubsLoading } = usePublishers();
+  const { siteId } = useSiteFilter();
 
   if (isSlotsLoading || isPubsLoading) return <LoadingState />;
 
   const sites = publishers ?? [];
+  const filteredSites = sites.filter((site) => !siteId || site.id === siteId);
 
   if (!sites || sites.length === 0) {
     return (
@@ -88,7 +91,7 @@ export default function SlotList() {
       <header className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <EditorialH1>Vefir</EditorialH1>
-          <p className="mt-3 text-[15px] text-slate-500">{sites.length} vefir skráðir</p>
+          <p className="mt-3 text-[15px] text-slate-500">{filteredSites.length} vefir skráðir</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -118,7 +121,7 @@ export default function SlotList() {
           Dashboard.tsx sibling reads), net of the platform fee for revenue —
           not a new fetch. */}
       <div className="flex flex-col gap-[22px]">
-        {sites.map((site) => {
+        {filteredSites.map((site) => {
           const siteSlots = (
             (slots ?? []) as (Slot & { stats?: { impressions: number; spendIsk: number } })[]
           ).filter((s) => s.publisherId === site.id);

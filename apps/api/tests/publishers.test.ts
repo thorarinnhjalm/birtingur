@@ -243,7 +243,13 @@ describe('Publisher Service', () => {
     });
 
     it('returns aggregated stats for multiple publisherIds', async () => {
-      const stats = await getAggregatedPublisherStats(['pub_1', 'pub_2'], 7);
+      const stats = await getAggregatedPublisherStats(
+        [
+          { id: 'pub_1', displayName: 'Pub 1', domain: 'pub1.is' },
+          { id: 'pub_2', displayName: 'Pub 2', domain: 'pub2.is' },
+        ],
+        7,
+      );
       expect(stats.impressions).toBeGreaterThan(0);
       expect(stats.history).toHaveLength(7);
       expect(stats.history[0]?.impressions).toBeGreaterThan(0);

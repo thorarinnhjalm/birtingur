@@ -1,7 +1,8 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../src/index';
-import { auth } from '../src/lib/firebase';
+import { auth, db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
+import { COLLECTIONS } from '@ada/shared/firestore';
 
 import type * as firebaseModule from '../src/lib/firebase';
 
@@ -227,6 +228,132 @@ describe('Publisher HTTP Routes', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.contentPolicy.blockedCategories).toEqual(['afengi', 'tobak_veip']);
+    });
+  });
+
+  describe('GET /v1/publishers/stats site filter', () => {
+    function todayKey(): string {
+      return new Date().toISOString().split('T')[0]!.replace(/-/g, '');
+    }
+
+    async function createSite(domain: string, displayName: string): Promise<string> {
+      const res = await app.request('/v1/publishers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer valid-token' },
+        body: JSON.stringify({
+          domain,
+          displayName,
+          payoutMethod: samplePayout,
+          contentPolicy: samplePolicy,
+          categories: ['matur'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      return (await res.json()).id;
+    }
+
+    async function seedDay(publisherId: string, impressions: number, clicks: number) {
+      await db.doc(`stats/publishers/${publisherId}/${todayKey()}`).set({
+        impressions,
+        clicks,
+        spendIsk: Math.round((impressions / 1000) * 550),
+        pageviews: impressions * 2,
+      });
+    }
+
+    it('returns bySite subtotals for a multi-site owner and none for single-site', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-a.is', 'Vefur A');
+      const b = await createSite('vefur-b.is', 'Vefur B');
+      await seedDay(a, 1000, 10);
+      await seedDay(b, 500, 5);
+
+      const res = await app.request('/v1/publishers/stats?timeframe=7', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.impressions).toBe(1500);
+      expect(body.bySite).toHaveLength(2);
+      const siteA = body.bySite.find((s: any) => s.publisherId === a);
+      expect(siteA).toMatchObject({
+        displayName: 'Vefur A',
+        domain: 'vefur-a.is',
+        impressions: 1000,
+        clicks: 10,
+      });
+    });
+
+    it('filters to one owned site via ?publisherId=', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-a.is', 'Vefur A');
+      const b = await createSite('vefur-b.is', 'Vefur B');
+      await seedDay(a, 1000, 10);
+      await seedDay(b, 500, 5);
+
+      const res = await app.request(`/v1/publishers/stats?timeframe=7&publisherId=${b}`, {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.impressions).toBe(500);
+      expect(body.bySite).toBeUndefined();
+    });
+
+    it('rejects a publisherId the caller does not own with 403', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      await createSite('vefur-a.is', 'Vefur A');
+
+      const res = await app.request('/v1/publishers/stats?publisherId=pub_someone_elses', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('rejects a publisherId owned by a different real publisher with 403', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      await createSite('vefur-a.is', 'Vefur A');
+
+      // Seeded directly through `db` (not via POST /v1/publishers) because
+      // the create endpoint always attributes the new doc to the caller's
+      // own mocked identity — there's no way to create a second owner's
+      // publisher through the HTTP API in this test setup. This is a REAL
+      // publisher doc, distinct from the nonexistent-id case above: it
+      // proves the ownership check filters on ownerEmail rather than merely
+      // checking that the id resolves to *some* publisher.
+      const otherOwnersPublisherId = 'pub_other_owner_test';
+      await db
+        .collection(COLLECTIONS.publishers)
+        .doc(otherOwnersPublisherId)
+        .set({
+          ownerEmail: 'someone-else@example.is',
+          domain: 'annar-vefur.is',
+          displayName: 'Annar vefur',
+          payoutMethod: samplePayout,
+          contentPolicy: samplePolicy,
+          status: 'active',
+          createdAt: new Date(),
+          integrationPreference: 'widget',
+          categories: ['matur'],
+        });
+
+      const res = await app.request(`/v1/publishers/stats?publisherId=${otherOwnersPublisherId}`, {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('omits bySite for a single-site owner', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-a.is', 'Vefur A');
+      await seedDay(a, 100, 1);
+
+      const res = await app.request('/v1/publishers/stats?timeframe=7', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      const body = await res.json();
+      expect(body.impressions).toBe(100);
+      expect(body.bySite).toBeUndefined();
     });
   });
 });

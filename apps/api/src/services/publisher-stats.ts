@@ -3,6 +3,16 @@ import { COLLECTIONS } from '@ada/shared/firestore';
 import type { PublisherStatsBreakdown } from '@ada/shared/types';
 import { FLAT_CPM_ISK } from '@ada/shared';
 
+export interface SiteBreakdown {
+  publisherId: string;
+  displayName: string;
+  domain: string;
+  impressions: number;
+  clicks: number;
+  pageviews: number;
+  spendIsk: number;
+}
+
 export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   history: {
     date: string;
@@ -11,6 +21,7 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
     spendIsk: number;
     pageviews: number;
   }[];
+  bySite?: SiteBreakdown[];
 }
 
 export async function getPublisherStats(
@@ -169,10 +180,10 @@ export async function getPublisherStats(
 }
 
 export async function getAggregatedPublisherStats(
-  publisherIds: string[],
+  publishers: Array<{ id: string; displayName: string; domain: string }>,
   timeframeDays: 7 | 30 = 7,
 ): Promise<PublisherStatsResponse> {
-  if (publisherIds.length === 0) {
+  if (publishers.length === 0) {
     return {
       impressions: 0,
       clicks: 0,
@@ -183,9 +194,7 @@ export async function getAggregatedPublisherStats(
   }
 
   // Fetch stats for all publishers in parallel
-  const allStats = await Promise.all(
-    publisherIds.map((id) => getPublisherStats(id, timeframeDays)),
-  );
+  const allStats = await Promise.all(publishers.map((p) => getPublisherStats(p.id, timeframeDays)));
 
   let totalImpressions = 0;
   let totalClicks = 0;
@@ -223,11 +232,27 @@ export async function getAggregatedPublisherStats(
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  const bySite: SiteBreakdown[] =
+    publishers.length > 1
+      ? publishers
+          .map((p, i) => ({
+            publisherId: p.id,
+            displayName: p.displayName,
+            domain: p.domain,
+            impressions: allStats[i]!.impressions,
+            clicks: allStats[i]!.clicks,
+            pageviews: allStats[i]!.pageviews || 0,
+            spendIsk: allStats[i]!.spendIsk,
+          }))
+          .sort((a, b) => b.impressions - a.impressions)
+      : [];
+
   return {
     impressions: totalImpressions,
     clicks: totalClicks,
     spendIsk: totalSpendIsk,
     pageviews: totalPageviews,
     history,
+    ...(bySite.length > 0 ? { bySite } : {}),
   };
 }

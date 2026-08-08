@@ -33,12 +33,22 @@ publishersRouter.get('/all', async (c) => {
 publishersRouter.get('/stats', async (c) => {
   const user = c.get('user');
   const publishers = await getPublishersByOwnerEmail(user.email);
-  const publisherIds = publishers.map((p) => p.id);
 
   const queryTimeframe = c.req.query('timeframe');
   const timeframe = queryTimeframe === '30' ? 30 : 7;
 
-  const stats = await getAggregatedPublisherStats(publisherIds, timeframe);
+  const publisherId = c.req.query('publisherId');
+  if (publisherId) {
+    if (!publishers.some((p) => p.id === publisherId)) {
+      throw new AppError(403, 'Publisher does not belong to caller', 'FORBIDDEN');
+    }
+    return c.json(await getPublisherStats(publisherId, timeframe));
+  }
+
+  const stats = await getAggregatedPublisherStats(
+    publishers.map((p) => ({ id: p.id, displayName: p.displayName, domain: p.domain })),
+    timeframe,
+  );
   return c.json(stats);
 });
 

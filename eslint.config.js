@@ -35,6 +35,7 @@ module.exports = [
         HTMLButtonElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLInputElement: 'readonly',
+        HTMLSelectElement: 'readonly',
         FileReader: 'readonly',
         Image: 'readonly',
         RequestInit: 'readonly',

@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '@/lib/api';
+import { useSiteFilter } from '@/hooks/useSiteFilter';
+import { usePublishers } from '@/hooks/usePublisher';
 import { StatCard } from '@/components/ui/StatCard';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
@@ -25,10 +27,27 @@ interface StatsResponse {
 
 export default function Earnings() {
   const navigate = useNavigate();
+  const { siteId } = useSiteFilter();
+  const { data: publishers, isLoading: isPubsLoading } = usePublishers();
 
+  // /v1/publishers/stats (not /v1/publishers/me/stats) — the /me/ endpoint
+  // resolves a single publisher doc, so a multi-site owner's Earnings totals
+  // silently covered only their first-created site. /v1/publishers/stats
+  // aggregates across all of the owner's sites when unfiltered, and narrows
+  // to one when the SiteSwitcher sets siteId, same contract Dashboard.tsx
+  // already uses.
+  //
+  // `enabled: !!publishers` mirrors Dashboard.tsx's gate: without it, a cold
+  // load of /publisher/earnings?site=X fires this query (and briefly shows
+  // its unfiltered all-sites result) before usePublishers() has resolved and
+  // useSiteFilter has validated siteId against the caller's own sites.
   const { data: stats, isLoading: isStatsLoading } = useQuery<StatsResponse>({
-    queryKey: ['publisher', 'stats'],
-    queryFn: () => apiFetch<StatsResponse>('/v1/publishers/me/stats?timeframe=30'),
+    queryKey: ['publisher', 'stats', 30, siteId],
+    queryFn: () =>
+      apiFetch<StatsResponse>(
+        `/v1/publishers/stats?timeframe=30${siteId ? `&publisherId=${siteId}` : ''}`,
+      ),
+    enabled: !!publishers,
   });
 
   const { data: payouts, isLoading: isPayoutsLoading } = useQuery<Payout[]>({
@@ -36,7 +55,7 @@ export default function Earnings() {
     queryFn: () => apiFetch<Payout[]>('/v1/publishers/me/payouts'),
   });
 
-  if (isStatsLoading || isPayoutsLoading) return <LoadingState />;
+  if (isPubsLoading || isStatsLoading || isPayoutsLoading) return <LoadingState />;
 
   const earningsTotal = stats?.spendIsk || 0;
   const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
@@ -230,6 +249,16 @@ export default function Earnings() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Payout runs are per owner, not per site — the earnings totals
+            above may be scoped to one site via the SiteSwitcher, but this
+            history always covers every site, so that scoping is called out
+            explicitly rather than left implicit. */}
+        {siteId && (
+          <p className="text-xs text-slate-400">
+            Uppgjör eru alltaf fyrir alla vefi þína samanlagt.
+          </p>
         )}
       </section>
     </div>
