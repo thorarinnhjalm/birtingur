@@ -92,6 +92,24 @@ export async function renderCreativeVariant(
   // function's maxDuration in the original one-shot implementation.
   const backgroundPngBase64 = backgroundPng ? backgroundPng.toString('base64') : null;
 
+  // Advertiser logo (creative-logo-embed, 2026-08-08 design): fetched once
+  // per variant render, same as the background image above. A missing or
+  // failed download is never worth failing the whole render — warn and
+  // render without the logo, exactly like every other best-effort asset in
+  // this pipeline (background generation already degrades the same way when
+  // GEMINI_API_KEY is absent).
+  let logoPngBase64: string | null = null;
+  let logoMime: 'image/png' | 'image/jpeg' = 'image/png';
+  if (manifest.logo) {
+    try {
+      const logoBuffer = await uploader.download(manifest.logo.storagePath);
+      logoPngBase64 = logoBuffer.toString('base64');
+      logoMime = manifest.logo.mime;
+    } catch (err) {
+      console.warn('[render-variant] logo download failed, rendering without logo:', err);
+    }
+  }
+
   const images: GeneratedPreviewImage[] = [];
   for (const size of sizes) {
     const svg = renderBannerSvg({
@@ -100,6 +118,8 @@ export async function renderCreativeVariant(
       copy,
       templateId,
       backgroundPng: backgroundPngBase64,
+      logoPng: logoPngBase64,
+      logoMime,
     });
     const png = renderSvgToPng(svg);
     const filename = `${variantId}-${size.width}x${size.height}.png`;

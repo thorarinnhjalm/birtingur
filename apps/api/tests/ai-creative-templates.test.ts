@@ -16,6 +16,12 @@ const COPY = {
   cta: 'Sjá nánar',
 };
 
+/** Minimal valid renderBannerSvg input (300x250), reused by tests that only
+ * care about one specific input field and don't want to repeat the rest. */
+function baseInput(): { width: number; height: number; copy: GeneratedCopyVariant } {
+  return { width: 300, height: 250, copy: COPY };
+}
+
 describe('renderBannerSvg', () => {
   it('produces a valid SVG root element sized to the requested dimensions for every IAB size, in both templates', () => {
     for (const size of IAB_STANDARD_SIZES) {
@@ -347,5 +353,39 @@ describe('bold-template scrim WCAG contrast', () => {
     const ratio = contrastRatio(textLuminance, bgLuminance);
 
     expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+const TINY_PNG_B64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+describe('logo compositing', () => {
+  for (const templateId of ['bold', 'light'] as const) {
+    it(`renders the logo chip in the ${templateId} template when logoPng is set`, () => {
+      const svg = renderBannerSvg({ ...baseInput(), templateId, logoPng: TINY_PNG_B64 });
+      expect(svg).toContain(`data:image/png;base64,${TINY_PNG_B64}`);
+      expect(svg).toContain('class="logo-chip"');
+    });
+
+    it(`omits the logo entirely in ${templateId} when logoPng is null`, () => {
+      const svg = renderBannerSvg({ ...baseInput(), templateId, logoPng: null });
+      expect(svg).not.toContain('logo-chip');
+    });
+  }
+
+  it('uses the jpeg mime in the data URI when logoMime says so', () => {
+    const svg = renderBannerSvg({
+      ...baseInput(),
+      templateId: 'bold',
+      logoPng: TINY_PNG_B64,
+      logoMime: 'image/jpeg',
+    });
+    expect(svg).toContain('data:image/jpeg;base64,');
+  });
+
+  it('still renders a valid PNG through resvg with a logo present', () => {
+    const svg = renderBannerSvg({ ...baseInput(), templateId: 'bold', logoPng: TINY_PNG_B64 });
+    const png = renderSvgToPng(svg);
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
   });
 });

@@ -19,6 +19,12 @@ export interface RenderBannerInput {
    * care about the per-size cost.
    */
   backgroundPng?: Buffer | string | null;
+  /** Advertiser logo (creative-logo-embed, 2026-08-08 design), same
+   * Buffer-or-base64 contract as `backgroundPng`. Absent/null = no logo,
+   * render exactly as before this feature. */
+  logoPng?: Buffer | string | null;
+  /** Data-URI mime for `logoPng`. Defaults to `'image/png'`. */
+  logoMime?: 'image/png' | 'image/jpeg';
 }
 
 /**
@@ -467,6 +473,68 @@ function ctaPillSvg(box: Box, text: string, fontSize: number, bg: string, fg: st
     <text x="${box.x + box.w / 2}" y="${box.y + box.h / 2 + fontSize * 0.35}" font-family="Inter" font-weight="700" font-size="${fontSize}" fill="${fg}" text-anchor="middle">${escapeXml(text)}</text>`;
 }
 
+/** Fixed-size logo chip geometry (2026-08-08 design): height-driven box, so
+ * extreme aspect ratios of the source logo can't break layout (rendered with
+ * `preserveAspectRatio="meet"`). Computed once and shared between the
+ * collision check and the SVG emitter so the two can never disagree about
+ * where the chip sits. */
+function logoChipGeometry(
+  width: number,
+  height: number,
+  anchor: 'bottom-right' | 'bottom-left',
+): { box: Box; imgX: number; imgY: number; imgW: number; imgH: number } {
+  const imgH = Math.round(Math.min(Math.max(height * 0.18, 20), 56));
+  const imgW = Math.round(imgH * 2.5);
+  const pad = Math.round(imgH * 0.15);
+  const margin = Math.max(8, Math.round(width * 0.03));
+  const chipW = imgW + pad * 2;
+  const chipH = imgH + pad * 2;
+  const x = anchor === 'bottom-left' ? margin : width - margin - chipW;
+  const y = height - margin - chipH;
+  return { box: { x, y, w: chipW, h: chipH }, imgX: x + pad, imgY: y + pad, imgW, imgH };
+}
+
+function boxesOverlap(a: Box, b: Box): boolean {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/** Fixed-position logo chip (2026-08-08 design): white chip so contrast
+ * never depends on the logo's colors — same philosophy as SCRIM for text.
+ * Height-driven box; extreme aspect ratios cannot break the layout
+ * (preserveAspectRatio="meet").
+ *
+ * Anchor corner is picked per-render, not hardcoded per template: 'bold' and
+ * 'light' share the exact same `computeBannerLayout` geometry (only the
+ * palette differs), so a static per-template choice would be identically
+ * right or identically wrong for both. What actually varies is the CTA
+ * pill's position across banner *tiers* — bottom-right in `strip`
+ * (728x90, 980x120) and `compact` (320x100), bottom-left in `stacked`
+ * (300x250, 300x600). Defaulting to bottom-right and switching to
+ * bottom-left only when that would overlap the actual computed CTA box
+ * handles every current and future IAB size correctly, instead of guessing
+ * per template. See task-4-report.md for the box-math that confirms this
+ * avoids CTA collisions across all of IAB_STANDARD_SIZES. */
+function logoChipLayer(
+  width: number,
+  height: number,
+  logoPngBase64: string,
+  mime: 'image/png' | 'image/jpeg',
+  ctaBox: Box | null,
+): string {
+  const right = logoChipGeometry(width, height, 'bottom-right');
+  const geometry =
+    ctaBox && boxesOverlap(right.box, ctaBox)
+      ? logoChipGeometry(width, height, 'bottom-left')
+      : right;
+  const { box, imgX, imgY, imgW, imgH } = geometry;
+  return `<g class="logo-chip">
+    <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${Math.round(box.h * 0.18)}"
+      fill="#ffffff" fill-opacity="0.94" stroke="#e2e8f0" stroke-width="1"/>
+    <image href="data:${mime};base64,${logoPngBase64}" x="${imgX}" y="${imgY}"
+      width="${imgW}" height="${imgH}" preserveAspectRatio="xMidYMid meet"/>
+  </g>`;
+}
+
 export function renderBannerSvg(input: RenderBannerInput): string {
   const { width, height, copy, templateId } = input;
   const palette = PALETTE[templateId];
@@ -524,11 +592,22 @@ export function renderBannerSvg(input: RenderBannerInput): string {
     palette.ctaText,
   );
 
+  const logoPngBase64 =
+    input.logoPng == null
+      ? null
+      : typeof input.logoPng === 'string'
+        ? input.logoPng
+        : input.logoPng.toString('base64');
+  const logoLayer = logoPngBase64
+    ? logoChipLayer(width, height, logoPngBase64, input.logoMime ?? 'image/png', ctaBox)
+    : '';
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 ${backgroundLayer}
 ${headline}
 ${subline}
 ${ctaBlock}
+${logoLayer}
 </svg>`;
 }
 

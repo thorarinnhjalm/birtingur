@@ -13,6 +13,11 @@ export interface CreativeUploader {
      * uploads PNG banners). */
     contentType?: 'image/png' | 'image/jpeg';
   }): Promise<string>;
+  /** Downloads a previously-uploaded object's bytes, keyed by the same
+   * `storagePath` `upload` implicitly produces (creative-logo-embed,
+   * 2026-08-08 design) — used to fetch an advertiser's stored logo back for
+   * compositing into a rendered banner. */
+  download(storagePath: string): Promise<Buffer>;
 }
 
 /**
@@ -62,6 +67,11 @@ export class FirebaseCreativeUploader implements CreativeUploader {
     const encodedPath = encodeURIComponent(path);
     return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodedPath}?alt=media&token=${token}`;
   }
+
+  async download(storagePath: string): Promise<Buffer> {
+    const [buffer] = await storage.bucket().file(storagePath).download();
+    return buffer;
+  }
 }
 
 /**
@@ -83,6 +93,15 @@ export class StubCreativeUploader implements CreativeUploader {
     filename: string;
   }): Promise<string> {
     return `https://storage.example.test/creatives/${advertiserId}/${filename}`;
+  }
+
+  /** Fixed tiny PNG so render tests can exercise the logo-compositing path
+   * without touching a storage emulator. */
+  async download(): Promise<Buffer> {
+    return Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
   }
 }
 
