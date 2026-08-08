@@ -117,6 +117,11 @@ function renderPage() {
 
 beforeEach(() => {
   mockedApiFetch.mockReset();
+  // The site-filter test below sets siteId via a row click, which persists
+  // through useSiteFilter's sessionStorage backing — without clearing it
+  // here, that write leaks into whichever test runs next and makes the
+  // per-site-table assertions order-dependent.
+  sessionStorage.clear();
 });
 
 test('shows the per-site overview table when viewing all sites', async () => {

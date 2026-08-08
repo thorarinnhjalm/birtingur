@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../src/index';
 import { auth, db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
+import { COLLECTIONS } from '@ada/shared/firestore';
 
 import type * as firebaseModule from '../src/lib/firebase';
 
@@ -304,6 +305,39 @@ describe('Publisher HTTP Routes', () => {
       await createSite('vefur-a.is', 'Vefur A');
 
       const res = await app.request('/v1/publishers/stats?publisherId=pub_someone_elses', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(403);
+    });
+
+    it('rejects a publisherId owned by a different real publisher with 403', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      await createSite('vefur-a.is', 'Vefur A');
+
+      // Seeded directly through `db` (not via POST /v1/publishers) because
+      // the create endpoint always attributes the new doc to the caller's
+      // own mocked identity — there's no way to create a second owner's
+      // publisher through the HTTP API in this test setup. This is a REAL
+      // publisher doc, distinct from the nonexistent-id case above: it
+      // proves the ownership check filters on ownerEmail rather than merely
+      // checking that the id resolves to *some* publisher.
+      const otherOwnersPublisherId = 'pub_other_owner_test';
+      await db
+        .collection(COLLECTIONS.publishers)
+        .doc(otherOwnersPublisherId)
+        .set({
+          ownerEmail: 'someone-else@example.is',
+          domain: 'annar-vefur.is',
+          displayName: 'Annar vefur',
+          payoutMethod: samplePayout,
+          contentPolicy: samplePolicy,
+          status: 'active',
+          createdAt: new Date(),
+          integrationPreference: 'widget',
+          categories: ['matur'],
+        });
+
+      const res = await app.request(`/v1/publishers/stats?publisherId=${otherOwnersPublisherId}`, {
         headers: { Authorization: 'Bearer valid-token' },
       });
       expect(res.status).toBe(403);
