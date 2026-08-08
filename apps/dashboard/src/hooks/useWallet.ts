@@ -4,6 +4,11 @@ import { apiFetch } from '@/lib/api';
 interface Wallet {
   advertiserId: string;
   balanceIsk: number;
+  /** Sum of remainingIsk still committed to the advertiser's other
+   * fund-holding campaigns (server-computed, see services/wallet.ts). */
+  committedIsk?: number;
+  /** balanceIsk − committedIsk — what a new campaign can actually spend. */
+  availableIsk?: number;
 }
 
 export function useWallet(enabled = true) {
