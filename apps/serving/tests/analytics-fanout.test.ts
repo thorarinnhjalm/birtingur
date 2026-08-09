@@ -61,6 +61,10 @@ function ev(type: AdEvent['type']): AdEvent {
     country: 'XX',
     visitorToken: 'tok',
     ts: 1,
+    // These fan-out/pipelining tests don't exercise classification at all —
+    // the value is irrelevant to what's under test here, so a fixed 'human'
+    // just satisfies the now-required field.
+    botClass: 'human',
   };
 }
 

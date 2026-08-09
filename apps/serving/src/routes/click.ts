@@ -5,6 +5,7 @@ import { logEvent } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
 import { getClientIp } from '../lib/ip.js';
 import { isClickDeduplicated, checkAndIncrementRateLimit } from '../lib/fraud.js';
+import { classifyRequest } from '../lib/bot-class.js';
 
 export const clickRoute = new Hono();
 
@@ -23,6 +24,11 @@ clickRoute.get('/', async (c) => {
   if (!creativeId || !slotId) {
     return c.text('Bad Request', 400);
   }
+
+  const botClass = classifyRequest({
+    userAgent: c.req.header('user-agent'),
+    acceptLanguage: c.req.header('accept-language'),
+  });
 
   // Validate signature to prevent click fraud
   const ts = parseInt(tsStr, 10);
@@ -61,6 +67,7 @@ clickRoute.get('/', async (c) => {
           country: c.req.header('CF-IPCountry') ?? 'XX',
           visitorToken: token,
           ts: Date.now(),
+          botClass,
         });
       } catch (err) {
         // Never let a Redis failure block the redirect — a lost click event is
@@ -108,6 +115,7 @@ clickRoute.get('/', async (c) => {
         country: c.req.header('CF-IPCountry') ?? 'XX',
         visitorToken: token,
         ts: Date.now(),
+        botClass,
       });
     } catch (err) {
       console.error('logEvent failed (click):', err);

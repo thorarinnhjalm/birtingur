@@ -1,6 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { getCreativeStats } from './creative-stats.js';
+import type { DocumentReference } from 'firebase-admin/firestore';
 
 export interface TopCreativeEntry {
   creativeId: string;
@@ -23,6 +24,19 @@ interface FallbackAdStatsEntry {
   ctr: number;
 }
 
+export interface BotTrafficBreakdown {
+  human: number;
+  known_bot: number;
+  suspected_bot: number;
+  unclassified: number;
+}
+
+export interface BotTrafficSummary {
+  windowDays: number;
+  impressions: BotTrafficBreakdown;
+  pageViews: BotTrafficBreakdown;
+}
+
 export interface AdminStatsResponse {
   totalImpressions: number;
   totalClicks: number;
@@ -36,6 +50,13 @@ export interface AdminStatsResponse {
   advertisersCount: number;
   slotsCount: number;
   campaignsCount: number;
+  // Bot-classification measurement summary (see docs/superpowers/sdd/
+  // 2026-08-09-bot-classification-phase1) — 7-day trailing window across
+  // active publishers, or `null` when no publisher-day document in that
+  // window carries the `byBotClass` field at all (e.g. before the
+  // classifier deploy landed). Never zeros in that case — the UI must show
+  // an explanation instead, not a misleading all-zero breakdown.
+  botTraffic: BotTrafficSummary | null;
 }
 
 async function getSystemFallbackStats(): Promise<FallbackAdStatsEntry[]> {
@@ -119,6 +140,102 @@ async function getTopCreativesAcrossSystem(limit = 5): Promise<TopCreativeEntry[
   return entries.slice(0, limit);
 }
 
+const BOT_TRAFFIC_WINDOW_DAYS = 7;
+const BOT_CLASSES = ['human', 'known_bot', 'suspected_bot'] as const;
+type BotClass = (typeof BOT_CLASSES)[number];
+
+// Trailing N complete days (yesterday back N days, excluding today's
+// still-accumulating partial day) — same convention as
+// `getCategoryInventory`'s `lastNDateKeys` in services/inventory.ts,
+// duplicated locally rather than imported across that module boundary.
+function lastNDateKeys(n: number): string[] {
+  const keys: string[] = [];
+  const now = new Date();
+  for (let i = 1; i <= n; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    keys.push(d.toISOString().split('T')[0]!.replace(/-/g, ''));
+  }
+  return keys;
+}
+
+// Reuses the publisher-day document traversal `getCategoryInventory`
+// already established (active publishers × trailing date keys →
+// `stats/publishers/{id}/{YYYYMMDD}`) rather than adding a second
+// independent walk. `byBotClass` is publisher-day-only (see
+// stats-aggregator.ts), so no campaign-hour or publisher-slot-day reads are
+// needed here.
+async function getBotTrafficSummary(
+  windowDays = BOT_TRAFFIC_WINDOW_DAYS,
+): Promise<BotTrafficSummary | null> {
+  const pubSnap = await db.collection(COLLECTIONS.publishers).where('status', '==', 'active').get();
+
+  const dateKeys = lastNDateKeys(windowDays);
+  const refs: DocumentReference[] = [];
+  for (const pubDoc of pubSnap.docs) {
+    for (const dk of dateKeys) {
+      refs.push(db.doc(`${COLLECTIONS.stats}/publishers/${pubDoc.id}/${dk}`));
+    }
+  }
+  // Batched into a single getAll() RPC instead of activePublishers ×
+  // windowDays individual .get() calls — same documents, same order, same
+  // missing-document handling (a non-existent doc's snapshot still has
+  // `.data() === undefined`, exactly as DocumentReference.get() returns).
+  // getAll() requires at least one ref, hence the guard.
+  const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
+
+  let totalImpressions = 0;
+  let totalPageViews = 0;
+  const classImpressions: Record<BotClass, number> = { human: 0, known_bot: 0, suspected_bot: 0 };
+  const classPageViews: Record<BotClass, number> = { human: 0, known_bot: 0, suspected_bot: 0 };
+  // Tracks whether ANY document in the window carries `byBotClass` at all —
+  // distinct from "every class is present" or "counts are nonzero". A
+  // window with zero such documents (e.g. entirely pre-classifier data)
+  // must produce `null`, never a breakdown that reads as "100% human".
+  let sawByBotClass = false;
+
+  for (const snap of snaps) {
+    const data = snap.data();
+    if (!data) continue;
+    totalImpressions += data.impressions ?? 0;
+    totalPageViews += data.pageViewsTrue ?? 0;
+
+    const byBotClass = data.byBotClass as
+      | Record<string, { impressions?: number; pageViewsTrue?: number }>
+      | undefined;
+    if (byBotClass) {
+      sawByBotClass = true;
+      for (const cls of BOT_CLASSES) {
+        const counts = byBotClass[cls];
+        if (!counts) continue;
+        classImpressions[cls] += counts.impressions ?? 0;
+        classPageViews[cls] += counts.pageViewsTrue ?? 0;
+      }
+    }
+  }
+
+  if (!sawByBotClass) return null;
+
+  const classifiedImpressions = BOT_CLASSES.reduce((sum, cls) => sum + classImpressions[cls], 0);
+  const classifiedPageViews = BOT_CLASSES.reduce((sum, cls) => sum + classPageViews[cls], 0);
+
+  return {
+    windowDays,
+    impressions: {
+      ...classImpressions,
+      // Events queued before the serving deploy carry no botClass at all
+      // (see QueuedEvent.botClass), so total minus the sum of the known
+      // classes is the honest unclassified remainder — floored at 0 as a
+      // defensive guard, never left negative or hidden.
+      unclassified: Math.max(0, totalImpressions - classifiedImpressions),
+    },
+    pageViews: {
+      ...classPageViews,
+      unclassified: Math.max(0, totalPageViews - classifiedPageViews),
+    },
+  };
+}
+
 export async function getAdminStats(): Promise<AdminStatsResponse> {
   let totalImpressions = 0;
   let totalClicks = 0;
@@ -197,7 +314,18 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     console.error('Failed to fetch fallback stats:', err);
   }
 
-  // 5. Fallback to mock data if empty and running in dev/emulator
+  // 5. Bot-classification measurement summary (7-day trailing window) — a
+  // genuinely real Firestore aggregate on its own, independent of
+  // hasRealData, so it's computed once and included in both return branches
+  // below, never faked alongside the dev/emulator mock numbers.
+  let botTraffic: BotTrafficSummary | null = null;
+  try {
+    botTraffic = await getBotTrafficSummary();
+  } catch (err) {
+    console.error('Failed to compute bot traffic summary:', err);
+  }
+
+  // 6. Fallback to mock data if empty and running in dev/emulator
   const isDevOrEmulator =
     process.env.FIRESTORE_EMULATOR_HOST != null || process.env.NODE_ENV === 'development';
   if (!hasRealData && isDevOrEmulator) {
@@ -225,6 +353,7 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
       advertisersCount: advertisersCount || 5,
       slotsCount: slotsCount || 8,
       campaignsCount: campaignsCount || 6,
+      botTraffic,
     };
   }
 
@@ -241,5 +370,6 @@ export async function getAdminStats(): Promise<AdminStatsResponse> {
     advertisersCount,
     slotsCount,
     campaignsCount,
+    botTraffic,
   };
 }

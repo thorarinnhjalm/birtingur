@@ -380,6 +380,86 @@ describe('aggregateEvents', () => {
     });
   });
 
+  describe('byBotClass', () => {
+    // makeEvent()'s default ts is Date.UTC(2026, 7, 8, 12, 30, 0) => day 20260808,
+    // hour 2026080812.
+    const DAY = '20260808';
+    const HOUR = '2026080812';
+    const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
+    it('counts impressions and true page views per bot class', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'impression', botClass: 'human' }),
+        makeEvent({ type: 'impression', botClass: 'human' }),
+        makeEvent({ type: 'impression', botClass: 'known_bot' }),
+        makeEvent({
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+          botClass: 'suspected_bot',
+        }),
+      ]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.byBotClass.human.impressions).toBe(2);
+      expect(doc.byBotClass.known_bot.impressions).toBe(1);
+      expect(doc.byBotClass.suspected_bot.pageViewsTrue).toBe(1);
+
+      const cmpDoc = (await db.doc(`${COLLECTIONS.stats}/campaigns/cmp_1/${HOUR}`).get()).data()!;
+      expect(cmpDoc.byBotClass.human.impressions).toBe(2);
+      expect(cmpDoc.byBotClass.known_bot.impressions).toBe(1);
+      // The true page view never touches the campaign-hour bucket at all — it
+      // carries no campaign fill, so no botClass entry should appear here for it.
+      expect(cmpDoc.byBotClass.suspected_bot).toBeUndefined();
+    });
+
+    it('leaves totals byte-for-byte unchanged by the addition', async () => {
+      const withoutBotClass: QueuedEvent[] = [
+        makeEvent({ publisherId: 'pub_x', type: 'impression' }),
+        makeEvent({ publisherId: 'pub_x', type: 'impression' }),
+        makeEvent({ publisherId: 'pub_x', type: 'click' }),
+        makeEvent({
+          publisherId: 'pub_x',
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+        }),
+      ];
+      const withBotClass: QueuedEvent[] = withoutBotClass.map((ev) => ({
+        ...ev,
+        publisherId: 'pub_y',
+        botClass: 'human',
+      }));
+
+      await aggregateEvents(withoutBotClass);
+      await aggregateEvents(withBotClass);
+
+      const docWithout = (
+        await db.doc(`${COLLECTIONS.stats}/publishers/pub_x/${DAY}`).get()
+      ).data()!;
+      const docWith = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_y/${DAY}`).get()).data()!;
+
+      const { byBotClass: _omit, ...docWithTotalsOnly } = docWith;
+      expect(docWithTotalsOnly).toEqual(docWithout);
+      expect(docWith.byBotClass).toBeDefined();
+    });
+
+    it('counts an event with NO botClass in no class at all (unclassified, not human)', async () => {
+      await aggregateEvents([makeEvent({ type: 'impression' })]); // legacy in-flight shape
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.impressions).toBe(1);
+      expect(doc.byBotClass?.human).toBeUndefined();
+      expect(doc.byBotClass).toBeUndefined();
+    });
+
+    it('writes byBotClass as a real nested map, not literal dotted keys', async () => {
+      await aggregateEvents([makeEvent({ type: 'impression', botClass: 'human' })]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(Object.keys(doc)).toContain('byBotClass');
+      expect(Object.keys(doc).some((k) => k.includes('.'))).toBe(false);
+      expect(Object.keys(doc.byBotClass)).toEqual(['human']);
+      expect(Object.keys(doc.byBotClass.human).some((k) => k.includes('.'))).toBe(false);
+      expect(doc.byBotClass.human.impressions).toBe(1);
+    });
+  });
+
   describe('unrecognized event types (CRITICAL-1 hardening)', () => {
     // Regression pin for the exact deploy-order hazard this fix wave closes:
     // main's old aggregator classified events as

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { getSlotCache } from '../lib/cache.js';
 import { logEvent, PAGEVIEW_CREATIVE_ID } from '../lib/analytics.js';
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
+import { classifyRequest } from '../lib/bot-class.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -33,6 +34,11 @@ pageviewRoute.get('/', async (c) => {
     if (!slotId) {
       return pixelResponse();
     }
+
+    const botClass = classifyRequest({
+      userAgent: c.req.header('user-agent'),
+      acceptLanguage: c.req.header('accept-language'),
+    });
 
     const tsStr = c.req.query('ts') ?? '0';
     const sig = c.req.query('sig') ?? '';
@@ -66,6 +72,7 @@ pageviewRoute.get('/', async (c) => {
         country: c.req.header('CF-IPCountry') ?? 'XX',
         visitorToken: token,
         ts: Date.now(),
+        botClass,
       });
     }
     // If the slot cache has expired, we don't know which publisher this pageview
