@@ -32,7 +32,16 @@ export const KNOWN_BOT_PATTERNS: RegExp[] = [
   /linkedinbot/i,
   /discordbot/i,
   /telegrambot/i,
-  /whatsapp/i,
+  // Anchored to the start of the UA on purpose. WhatsApp's link-preview
+  // fetcher sends "whatsapp/" as the very first token (e.g.
+  // "WhatsApp/2.23.20.0 A"), but WhatsApp's in-app browser embeds that same
+  // "WhatsApp/2.x" token at the END of an otherwise ordinary Mozilla-shaped
+  // UA when a real person taps a link inside a chat. An unanchored
+  // /whatsapp/i matches both and would label that human click-through
+  // traffic known_bot — the one class Phase 2 stops billing — costing a
+  // publisher real revenue for a real visitor. Do not drop the ^ anchor "to
+  // simplify" this; that is the exact regression it prevents.
+  /^whatsapp\//i,
   /pingdom/i,
   /uptimerobot/i,
   /\bbot\b/i,
@@ -42,13 +51,20 @@ export const KNOWN_BOT_PATTERNS: RegExp[] = [
 
 /** Automation frameworks and headless runtimes that do NOT self-declare as
  * crawlers. Suggestive only — this class never affects money (2026-08-09
- * design), because a misclassified person costs a publisher a real credit. */
+ * design), because a misclassified person costs a publisher a real credit.
+ *
+ * Deliberately excludes /electron/i: Electron is the shell for ordinary
+ * desktop apps (Slack, Discord, Notion), not an automation signal — a
+ * person reading an ad-bearing page inside one of those is a person. This
+ * class is money-inert today, but the whole point of this phase is to
+ * produce a number the owner will make a billing decision from, so it must
+ * not be inflated with humans. Do not re-add "electron" here.
+ */
 const HEADLESS_PATTERNS: RegExp[] = [
   /headlesschrome/i,
   /phantomjs/i,
   /puppeteer/i,
   /playwright/i,
-  /electron/i,
   /selenium/i,
   /webdriver/i,
 ];
