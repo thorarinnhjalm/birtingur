@@ -67,31 +67,17 @@ impressionRoute.get('/', async (c) => {
     }
 
     if (isFallback) {
-      // Claimed under its own kind: a house-ad fallback reuses one signature
-      // for its pageview pixel AND its click URL, so sharing a namespace would
-      // make one cancel the other (see SignatureKind in lib/crypto.ts).
+      // No write here anymore: slot_load (routes/ad.ts) now covers no-fill slot
+      // loads server-side at serve time, so this pixel firing would double-count
+      // the same slot load a second time. Keep the signature check and claim
+      // below so old cached snippets still firing this legacy `type=pageview`
+      // pixel are validated and rate-limited (the claim also still prevents the
+      // signature from being replayed against the click branch, since fallback
+      // click URLs share this signature — see SignatureKind in lib/crypto.ts).
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'pv');
       if (!fresh) {
         return pixelResponse();
       }
-
-      const slot = await getSlotCache(slotId);
-      if (slot?.publisherId) {
-        await logEvent({
-          type: 'pageview',
-          slotId,
-          publisherId: slot.publisherId,
-          creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
-          campaignId: 'cmp_fallback',
-          advertiserId: '',
-          country: c.req.header('CF-IPCountry') ?? 'XX',
-          visitorToken: token,
-          ts: Date.now(),
-        });
-      }
-      // If the slot cache has expired, we don't know which publisher this pageview
-      // belongs to. Logging with publisherId='' would write to a garbage Firestore
-      // path (stats/publishers//YYYYMMDD) and accumulate junk data.
     } else {
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'imp');
       if (!fresh) {

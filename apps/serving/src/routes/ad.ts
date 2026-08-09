@@ -4,7 +4,12 @@ import { FLAT_CPM_ISK } from '@ada/shared';
 import { selectCreative } from '../lib/select.js';
 import { getVisitorRegions } from '../lib/geo.js';
 import { getVisitorToken, getVisitorImpressionsToday } from '../lib/visitor.js';
-import { getRemainingBudgets, getPaceState, logEvent } from '../lib/analytics.js';
+import {
+  getRemainingBudgets,
+  getPaceState,
+  logEvent,
+  PAGEVIEW_CREATIVE_ID,
+} from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
 
 export const adRoute = new Hono();
@@ -57,11 +62,22 @@ adRoute.get('/', async (c) => {
     // Even when the slot cache is empty (expired or never populated), return a tracking
     // pixel so we can record a pageview. Without this, uncached-slot visits are invisible
     // to stats — a silent black hole that makes it look like the publisher has zero traffic.
+    // No slot_load is logged here: without a cached slot we don't know the publisherId,
+    // and logging with an empty one would write junk data (same guard as impression.ts's
+    // stale-cache drop). The pageviewPixel is still handed out — the pageview route does
+    // its own cache lookup when the pixel fires later, so if the cache has repopulated by
+    // then the pageview still gets counted even though this slot_load could not be.
     const ts = Date.now();
     const signature = createSignature('cre_nocache', slotId, token, ts);
+    const pvTs = Date.now();
+    const pvSig = createSignature(PAGEVIEW_CREATIVE_ID, slotId, token, pvTs);
+    const pageviewPixel =
+      `/v1/pageview?s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
+      `&ts=${pvTs}&sig=${pvSig}`;
     return c.json({
       empty: true,
       impressionPixel: `/v1/impression?c=cre_nocache&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
+      pageviewPixel,
     });
   }
 
@@ -104,8 +120,37 @@ adRoute.get('/', async (c) => {
     c.header('Cache-Control', 'private, no-store');
 
     const ts = Date.now();
+    const fallbackCreativeId =
+      (slot as any).fallbackType === 'transparent'
+        ? 'cre_fallback_transparent'
+        : 'cre_fallback_birtingur';
 
-    if ((slot as any).fallbackType === 'transparent') {
+    // Slot is known (we have publisherId from the cache) even though no creative
+    // filled it — that's exactly the fill-rate denominator this event exists for.
+    // Awaited like the fill-path log below; never let a Redis outage block serving.
+    try {
+      await logEvent({
+        type: 'slot_load',
+        slotId,
+        publisherId: slot.publisherId,
+        creativeId: fallbackCreativeId,
+        campaignId: 'cmp_fallback',
+        advertiserId: '',
+        country,
+        visitorToken: token,
+        ts,
+      });
+    } catch (err) {
+      console.error('logEvent failed (ad, no-fill):', err);
+    }
+
+    const pvTs = Date.now();
+    const pvSig = createSignature(PAGEVIEW_CREATIVE_ID, slotId, token, pvTs);
+    const pageviewPixel =
+      `/v1/pageview?s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
+      `&ts=${pvTs}&sig=${pvSig}`;
+
+    if (fallbackCreativeId === 'cre_fallback_transparent') {
       const signature = createSignature('cre_fallback_transparent', slotId, token, ts);
       return c.json({
         creativeId: 'cre_fallback_transparent',
@@ -114,6 +159,7 @@ adRoute.get('/', async (c) => {
         width: size.width,
         height: size.height,
         impressionPixel: `/v1/impression?c=cre_fallback_transparent&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
+        pageviewPixel,
         ttl: 60,
         showBacklink: false,
       });
@@ -132,6 +178,7 @@ adRoute.get('/', async (c) => {
       width: size.width,
       height: size.height,
       impressionPixel: `/v1/impression?c=cre_fallback_birtingur&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
+      pageviewPixel,
       ttl: 60,
       showBacklink: true,
     });
@@ -145,11 +192,13 @@ adRoute.get('/', async (c) => {
     `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
     `&ts=${ts}&sig=${signature}`;
 
-  // Log pageview event for successful ad serve (traffic tracking), awaited for
-  // durability. Never let a Redis outage block serving the ad — catch and log.
+  // Log slot_load for successful ad serve — this is the per-request fill-rate
+  // denominator, not a page view (a page with three slots would otherwise
+  // report three "page views"). Awaited for durability. Never let a Redis
+  // outage block serving the ad — catch and log.
   try {
     await logEvent({
-      type: 'pageview',
+      type: 'slot_load',
       slotId,
       publisherId: slot.publisherId,
       creativeId: creative.creativeId,
@@ -165,6 +214,12 @@ adRoute.get('/', async (c) => {
 
   // Impression is counted when the pixel fires (impression.ts), not here.
 
+  const pvTs = Date.now();
+  const pvSig = createSignature(PAGEVIEW_CREATIVE_ID, slotId, token, pvTs);
+  const pageviewPixel =
+    `/v1/pageview?s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
+    `&ts=${pvTs}&sig=${pvSig}`;
+
   c.header('Cache-Control', 'private, no-store');
 
   return c.json({
@@ -174,6 +229,7 @@ adRoute.get('/', async (c) => {
     width: creative.width,
     height: creative.height,
     impressionPixel,
+    pageviewPixel,
     ttl: 30,
     showBacklink: true,
   });

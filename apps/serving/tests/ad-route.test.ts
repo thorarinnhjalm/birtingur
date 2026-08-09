@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SlotCacheEntry } from '@ada/shared';
+import type { AdEvent } from '../src/lib/analytics';
 
 const mockSlot: SlotCacheEntry = {
   slotId: 'slot_a',
@@ -52,28 +53,39 @@ vi.mock('../src/lib/visitor', () => ({
 let mockBudgets: Record<string, number> = {};
 let mockPaceLimits: Record<string, number> = {};
 let mockPaceSpent: Record<string, number> = {};
+let logged: AdEvent[] = [];
 
-vi.mock('../src/lib/analytics', () => ({
-  logEvent: vi.fn(),
-  decrementBudget: vi.fn(async () => 100),
-  getRemainingBudgets: vi.fn(async (campaignIds: string[]) => {
-    const out: Record<string, number> = {};
-    campaignIds.forEach((id) => {
-      out[id] = mockBudgets[id] ?? Number.POSITIVE_INFINITY;
-    });
-    return out;
-  }),
-  getPaceState: vi.fn(async (campaignIds: string[]) => {
-    const out: Record<string, { limit: number; spent: number }> = {};
-    campaignIds.forEach((id) => {
-      out[id] = {
-        limit: mockPaceLimits[id] ?? Number.POSITIVE_INFINITY,
-        spent: mockPaceSpent[id] ?? 0,
-      };
-    });
-    return out;
-  }),
-}));
+function loggedEvents(): AdEvent[] {
+  return logged;
+}
+
+vi.mock('../src/lib/analytics', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    logEvent: vi.fn(async (ev: AdEvent) => {
+      logged.push(ev);
+    }),
+    decrementBudget: vi.fn(async () => 100),
+    getRemainingBudgets: vi.fn(async (campaignIds: string[]) => {
+      const out: Record<string, number> = {};
+      campaignIds.forEach((id) => {
+        out[id] = mockBudgets[id] ?? Number.POSITIVE_INFINITY;
+      });
+      return out;
+    }),
+    getPaceState: vi.fn(async (campaignIds: string[]) => {
+      const out: Record<string, { limit: number; spent: number }> = {};
+      campaignIds.forEach((id) => {
+        out[id] = {
+          limit: mockPaceLimits[id] ?? Number.POSITIVE_INFINITY,
+          spent: mockPaceSpent[id] ?? 0,
+        };
+      });
+      return out;
+    }),
+  };
+});
 
 import app from '../src/index';
 
@@ -81,6 +93,7 @@ describe('GET /v1/ad', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockBudgets = {};
+    logged = [];
   });
 
   it('returns ad JSON for known slot', async () => {
@@ -91,6 +104,23 @@ describe('GET /v1/ad', () => {
     const body = await res.json();
     expect(body.creativeId).toBe('cre_a');
     expect(body.impressionPixel).toContain('/v1/impression?');
+  });
+
+  it('logs slot_load (not pageview) and returns a signed pageviewPixel on the fill path', async () => {
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full');
+    const body = await res.json();
+    expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=slot_a&t=.*&ts=\d+&sig=[a-f0-9]+$/);
+    expect(loggedEvents().map((e) => e.type)).toContain('slot_load');
+    expect(loggedEvents().map((e) => e.type)).not.toContain('pageview');
+  });
+
+  it('logs slot_load and returns a pageviewPixel on the no-fill path too', async () => {
+    const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
+    const body = await res.json();
+    expect(body.creativeId).toBe('cre_fallback_birtingur');
+    expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=slot_empty&t=.*&ts=\d+&sig=[a-f0-9]+$/);
+    expect(loggedEvents().map((e) => e.type)).toContain('slot_load');
+    expect(loggedEvents().map((e) => e.type)).not.toContain('pageview');
   });
 
   it('returns Birtingur house ad fallback for slot with no matching creatives', async () => {

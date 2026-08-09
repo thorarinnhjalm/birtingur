@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { adRoute } from './routes/ad.js';
 import { clickRoute } from './routes/click.js';
 import { impressionRoute } from './routes/impression.js';
+import { pageviewRoute } from './routes/pageview.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,5 +55,6 @@ app.get('/v1/widgets.js', serveLocalFile('public/v1/widgets.js'));
 app.route('/v1/ad', adRoute);
 app.route('/v1/click', clickRoute);
 app.route('/v1/impression', impressionRoute);
+app.route('/v1/pageview', pageviewRoute);
 
 export default app;

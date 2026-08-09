@@ -2,7 +2,7 @@ import { getRedis } from './redis.js';
 import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
 export interface AdEvent {
-  type: 'impression' | 'click' | 'pageview';
+  type: 'impression' | 'click' | 'pageview' | 'slot_load';
   slotId: string;
   publisherId: string;
   creativeId: string;
@@ -12,6 +12,11 @@ export interface AdEvent {
   visitorToken: string;
   ts: number;
 }
+
+/** The creativeId component used when signing a page-level pixel — no creative is
+ * involved, so the ad-serve signature namespace needs a stand-in constant that the
+ * route (pageview.ts) and its signer (ad.ts) agree on. */
+export const PAGEVIEW_CREATIVE_ID = 'pageview';
 
 export const EVENT_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
 

@@ -323,25 +323,31 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  it('records a correctly signed fallback pageview', async () => {
+  // slot_load (routes/ad.ts) now covers no-fill slot loads server-side, so this
+  // legacy fallback branch no longer writes an event of its own — it only
+  // still validates and rate-limits old cached snippets that fire this pixel
+  // (see the comment in routes/impression.ts). Real page views are recorded by
+  // the dedicated, separately signed /v1/pageview pixel (routes/pageview.ts).
+  it('returns the pixel for a correctly signed fallback pageview but no longer logs it', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
     const res = await app.request(
       `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
     );
     expect(res.status).toBe(200);
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'pageview', slotId: 'slot_a', publisherId: 'pub_a' }),
-    );
+    expect(res.headers.get('Content-Type')).toBe('image/gif');
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  it('counts a replayed signed pageview only once', async () => {
+  it('still claims (rate-limits) a replayed signed fallback pageview even though nothing is logged', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
     const url = `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`;
-    await app.request(url);
-    await app.request(url);
-    expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(1);
+    const first = await app.request(url);
+    const second = await app.request(url);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
   it('drops stale impression when slot cache expired between serve and view', async () => {
