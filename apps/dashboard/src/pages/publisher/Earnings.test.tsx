@@ -34,14 +34,20 @@ function setupApiMock({
   stats,
   payouts,
   balance,
+  failOn = [],
 }: {
   publishers: unknown[];
   stats: unknown;
   payouts: unknown[];
   balance: { unpaidBasisIsk: number; minPayoutIsk: number };
+  /** URL prefixes whose request should reject, simulating a server/network failure. */
+  failOn?: string[];
 }) {
   mockedApiFetch.mockImplementation(async (url: unknown) => {
     const u = url as string;
+    if (failOn.some((prefix) => u.startsWith(prefix))) {
+      throw new Error(`simulated failure for ${u}`);
+    }
     if (u.startsWith('/v1/publishers/all')) return publishers as any;
     if (u.startsWith('/v1/publishers/stats')) return stats as any;
     if (u.startsWith('/v1/publishers/me/payouts')) return payouts as any;
@@ -124,4 +130,42 @@ test('shows no below-minimum warning when there is no unpaid basis at all', asyn
   await screen.findByText('Beðið eftir útgreiðslu');
   expect(statCardValue('Beðið eftir útgreiðslu')).toBe(formatIsk(0));
   expect(screen.queryByText(/undir því marki/)).toBeNull();
+});
+
+// Every figure on this page comes out of a query result with `?? 0`, so a
+// failed request used to render as a confident "0 kr." — telling a creator
+// who is owed money that they have earned nothing.
+test('a failed balance request shows an error, not 0 kr.', async () => {
+  setupApiMock({
+    publishers: ONE_SITE,
+    stats: { impressions: 500, clicks: 5, spendIsk: 20_000, history: [] },
+    payouts: [],
+    balance: { unpaidBasisIsk: 12_000, minPayoutIsk: MIN_PAYOUT_ISK },
+    failOn: ['/v1/publishers/me/balance'],
+  });
+  renderPage();
+
+  await screen.findByText('Villa kom upp');
+  // The money figures must be gone entirely — not merely showing zeros.
+  expect(screen.queryByText('Beðið eftir útgreiðslu')).toBeNull();
+  expect(screen.queryByText(formatIsk(0))).toBeNull();
+  expect(screen.queryByText(/undir því marki/)).toBeNull();
+});
+
+// usePublishers() failing is the subtler path: stats and balance carry
+// `enabled: !!publishers`, and a disabled query reports isLoading false while
+// still pending — so it falls straight through the loading guard into the
+// same silent zeros without ever erroring itself.
+test('a failed publishers request shows an error rather than falling through to zeros', async () => {
+  setupApiMock({
+    publishers: ONE_SITE,
+    stats: { impressions: 500, clicks: 5, spendIsk: 20_000, history: [] },
+    payouts: [],
+    balance: { unpaidBasisIsk: 12_000, minPayoutIsk: MIN_PAYOUT_ISK },
+    failOn: ['/v1/publishers/all'],
+  });
+  renderPage();
+
+  await screen.findByText('Villa kom upp');
+  expect(screen.queryByText('Beðið eftir útgreiðslu')).toBeNull();
 });

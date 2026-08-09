@@ -6,6 +6,7 @@ import { usePublishers } from '@/hooks/usePublisher';
 import { StatCard } from '@/components/ui/StatCard';
 import { Button } from '@/components/ui/Button';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { EditorialH1 } from '@/components/ui/editorial';
@@ -33,7 +34,12 @@ interface BalanceResponse {
 export default function Earnings() {
   const navigate = useNavigate();
   const { siteId } = useSiteFilter();
-  const { data: publishers, isLoading: isPubsLoading } = usePublishers();
+  const {
+    data: publishers,
+    isLoading: isPubsLoading,
+    isError: isPubsError,
+    refetch: refetchPubs,
+  } = usePublishers();
 
   // /v1/publishers/stats (not /v1/publishers/me/stats) — the /me/ endpoint
   // resolves a single publisher doc, so a multi-site owner's Earnings totals
@@ -46,7 +52,12 @@ export default function Earnings() {
   // load of /publisher/earnings?site=X fires this query (and briefly shows
   // its unfiltered all-sites result) before usePublishers() has resolved and
   // useSiteFilter has validated siteId against the caller's own sites.
-  const { data: stats, isLoading: isStatsLoading } = useQuery<StatsResponse>({
+  const {
+    data: stats,
+    isLoading: isStatsLoading,
+    isError: isStatsError,
+    refetch: refetchStats,
+  } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats', 30, siteId],
     queryFn: () =>
       apiFetch<StatsResponse>(
@@ -55,7 +66,12 @@ export default function Earnings() {
     enabled: !!publishers,
   });
 
-  const { data: payouts, isLoading: isPayoutsLoading } = useQuery<Payout[]>({
+  const {
+    data: payouts,
+    isLoading: isPayoutsLoading,
+    isError: isPayoutsError,
+    refetch: refetchPayouts,
+  } = useQuery<Payout[]>({
     queryKey: ['publisher', 'payouts'],
     queryFn: () => apiFetch<Payout[]>('/v1/publishers/me/payouts'),
   });
@@ -66,7 +82,12 @@ export default function Earnings() {
   // the minimum every month would otherwise permanently see "0 kr." and a
   // below-minimum warning even in the month they're actually about to be
   // paid the accumulated carry-forward total.
-  const { data: balance, isLoading: isBalanceLoading } = useQuery<BalanceResponse>({
+  const {
+    data: balance,
+    isLoading: isBalanceLoading,
+    isError: isBalanceError,
+    refetch: refetchBalance,
+  } = useQuery<BalanceResponse>({
     queryKey: ['publisher', 'balance'],
     queryFn: () => apiFetch<BalanceResponse>('/v1/publishers/me/balance'),
     enabled: !!publishers,
@@ -74,6 +95,31 @@ export default function Earnings() {
 
   if (isPubsLoading || isStatsLoading || isPayoutsLoading || isBalanceLoading)
     return <LoadingState />;
+
+  // Every figure on this page is money, and every one of them is read out of
+  // a query result with `?? 0` below. Without this branch a failed request
+  // renders as "0 kr." — a creator who is owed money is told, in the app's
+  // own confident typography, that they have earned nothing. That is worse
+  // than showing nothing at all.
+  //
+  // The stats/balance queries carry `enabled: !!publishers`, so a failure of
+  // usePublishers() leaves them permanently pending rather than erroring:
+  // isLoading is false for a disabled query, so it falls straight through the
+  // guard above into the same silent zeros. isPubsError has to be part of
+  // this condition, not just the two queries that display the numbers.
+  if (isPubsError || isStatsError || isPayoutsError || isBalanceError) {
+    return (
+      <ErrorState
+        message="Ekki tókst að sækja tekjutölurnar þínar. Þetta er tæknileg villa í sambandi við þjóninn — tekjurnar þínar eru óbreyttar. Reyndu aftur eftir smástund."
+        onRetry={() => {
+          if (isPubsError) void refetchPubs();
+          if (isStatsError) void refetchStats();
+          if (isPayoutsError) void refetchPayouts();
+          if (isBalanceError) void refetchBalance();
+        }}
+      />
+    );
+  }
 
   const earningsTotal = stats?.spendIsk || 0;
   const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
