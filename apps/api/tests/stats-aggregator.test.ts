@@ -265,7 +265,9 @@ describe('aggregateEvents', () => {
     const DAY = '20260808';
     // Mirrors serving's PAGEVIEW_CREATIVE_ID / the aggregator's TRUE_PAGEVIEW_CREATIVE_ID:
     // the marker that distinguishes a genuine page-level pageview event from a
-    // pre-cutover 'pageview' event that actually meant a slot load.
+    // 'pageview' event that actually means a slot load (apps/serving emits both
+    // shapes with the SAME wire type — see TRUE_PAGEVIEW_CREATIVE_ID in
+    // stats-aggregator.ts for why that's deliberate, not legacy).
     const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
 
     it('counts slot_load into pageviews and pageview into pageViewsTrue', async () => {
@@ -334,7 +336,13 @@ describe('aggregateEvents', () => {
       expect(creDoc.pageviews).toBe(1);
     });
 
-    describe('legacy pre-cutover pageview events (commit a7d538c)', () => {
+    describe('pageview wire-type marker (creativeId discriminates slot load vs true page view)', () => {
+      // This is the primary contract, not a compatibility shim: apps/serving
+      // deliberately emits every slot load with wire type 'pageview' (see
+      // AdEvent.type in apps/serving/src/lib/analytics.ts) rather than a
+      // distinct type, so apps/serving and apps/api — separate Vercel projects
+      // that redeploy simultaneously on one push — stay correct regardless of
+      // which one goes live first.
       it('a true pageview (creativeId: TRUE_PAGEVIEW_CREATIVE_ID) increments pageViewsTrue and not pageviews', async () => {
         await aggregateEvents([
           makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
@@ -344,21 +352,21 @@ describe('aggregateEvents', () => {
         expect(doc.pageviews ?? 0).toBe(0);
       });
 
-      it('a legacy-shaped pageview (real creativeId, pre-cutover) increments pageviews and leaves pageViewsTrue absent', async () => {
+      it('a slot-load-shaped pageview (real creativeId) increments pageviews and leaves pageViewsTrue absent', async () => {
         await aggregateEvents([makeEvent({ type: 'pageview', creativeId: 'cre_abc' })]);
         const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
         expect(doc.pageviews).toBe(1);
         expect(doc.pageViewsTrue).toBeUndefined();
 
-        // Legacy events also carried creative-hour bookkeeping (the old pageview
-        // branch's behaviour), same as slot_load does now.
+        // A slot-load-shaped 'pageview' event also carries creative-hour
+        // bookkeeping, same as an explicit 'slot_load' event does.
         const creDoc = (
           await db.doc(`${COLLECTIONS.stats}/creatives/cre_abc/2026080812`).get()
         ).data()!;
         expect(creDoc.pageviews).toBe(1);
       });
 
-      it('a mixed batch of true and legacy-shaped pageviews lands in the right buckets', async () => {
+      it('a mixed batch of true and slot-load-shaped pageviews lands in the right buckets', async () => {
         await aggregateEvents([
           makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
           makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
@@ -367,8 +375,38 @@ describe('aggregateEvents', () => {
         ]);
         const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
         expect(doc.pageViewsTrue).toBe(2); // the two true pageviews
-        expect(doc.pageviews).toBe(2); // the two legacy-shaped (slot-load) pageviews
+        expect(doc.pageviews).toBe(2); // the two slot-load-shaped pageviews
       });
+    });
+  });
+
+  describe('unrecognized event types (CRITICAL-1 hardening)', () => {
+    // Regression pin for the exact deploy-order hazard this fix wave closes:
+    // main's old aggregator classified events as
+    // `if (pageview) {...} else { if (impression) impressions++ else clicks++ }`,
+    // so ANY event type it didn't special-case fell through and was counted as
+    // a click. The current aggregator must instead skip an unrecognized type
+    // outright rather than silently miscounting it.
+    it('does not count an unrecognized event type as a click', async () => {
+      await aggregateEvents([
+        // @ts-expect-error deliberately outside the QueuedEvent union
+        makeEvent({ type: 'something_new' }),
+      ]);
+      const doc = await getDoc(`${COLLECTIONS.stats}/publishers/pub_a/20260808`);
+      // Nothing should have been written at all for a batch containing only an
+      // unrecognized event.
+      expect(doc).toBeUndefined();
+    });
+
+    it('still counts the recognized events in a batch that also contains an unrecognized type', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'click' }),
+        // @ts-expect-error deliberately outside the QueuedEvent union
+        makeEvent({ type: 'something_new' }),
+      ]);
+      const doc = await getDoc(`${COLLECTIONS.stats}/campaigns/cmp_1/2026080812`);
+      expect(doc!.clicks).toBe(1);
+      expect(doc!.impressions ?? 0).toBe(0);
     });
   });
 });

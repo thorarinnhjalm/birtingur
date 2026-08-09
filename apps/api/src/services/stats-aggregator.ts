@@ -45,20 +45,28 @@ function recordedCounterKey(ts: number): string {
   return `recorded:${hourKey(ts)}`;
 }
 
-// Cutover discriminator (2026-08-09, commit a7d538c on this branch): before that
-// commit, EVERY ad-serve request logged `type: 'pageview'` carrying a real or
-// fallback creativeId (`cre_…`, `cre_fallback_transparent`, `cre_fallback_birtingur`,
-// `cre_nocache`) — that event meant a slot load, not a true page view. Post-cutover,
-// `slot_load` took over that meaning and the new page-level pixel
-// (apps/serving/src/routes/pageview.ts) is the only thing that logs `type: 'pageview'`
-// now, always tagged with this placeholder creativeId since no creative is involved.
-// Any pre-cutover 'pageview' event still sitting in EVENT_QUEUE_STATS/LEGACY when this
-// aggregator deploys must still be routed as a slot load, or it inflates the brand-new
-// pageViewsTrue figure on day one. Duplicated from serving's PAGEVIEW_CREATIVE_ID
-// (apps/serving/src/lib/analytics.ts) rather than imported across the app boundary.
-// Safe to delete this guard, and route all 'pageview' events straight to the true-
-// pageview branch, once the pre-cutover backlog has fully drained (bounded by the
-// hourly cron-aggregate cadence and the 7-day event-counter TTL).
+// Primary wire contract (2026-08-09 design, revised after a deploy-order hazard
+// was caught in review): a slot load (one per /v1/ad request) and a true page
+// view (one per page load, apps/serving/src/routes/pageview.ts) DELIBERATELY
+// share the same wire type 'pageview' — the ONLY discriminator is creativeId. A
+// true page view carries creativeId === TRUE_PAGEVIEW_CREATIVE_ID; a slot load
+// carries the real (or fallback) creativeId of whatever was served
+// (`cre_…`, `cre_fallback_transparent`, `cre_fallback_birtingur`, `cre_nocache`).
+//
+// An earlier version of this branch instead renamed slot-load events to a
+// separate 'slot_load' wire type. That was reverted: apps/serving and apps/api
+// are separate Vercel projects that rebuild simultaneously on one push, so
+// "serving live before api" (or the reverse) is a real, uncontrollable window.
+// A 'slot_load' event drained by main's OLD aggregator — which only
+// special-cases 'pageview' and buckets everything else as an impression/click —
+// would have been counted as a CLICK, inflating publisher CTR and campaign/
+// creative click totals irreversibly. Keeping the wire type constant means an
+// old aggregator instead counts every 'pageview' event (slot loads included) as
+// a pageview: bounded, harmless overcounting, never a click. Either deploy
+// order is safe.
+//
+// Duplicated from serving's PAGEVIEW_CREATIVE_ID (apps/serving/src/lib/
+// analytics.ts) rather than imported across the app boundary.
 const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
 
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
@@ -92,15 +100,23 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   const creativeHour = new Map<string, CreativeStats>();
 
   for (const ev of events) {
-    // A pre-cutover 'pageview' event (real/fallback creativeId, logged before commit
-    // a7d538c) means a slot load, not a true page view — see TRUE_PAGEVIEW_CREATIVE_ID
-    // above. Route it through the exact same path as 'slot_load'.
-    const isLegacySlotLoad = ev.type === 'pageview' && ev.creativeId !== TRUE_PAGEVIEW_CREATIVE_ID;
+    // Primary discriminator (see TRUE_PAGEVIEW_CREATIVE_ID above): a 'pageview'
+    // event whose creativeId is anything other than the true-pageview marker is
+    // a slot load, not a page view. Route it through the exact same path as
+    // 'slot_load'.
+    const isSlotLoadByMarker =
+      ev.type === 'pageview' && ev.creativeId !== TRUE_PAGEVIEW_CREATIVE_ID;
 
-    if (ev.type === 'slot_load' || isLegacySlotLoad) {
-      // slot_load is one per ad request — the fill-rate denominator. It takes over the
-      // bookkeeping the old 'pageview' branch used to do (the `pageviews` field keeps its
-      // existing meaning; only the event type feeding it has changed).
+    if (ev.type === 'slot_load' || isSlotLoadByMarker) {
+      // 'slot_load' as an explicit wire type is accepted here purely for
+      // forward/backward compatibility (an already-queued event, or some future
+      // emitter) — apps/serving itself never sends it (see AdEvent.type in
+      // apps/serving/src/lib/analytics.ts). The marker path above is what
+      // production actually exercises.
+      //
+      // A slot load is one per ad request — the fill-rate denominator. The
+      // `pageviews` field keeps its historical name and meaning regardless of
+      // which of the two wire shapes fed it.
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
       for (const map of [publisherDay, publisherSlotDay]) {
@@ -119,7 +135,7 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       }
     } else if (ev.type === 'pageview') {
       // Real page view (creativeId === TRUE_PAGEVIEW_CREATIVE_ID, guaranteed by the
-      // isLegacySlotLoad check above) — one per page load, independent of ad-slot fill.
+      // isSlotLoadByMarker check above) — one per page load, independent of ad-slot fill.
       // Only the publisher-day and publisher-slot-day buckets track it (no creative-hour
       // bookkeeping: a true pageview isn't tied to a served creative).
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
@@ -130,7 +146,14 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         b.pageViewsTrue = (b.pageViewsTrue ?? 0) + 1;
         map.set(key, b);
       }
-    } else {
+    } else if (ev.type === 'impression' || ev.type === 'click') {
+      // Explicitly impression/click only — NOT a bare `else`. A bare `else` here
+      // is exactly the class of bug this fix wave exists to close: main's
+      // pre-2026-08-09 aggregator classified events as `if (pageview) {...} else
+      // { if (impression) impressions++ else clicks++ }`, so any event type it
+      // didn't recognize (a renamed 'slot_load', or any future type) silently
+      // fell through and was counted as a CLICK. Skip and warn instead of
+      // guessing.
       const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
@@ -199,6 +222,14 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         }
         map.set(key, b);
       }
+    } else {
+      // Unknown event type: skip rather than silently miscounting it as a
+      // click (see the comment above the impression/click branch). Cast
+      // needed only because TS has narrowed `ev.type` to `never` here — every
+      // literal in the QueuedEvent union is provably handled above.
+      console.warn(
+        `[stats-aggregator] Skipping event with unrecognized type: ${String((ev as { type: unknown }).type)}`,
+      );
     }
   }
 
