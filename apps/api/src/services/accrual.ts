@@ -5,6 +5,7 @@ import { chargeCampaign, creditPublisher } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
 import { FLAT_CPM_ISK, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 import { AppError } from '../lib/errors.js';
+import { alertOps } from './ops-alerts.js';
 
 interface QueuedEvent {
   type: 'impression' | 'click';
@@ -14,6 +15,20 @@ interface QueuedEvent {
   campaignId: string;
   ts: number;
 }
+
+const ACCRUAL_FAIL_PREFIX = 'accrual-fail:';
+// A campaign that fails to charge (for a reason OTHER than insufficient
+// funds — see the narrowed inner catch below) gets its events re-queued for
+// the next run to retry. That's fine for a transient blip, but a campaign
+// that keeps failing run after run would otherwise serve unbilled forever:
+// it stays `active`, its budget never decrements, and cron-refresh-cache
+// keeps reseeding its Redis budget counter. This counter (persisted in
+// Redis so it survives across cron invocations, not just within one run)
+// tracks consecutive failures per campaign; crossing the threshold pauses
+// the campaign — exactly like the insufficient-funds path — and pages ops,
+// instead of retrying silently forever.
+const ACCRUAL_FAIL_THRESHOLD = 3; // ~3 cron runs (15 min apart) ≈ 45 minutes
+const ACCRUAL_FAIL_TTL_SECONDS = 4 * 60 * 60; // a few hours — bounds a sparse-but-not-consecutive failure streak
 
 interface DrainBatchResult {
   drained: number;
@@ -113,6 +128,18 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
         try {
           await chargeCampaign(cmp.advertiserId, campaignId, totalCharge);
           charged = true;
+          // Charging succeeded — clear any consecutive-failure streak this
+          // campaign had built up. Best-effort: if this throws, it's a
+          // post-charge failure and the outer catch's `charged` branch below
+          // already handles it (log + continue, never re-queue).
+          try {
+            await redis.del(`${ACCRUAL_FAIL_PREFIX}${campaignId}`);
+          } catch (clearErr) {
+            console.error(
+              `[cron-accrue] failed to clear accrual-fail counter for ${campaignId}:`,
+              clearErr,
+            );
+          }
         } catch (err) {
           // Only the handled insufficient-funds case pauses-and-continues
           // here. Any other failure (e.g. Firestore unavailable) has also
@@ -164,7 +191,49 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
       // Unexpected failure (not the handled insufficient-funds path above,
       // which already `continue`s before reaching here) that happened
       // BEFORE the charge went through — this campaign's raw events are
-      // safe to put back for the next run to retry.
+      // safe to put back for the next run to retry, UNLESS this campaign has
+      // now failed too many times in a row (see ACCRUAL_FAIL_THRESHOLD).
+      const failKey = `${ACCRUAL_FAIL_PREFIX}${campaignId}`;
+      let failCount = 1;
+      try {
+        failCount = await redis.incr(failKey);
+        await redis.expire(failKey, ACCRUAL_FAIL_TTL_SECONDS);
+      } catch (counterErr) {
+        console.error(
+          `[cron-accrue] failed to update accrual-fail counter for ${campaignId}:`,
+          counterErr,
+        );
+      }
+
+      if (failCount >= ACCRUAL_FAIL_THRESHOLD) {
+        console.error(
+          `[cron-accrue] ${campaignId} failed to charge ${failCount} times in a row — pausing and alerting instead of re-queueing again:`,
+          err,
+        );
+        try {
+          await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
+            status: 'paused',
+          });
+          await pushCacheForCampaign(campaignId);
+        } catch (pauseErr) {
+          console.error(
+            `[cron-accrue] failed to pause ${campaignId} after sustained accrual failures:`,
+            pauseErr,
+          );
+        }
+        await alertOps(
+          `Herferð ${campaignId} sett í bið — endurteknar villur við innheimtu`,
+          `Innheimta fyrir herferð ${campaignId} hefur mistekist ${failCount} sinnum í röð (síðasta villa: ${String(err).slice(0, 300)}). Herferðin var sjálfkrafa sett í bið til að stöðva ófrágengnar birtingar — skoðaðu Vercel logs og /api/cron-diagnostics.`,
+        );
+        try {
+          await redis.del(failKey);
+        } catch {
+          /* best effort — a stale count just means one extra failure is
+           * needed before the next pause decision, not a correctness issue */
+        }
+        continue; // paused — do not re-queue this batch of events
+      }
+
       console.warn(`[cron-accrue] re-queueing ${evs.length} events for ${campaignId}:`, err);
       for (const ev of evs) {
         await redis.lpush(EVENT_QUEUE_ACCRUAL, JSON.stringify(ev));
@@ -186,24 +255,35 @@ export async function drainAndAccrue(batchSize = 500): Promise<number> {
  * Loop `drainBatch` until the queue is exhausted, a batch makes no forward
  * progress (everything in it got re-queued), or `maxBatches` is hit — the
  * safety valve against a runaway loop within a single cron invocation.
+ * `batches` is the true number of `drainBatch` calls made; `capped` tells an
+ * operator whether the run stopped because it hit that safety valve with
+ * work still left (truncated) as opposed to draining the queue clean.
  */
 export async function drainAndAccrueAll(opts?: {
   batchSize?: number;
   maxBatches?: number;
-}): Promise<{ drained: number; batches: number; requeued: number }> {
+}): Promise<{ drained: number; batches: number; requeued: number; capped: boolean }> {
   const batchSize = opts?.batchSize ?? 500;
   const maxBatches = opts?.maxBatches ?? 20;
   let drained = 0;
   let requeued = 0;
   let batches = 0;
-  for (; batches < maxBatches; batches++) {
+  // True only when maxBatches cut the run short while it was still making
+  // full-batch progress — i.e. there may be more work left in the queue than
+  // this run got to. A clean finish (queue ran dry, or a batch stalled with
+  // zero net progress) is NOT "capped", even if it happens to be the last
+  // iteration the loop would have allowed anyway.
+  let capped = false;
+  while (batches < maxBatches) {
     const res = await drainBatch(batchSize);
+    batches++; // count the call that actually happened, not a loop-increment guess
     drained += res.drained;
     requeued += res.requeued;
     // Stop when the queue yielded less than a full batch (empty), or when a
     // batch made no forward progress (everything re-queued — retrying in
     // this run would just spin on the same failure).
     if (res.drained < batchSize || res.drained === res.requeued) break;
+    if (batches === maxBatches) capped = true;
   }
-  return { drained, batches: batches + 1, requeued };
+  return { drained, batches, requeued, capped };
 }

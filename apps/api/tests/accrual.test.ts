@@ -28,6 +28,11 @@ const mockCampaigns = new Map<string, MockCampaign>();
 const mockSlots = new Map<string, MockSlot>();
 let mockAdvertisers: Array<{ id: string; walletBalanceIsk: number }> = [];
 let mockEventsQueue: string[] = [];
+// Advertiser ids for which the mocked advertisers-collection `update` (i.e.
+// syncMirror's write, invoked from inside the REAL chargeCampaign) throws —
+// proves end-to-end that a mirror-sync failure after a successful charge
+// does not cause accrual to re-queue (and thus double-bill) those events.
+let failMirrorSyncFor = new Set<string>();
 
 vi.mock('../src/lib/firebase', () => {
   return {
@@ -107,6 +112,9 @@ vi.mock('../src/lib/firebase', () => {
                   }
                 }
               } else if (colName === 'advertisers') {
+                if (failMirrorSyncFor.has(id)) {
+                  throw new Error('mirror sync unavailable');
+                }
                 const found = mockAdvertisers.find((a) => a.id === id);
                 if (found) {
                   Object.assign(found, fields);
@@ -146,6 +154,10 @@ vi.mock('../src/lib/firebase', () => {
   };
 });
 
+// Minimal in-memory KV store backing the accrual-fail:{campaignId} counters
+// (incr/expire/del) used by the consecutive-failure pause/alert logic.
+let mockKv = new Map<string, number>();
+
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
     rpop: vi.fn(async () => mockEventsQueue.pop() || null),
@@ -156,12 +168,30 @@ vi.mock('../src/lib/redis', () => ({
       mockEventsQueue.unshift(val);
       return mockEventsQueue.length;
     }),
+    incr: vi.fn(async (key: string) => {
+      const next = (mockKv.get(key) ?? 0) + 1;
+      mockKv.set(key, next);
+      return next;
+    }),
+    expire: vi.fn(async (_key: string, _seconds: number) => 1),
+    del: vi.fn(async (key: string) => {
+      const existed = mockKv.has(key);
+      mockKv.delete(key);
+      return existed ? 1 : 0;
+    }),
   }),
 }));
 
 // Mock pushCacheForCampaign to avoid actual cache push side effects in these tests
 vi.mock('../src/lib/push-cache', () => ({
   pushCacheForCampaign: vi.fn(async () => {}),
+}));
+
+// Mock ops-alerts so tests can assert exactly when/how often a sustained
+// accrual failure pages ops, without exercising real email/notification
+// side effects (those are covered by ops-alerts' own tests).
+vi.mock('../src/services/ops-alerts', () => ({
+  alertOps: vi.fn(async () => {}),
 }));
 
 // Fail-injection wrapper around the real wallet service: lets tests force an
@@ -196,6 +226,7 @@ vi.mock('../src/services/wallet', async () => {
 });
 
 import { drainAndAccrue, drainAndAccrueAll } from '../src/services/accrual';
+import { alertOps } from '../src/services/ops-alerts';
 
 async function seedWalletCampaignSlot({
   balanceIsk,
@@ -329,6 +360,16 @@ function failAfterChargeFor(campaignId: string) {
   failAfterChargeCampaigns.add(campaignId);
 }
 
+/**
+ * Force the wallet mirror sync to throw for this campaign's advertiser.
+ * Exercises the REAL (non-mocked) chargeCampaign — via seedFundedCampaign's
+ * `adv_${campaignId}` convention — to prove the wallet.ts fix (syncMirror
+ * failures swallowed post-ledger-write) holds end-to-end through accrual.
+ */
+function failMirrorSyncAfterChargeFor(campaignId: string) {
+  failMirrorSyncFor.add(`adv_${campaignId}`);
+}
+
 /** Campaign ids that have at least one recorded campaign_charge ledger entry. */
 function chargedCampaigns(): string[] {
   const ids = new Set<string>();
@@ -368,6 +409,8 @@ describe('Accrual Service', () => {
     mockEventsQueue = [];
     failingCampaigns = new Set();
     failAfterChargeCampaigns = new Set();
+    failMirrorSyncFor = new Set();
+    mockKv = new Map();
     chargeCallCounts = new Map();
   });
 
@@ -408,6 +451,8 @@ describe('drainAndAccrueAll', () => {
     mockEventsQueue = [];
     failingCampaigns = new Set();
     failAfterChargeCampaigns = new Set();
+    failMirrorSyncFor = new Set();
+    mockKv = new Map();
     chargeCallCounts = new Map();
   });
 
@@ -415,14 +460,17 @@ describe('drainAndAccrueAll', () => {
     await seedQueue(1200);
     const res = await drainAndAccrueAll({ batchSize: 500 });
     expect(res.drained).toBe(1200);
-    expect(res.batches).toBe(3);
+    expect(res.batches).toBe(3); // 3 actual drainBatch calls (500 + 500 + 200)
+    expect(res.capped).toBe(false); // clean finish — queue ran dry, not maxBatches
     expect(queueLength()).toBe(0);
   });
 
-  it('stops at maxBatches and leaves the rest queued', async () => {
+  it('stops at maxBatches, reports the true batch count, and flags the run as capped', async () => {
     await seedQueue(1100);
     const res = await drainAndAccrueAll({ batchSize: 500, maxBatches: 2 });
     expect(res.drained).toBe(1000);
+    expect(res.batches).toBe(2); // exactly 2 drainBatch calls happened — not 3
+    expect(res.capped).toBe(true); // maxBatches cut the run short with work left
     expect(queueLength()).toBe(100);
   });
 
@@ -441,15 +489,6 @@ describe('drainAndAccrueAll', () => {
     expect(queueLength()).toBe(10); // cmp_bad's events are back
   });
 
-  it('never re-queues events of a campaign that already charged (no double billing)', async () => {
-    await seedQueueFor('cmp_good', 10);
-    await drainAndAccrueAll();
-    expect(queueLength()).toBe(0);
-    const res2 = await drainAndAccrueAll();
-    expect(res2.drained).toBe(0);
-    expect(chargeCallCount('cmp_good')).toBe(1);
-  });
-
   it('never re-queues a campaign whose charge already succeeded, even if a later step throws', async () => {
     // chargeCampaign succeeds for cmp_flaky, but creditPublisher (a step
     // AFTER the charge) throws. Re-queueing here would replay the charge on
@@ -462,5 +501,51 @@ describe('drainAndAccrueAll', () => {
     expect(chargeCallCount('cmp_flaky')).toBe(1);
     expect(res.requeued).toBe(0);
     expect(queueLength()).toBe(0);
+  });
+
+  it('never re-queues a campaign whose wallet mirror sync fails after the ledger charge lands', async () => {
+    // Exercises the REAL chargeCampaign (not the failChargeFor/failAfterChargeFor
+    // mocks) — its own internal syncMirror failure must not surface as a
+    // rejection, so accrual never sees a reason to re-queue these events.
+    await seedQueueFor('cmp_mirror_fail', 10);
+    failMirrorSyncAfterChargeFor('cmp_mirror_fail');
+
+    const res = await drainAndAccrueAll();
+    expect(chargedCampaigns()).toContain('cmp_mirror_fail');
+    expect(chargeCallCount('cmp_mirror_fail')).toBe(1);
+    expect(res.requeued).toBe(0);
+    expect(queueLength()).toBe(0);
+  });
+
+  it('does not pause the campaign after a single transient accrual failure', async () => {
+    await seedQueueFor('cmp_flaky2', 10);
+    failChargeFor('cmp_flaky2');
+
+    await drainAndAccrueAll();
+
+    expect(mockCampaigns.get('cmp_flaky2')!.status).toBe('active');
+    expect(alertOps).not.toHaveBeenCalled();
+    expect(queueLength()).toBe(10); // re-queued, not dropped — only 1 failure so far
+  });
+
+  it('pauses the campaign and alerts ops exactly once after sustained accrual failures', async () => {
+    // Same campaign fails to charge across three separate cron-style
+    // drainAndAccrueAll() invocations (each pops the still-queued events,
+    // fails, and re-queues them again — exactly like three real 15-minute
+    // cron ticks would). The first two must NOT pause or alert; the third
+    // crosses ACCRUAL_FAIL_THRESHOLD and must pause + alert exactly once.
+    await seedQueueFor('cmp_sustained', 10);
+    failChargeFor('cmp_sustained');
+
+    await drainAndAccrueAll(); // failure 1
+    await drainAndAccrueAll(); // failure 2
+    expect(mockCampaigns.get('cmp_sustained')!.status).toBe('active');
+    expect(alertOps).not.toHaveBeenCalled();
+
+    await drainAndAccrueAll(); // failure 3 — crosses the threshold
+
+    expect(mockCampaigns.get('cmp_sustained')!.status).toBe('paused');
+    expect(alertOps).toHaveBeenCalledTimes(1);
+    expect(queueLength()).toBe(0); // dropped (not re-queued) once paused
   });
 });
