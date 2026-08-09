@@ -128,3 +128,10 @@ export type SensitiveAdCategory = (typeof SENSITIVE_AD_CATEGORIES)[number]['slug
  * CampaignDetail page agree on the literal without either hardcoding it.
  */
 export const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
+
+/** The day true per-page-load traffic measurement began. Before this, the
+ * stored `pageviews` figure counted ad-slot loads (one per slot per page),
+ * which overstated a publisher's traffic by their slots-per-page ratio —
+ * it cannot be corrected retroactively, so the accurate series starts here
+ * (2026-08-09 design). */
+export const TRAFFIC_MEASUREMENT_START = '2026-08-09';

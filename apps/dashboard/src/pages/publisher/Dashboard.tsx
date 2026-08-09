@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import { DEFAULT_PLATFORM_FEE_PERCENT, TRAFFIC_MEASUREMENT_START } from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -20,7 +20,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
 import { usePublishers, usePublisherSlots } from '@/hooks/usePublisher';
 import { useSiteFilter } from '@/hooks/useSiteFilter';
-import { formatIsk } from '@/lib/format';
+import { formatIsk, formatDate } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from 'recharts';
@@ -40,12 +40,17 @@ interface StatsResponse {
   clicks: number;
   spendIsk: number;
   pageviews: number;
+  // Real page views (Task 4/6). Absent — not zero — when no day in the
+  // selected window has measured it yet (pre-switch or no data at all); the
+  // UI must show that absence honestly rather than falling back to 0.
+  pageViewsTrue?: number;
   history: {
     date: string;
     impressions: number;
     clicks: number;
     spendIsk: number;
     pageviews: number;
+    pageViewsTrue?: number;
   }[];
   bySite?: {
     publisherId: string;
@@ -54,6 +59,7 @@ interface StatsResponse {
     impressions: number;
     clicks: number;
     pageviews: number;
+    pageViewsTrue?: number;
     spendIsk: number;
   }[];
 }
@@ -425,18 +431,36 @@ function PublisherHome() {
       {/* Vefumferð / Smellir / CTR / Fyllihlutfall — not in the template's
           four-card row. Kept because the page already computes them from the
           same stats query; restyled to the same icon-free StatCard used
-          above instead of the old colored icon-chip cards. */}
+          above instead of the old colored icon-chip cards.
+
+          "Vefumferð" (web traffic) is deliberately NOT stats.pageviews —
+          that field counts ad-slot loads (one per slot per page), which
+          overstates traffic by the site's slots-per-page ratio. It renders
+          the real pageViewsTrue figure (Task 4/6), and an em dash plus an
+          explanatory note — never a false 0 — for the pre-switch window
+          where no accurate figure was ever measured. Built as a plain Card
+          rather than <StatCard> because the fallback note doesn't fit that
+          component's value-only shape. */}
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <StatCard
-          label="Vefumferð"
-          value={
-            stats
-              ? stats.pageviews >= 1000000
-                ? `${(stats.pageviews / 1000000).toFixed(1)}M`
-                : stats.pageviews.toLocaleString('is-IS')
-              : '0'
-          }
-        />
+        <Card className="flex flex-col justify-between min-h-[120px]">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Vefumferð
+            </div>
+            <div className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">
+              {stats && stats.pageViewsTrue !== undefined
+                ? stats.pageViewsTrue >= 1000000
+                  ? `${(stats.pageViewsTrue / 1000000).toFixed(1)}M`
+                  : stats.pageViewsTrue.toLocaleString('is-IS')
+                : '—'}
+            </div>
+          </div>
+          {(!stats || stats.pageViewsTrue === undefined) && (
+            <p className="mt-2 text-[11px] font-medium text-slate-400">
+              Nákvæm umferðarmæling hófst {formatDate(TRAFFIC_MEASUREMENT_START)}
+            </p>
+          )}
+        </Card>
         <StatCard label="Smellir" value={stats ? stats.clicks.toLocaleString('is-IS') : '0'} />
         <StatCard
           label="CTR"
@@ -498,7 +522,11 @@ function PublisherHome() {
                       <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
                     </td>
                     <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
-                    <td className="py-3">{site.pageviews.toLocaleString('is-IS')}</td>
+                    <td className="py-3">
+                      {site.pageViewsTrue !== undefined
+                        ? site.pageViewsTrue.toLocaleString('is-IS')
+                        : '—'}
+                    </td>
                     <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
                     <td className="py-3 text-right">
                       {formatIsk(

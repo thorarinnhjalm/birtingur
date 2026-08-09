@@ -54,6 +54,19 @@ const TWO_SITES = [
   { id: 'pub_b', displayName: 'Vefur B', domain: 'vefur-b.is' },
 ];
 
+// Single-site owner, for the Vefumferð stat-card tests below — a single-site
+// owner never gets a `bySite` breakdown, so this exercises the plain
+// stats.pageViewsTrue path without the per-site table getting in the way.
+const ONE_SITE = [{ id: 'pub_a', displayName: 'Vefur A', domain: 'vefur-a.is' }];
+
+const BASE_STATS = {
+  impressions: 100,
+  clicks: 5,
+  spendIsk: 0,
+  pageviews: 0,
+  history: [],
+};
+
 const BY_SITE_STATS = {
   impressions: 1500,
   clicks: 15,
@@ -83,12 +96,12 @@ const BY_SITE_STATS = {
 };
 
 function setupApiMock({
-  publishers,
-  slots,
+  publishers = ONE_SITE,
+  slots = [],
   stats,
 }: {
-  publishers: unknown[];
-  slots: unknown[];
+  publishers?: unknown[];
+  slots?: unknown[];
   stats: unknown;
 }) {
   mockedApiFetch.mockImplementation(async (url: unknown) => {
@@ -138,4 +151,18 @@ test('clicking a site row narrows the filter', async () => {
   await vi.waitFor(() => {
     expect(mockedApiFetch).toHaveBeenCalledWith(expect.stringContaining('publisherId=pub_b'));
   });
+});
+
+test('Vefumferð shows the true page-view figure when present', async () => {
+  setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000, pageViewsTrue: 3000 } });
+  renderPage();
+  expect(await screen.findByText('3.000')).toBeDefined();
+  expect(screen.queryByText('9.000')).toBeNull(); // slot loads are NOT the traffic figure
+});
+
+test('Vefumferð shows an em dash and an explanation for pre-switch history', async () => {
+  setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000 } }); // no pageViewsTrue
+  renderPage();
+  expect(await screen.findByText('—')).toBeDefined();
+  expect(screen.getByText(/Nákvæm umferðarmæling hófst/)).toBeDefined();
 });

@@ -154,8 +154,13 @@ export default function SlotDetail() {
             <Globe size={22} />
           </div>
           <div>
+            {/* Relabeled from "Vefumferð" (Task 6): this is per-slot ad-slot
+                loads, not deduplicated real traffic — a page with several
+                slots counts once per slot here, so calling it "web traffic"
+                overstated it. The fill-rate card below still correctly
+                divides impressions by this same slot-loads figure. */}
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Vefumferð
+              Hleðslur pláss
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
               {slotStats ? slotStats.pageviews.toLocaleString('is-IS') : '0'}

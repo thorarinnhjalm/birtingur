@@ -15,6 +15,11 @@ interface ChartDataPoint {
   clicks: number;
   spendIsk?: number;
   pageviews?: number;
+  // Real page views (Task 4/6). Absent — not zero — for a day with no
+  // measured true traffic (pre-switch, or a post-switch day the aggregator
+  // left unset); the "Vefumferð" series below relies on that absence to
+  // leave a gap instead of drawing a false zero.
+  pageViewsTrue?: number;
 }
 
 interface AnalyticsChartProps {
@@ -91,7 +96,11 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
       case 'pageviews':
         return {
           label: 'Vefumferð',
-          dataKey: 'pageviews',
+          // Real page views, NOT the raw `pageviews` field (that one counts
+          // ad-slot loads). Left absent rather than defaulted to 0 on days
+          // with no measured value, so Recharts draws a gap instead of a
+          // false zero for the pre-switch history.
+          dataKey: 'pageViewsTrue',
           color: '#0ea5e9', // sky-500
           formatter: (v: number) => v.toLocaleString('is-IS'),
         };
@@ -184,7 +193,11 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
             <Tooltip
               cursor={{ stroke: 'rgba(148, 163, 184, 0.1)', strokeWidth: 1 }}
               content={({ active, payload }) => {
-                if (active && payload && payload.length) {
+                // A gap point (e.g. pre-switch pageViewsTrue, deliberately
+                // left undefined rather than 0) has no plottable value —
+                // render nothing instead of crashing the formatter or
+                // showing a misleading 0.
+                if (active && payload && payload.length && payload[0]!.value != null) {
                   const val = payload[0]!.value as number;
                   const item = payload[0]!.payload;
                   let formattedDate = item.date;

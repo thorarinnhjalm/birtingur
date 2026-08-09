@@ -8,6 +8,7 @@ import { createAdvertiser } from '../src/services/advertisers';
 import { topUp, chargeCampaign, creditPublisher } from '../src/services/wallet';
 import { appendLedger } from '../src/services/ledger';
 import { isRedisConfigured } from '../src/lib/redis';
+import type * as redisModule from '../src/lib/redis';
 
 // checkEventPipeline (event_pipeline_loss) needs to read emitted:{hour} /
 // recorded:{hour} counters from Redis, but there is no Redis emulator wired
@@ -20,7 +21,7 @@ import { isRedisConfigured } from '../src/lib/redis';
 const mockRedisStore = new Map<string, number>();
 
 vi.mock('../src/lib/redis', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/lib/redis')>();
+  const actual = await importOriginal<typeof redisModule>();
   return {
     ...actual,
     getRedis: () => ({
