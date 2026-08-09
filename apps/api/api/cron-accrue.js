@@ -1,4 +1,4 @@
-import { drainAndAccrue } from '../dist/src/services/accrual.js';
+import { drainAndAccrueAll } from '../dist/src/services/accrual.js';
 import { alertCronFailure, recordHeartbeat } from '../dist/src/services/ops-alerts.js';
 import { previewCronBlockReason } from '../dist/src/lib/preview-guard.js';
 
@@ -18,9 +18,9 @@ export async function GET(req) {
   }
 
   try {
-    const drained = await drainAndAccrue(500);
+    const result = await drainAndAccrueAll();
     await recordHeartbeat('cron-accrue');
-    return new Response(JSON.stringify({ drained }), {
+    return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
