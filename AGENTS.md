@@ -15,7 +15,7 @@ Public copy may claim ONLY the verified USP list:
 - Category-based buying (no slot/site picking)
 - No third-party cookies; serving sets no cookies at all
 - 80/20 revenue split (creators keep 80% of net)
-- Monthly payouts, minimum 5.000 kr.
+- Monthly payouts, minimum 10.000 kr.
 - Viewability-counted impressions (IAB delay before the pixel fires)
 - Stats/analytics updated hourly — NEVER "real-time" / "rauntíma"
 - An MCP server exists (mcp.birtingur.app) with publisher and advertiser

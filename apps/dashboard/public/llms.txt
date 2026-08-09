@@ -6,7 +6,7 @@ Birtingur is a self-service display advertising platform built for long-tail nic
 
 - Flat CPM: 550 ISK per 1,000 impressions, applied across every ad category. No bidding wars or auction volatility.
 - No setup fees, no monthly fees. Remaining budget is enforced server-side.
-- Publishers and app developers keep 80% of net ad revenue (20% platform fee); payouts run monthly with a 5,000 ISK minimum threshold.
+- Publishers and app developers keep 80% of net ad revenue (20% platform fee); payouts run monthly with a 10,000 ISK minimum threshold.
 - 100% Cookie-Free: Zero third-party tracking cookies or cross-site profiling. Privacy-first by design.
 
 ## MCP Server for AI Agents & App Developers

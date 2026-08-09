@@ -106,7 +106,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'What This Means for Creators and Brands',
-        p: 'For creators, cookieless category advertising removes the two classic objections to display ads: it does not slow your site down, and it does not make you complicit in tracking your own readers. Revenue is shared 80/20 in the creator’s favor and paid out monthly once earnings pass 5.000 kr.\n\nFor brands, it replaces auction volatility and opaque fees with a predictable flat price and placements whose context you chose yourself — a model we compare to auction-based buying in detail in [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb). The network is currently being built with an early-access waitlist for both sides.',
+        p: 'For creators, cookieless category advertising removes the two classic objections to display ads: it does not slow your site down, and it does not make you complicit in tracking your own readers. Revenue is shared 80/20 in the creator’s favor and paid out monthly once earnings pass 10.000 kr.\n\nFor brands, it replaces auction volatility and opaque fees with a predictable flat price and placements whose context you chose yourself — a model we compare to auction-based buying in detail in [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb). The network is currently being built with an early-access waitlist for both sides.',
       },
     ],
     faqs: [
@@ -124,7 +124,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         q: 'What does the pricing look like?',
-        a: 'A flat 550 kr. CPM — the same price for every category, set by the platform rather than by auction. Creators keep 80% of net revenue, paid out monthly with a 5.000 kr. minimum.',
+        a: 'A flat 550 kr. CPM — the same price for every category, set by the platform rather than by auction. Creators keep 80% of net revenue, paid out monthly with a 10.000 kr. minimum.',
       },
     ],
   },
@@ -149,7 +149,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Transparent Revenue Sharing',
-        p: 'Creators deserve to know exactly what they earn and why. Birtingur operates on an 80% net payout model: creators keep 80% of the ad revenue their pages generate, with the platform taking a flat 20% — no hidden data fees, no unexplained deductions, no auction spread.\n\nPricing is equally legible on the advertiser side: a flat 550 kr. CPM in every category, so the money flowing to a creator is a straightforward function of viewable impressions served. Dashboard analytics update hourly, and payouts run monthly once earnings pass the 5.000 kr. minimum, by ordinary bank transfer.',
+        p: 'Creators deserve to know exactly what they earn and why. Birtingur operates on an 80% net payout model: creators keep 80% of the ad revenue their pages generate, with the platform taking a flat 20% — no hidden data fees, no unexplained deductions, no auction spread.\n\nPricing is equally legible on the advertiser side: a flat 550 kr. CPM in every category, so the money flowing to a creator is a straightforward function of viewable impressions served. Dashboard analytics update hourly, and payouts run monthly once earnings pass the 10.000 kr. minimum, by ordinary bank transfer.',
       },
       {
         h2: 'Lightweight & Privacy-First Integration',
@@ -167,7 +167,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         q: 'When and how do I get paid?',
-        a: 'Monthly, by bank transfer, once your balance passes the 5.000 kr. minimum. Balances below the minimum roll into the next month.',
+        a: 'Monthly, by bank transfer, once your balance passes the 10.000 kr. minimum. Balances below the minimum roll into the next month.',
       },
       {
         q: 'Is there a traffic minimum to join?',
@@ -318,7 +318,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Getting Paid',
-        p: 'Revenue accrues automatically as viewable impressions serve against category campaigns, all priced at the flat 550 kr. CPM. Developers keep 80% of net revenue; payouts run monthly by bank transfer once earnings pass the 5.000 kr. minimum.\n\nThe economics are deliberately legible: one flat price on the demand side, one fixed split on the supply side, hourly statistics in between. For an AI app, that means the free tier stops being a pure cost line without your users paying with their privacy instead. The network is pre-launch — developers can [join the early-access waitlist](/en#waitlist-section) now.',
+        p: 'Revenue accrues automatically as viewable impressions serve against category campaigns, all priced at the flat 550 kr. CPM. Developers keep 80% of net revenue; payouts run monthly by bank transfer once earnings pass the 10.000 kr. minimum.\n\nThe economics are deliberately legible: one flat price on the demand side, one fixed split on the supply side, hourly statistics in between. For an AI app, that means the free tier stops being a pure cost line without your users paying with their privacy instead. The network is pre-launch — developers can [join the early-access waitlist](/en#waitlist-section) now.',
       },
     ],
     faqs: [
@@ -336,7 +336,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         q: 'How do payouts work for developers?',
-        a: 'You keep 80% of net revenue, paid out monthly by bank transfer once your balance passes 5.000 kr. Statistics update hourly so you can follow earnings as they accrue.',
+        a: 'You keep 80% of net revenue, paid out monthly by bank transfer once your balance passes 10.000 kr. Statistics update hourly so you can follow earnings as they accrue.',
       },
       {
         q: 'Does it work with React 19 and Next.js?',
@@ -370,11 +370,11 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Fair 80% Payouts Without Arbitrary Traffic Gates',
-        p: 'Birtingur’s split is a flat 80/20 in the creator’s favor, computed on net revenue from a flat 550 kr. CPM that is identical in every category. There is no per-session bonus math, no tiered loyalty program, and no spread between what the advertiser paid and what you can verify — the pricing is public and the statistics are shared.\n\nPayouts run monthly by bank transfer with a 5.000 kr. minimum, and quality content sites are not turned away for being small. For the fuller economic argument — flat pricing versus auction volatility — see [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb).',
+        p: 'Birtingur’s split is a flat 80/20 in the creator’s favor, computed on net revenue from a flat 550 kr. CPM that is identical in every category. There is no per-session bonus math, no tiered loyalty program, and no spread between what the advertiser paid and what you can verify — the pricing is public and the statistics are shared.\n\nPayouts run monthly by bank transfer with a 10.000 kr. minimum, and quality content sites are not turned away for being small. For the fuller economic argument — flat pricing versus auction volatility — see [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb).',
       },
       {
         h2: 'An Honest Comparison Checklist',
-        p: 'Managed yield networks and category networks optimize for different creators, and pretending otherwise helps no one. If your site has large, broad traffic and you want a team maximizing auction yield on every impression, a managed network is built for exactly that.\n\nWhatever you choose, ask every network the same questions: What is the revenue split, on what base? What scripts will run on my readers’ devices, and what do they track? What happens to my page speed? When is an impression counted? When and how do I get paid? Birtingur’s answers are: 80/20 on net, one sub-5KB script, zero cookies, IAB-viewability counting, and monthly payouts from 5.000 kr.',
+        p: 'Managed yield networks and category networks optimize for different creators, and pretending otherwise helps no one. If your site has large, broad traffic and you want a team maximizing auction yield on every impression, a managed network is built for exactly that.\n\nWhatever you choose, ask every network the same questions: What is the revenue split, on what base? What scripts will run on my readers’ devices, and what do they track? What happens to my page speed? When is an impression counted? When and how do I get paid? Birtingur’s answers are: 80/20 on net, one sub-5KB script, zero cookies, IAB-viewability counting, and monthly payouts from 10.000 kr.',
       },
     ],
     faqs: [
@@ -524,7 +524,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Empowering Food Creators',
-        p: 'Food bloggers spend hours testing recipes, photographing dishes, and writing detailed guides. Birtingur’s 80% revenue share pays that work fairly: creators keep 80% of net revenue from the flat CPM, with monthly payouts from 5.000 kr. and hourly statistics on what their pages earned.\n\nFor advertisers this matters too — a network that pays creators fairly keeps quality food sites in the network, which is where your campaigns live. If you write about food, [join the creator waitlist](/en#waitlist-section); if you sell to people who cook, the [category page](/en/categories/food) is the place to start.',
+        p: 'Food bloggers spend hours testing recipes, photographing dishes, and writing detailed guides. Birtingur’s 80% revenue share pays that work fairly: creators keep 80% of net revenue from the flat CPM, with monthly payouts from 10.000 kr. and hourly statistics on what their pages earned.\n\nFor advertisers this matters too — a network that pays creators fairly keeps quality food sites in the network, which is where your campaigns live. If you write about food, [join the creator waitlist](/en#waitlist-section); if you sell to people who cook, the [category page](/en/categories/food) is the place to start.',
       },
     ],
     faqs: [
@@ -571,7 +571,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'For Publishers: Monetization Without Compromising Performance',
-        p: 'With lightweight, size-budgeted script snippets and zero third-party tracking, tech and finance blogs preserve their performance metrics while generating consistent monthly ad revenue. The embed reserves slot dimensions before ads render, so Core Web Vitals stay intact — and for React or Next.js sites, a typed component is available through the MCP tooling instead of the script.\n\nThe deal is the network standard: 80% of net revenue to the creator, monthly bank-transfer payouts from 5.000 kr., statistics updated hourly, and no arbitrary traffic gates for quality sites. A developer-blog audience of two thousand engaged readers is exactly the long-tail inventory category campaigns want.',
+        p: 'With lightweight, size-budgeted script snippets and zero third-party tracking, tech and finance blogs preserve their performance metrics while generating consistent monthly ad revenue. The embed reserves slot dimensions before ads render, so Core Web Vitals stay intact — and for React or Next.js sites, a typed component is available through the MCP tooling instead of the script.\n\nThe deal is the network standard: 80% of net revenue to the creator, monthly bank-transfer payouts from 10.000 kr., statistics updated hourly, and no arbitrary traffic gates for quality sites. A developer-blog audience of two thousand engaged readers is exactly the long-tail inventory category campaigns want.',
       },
       {
         h2: 'Getting Started as a Tech or Finance Publisher',
@@ -626,7 +626,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'How This Compares to Managed Ad Networks',
-        p: 'Managed ad networks are built for publishers with significant scale, with publicly documented traffic minimums for their main programs. Birtingur is being built for the other end of the spectrum: long-tail niche creators, including the independent travel bloggers those thresholds leave out.\n\nWhere traditional ad-management stacks tend to add heavy client-side machinery and cookie-based tracking, Birtingur uses a single embed under 5KB, sets zero cookies, and pays creators 80% of net revenue with monthly payouts from 5.000 kr. For travel advertisers, that means placements on fast, clean pages next to trusted niche content — the full comparison lives in our [alternatives guide](/en/guides/mediavine-ezoic-alternatives-cookieless).',
+        p: 'Managed ad networks are built for publishers with significant scale, with publicly documented traffic minimums for their main programs. Birtingur is being built for the other end of the spectrum: long-tail niche creators, including the independent travel bloggers those thresholds leave out.\n\nWhere traditional ad-management stacks tend to add heavy client-side machinery and cookie-based tracking, Birtingur uses a single embed under 5KB, sets zero cookies, and pays creators 80% of net revenue with monthly payouts from 10.000 kr. For travel advertisers, that means placements on fast, clean pages next to trusted niche content — the full comparison lives in our [alternatives guide](/en/guides/mediavine-ezoic-alternatives-cookieless).',
       },
     ],
     faqs: [
@@ -644,7 +644,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         q: 'What do travel bloggers earn from this?',
-        a: 'Creators keep 80% of net revenue at the flat CPM, with monthly bank-transfer payouts from 5.000 kr. and hourly statistics — and no arbitrary traffic minimums for quality sites.',
+        a: 'Creators keep 80% of net revenue at the flat CPM, with monthly bank-transfer payouts from 10.000 kr. and hourly statistics — and no arbitrary traffic minimums for quality sites.',
       },
     ],
   },
@@ -678,7 +678,7 @@ export const ARTICLES: Record<string, ArticleMeta> = {
       },
       {
         h2: 'Empowering Style Creators',
-        p: 'Fashion and beauty bloggers do real editorial work — shooting, styling, testing products, writing honestly about what worked. Birtingur’s 80% net revenue share pays that work fairly, with monthly bank-transfer payouts from 5.000 kr., hourly statistics, and no tracking scripts that would betray their readers’ trust.\n\nBecause serving is cookie-free, creators keep the clean, premium experience their brand depends on — no consent-wall between the reader and the content. If you write about style, [join the creator waitlist](/en#waitlist-section); if you sell to people who care how things look, start at the [category page](/en/categories/fashion).',
+        p: 'Fashion and beauty bloggers do real editorial work — shooting, styling, testing products, writing honestly about what worked. Birtingur’s 80% net revenue share pays that work fairly, with monthly bank-transfer payouts from 10.000 kr., hourly statistics, and no tracking scripts that would betray their readers’ trust.\n\nBecause serving is cookie-free, creators keep the clean, premium experience their brand depends on — no consent-wall between the reader and the content. If you write about style, [join the creator waitlist](/en#waitlist-section); if you sell to people who care how things look, start at the [category page](/en/categories/fashion).',
       },
     ],
     faqs: [

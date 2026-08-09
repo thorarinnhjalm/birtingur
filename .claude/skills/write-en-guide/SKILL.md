@@ -35,7 +35,7 @@ Everything else is manual — see the wiring checklist.
 | -------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | Flat 550 kr. CPM, same for every category                                        | `FLAT_CPM_ISK` in `packages/shared/src/constants.ts` |
 | Creators keep 80% of net (80/20 split)                                           | `DEFAULT_PLATFORM_FEE_PERCENT = 20`                  |
-| Monthly payouts, minimum 5.000 kr., by bank transfer                             | `MIN_PAYOUT_ISK = 5000`; `cron-payouts`              |
+| Monthly payouts, minimum 10.000 kr., by bank transfer                            | `MIN_PAYOUT_ISK = 10000`; `cron-payouts`             |
 | Stats/analytics updated hourly — never "real-time"                               | `cron-aggregate` hourly                              |
 | Serving sets zero cookies; first-party visitor id is consent-gated               | `tests/ad-route.test.ts` asserts it                  |
 | Impressions counted after IAB viewability delay                                  | snippet `render.ts`                                  |
@@ -54,7 +54,7 @@ These were written by agents that had AGENTS.md available. Each is banned:
 | What was written                                                                                      | Why it's wrong                                                                                                                                                                              |
 | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "In seconds, their application receives … and start earning revenue" (about MCP `register_publisher`) | Time promise + zero-touch onboarding. Every MCP call requires an `ak_` key a human created in the dashboard first. Always state that prerequisite when describing MCP flows.                |
-| "payouts directly to the developer's wallet"                                                          | Publishers have no wallet — wallets are an advertiser concept. Payouts are monthly bank transfers, min 5.000 kr.                                                                            |
+| "payouts directly to the developer's wallet"                                                          | Publishers have no wallet — wallets are an advertiser concept. Payouts are monthly bank transfers, min 10.000 kr.                                                                           |
 | "Mediavine and Ezoic … load dozens of third-party tracking scripts"                                   | Named-competitor accusation with a figure. Attribute defects to unnamed "traditional ad networks"; keep only publicly documented facts (e.g. traffic minimums) next to a competitor's name. |
 | "brand signals that feed directly into LLM RAG pipelines" / "AI crawlers associate your brand…"       | Ads are injected client-side; AI crawlers mostly don't execute JS. GEO benefit claims must be framed as emerging/educational ("may"), never as fact or mechanism.                           |
 

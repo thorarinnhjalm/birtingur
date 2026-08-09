@@ -2,7 +2,7 @@
 export const DEFAULT_PLATFORM_FEE_PERCENT = 20;
 
 /** Minimum payout amount; below this rolls into next month */
-export const MIN_PAYOUT_ISK = 5000;
+export const MIN_PAYOUT_ISK = 10000;
 
 /** Maximum creative file size (2 MB) */
 export const MAX_CREATIVE_SIZE_BYTES = 2 * 1024 * 1024;

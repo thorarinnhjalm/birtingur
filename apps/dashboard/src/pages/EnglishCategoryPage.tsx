@@ -39,7 +39,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       },
       {
         h2: 'How a Food Category Buy Works',
-        p: 'One decision, not a media plan: choose the Food & Culinary category, set a budget, review the daily impression forecast shown in the buy flow, and launch. Impressions spread across every registered food site in the network at the flat 550 kr. CPM, counted only after the IAB viewability delay, with statistics updating hourly.\n\nFor creators, the deal is the network standard — 80% of net revenue, monthly bank-transfer payouts from 5.000 kr., one embed under 5KB, and zero cookies dropped on readers. The full playbook lives in our [Food & Culinary advertising guide](/en/guides/food-culinary-blog-advertising-guide).',
+        p: 'One decision, not a media plan: choose the Food & Culinary category, set a budget, review the daily impression forecast shown in the buy flow, and launch. Impressions spread across every registered food site in the network at the flat 550 kr. CPM, counted only after the IAB viewability delay, with statistics updating hourly.\n\nFor creators, the deal is the network standard — 80% of net revenue, monthly bank-transfer payouts from 10.000 kr., one embed under 5KB, and zero cookies dropped on readers. The full playbook lives in our [Food & Culinary advertising guide](/en/guides/food-culinary-blog-advertising-guide).',
       },
     ],
     faqs: [
@@ -53,7 +53,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       },
       {
         q: 'What does a food blogger earn?',
-        a: '80% of net ad revenue from viewable impressions on their pages, paid monthly by bank transfer from 5.000 kr., with hourly statistics in the dashboard.',
+        a: '80% of net ad revenue from viewable impressions on their pages, paid monthly by bank transfer from 10.000 kr., with hourly statistics in the dashboard.',
       },
     ],
     relatedGuides: [
@@ -117,7 +117,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       },
       {
         h2: 'What Travel Creators Get',
-        p: 'Independent travel bloggers earn 80% of net revenue from viewable impressions, paid monthly from 5.000 kr., with a single sub-5KB embed that sets zero cookies — no consent-wall between wanderlust and the content, and no traffic minimums that leave niche destination sites out.\n\nImpressions count only after the IAB viewability delay and statistics update hourly. The full brand-side playbook is our [Travel & Outdoors advertising guide](/en/guides/travel-outdoors-blog-advertising-guide).',
+        p: 'Independent travel bloggers earn 80% of net revenue from viewable impressions, paid monthly from 10.000 kr., with a single sub-5KB embed that sets zero cookies — no consent-wall between wanderlust and the content, and no traffic minimums that leave niche destination sites out.\n\nImpressions count only after the IAB viewability delay and statistics update hourly. The full brand-side playbook is our [Travel & Outdoors advertising guide](/en/guides/travel-outdoors-blog-advertising-guide).',
       },
     ],
     faqs: [
@@ -155,7 +155,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       },
       {
         h2: 'Ads Clean Enough for a Styled Page',
-        p: 'Fashion creators protect their aesthetic fiercely, and rightly — visual judgment is their product. Birtingur serves standard IAB formats in reserved containers that never shift a layout, with a content policy the creator controls and a fallback (house ad or transparent) when nothing eligible fills.\n\nCreators keep 80% of net revenue with monthly payouts from 5.000 kr.; brands get placements that inherit the page’s polish. Creative guidance and the full brand playbook are in our [Fashion & Beauty advertising guide](/en/guides/fashion-beauty-blog-advertising-guide).',
+        p: 'Fashion creators protect their aesthetic fiercely, and rightly — visual judgment is their product. Birtingur serves standard IAB formats in reserved containers that never shift a layout, with a content policy the creator controls and a fallback (house ad or transparent) when nothing eligible fills.\n\nCreators keep 80% of net revenue with monthly payouts from 10.000 kr.; brands get placements that inherit the page’s polish. Creative guidance and the full brand playbook are in our [Fashion & Beauty advertising guide](/en/guides/fashion-beauty-blog-advertising-guide).',
       },
     ],
     faqs: [
@@ -194,7 +194,7 @@ const CATEGORY_DETAILS: Record<string, CategoryMeta> = {
       },
       {
         h2: 'Monetization That Respects a Trust Business',
-        p: 'A site people consult about money cannot afford ad tech that tracks its readers. Birtingur’s serving sets zero cookies, builds no profiles, and adds one sub-5KB script — so finance publishers monetize without importing the surveillance their audience came to them to avoid.\n\nCreators keep 80% of net revenue with monthly payouts from 5.000 kr. and hourly statistics. The publisher-side detail is in our [tech & finance monetization guide](/en/guides/tech-finance-blog-monetization-guide), and the pricing model in [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb).',
+        p: 'A site people consult about money cannot afford ad tech that tracks its readers. Birtingur’s serving sets zero cookies, builds no profiles, and adds one sub-5KB script — so finance publishers monetize without importing the surveillance their audience came to them to avoid.\n\nCreators keep 80% of net revenue with monthly payouts from 10.000 kr. and hourly statistics. The publisher-side detail is in our [tech & finance monetization guide](/en/guides/tech-finance-blog-monetization-guide), and the pricing model in [Flat CPM vs. Programmatic Auctions](/en/guides/flat-cpm-vs-programmatic-rtb).',
       },
     ],
     faqs: [
