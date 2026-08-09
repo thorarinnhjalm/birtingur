@@ -335,41 +335,39 @@ async function checkPublisherBalances(findings: ReconciliationFinding[]): Promis
       });
     }
 
-    // Check 7: stuck payable — the unpaid basis (total credits minus ALL
-    // payout docs' netIsk, any status — mirrors generateMonthlyPayouts
-    // exactly, including that a still-'pending' doc already counts as
-    // spoken-for) is at or above MIN_PAYOUT_ISK, AND the oldest credit that
-    // still contributes to that unpaid basis predates this month's payout
-    // run (the 1st of the current month) — meaning the monthly cron should
-    // already have generated a payout doc for this publisher and didn't.
+    // Check 7: stuck payable — the basis AS OF the last payout run (credits
+    // dated before this month, minus ALL payout docs' netIsk, any status —
+    // mirrors generateMonthlyPayouts exactly, including that a still-
+    // 'pending' doc already counts as spoken-for) was already at or above
+    // MIN_PAYOUT_ISK, yet no payout doc covers it.
+    //
+    // This deliberately compares against the basis as of the LAST run, not
+    // the basis as of right now: a publisher whose credits only cross the
+    // minimum with THIS month's new credits isn't stuck — the run on the
+    // 1st of next month will pay them correctly, same as it always has. An
+    // earlier version of this check compared "now" instead (via the oldest
+    // unpaid credit's date) and fired for any publisher with an old credit
+    // anywhere in their history whenever paidNet was 0 — which is every
+    // publisher who has never been paid, the common case — producing a
+    // false alert for exactly our target long-tail publishers, who
+    // routinely take more than one month to cross the floor even though
+    // the payout cron behaved correctly every time it ran.
     const paidNet = paidNetByPublisher.get(publisherId) ?? 0;
-    const unpaidBasis = totalCredits - paidNet;
-    if (unpaidBasis >= MIN_PAYOUT_ISK) {
-      // FIFO walk: credits are consumed oldest-first by the running paidNet
-      // total, so the first credit whose cumulative sum exceeds paidNet is
-      // the oldest one still (at least partly) unpaid.
-      const sorted = [...credits].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-      let cumulative = 0;
-      let oldestUnpaidCreditAt: Date | undefined;
-      for (const c of sorted) {
-        cumulative += c.amountIsk;
-        if (cumulative > paidNet) {
-          oldestUnpaidCreditAt = c.createdAt;
-          break;
-        }
-      }
-      if (oldestUnpaidCreditAt && oldestUnpaidCreditAt < currentMonthStart) {
-        findings.push({
-          kind: 'publisher_stuck_payable',
-          entityId: publisherId,
-          detail:
-            'unpaid publisher_credit basis is at or above MIN_PAYOUT_ISK and the oldest ' +
-            "still-unpaid credit predates this month's payout run — the monthly payout cron " +
-            'should already have generated a payout for this publisher',
-          expected: MIN_PAYOUT_ISK,
-          actual: unpaidBasis,
-        });
-      }
+    const creditsBeforeThisMonth = credits
+      .filter((c) => c.createdAt < currentMonthStart)
+      .reduce((sum, c) => sum + c.amountIsk, 0);
+    const basisAsOfLastRun = creditsBeforeThisMonth - paidNet;
+    if (basisAsOfLastRun >= MIN_PAYOUT_ISK) {
+      findings.push({
+        kind: 'publisher_stuck_payable',
+        entityId: publisherId,
+        detail:
+          "unpaid publisher_credit basis (credits dated before this month's payout run, minus " +
+          'all payout docs) was already at or above MIN_PAYOUT_ISK — the monthly payout cron ' +
+          'should already have generated a payout for this publisher',
+        expected: MIN_PAYOUT_ISK,
+        actual: basisAsOfLastRun,
+      });
     }
   }
 }

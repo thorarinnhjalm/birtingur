@@ -371,6 +371,36 @@ describe('runReconciliation', () => {
     expect(report.findings.filter((f) => f.kind.startsWith('publisher_'))).toHaveLength(0);
   });
 
+  // Regression (false-alert fix): a publisher whose basis before this month
+  // was BELOW the minimum, and only crosses it once this month's new
+  // credits are added, is not stuck — the payout cron behaved correctly
+  // every time it ran (nothing to pay before this month; next month's run
+  // will pay them). An earlier version of check 7 compared the oldest
+  // credit's date against "now" instead of comparing the pre-this-month
+  // basis against the minimum, so it flagged every never-yet-paid publisher
+  // with any old credit in their history — exactly this long-tail
+  // carry-forward case, which is the platform's target market.
+  it("does not flag a publisher whose basis only crosses the minimum via this month's new credits", async () => {
+    const publisherId = 'pub_carry_forward_not_stuck';
+    const fortyDaysAgo = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+    const twentyFiveDaysAgo = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    // Before this month: 4.000 + 4.000 = 8.000, below MIN_PAYOUT_ISK.
+    await creditPublisherLedger(publisherId, 4_000, fortyDaysAgo);
+    await creditPublisherLedger(publisherId, 4_000, twentyFiveDaysAgo);
+    // This month: +5.000 = 13.000 total, which crosses the minimum — but
+    // only because of a credit dated this month, so nothing is stuck.
+    await creditPublisherLedger(publisherId, 5_000, threeDaysAgo);
+
+    const report = await runReconciliation();
+
+    expect(
+      report.findings.some(
+        (f) => f.kind === 'publisher_stuck_payable' && f.entityId === publisherId,
+      ),
+    ).toBe(false);
+  });
+
   // Self-review case: a payout doc already exists for this publisher's
   // unpaid basis but hasn't been disbursed yet (still 'pending', awaiting
   // bank transfer) — generateMonthlyPayouts already accounted for it (ALL
