@@ -349,6 +349,10 @@ describe('runReconciliation', () => {
 
   it('flags a publisher stuck above the minimum across a payout run', async () => {
     const publisherId = 'pub_stuck_payable';
+    // Safe on every day of every month: a calendar month is at most 31 days,
+    // so `now` is at most 30 days after this month's start, which means "45
+    // days ago" is always at least 15 days before this month's start —
+    // never inside the current month, regardless of what day this runs on.
     const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
     await creditPublisherLedger(publisherId, 15_000, fortyFiveDaysAgo);
 
@@ -382,15 +386,23 @@ describe('runReconciliation', () => {
   // carry-forward case, which is the platform's target market.
   it("does not flag a publisher whose basis only crosses the minimum via this month's new credits", async () => {
     const publisherId = 'pub_carry_forward_not_stuck';
-    const fortyDaysAgo = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
-    const twentyFiveDaysAgo = new Date(Date.now() - 25 * 24 * 60 * 60 * 1000);
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    // Anchored to the month boundary itself, not day-offsets from "now": a
+    // fixed offset like "3 days ago" lands in the PREVIOUS month whenever
+    // this suite runs on the 1st-3rd of a month, which would silently move
+    // all three credits before currentMonthStart and make the test assert
+    // the opposite of what the (correctly firing) code would do.
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const DAY = 24 * 60 * 60 * 1000;
+    const beforeMonthA = new Date(monthStart.getTime() - 40 * DAY); // firmly in a prior month
+    const beforeMonthB = new Date(monthStart.getTime() - 5 * DAY); // firmly in the prior month
+    const inThisMonth = now; // by definition >= monthStart
     // Before this month: 4.000 + 4.000 = 8.000, below MIN_PAYOUT_ISK.
-    await creditPublisherLedger(publisherId, 4_000, fortyDaysAgo);
-    await creditPublisherLedger(publisherId, 4_000, twentyFiveDaysAgo);
+    await creditPublisherLedger(publisherId, 4_000, beforeMonthA);
+    await creditPublisherLedger(publisherId, 4_000, beforeMonthB);
     // This month: +5.000 = 13.000 total, which crosses the minimum — but
     // only because of a credit dated this month, so nothing is stuck.
-    await creditPublisherLedger(publisherId, 5_000, threeDaysAgo);
+    await creditPublisherLedger(publisherId, 5_000, inThisMonth);
 
     const report = await runReconciliation();
 
@@ -409,6 +421,10 @@ describe('runReconciliation', () => {
   // entry yet either, so it must not be reported as negative-balance.
   it('does not flag a publisher whose unpaid basis is already covered by a pending payout doc', async () => {
     const publisherId = 'pub_pending_covered';
+    // Month-boundary-safe by construction, unlike the regression test below:
+    // the 15.000 credit is fully offset by the 15.000 pending payout doc no
+    // matter which side of the month boundary it falls on (basisAsOfLastRun
+    // is <= 0 either way), so this fixture needs no anchoring.
     const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
     await creditPublisherLedger(publisherId, 15_000, fortyFiveDaysAgo);
     await writePayoutDoc('pay_pub_pending_covered_202607', publisherId, 15_000, 'pending');
