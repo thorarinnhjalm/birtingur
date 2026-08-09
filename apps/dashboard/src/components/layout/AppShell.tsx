@@ -15,7 +15,7 @@ const FAQS = [
   },
   {
     q: 'Hvernig virka greiðslur og veskið?',
-    a: 'Auglýsendur geta sett inn inneign í veskið sitt með greiðslukorti í gegnum örugga Teya-greiðslugátt. Útgefendur safna tekjum og fá greitt mánaðarlega inn á bankareikning þegar inneignin nær 5.000 kr.',
+    a: 'Auglýsendur geta sett inn inneign í veskið sitt með greiðslukorti í gegnum örugga Teya-greiðslugátt. Útgefendur safna tekjum og fá greitt mánaðarlega inn á bankareikning þegar inneignin nær 10.000 kr.',
   },
   {
     q: 'Hvernig eru auglýsingar samþykktar?',

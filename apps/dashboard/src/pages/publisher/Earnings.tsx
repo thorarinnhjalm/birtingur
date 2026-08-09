@@ -117,7 +117,7 @@ export default function Earnings() {
           which already reads/writes publisher.payoutMethod. Rather than
           fabricate numbers or add a new query, this links out to Settings
           instead. The revenue-share terms box below it is copied verbatim —
-          80% / Mánaðarlega / 5.000 kr. are all real constants
+          80% / Mánaðarlega / 10.000 kr. are all real constants
           (DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK), not fetched or
           invented. Completion is a manual bank transfer (see CLAUDE.md), so
           "Mánaðarlega" describes the payout cadence only, not automation. */}
