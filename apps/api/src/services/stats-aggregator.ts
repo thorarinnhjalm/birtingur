@@ -14,6 +14,13 @@ export interface QueuedEvent {
   country: string;
   visitorToken: string;
   ts: number;
+  // OPTIONAL, deliberately — not the AdEvent.botClass shape apps/serving emits (which is
+  // required there). apps/serving and apps/api are separate Vercel projects that rebuild
+  // simultaneously on one push; events already sitting in the Redis queue when a deploy
+  // lands were written by the old shape and carry no botClass at all. Its ABSENCE means
+  // "unclassified" and must count in NO class below — never default it to 'human', or the
+  // first hours of post-deploy data would misreport 100% human traffic.
+  botClass?: 'human' | 'known_bot' | 'suspected_bot';
 }
 
 function hourKey(ts: number): string {
@@ -43,6 +50,23 @@ const RECORDED_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 function recordedCounterKey(ts: number): string {
   return `recorded:${hourKey(ts)}`;
+}
+
+// Builds the nested-object form of a byBotClass increment: { human: { impressions:
+// FieldValue.increment(2) }, ... }. Per the dot-path regression note above the batch
+// below, this MUST stay a nested object literal — never a dotted field-path string —
+// or `batch.set(ref, data, { merge: true })` writes a literal flat field nobody reads.
+function byBotClassIncrement(
+  byBotClass: Record<string, { impressions?: number; pageViewsTrue?: number }>,
+): Record<string, Record<string, ReturnType<typeof FieldValue.increment>>> {
+  return Object.fromEntries(
+    Object.entries(byBotClass).map(([cls, counts]) => [
+      cls,
+      Object.fromEntries(
+        Object.entries(counts).map(([k, v]) => [k, FieldValue.increment(v as number)]),
+      ),
+    ]),
+  );
 }
 
 // Primary wire contract (2026-08-09 design, revised after a deploy-order hazard
@@ -82,12 +106,20 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     // when a bucket saw no true page views, so the doc field stays absent.
     pageViewsTrue?: number;
     byCampaign: Record<string, { impressions: number; clicks: number }>;
+    // Billed impressions and real traffic, split by bot class — publisher-day bucket
+    // only (see the write-phase note below for why publisher-slot-day is excluded).
+    // An event with no botClass (unclassified — see QueuedEvent.botClass) is counted
+    // in NO class here, so `total - Σ classes` is the honest unclassified remainder.
+    byBotClass?: Record<string, { impressions?: number; pageViewsTrue?: number }>;
   }
   interface CampaignBucket {
     impressions: number;
     clicks: number;
     byPublisher: Record<string, { impressions: number; clicks: number }>;
     byPublisherCreative: Record<string, Record<string, { impressions: number; clicks: number }>>;
+    // Impressions only — clicks are out of scope for phase 1, and a true page view
+    // never touches the campaign-hour bucket at all (it carries no campaign fill).
+    byBotClass?: Record<string, { impressions?: number }>;
   }
   interface CreativeStats {
     impressions: number;
@@ -146,6 +178,15 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         b.pageViewsTrue = (b.pageViewsTrue ?? 0) + 1;
         map.set(key, b);
       }
+      // byBotClass is publisher-day only (see the Bucket.byBotClass comment above) —
+      // deliberately not folded into the shared map loop, which also touches
+      // publisher-slot-day.
+      if (ev.botClass) {
+        const b = publisherDay.get(pd)!;
+        const cls = (b.byBotClass ??= {});
+        const counts = (cls[ev.botClass] ??= {});
+        counts.pageViewsTrue = (counts.pageViewsTrue ?? 0) + 1;
+      }
     } else if (ev.type === 'impression' || ev.type === 'click') {
       // Explicitly impression/click only — NOT a bare `else`. A bare `else` here
       // is exactly the class of bug this fix wave exists to close: main's
@@ -184,6 +225,13 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         if (ev.type === 'impression') forCreative.impressions++;
         else forCreative.clicks++;
       }
+      // Impressions only (see CampaignBucket.byBotClass comment above) — clicks are
+      // out of scope for phase 1.
+      if (ev.botClass && ev.type === 'impression') {
+        const cls = (cb.byBotClass ??= {});
+        const counts = (cls[ev.botClass] ??= {});
+        counts.impressions = (counts.impressions ?? 0) + 1;
+      }
       campaignHour.set(ch, cb);
 
       // Guard the same way the pageview branch above does: an empty creativeId
@@ -221,6 +269,16 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
           b.byCampaign[ev.campaignId]!.clicks++;
         }
         map.set(key, b);
+      }
+      // byBotClass is publisher-day only, impressions only (see the Bucket.byBotClass
+      // and CampaignBucket.byBotClass comments above) — deliberately outside the
+      // shared map loop, which also touches publisher-slot-day and would otherwise
+      // count clicks too.
+      if (ev.botClass && ev.type === 'impression') {
+        const b = publisherDay.get(pd)!;
+        const cls = (b.byBotClass ??= {});
+        const counts = (cls[ev.botClass] ??= {});
+        counts.impressions = (counts.impressions ?? 0) + 1;
       }
     } else {
       // Unknown event type: skip rather than silently miscounting it as a
@@ -283,6 +341,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       updateData.byPublisherCreative = byPublisherCreative;
     }
 
+    if (b.byBotClass) {
+      updateData.byBotClass = byBotClassIncrement(b.byBotClass);
+    }
+
     batch.set(ref, updateData, { merge: true });
   }
   for (const [key, b] of creativeHour) {
@@ -322,6 +384,11 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         };
       }
       updateData.byCampaign = byCampaign;
+    }
+    // Publisher-day only — deliberately not applied to publisher-slot-day below.
+    // Nobody reports bot share per slot and the extra cardinality buys nothing.
+    if (b.byBotClass) {
+      updateData.byBotClass = byBotClassIncrement(b.byBotClass);
     }
     batch.set(ref, updateData, { merge: true });
   }
