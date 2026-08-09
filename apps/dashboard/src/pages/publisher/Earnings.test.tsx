@@ -1,5 +1,5 @@
 import { test, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Earnings from './Earnings';
@@ -168,4 +168,42 @@ test('a failed publishers request shows an error rather than falling through to 
 
   await screen.findByText('Villa kom upp');
   expect(screen.queryByText('Beðið eftir útgreiðslu')).toBeNull();
+});
+
+// The guard uses isLoadingError, not isError, precisely so this case keeps
+// working: TanStack Query preserves `data` when a REFETCH fails and only
+// moves `status` to 'error'. The app client sets staleTime 30s with
+// refetchOnMount on, so a blip on a return visit must not replace a page of
+// correct cached figures with a red box.
+test('a refetch that fails while the data is already cached keeps showing the figures', async () => {
+  setupApiMock({
+    publishers: ONE_SITE,
+    stats: { impressions: 100, clicks: 1, spendIsk: 1_000, history: [] },
+    payouts: [],
+    balance: { unpaidBasisIsk: 12_000, minPayoutIsk: MIN_PAYOUT_ISK },
+  });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const ui = (
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/']}>
+        <Earnings />
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+  const { rerender } = render(ui);
+  await screen.findByText('Beðið eftir útgreiðslu');
+  expect(statCardValue('Beðið eftir útgreiðslu')).toBe(formatIsk(12_000));
+
+  // Now every request fails, and the cached queries are refetched.
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    throw new Error(`simulated failure for ${url as string}`);
+  });
+  await qc.refetchQueries();
+  rerender(ui);
+
+  await waitFor(() => {
+    expect(screen.getByText('Beðið eftir útgreiðslu')).toBeDefined();
+  });
+  expect(statCardValue('Beðið eftir útgreiðslu')).toBe(formatIsk(12_000));
+  expect(screen.queryByText('Villa kom upp')).toBeNull();
 });

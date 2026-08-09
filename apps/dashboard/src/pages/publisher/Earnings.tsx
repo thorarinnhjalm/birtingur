@@ -37,7 +37,8 @@ export default function Earnings() {
   const {
     data: publishers,
     isLoading: isPubsLoading,
-    isError: isPubsError,
+    isLoadingError: isPubsError,
+    isFetching: isPubsFetching,
     refetch: refetchPubs,
   } = usePublishers();
 
@@ -55,7 +56,8 @@ export default function Earnings() {
   const {
     data: stats,
     isLoading: isStatsLoading,
-    isError: isStatsError,
+    isLoadingError: isStatsError,
+    isFetching: isStatsFetching,
     refetch: refetchStats,
   } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats', 30, siteId],
@@ -69,7 +71,8 @@ export default function Earnings() {
   const {
     data: payouts,
     isLoading: isPayoutsLoading,
-    isError: isPayoutsError,
+    isLoadingError: isPayoutsError,
+    isFetching: isPayoutsFetching,
     refetch: refetchPayouts,
   } = useQuery<Payout[]>({
     queryKey: ['publisher', 'payouts'],
@@ -85,7 +88,8 @@ export default function Earnings() {
   const {
     data: balance,
     isLoading: isBalanceLoading,
-    isError: isBalanceError,
+    isLoadingError: isBalanceError,
+    isFetching: isBalanceFetching,
     refetch: refetchBalance,
   } = useQuery<BalanceResponse>({
     queryKey: ['publisher', 'balance'],
@@ -102,6 +106,15 @@ export default function Earnings() {
   // own confident typography, that they have earned nothing. That is worse
   // than showing nothing at all.
   //
+  // `isLoadingError`, NOT `isError`: a query that fails while it already
+  // holds data keeps that data (TanStack Query preserves `data` across a
+  // failed refetch and only flips `status` to 'error'). The app's client sets
+  // staleTime 30s with refetchOnMount on, so leaving Greiðslur and coming
+  // back half a minute later refetches all four — and a single blip would
+  // otherwise replace a page of correct cached figures with a red box. The
+  // `?? 0` hazard this guards exists only when `data` is undefined, which is
+  // exactly what isLoadingError means.
+  //
   // The stats/balance queries carry `enabled: !!publishers`, so a failure of
   // usePublishers() leaves them permanently pending rather than erroring:
   // isLoading is false for a disabled query, so it falls straight through the
@@ -117,6 +130,7 @@ export default function Earnings() {
           if (isPayoutsError) void refetchPayouts();
           if (isBalanceError) void refetchBalance();
         }}
+        retrying={isPubsFetching || isStatsFetching || isPayoutsFetching || isBalanceFetching}
       />
     );
   }

@@ -16,6 +16,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { StatCard } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
 import { usePublishers, usePublisherSlots } from '@/hooks/usePublisher';
@@ -773,7 +774,7 @@ const sidebarItems = [
 ];
 
 export default function PublisherDashboard() {
-  const { data: publishers, isLoading } = usePublishers();
+  const { data: publishers, isLoading, isLoadingError, isFetching, refetch } = usePublishers();
 
   useEffect(() => {
     if (publishers && publishers.length > 0) {
@@ -786,6 +787,28 @@ export default function PublisherDashboard() {
       <div className="min-h-screen flex items-center justify-center bg-background p-8">
         <div className="max-w-md w-full">
           <LoadingState />
+        </div>
+      </div>
+    );
+  }
+
+  // A failed /v1/publishers/all must not be read as "this user has no sites".
+  // usePublishers() runs with `retry: false`, so one cold Vercel function or
+  // one expired token used to drop an established publisher straight into the
+  // onboarding wizard — the app telling them, with no error anywhere on
+  // screen, that the sites they own do not exist. Same class of lie as a
+  // failed balance request rendering as "0 kr." on Greiðslur, and it also
+  // made that page's own error state unreachable, since nobody gets past this
+  // shell to see it.
+  if (isLoadingError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-8">
+        <div className="max-w-md w-full">
+          <ErrorState
+            message="Ekki tókst að sækja vefina þína. Þetta er tæknileg villa í sambandi við þjóninn — vefirnir þínir eru óbreyttir. Reyndu aftur eftir smástund."
+            onRetry={refetch}
+            retrying={isFetching}
+          />
         </div>
       </div>
     );
