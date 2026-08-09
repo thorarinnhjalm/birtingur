@@ -16,7 +16,8 @@ import {
   issueWidgetKey,
   revokeWidgetKey,
 } from '../services/widget-keys.js';
-import { listPublisherPayouts } from '../services/payouts.js';
+import { listPublisherPayouts, getUnpaidBasisIsk } from '../services/payouts.js';
+import { MIN_PAYOUT_ISK } from '@ada/shared';
 
 export const publishersRouter = new Hono<Env>();
 
@@ -194,4 +195,24 @@ publishersRouter.get('/me/payouts', async (c) => {
 
   const payouts = await listPublisherPayouts(publisher.id);
   return c.json(payouts);
+});
+
+// IMPORTANT-5 (adversarial review): the real unpaid basis, computed the same
+// way generateMonthlyPayouts computes it — Earnings.tsx's "Beðið eftir
+// útgreiðslu" figure used to be derived from a trailing-30-day spend stat
+// instead, which contradicted this minimum-threshold copy for any publisher
+// whose monthly earnings sit below MIN_PAYOUT_ISK. Sums across every
+// publisher doc the caller owns (getPublishersByOwnerEmail, not the
+// single-publisher getPublisherByOwnerEmail /me/* routes use), consistent
+// with how Earnings already aggregates its other stats.
+publishersRouter.get('/me/balance', async (c) => {
+  const user = c.get('user');
+  const publishers = await getPublishersByOwnerEmail(user.email);
+
+  if (publishers.length === 0) {
+    throw new AppError(404, 'Publisher profile not found', 'NOT_FOUND');
+  }
+
+  const unpaidBasisIsk = await getUnpaidBasisIsk(publishers.map((p) => p.id));
+  return c.json({ unpaidBasisIsk, minPayoutIsk: MIN_PAYOUT_ISK });
 });

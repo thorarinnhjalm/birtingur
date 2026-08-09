@@ -103,7 +103,7 @@ export default function TermsPage() {
                 <strong>20% flatgreidda þóknun</strong> af öllum auglýsingatekjum sem miðlast í
                 gegnum kerfið. Þóknunin stendur straum af rekstri, greiðslugáttum og umsýslu. Tekjur
                 útgefanda uppfærast á um 15 mínútna fresti. Ef áunnin inneign nær{' '}
-                <strong>5.000 kr.</strong> nettó greiðist hún út með millifærslu á skráðan
+                <strong>10.000 kr.</strong> nettó greiðist hún út með millifærslu á skráðan
                 bankareikning í næsta mánaðarlega útgreiðsluferli. Útgefandi ber ábyrgð á því að
                 banka- og reikningsupplýsingar séu réttar.
               </p>

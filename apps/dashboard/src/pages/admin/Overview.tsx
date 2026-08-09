@@ -588,7 +588,7 @@ function AdminPayoutQueue() {
         </h3>
         <p className="text-xs text-slate-500 font-semibold mb-4 leading-relaxed">
           Safnaðu saman heildartekjum allra útgefenda fyrir tiltekið tímabil og búðu til nýjar
-          útborganir (lágmark 5.000 kr.).
+          útborganir (lágmark 10.000 kr.).
         </p>
         <form
           onSubmit={handleGenerateSubmit}
@@ -633,7 +633,7 @@ function AdminPayoutQueue() {
         <EmptyState
           icon={<CheckCircle size={44} className="text-green-500" />}
           title="Engar pending útborganir!"
-          description="Allar útborganir yfir lágmarki (5.000 kr) hafa verið millifærðar."
+          description="Allar útborganir yfir lágmarki (10.000 kr) hafa verið millifærðar."
         />
       ) : (
         <Card className="p-6">
@@ -683,8 +683,16 @@ function AdminPayoutQueue() {
                         year: 'numeric',
                       })}
                     </td>
-                    <td className="py-3 text-right font-bold text-slate-900">
-                      {formatIsk(p.netIsk || 0)}
+                    <td className="py-3 text-right">
+                      <div className="font-bold text-slate-900">
+                        {formatIsk(p.disburseIsk ?? p.netIsk ?? 0)}
+                      </div>
+                      {(p.carriedForwardIsk ?? 0) > 0 && (
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Þessi mánuður: {formatIsk(p.currentPeriodIsk ?? 0)} · Eldri uppsöfnun:{' '}
+                          {formatIsk(p.carriedForwardIsk)}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 text-right">
                       <Button

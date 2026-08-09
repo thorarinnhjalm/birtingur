@@ -30,7 +30,6 @@ export function useCreatePublisher() {
         iban: string;
         accountHolder: string;
       };
-      minimumPayoutIsk: number;
       integrationPreference?: 'widget' | 'mcp' | 'both';
       estimatedSlotsCount?: number;
     }) =>

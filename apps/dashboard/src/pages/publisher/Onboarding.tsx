@@ -48,7 +48,6 @@ export default function PublisherOnboarding() {
   const [kennitala, setKennitala] = useState('');
   const [iban, setIban] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
-  const [minimumPayout, setMinimumPayout] = useState(5000);
   const [showPayoutPanel, setShowPayoutPanel] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
@@ -185,7 +184,6 @@ export default function PublisherOnboarding() {
               accountHolder,
             }
           : undefined,
-        minimumPayoutIsk: minimumPayout,
         integrationPreference,
         estimatedSlotsCount,
       });
@@ -610,16 +608,23 @@ export default function PublisherOnboarding() {
                       disabled={createPublisher.isPending}
                     />
 
-                    <Input
-                      label="Lágmarksútborgun (ISK) *"
-                      type="number"
-                      min="5000"
-                      step="1000"
-                      value={minimumPayout}
-                      onChange={(e) => setMinimumPayout(Number(e.target.value) || 5000)}
-                      required
-                      disabled={createPublisher.isPending}
-                    />
+                    {/* Not a per-publisher setting — the platform enforces one shared
+                        minimum (MIN_PAYOUT_ISK) for everyone, so this used to be an
+                        editable field that was silently discarded server-side. Shown
+                        read-only now, stating the real, non-negotiable minimum. */}
+                    <div>
+                      <span className="mb-1 block text-sm font-medium text-slate-700">
+                        Lágmarksútborgun
+                      </span>
+                      <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        {MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.
+                      </div>
+                      <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                        Þetta er sameiginlegt lágmark fyrir alla útgefendur og er ekki stillanlegt.
+                        Nái tekjur mánaðarins ekki þessu lágmarki flyst upphæðin óskert yfir á næsta
+                        mánuð.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
