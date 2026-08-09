@@ -166,3 +166,31 @@ test('Vefumferð shows an em dash and an explanation for pre-switch history', as
   expect(await screen.findByText('—')).toBeDefined();
   expect(screen.getByText(/Nákvæm umferðarmæling hófst/)).toBeDefined();
 });
+
+// usePublishers() runs with `retry: false`, so one cold function or one
+// expired token used to satisfy `!publishers` and route an established
+// publisher into the onboarding wizard — the app telling them the sites they
+// own do not exist, with no error shown anywhere.
+test('a failed publishers request shows an error instead of routing to onboarding', async () => {
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    const u = url as string;
+    if (u.startsWith('/v1/publishers/all')) throw new Error('simulated failure');
+    if (u.startsWith('/v1/notifications')) return [] as any;
+    throw new Error(`Unhandled apiFetch call in test: ${u}`);
+  });
+  renderPage();
+
+  expect(await screen.findByText('Villa kom upp')).toBeDefined();
+  expect(screen.getByText(/Ekki tókst að sækja vefina þína/)).toBeDefined();
+  // The onboarding wizard must not have been rendered in its place.
+  expect(screen.queryByText(/Skráðu vefinn þinn/)).toBeNull();
+});
+
+test('an empty publishers list still routes to onboarding', async () => {
+  setupApiMock({ publishers: [], slots: [], stats: BASE_STATS });
+  renderPage();
+
+  // No error state for a genuinely new user — the onboarding route takes over.
+  await new Promise((r) => setTimeout(r, 0));
+  expect(screen.queryByText('Villa kom upp')).toBeNull();
+});

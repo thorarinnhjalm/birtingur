@@ -281,6 +281,46 @@ test('confirm step uses AVAILABLE balance, not gross: fully-committed wallet sho
   expect(screen.getByText(/frátekið í aðrar herferðir/)).toBeDefined();
 });
 
+// Real-world bug (2026-08-09): the confirm step gated on budget + 24% VSK
+// while POST /v1/campaigns sends budget.totalIsk and the server admits the
+// campaign on available >= that figure. The UI was strictly stricter than the
+// thing that takes the money, and since an insufficient wallet swaps the
+// confirm button for a top-up link, an advertiser holding exactly their
+// budget could not buy at all.
+test('confirm step gates on the budget the server charges, not budget + VSK', async () => {
+  // Default wizard budget is 20.000 kr; VSK would put the old gate at 24.800.
+  // Available is exactly the budget: passes the server's rule, failed the old
+  // UI rule. This is what pins the fix — restore `grandTotal` in the gate and
+  // this test goes red.
+  setupApiMock(undefined, {
+    wallet: { advertiserId: 'adv_1', balanceIsk: 20_000, committedIsk: 0, availableIsk: 20_000 },
+  });
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  expect(screen.getByText('Nóg inneign — engin áfylling þarf')).toBeDefined();
+  expect(screen.getByText('Hefja birtingu af inneign')).toBeDefined();
+});
+
+test('a genuinely short wallet still shows the top-up path, with the shortfall net of VSK', async () => {
+  // 15.000 available against a 20.000 budget: short under either rule, so the
+  // top-up path must survive the fix. The quoted shortfall is the 5.000 the
+  // server actually needs, not 9.800 (the old budget + VSK arithmetic).
+  setupApiMock(undefined, {
+    wallet: { advertiserId: 'adv_1', balanceIsk: 15_000, committedIsk: 0, availableIsk: 15_000 },
+  });
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  expect(screen.queryByText('Nóg inneign — engin áfylling þarf')).toBeNull();
+  expect(screen.getByText('Fylla fyrst á veskið')).toBeDefined();
+  expect(screen.getByText(/Vantar 5\.000 kr\./)).toBeDefined();
+});
+
 test('a wallet response without availableIsk (old shape) falls back to gross balance', async () => {
   // The default WALLET fixture is the old shape with a large balance — the
   // sufficient path must keep working exactly as before.

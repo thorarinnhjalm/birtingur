@@ -256,8 +256,27 @@ export default function CampaignCreate() {
   const perDayImpressions = Math.round(totalImpressions / 30);
   const vsk = Math.round(totalBudget * VAT_RATE);
   const grandTotal = totalBudget + vsk;
-  const walletSufficient = walletAvailable >= grandTotal;
-  const topUpNeeded = Math.max(0, grandTotal - walletAvailable);
+  // Gate on `totalBudget`, NOT `grandTotal`. POST /v1/campaigns sends
+  // budget.totalIsk and the server admits the campaign when available
+  // balance >= that figure (services/wallet.ts) — VAT is not part of what it
+  // debits. Gating the UI on budget + 24% made this screen strictly stricter
+  // than the thing that actually takes the money: an advertiser with exactly
+  // enough available balance for their budget was told they were 24% short
+  // and, because the branch below swaps the confirm button for a top-up link
+  // when this is false, had no way to buy at all. The over-strict gate
+  // protected nothing (the server is the authority on funds) and only lost
+  // the sale.
+  //
+  // The VSK line and the "Samtals" figure below are deliberately left alone.
+  // Whether VAT is owed at purchase or (per the TopUp page's copy) applies to
+  // the platform fee at serving time is an open question with the owner's
+  // accountant; see docs/superpowers/follow-ups-2026-08-09.md. That decision
+  // changes the copy and possibly the server, and must land as one coherent
+  // pass across the confirm screen, TopUp, DISBURSE_VAT and Payday/Blikk.
+  // This change only stops the UI from disagreeing with the server about who
+  // may buy.
+  const walletSufficient = walletAvailable >= totalBudget;
+  const topUpNeeded = Math.max(0, totalBudget - walletAvailable);
   const selectedDailyInventory = selectedCategories.reduce((sum, slug) => {
     const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
     return sum + (forecast?.availableDailyImpressions ?? 0);
