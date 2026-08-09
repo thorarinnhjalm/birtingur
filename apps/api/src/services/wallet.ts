@@ -232,7 +232,25 @@ export async function chargeCampaign(
     relatedId: campaignId,
   });
 
-  await syncMirror(advertiserId);
+  // INVARIANT: once appendLedger above has resolved, the money HAS moved —
+  // the append-only ledger is the source of truth. syncMirror only refreshes
+  // a derived read cache (advertiser.walletBalanceIsk), and
+  // services/reconciliation.ts (checkAdvertiserMirror) already detects and
+  // reports mirror drift daily. chargeCampaign must NOT reject after this
+  // point: its only real caller, services/accrual.ts, decides whether to
+  // re-queue an event batch based on whether this function resolved — if a
+  // mirror-sync hiccup here made chargeCampaign reject, accrual would
+  // re-queue events whose charge already landed, and the next run would
+  // apply a second campaign_charge for the same impressions. So a mirror
+  // failure is logged loudly and swallowed, never surfaced to the caller.
+  try {
+    await syncMirror(advertiserId);
+  } catch (err) {
+    console.error(
+      `[wallet] syncMirror failed after chargeCampaign (charge already applied) advertiserId=${advertiserId} campaignId=${campaignId}:`,
+      err,
+    );
+  }
 }
 
 /**
