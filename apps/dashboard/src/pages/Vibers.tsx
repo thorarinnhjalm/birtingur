@@ -76,7 +76,7 @@ export default function Vibers() {
 <div data-adplatform-slot="slot_id_hér" style="min-height: 250px;"></div>
 
 <!-- 2. Async skriftan sem hleður og birtir borðann (hleðst í bakgrunni) -->
-<script async src="https://cdn.birtingur.is/v1/snippet.js"></script>`;
+<script async src="https://serving.birtingur.app/widget.js"></script>`;
 
   const mcpCommand = `claude mcp add birtingur curl -X POST -H "Authorization: Bearer ak_DÍNN_API_LYKILL" -H "Content-Type: application/json" -d "{{mcp_payload}}" https://mcp.birtingur.app/mcp`;
 
@@ -292,7 +292,7 @@ export default function Vibers() {
                 <span className="text-sky-400">&lt;script</span>{' '}
                 <span className="text-amber-400">async</span>{' '}
                 <span className="text-amber-400">src</span>=
-                <span className="text-emerald-400">"https://cdn.birtingur.is/v1/snippet.js"</span>
+                <span className="text-emerald-400">"https://serving.birtingur.app/widget.js"</span>
                 <span className="text-sky-400">&gt;&lt;/script&gt;</span>
               </code>
             </pre>
