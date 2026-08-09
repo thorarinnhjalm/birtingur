@@ -85,12 +85,26 @@ Two distinct quantities, honestly named and separately stored:
 ### Mechanism
 
 The signature model is not weakened: the snippet cannot sign, so it may
-only fire URLs the server handed it. Every `/v1/ad` response therefore
-carries a signed `pageviewPixel` alongside the existing
-`impressionPixel`, and **the snippet fires it exactly once per page load**
-— from whichever slot's response arrives first — using a module-scoped
-flag set inside `init()`. Slots added to the DOM later are already outside
-today's one-shot `querySelectorAll`, so no case is lost.
+only fire URLs the server handed it. Every `/v1/ad` response that can
+attribute a publisher therefore carries a signed `pageviewPixel` alongside
+the existing `impressionPixel`, and **the snippet fires it exactly once
+per page load** — from whichever such response arrives first.
+
+Two details the implementation settled, both load-bearing:
+
+- The **cache-miss** (`!slot`) response deliberately omits
+  `pageviewPixel`. It cannot resolve a publisher, and because cache-miss
+  responses return fastest they would otherwise win the snippet's
+  one-shot race and burn the page view for the whole page — including
+  pages whose other slots were perfectly attributable.
+- The one-shot flag lives on a namespaced **global**, not module scope.
+  The snippet builds as an IIFE (classic script), and browsers do not
+  dedupe classic `<script src>` tags, so a page that embeds the tag twice
+  would otherwise run two independent module scopes and report two page
+  views for one visit.
+
+Slots added to the DOM later are already outside today's one-shot
+`querySelectorAll`, so no case is lost.
 
 Server side:
 
