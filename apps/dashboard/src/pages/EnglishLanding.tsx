@@ -211,7 +211,10 @@ export default function EnglishLanding() {
           MCP & AI Agent Native
         </span>
         <span>
-          Birtingur is expanding its MCP-native & privacy-first ad network globally.{' '}
+          {/* "expanding ... globally" described an operating network being extended.
+              The network is pre-launch with a waitlist (AGENTS.md), and the
+              Icelandic pages already say so plainly — this one now matches. */}
+          Birtingur is building an MCP-native, privacy-first ad network.{' '}
           <a
             href="#waitlist-section"
             className="inline-flex items-center gap-1 font-bold text-primary underline hover:text-primary-800"
@@ -251,10 +254,13 @@ export default function EnglishLanding() {
             autonomous AI campaign management.
           </p>
 
-          {/* ACTIVE CONTENT CATEGORIES */}
+          {/* CONTENT CATEGORIES — "Active" was dropped deliberately: it reads as
+              a claim of live inventory in each category, and the network has no
+              serving publishers yet. The list is what you can buy into, not what
+              is running today. */}
           <div className="mt-10">
             <span className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-              Explore Active Content Categories (Click to view category details)
+              Explore Content Categories (Click to view category details)
             </span>
             <div className="flex flex-wrap gap-2.5">
               {ENGLISH_CATEGORIES_LIST.map((c) => (
