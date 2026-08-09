@@ -60,13 +60,17 @@ Turborepo monorepo:
 
 | App       | Host                                 | URL                             |
 | --------- | ------------------------------------ | ------------------------------- |
-| API       | Vercel                               | api.adplatform.is               |
-| Dashboard | Vercel                               | app.adplatform.is               |
-| MCP       | Vercel                               | mcp.adplatform.is               |
-| Serving   | Vercel (V1) / Cloudflare Worker (V2) | serve.adplatform.is             |
-| Snippet   | Cloudflare R2 + CDN                  | cdn.adplatform.is/v1/snippet.js |
+| API       | Vercel                               | api.birtingur.app               |
+| Dashboard | Vercel                               | www.birtingur.app               |
+| MCP       | Vercel                               | mcp.birtingur.app               |
+| Serving   | Vercel (V1) / Cloudflare Worker (V2) | serving.birtingur.app           |
+| Snippet   | served by the serving app            | serving.birtingur.app/widget.js |
 | Firestore | Firebase                             | ada-prod project                |
 | Redis     | Upstash                              | ada-prod database               |
+
+The `adplatform.is` names in older specs and plans were never registered. The
+serving subdomain is `serving.`, not `serve.`, and there is no separate CDN —
+the serving build copies the compiled snippet to its own `public/widget.js`.
 
 Crons (Vercel):
 
