@@ -22,6 +22,10 @@ interface MockAdvertiser {
 
 let mockLedgerEntries: MockLedgerEntry[] = [];
 let mockAdvertisers: MockAdvertiser[] = [];
+// Advertiser ids for which the mocked advertisers-collection `update` (i.e.
+// syncMirror's write) throws — used to prove chargeCampaign does not reject
+// when the mirror sync fails after the ledger charge has already landed.
+let failMirrorSyncFor = new Set<string>();
 
 vi.mock('../src/lib/firebase', () => {
   return {
@@ -93,6 +97,9 @@ vi.mock('../src/lib/firebase', () => {
             id,
             update: vi.fn(async (fields: unknown) => {
               if (colName === 'advertisers') {
+                if (failMirrorSyncFor.has(id)) {
+                  throw new Error('mirror sync unavailable');
+                }
                 const found = mockAdvertisers.find((a) => a.id === id);
                 if (found) {
                   Object.assign(found, fields as Partial<MockAdvertiser>);
@@ -157,6 +164,7 @@ describe('Wallet Service', () => {
   beforeEach(() => {
     mockLedgerEntries = [];
     mockAdvertisers = [];
+    failMirrorSyncFor = new Set();
   });
 
   async function seedAdv() {
@@ -197,6 +205,27 @@ describe('Wallet Service', () => {
       await topUp(a.id, 1000, 't');
       await expect(chargeCampaign(a.id, 'cmp_x', 5000)).rejects.toThrow(/insufficient/);
     });
+
+    it('resolves — and leaves exactly one ledger entry — when the wallet mirror sync fails after the charge lands', async () => {
+      // The ledger append is the money-moving write; syncMirror only
+      // refreshes a derived read cache. If chargeCampaign rejected here,
+      // a caller like services/accrual.ts would treat the charge as never
+      // having happened and retry it, double-billing the advertiser.
+      const a = await seedAdv();
+      await topUp(a.id, 10000, 't'); // let topUp's own mirror sync succeed first
+      failMirrorSyncFor.add(a.id);
+
+      await expect(chargeCampaign(a.id, 'cmp_mirror_fail', 3000)).resolves.toBeUndefined();
+
+      const chargeEntries = mockLedgerEntries.filter(
+        (e) =>
+          e.party.id === a.id && e.type === 'campaign_charge' && e.relatedId === 'cmp_mirror_fail',
+      );
+      expect(chargeEntries).toHaveLength(1);
+      // The ledger (source of truth) reflects the charge even though the
+      // mirror write failed — getWallet reads from the ledger, not the mirror.
+      expect((await getWallet(a.id)).balanceIsk).toBe(7000);
+    });
   });
 
   describe('refundCampaign', () => {
@@ -229,6 +258,7 @@ describe('Wallet API Router', () => {
   beforeEach(() => {
     mockLedgerEntries = [];
     mockAdvertisers = [];
+    failMirrorSyncFor = new Set();
     vi.clearAllMocks();
   });
 
