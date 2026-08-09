@@ -94,14 +94,50 @@ today's one-shot `querySelectorAll`, so no case is lost.
 
 Server side:
 
-- `routes/ad.ts` stops logging `pageview` and logs `slot_load` instead
-  (same fields, new `type`). The no-fill path in `routes/impression.ts`
-  likewise logs `slot_load`.
+- `routes/ad.ts` keeps logging its slot-load event with the ordinary wire
+  type `pageview` (same as today) — it does **not** switch to a distinct
+  `slot_load` type. What changes is which `creativeId` value is treated as
+  the marker: a slot load carries the real (or fallback) creativeId of
+  whatever was served; the new page-level pixel below is the only thing
+  that ever logs the placeholder `creativeId: 'pageview'`. This wire-type
+  choice is deliberate, not an oversight — see "Deploy-order safety"
+  below.
+- The no-fill path in `routes/impression.ts` only re-logs the slot load
+  for the `cre_nocache` case: `ad.ts`'s `!slot` branch served that
+  creative because the cache was a genuine miss, so it had no
+  `publisherId` to log against at serve time, and this pixel — firing
+  seconds later, once the cache has often repopulated — is the only
+  remaining chance to record it. The two known-slot fallback creatives
+  (`cre_fallback_transparent`, `cre_fallback_birtingur`) are **not**
+  re-logged here: `ad.ts` already recorded their slot load at serve time
+  (the slot, and therefore the `publisherId`, was known then), and a
+  second write here would double-count it.
 - A new signed pixel target records the real `pageview`. It reuses the
   existing `/v1/impression` handler's validation shape (signature
   required, `claimSignatureOnce` under its own `'pv'` kind, slot cache
   lookup to resolve the publisher) so no new trust surface is introduced.
-- `AdEvent.type` becomes `'impression' | 'click' | 'pageview' | 'slot_load'`.
+- `AdEvent.type` stays `'impression' | 'click' | 'pageview'` — no separate
+  `slot_load` wire type is introduced. `creativeId` is the only
+  discriminator between a slot load and a true page view.
+
+**Deploy-order safety (revised 2026-08-09, after review):** an earlier
+version of this design put slot loads on a distinct `slot_load` wire
+type. That was reverted before implementation shipped: `apps/serving` and
+`apps/api` are separate Vercel projects that rebuild simultaneously on
+one push, so "serving live before api" (or the reverse) is a real,
+uncontrollable window. A `slot_load` event drained by main's _old_
+aggregator — which classifies `if (type === 'pageview') {...} else { if
+(type === 'impression') impressions++ else clicks++ }` — would have been
+counted as a **click**, inflating publisher CTR and campaign/creative
+click totals irreversibly. Keeping the wire type at `pageview` for both
+kinds of event means an old aggregator instead counts every slot load as
+a pageview: bounded, harmless overcounting, never a click. The new
+aggregator (`apps/api/src/services/stats-aggregator.ts`) routes on the
+`creativeId` marker regardless of which app deployed first, and its final
+`else` branch is hardened to only match `'impression' | 'click'`
+explicitly (skipping and warning on anything else) so this class of bug
+cannot recur even if a future event type is added carelessly. Either
+deploy order is now safe.
 
 ### Storage and display
 
@@ -179,14 +215,22 @@ live for months.
 
 - Snippet: a page with three slots fires exactly one pageview pixel; a
   page with one slot fires one; the pixel still fires when the first slot
-  returns an empty (no-fill) response.
-- Serving: `/v1/ad` logs `slot_load`, not `pageview`; the pageview pixel
-  logs `pageview` once and is rejected on replay; an unsigned pageview
-  pixel records nothing.
+  returns an empty (no-fill) response, including when that first slot is
+  specifically a cache miss with no `pageviewPixel` of its own and a
+  later, cached slot has to carry it instead.
+- Serving: `/v1/ad` logs the slot load's wire type as `pageview` (not a
+  separate type) carrying the real/fallback creativeId; the cache-miss
+  (`!slot`) response never includes a `pageviewPixel`. The page-level
+  pageview pixel logs `pageview` (with the `PAGEVIEW_CREATIVE_ID` marker)
+  once and is rejected on replay; an unsigned pageview pixel records
+  nothing.
 - `logEvent`: one pipeline call, both queues receive impressions, only the
   stats queue receives the rest, and the emitted counter advances.
-- Aggregator: `slot_load` increments `pageviews`, `pageview` increments
-  `pageViewsTrue`, the recorded counter advances per event hour.
+- Aggregator: a `pageview` event with a real/fallback creativeId (or an
+  explicit `slot_load`, kept for forward-compat) increments `pageviews`; a
+  `pageview` event with the true-pageview marker creativeId increments
+  `pageViewsTrue`; the recorded counter advances per event hour; an
+  unrecognized event type is skipped rather than counted as a click.
 - Reconciliation: a seeded gap beyond tolerance alerts, a gap inside
   tolerance does not, a missing bucket does not.
 - Dashboard: "Vefumferð" shows the em dash and the explanation for a
