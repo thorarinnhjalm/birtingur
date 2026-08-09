@@ -1,18 +1,37 @@
 # Follow-ups parked during the 2026-08-08/09 review runs
 
-Nine PRs shipped across two days (#9–#18). Every one went through
+Thirteen PRs shipped across two days (#9–#22). Every one went through
 adversarial review, and each review parked findings that were real but not
 worth blocking the merge. Those rulings lived in gitignored run ledgers
 inside temporary worktrees; this file is where they survive.
 
-#18 cleared the two entries that could reach a real user today: the campaign
+#18 cleared the two entries that could reach a real user: the campaign
 confirm screen's over-strict funds gate, and Earnings rendering a failed
 request as "0 kr.". Everything still listed as Open is a narrowed risk, a
 scaling ceiling, or a monitoring gap.
 
-Nothing here is a known-broken behaviour in production. Each item is a
-narrowed risk, a scaling limit, or a monitoring blind spot, with the ruling
-that put it here.
+## What changed on 2026-08-09 evening, and why it matters to this list
+
+Closing an unverified note from #14 ("is the snippet actually published?")
+found that **ad serving had never worked in production**. The compiled
+snippet was built with `serve.adplatform.is` baked in — a domain that was
+never registered — so every ad request, impression pixel, click and pageview
+went to a host that resolves to nothing. Nothing errored: the publisher saw
+no ad and the platform recorded no traffic. Seven more embed strings we hand
+out pointed at `cdn.` hosts with no deployment attached. Fixed in #20 and
+#21; verified live afterwards.
+
+The same sweep found that `apps/api/src/lib/auth.ts` granted admin to any
+verified `@adplatform.is` address — the same unregistered domain. Anyone
+could have bought it and been handed `/v1/admin/*`, payouts included. Removed
+in #21.
+
+**This resets the risk baseline for everything below.** Until that evening,
+every item on this list involving impressions, accrual, billing or bot
+measurement had an implicit severity of zero, because no impression could
+physically occur. They are now live risks for the first time. Re-read the
+list with that in mind rather than trusting a "low" that was earned in a
+system serving nothing.
 
 ## Status
 
@@ -46,6 +65,18 @@ small.
 
 _Fix:_ an idempotency key on `relatedId` plus a per-batch discriminator, so
 a repeat of the same charge is a no-op rather than a second debit.
+
+_Owner's ruling, 2026-08-09:_ parked deliberately, not forgotten. The
+remaining window needs the ledger write to commit and the reply to be lost at
+exactly the wrong moment, which has never happened — and could not have
+happened, since no impression reached the platform until that evening (see
+the risk-baseline note at the top).
+
+That last clause is the reason to revisit this rather than let it sit. The
+first real impressions are now flowing. Take it as a day's work before
+advertiser registration opens, since the failure it prevents is charging a
+customer twice for the same impressions — the kind of error that is noticed
+by the person paying, not by us.
 
 ### VSK treatment — waiting on the owner's accountant
 
