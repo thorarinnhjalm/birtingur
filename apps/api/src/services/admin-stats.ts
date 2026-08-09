@@ -1,6 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { getCreativeStats } from './creative-stats.js';
+import type { DocumentReference } from 'firebase-admin/firestore';
 
 export interface TopCreativeEntry {
   creativeId: string;
@@ -170,13 +171,18 @@ async function getBotTrafficSummary(
   const pubSnap = await db.collection(COLLECTIONS.publishers).where('status', '==', 'active').get();
 
   const dateKeys = lastNDateKeys(windowDays);
-  const docPromises = [];
+  const refs: DocumentReference[] = [];
   for (const pubDoc of pubSnap.docs) {
     for (const dk of dateKeys) {
-      docPromises.push(db.doc(`${COLLECTIONS.stats}/publishers/${pubDoc.id}/${dk}`).get());
+      refs.push(db.doc(`${COLLECTIONS.stats}/publishers/${pubDoc.id}/${dk}`));
     }
   }
-  const snaps = await Promise.all(docPromises);
+  // Batched into a single getAll() RPC instead of activePublishers ×
+  // windowDays individual .get() calls — same documents, same order, same
+  // missing-document handling (a non-existent doc's snapshot still has
+  // `.data() === undefined`, exactly as DocumentReference.get() returns).
+  // getAll() requires at least one ref, hence the guard.
+  const snaps = refs.length > 0 ? await db.getAll(...refs) : [];
 
   let totalImpressions = 0;
   let totalPageViews = 0;
