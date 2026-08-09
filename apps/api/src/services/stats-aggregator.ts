@@ -45,6 +45,22 @@ function recordedCounterKey(ts: number): string {
   return `recorded:${hourKey(ts)}`;
 }
 
+// Cutover discriminator (2026-08-09, commit a7d538c on this branch): before that
+// commit, EVERY ad-serve request logged `type: 'pageview'` carrying a real or
+// fallback creativeId (`cre_…`, `cre_fallback_transparent`, `cre_fallback_birtingur`,
+// `cre_nocache`) — that event meant a slot load, not a true page view. Post-cutover,
+// `slot_load` took over that meaning and the new page-level pixel
+// (apps/serving/src/routes/pageview.ts) is the only thing that logs `type: 'pageview'`
+// now, always tagged with this placeholder creativeId since no creative is involved.
+// Any pre-cutover 'pageview' event still sitting in EVENT_QUEUE_STATS/LEGACY when this
+// aggregator deploys must still be routed as a slot load, or it inflates the brand-new
+// pageViewsTrue figure on day one. Duplicated from serving's PAGEVIEW_CREATIVE_ID
+// (apps/serving/src/lib/analytics.ts) rather than imported across the app boundary.
+// Safe to delete this guard, and route all 'pageview' events straight to the true-
+// pageview branch, once the pre-cutover backlog has fully drained (bounded by the
+// hourly cron-aggregate cadence and the 7-day event-counter TTL).
+const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
 
@@ -76,7 +92,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   const creativeHour = new Map<string, CreativeStats>();
 
   for (const ev of events) {
-    if (ev.type === 'slot_load') {
+    // A pre-cutover 'pageview' event (real/fallback creativeId, logged before commit
+    // a7d538c) means a slot load, not a true page view — see TRUE_PAGEVIEW_CREATIVE_ID
+    // above. Route it through the exact same path as 'slot_load'.
+    const isLegacySlotLoad = ev.type === 'pageview' && ev.creativeId !== TRUE_PAGEVIEW_CREATIVE_ID;
+
+    if (ev.type === 'slot_load' || isLegacySlotLoad) {
       // slot_load is one per ad request — the fill-rate denominator. It takes over the
       // bookkeeping the old 'pageview' branch used to do (the `pageviews` field keeps its
       // existing meaning; only the event type feeding it has changed).
@@ -97,8 +118,9 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         creativeHour.set(cr, crb);
       }
     } else if (ev.type === 'pageview') {
-      // Real page view — one per page load, independent of ad-slot fill. Only the
-      // publisher-day and publisher-slot-day buckets track it (no creative-hour
+      // Real page view (creativeId === TRUE_PAGEVIEW_CREATIVE_ID, guaranteed by the
+      // isLegacySlotLoad check above) — one per page load, independent of ad-slot fill.
+      // Only the publisher-day and publisher-slot-day buckets track it (no creative-hour
       // bookkeeping: a true pageview isn't tied to a served creative).
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;

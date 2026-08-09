@@ -263,12 +263,16 @@ describe('aggregateEvents', () => {
   describe('slot_load vs pageview', () => {
     // makeEvent()'s default ts is Date.UTC(2026, 7, 8, 12, 30, 0) => day 20260808.
     const DAY = '20260808';
+    // Mirrors serving's PAGEVIEW_CREATIVE_ID / the aggregator's TRUE_PAGEVIEW_CREATIVE_ID:
+    // the marker that distinguishes a genuine page-level pageview event from a
+    // pre-cutover 'pageview' event that actually meant a slot load.
+    const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
 
     it('counts slot_load into pageviews and pageview into pageViewsTrue', async () => {
       await aggregateEvents([
         makeEvent({ type: 'slot_load' }),
         makeEvent({ type: 'slot_load' }),
-        makeEvent({ type: 'pageview' }),
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
       ]);
       const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
       expect(doc.pageviews).toBe(2); // slot loads — fill-rate denominator
@@ -288,8 +292,16 @@ describe('aggregateEvents', () => {
 
     it('increments the recorded counter per event, bucketed by event hour', async () => {
       await aggregateEvents([
-        makeEvent({ type: 'pageview', ts: Date.UTC(2026, 7, 9, 13, 5) }),
-        makeEvent({ type: 'pageview', ts: Date.UTC(2026, 7, 9, 13, 55) }),
+        makeEvent({
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+          ts: Date.UTC(2026, 7, 9, 13, 5),
+        }),
+        makeEvent({
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+          ts: Date.UTC(2026, 7, 9, 13, 55),
+        }),
       ]);
       expect(await redisGet('recorded:2026080913')).toBe(2);
     });
@@ -320,6 +332,43 @@ describe('aggregateEvents', () => {
         await db.doc(`${COLLECTIONS.stats}/creatives/cre_1/2026080812`).get()
       ).data()!;
       expect(creDoc.pageviews).toBe(1);
+    });
+
+    describe('legacy pre-cutover pageview events (commit a7d538c)', () => {
+      it('a true pageview (creativeId: TRUE_PAGEVIEW_CREATIVE_ID) increments pageViewsTrue and not pageviews', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageViewsTrue).toBe(1);
+        expect(doc.pageviews ?? 0).toBe(0);
+      });
+
+      it('a legacy-shaped pageview (real creativeId, pre-cutover) increments pageviews and leaves pageViewsTrue absent', async () => {
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: 'cre_abc' })]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageviews).toBe(1);
+        expect(doc.pageViewsTrue).toBeUndefined();
+
+        // Legacy events also carried creative-hour bookkeeping (the old pageview
+        // branch's behaviour), same as slot_load does now.
+        const creDoc = (
+          await db.doc(`${COLLECTIONS.stats}/creatives/cre_abc/2026080812`).get()
+        ).data()!;
+        expect(creDoc.pageviews).toBe(1);
+      });
+
+      it('a mixed batch of true and legacy-shaped pageviews lands in the right buckets', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+          makeEvent({ type: 'pageview', creativeId: 'cre_abc' }),
+          makeEvent({ type: 'pageview', creativeId: 'cre_fallback_birtingur' }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageViewsTrue).toBe(2); // the two true pageviews
+        expect(doc.pageviews).toBe(2); // the two legacy-shaped (slot-load) pageviews
+      });
     });
   });
 });
