@@ -1,9 +1,14 @@
 # Follow-ups parked during the 2026-08-08/09 review runs
 
-Eight PRs shipped across two days (#9–#16). Every one went through
+Nine PRs shipped across two days (#9–#18). Every one went through
 adversarial review, and each review parked findings that were real but not
 worth blocking the merge. Those rulings lived in gitignored run ledgers
 inside temporary worktrees; this file is where they survive.
+
+#18 cleared the two entries that could reach a real user today: the campaign
+confirm screen's over-strict funds gate, and Earnings rendering a failed
+request as "0 kr.". Everything still listed as Open is a narrowed risk, a
+scaling ceiling, or a monitoring gap.
 
 Nothing here is a known-broken behaviour in production. Each item is a
 narrowed risk, a scaling limit, or a monitoring blind spot, with the ruling
@@ -14,8 +19,8 @@ that put it here.
 | Item                                               | Area        | Severity | Status                |
 | -------------------------------------------------- | ----------- | -------- | --------------------- |
 | `chargeCampaign` has no idempotency key            | Money       | Highest  | Open                  |
-| VSK treatment (advertiser + publisher)             | Money       | High     | Blocked on accountant |
-| Earnings shows 0 kr instead of an error state      | Publisher   | Medium   | Open                  |
+| VSK treatment (confirm copy + publisher payout)    | Money       | High     | Blocked on accountant |
+| Earnings shows 0 kr instead of an error state      | Publisher   | Medium   | Fixed in #18          |
 | Unpaid-basis read scans full credit history        | Scaling     | Medium   | Open                  |
 | Payout + reconciliation unbounded collection reads | Scaling     | Medium   | Open                  |
 | Advertiser dashboard shows gross balance           | Advertiser  | Low      | Open                  |
@@ -44,31 +49,52 @@ a repeat of the same charge is a no-op rather than a second debit.
 
 ### VSK treatment — waiting on the owner's accountant
 
-Two questions, one conversation. **Advertiser side:** the campaign confirm
-screen requires available balance ≥ budget + 24% VSK, but the server only
-requires ≥ budget, because top-ups are VAT-free credit and VAT applies to
-the platform fee at serving time (per the TopUp page's own copy). The UI is
-over-strict by the VSK amount and can demand a top-up the server would not.
-**Publisher side:** `DISBURSE_VAT = false` in `services/payouts.ts` pauses
+Two questions, one conversation.
+
+**Advertiser side.** The funds gate is no longer part of this: PR #18 moved
+the confirm screen onto the same figure the server charges (`budget.totalIsk`,
+no VAT component), because the old gate was over-strict by 24% and, since an
+insufficient wallet swaps the confirm button for a top-up link, blocked an
+advertiser holding exactly enough money from buying at all. That was a bug
+under every possible answer to the VAT question, so it did not wait for one.
+
+What remains is the copy. The screen still shows a "VSK (24%)" line and a
+"Samtals" figure of budget + 24% — a number that will never be debited, and
+one that contradicts the product's own stated model elsewhere: `TopUp.tsx`
+and `FaqPage.tsx` both say the deposit is a VAT-free agency credit and that
+VAT applies only to the 20% platform fee at serving time, which is 960 kr on
+a 20.000 kr budget rather than 4.800 kr on top of it. Those exact rows are
+specified in the approved design
+(`specs/2026-07-03-redesign-templates/buy-flow.dc.html:126-129`), so changing
+them is the owner's call, not a review's.
+
+**Publisher side.** `DISBURSE_VAT = false` in `services/payouts.ts` pauses
 VAT disbursement — `vatIsk` is still computed and stored, just excluded from
 the paid amount — because the 2026-08-05 audit found VAT was being paid out
 and never collected.
 
-_Fix:_ when the answer lands, align the UI gate, the confirm screen's VSK
-line, the TopUp copy, `DISBURSE_VAT`, and the Payday/Blikk invoicing in one
-pass. Do not change any of them piecemeal.
+_Fix:_ when the answer lands, align the confirm screen's VSK line and total,
+the TopUp copy, `DISBURSE_VAT`, and the Payday/Blikk invoicing in one pass.
+Do not change any of them piecemeal.
 
 ## Publisher-facing
 
-### Earnings shows 0 kr instead of an error state
+### Earnings shows 0 kr instead of an error state — fixed in #18
 
-`apps/dashboard/src/pages/publisher/Earnings.tsx`. The unpaid-basis query is
-gated on `usePublishers` having resolved. If that query itself errors
-(`retry: false`), the page renders zeros rather than an error — a money
-figure that silently reads as "you have earned nothing".
+`apps/dashboard/src/pages/publisher/Earnings.tsx` now returns an ErrorState
+with retry when a money query fails with no data to fall back on. The
+predicate is `isLoadingError`, not `isError`: a query that fails while
+already holding data keeps that data, and with staleTime 30s plus
+refetchOnMount a single blip on a return visit would otherwise have replaced
+correct cached figures with a red box.
 
-_Fix:_ an `isError` branch, mirroring the guard the publisher Dashboard
-already has.
+The original entry assumed the publisher Dashboard already had this guard.
+It did not — it had the opposite problem, found while fixing this one. The
+publisher shell routed to the onboarding wizard whenever `!publishers`, and
+that query runs `retry: false`, so one cold function or one expired token
+told an established publisher that the sites they own do not exist. It also
+made the Earnings error state unreachable, since nobody gets past the shell
+to see it. Both are fixed in #18; a genuinely empty list still onboards.
 
 ## Scaling
 
