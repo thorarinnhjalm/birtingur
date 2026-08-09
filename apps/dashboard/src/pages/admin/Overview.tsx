@@ -689,7 +689,8 @@ function AdminPayoutQueue() {
                       </div>
                       {(p.carriedForwardIsk ?? 0) > 0 && (
                         <div className="text-[10px] text-slate-500 font-medium">
-                          Þar af eldri uppsöfnun: {formatIsk(p.carriedForwardIsk)}
+                          Þessi mánuður: {formatIsk(p.currentPeriodIsk ?? 0)} · Eldri uppsöfnun:{' '}
+                          {formatIsk(p.carriedForwardIsk)}
                         </div>
                       )}
                     </td>
