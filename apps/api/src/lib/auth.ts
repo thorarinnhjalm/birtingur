@@ -81,12 +81,22 @@ export const requireAuth: MiddlewareHandler<Env> = async (c, next) => {
       .filter(Boolean);
 
     // Email here is guaranteed verified (unverified tokens were rejected above),
-    // so domain/allowlist admin grants are safe. Server-set custom claims
+    // so an allowlist admin grant is safe. Server-set custom claims
     // (decodedToken.admin) are trusted regardless.
-    const isAdmin =
-      !!decodedToken.admin ||
-      email.endsWith('@adplatform.is') ||
-      adminEmails.includes(email.toLowerCase());
+    //
+    // There is deliberately NO domain-suffix grant here. Until 2026-08-09 this
+    // granted admin to any verified `@adplatform.is` address — and that domain
+    // is not registered. Anyone could have bought it, created a mailbox, signed
+    // up, verified the address, and been handed the whole `/v1/admin/*` surface,
+    // which includes payouts. Nobody could have been using the rule legitimately
+    // either, since no mailbox can exist on a domain that does not resolve, so
+    // removing it locks nobody out.
+    //
+    // If a company-domain grant is ever wanted again, drive it from an env var
+    // (e.g. ADMIN_EMAIL_DOMAIN) so it is set to a domain that is actually owned,
+    // and remember a hardcoded one silently becomes a backdoor the day the
+    // domain lapses. ADMIN_EMAILS covers the current need.
+    const isAdmin = !!decodedToken.admin || adminEmails.includes(email.toLowerCase());
 
     c.set('user', {
       uid: decodedToken.uid,

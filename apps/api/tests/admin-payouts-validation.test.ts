@@ -12,7 +12,7 @@ vi.mock('../src/lib/firebase', () => ({
   auth: {
     verifyIdToken: vi.fn(async (token: string) => {
       if (token === 'admin-token') {
-        return { uid: 'u-admin', email: 'admin@adplatform.is', admin: true, email_verified: true };
+        return { uid: 'u-admin', email: 'admin@birtingur.app', admin: true, email_verified: true };
       }
       throw new Error('Invalid token');
     }),

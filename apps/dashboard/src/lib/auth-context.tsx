@@ -29,11 +29,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .map((e: string) => e.trim().toLowerCase())
             .filter(Boolean);
 
-          const isAdmin =
-            !!tokenResult.claims.admin ||
-            email.endsWith('@adplatform.is') ||
-            email === 'admin@a.is' ||
-            adminEmails.includes(email.toLowerCase());
+          // Mirrors apps/api/src/lib/auth.ts. This flag only decides whether the
+          // admin UI is offered — the API is the real gate — but it must not be
+          // more generous than the server, or it renders screens that then 403.
+          //
+          // The domain-suffix grant and a hardcoded `admin@a.is` were both
+          // removed on 2026-08-09 alongside the server-side rule; the domain it
+          // named (`adplatform.is`) was never registered, so it was a backdoor
+          // waiting for anyone who bought it. Keep this in step with the server.
+          const isAdmin = !!tokenResult.claims.admin || adminEmails.includes(email.toLowerCase());
 
           setAdmin(isAdmin);
         } catch {

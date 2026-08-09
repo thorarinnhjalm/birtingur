@@ -59,7 +59,7 @@ Birtingur API fylgir semí-semantískri útgáfunotkun (núverandi Serving API �
 Svaruppbygging þegar auglýsing er tiltæk (JSON):
 {
   "creativeId": "cre_abc123",
-  "imageUrl": "https://cdn.birtingur.app/...",    // Slóð á auglýsingamynd
+  "imageUrl": "https://serving.birtingur.app/...",    // Slóð á auglýsingamynd
   "clickUrl": "/v1/click?c=...",                 // Smelltenging. Ath: Ef hún byrjar á "/" þarf að skeyta "https://serving.birtingur.app" framan á.
   "width": 980,
   "height": 120,

@@ -739,18 +739,18 @@ describe('buildSnippetHtml', () => {
     const html = buildSnippetHtml({
       slotId: 'slot_abc123',
       sizes: [{ width: 728, height: 90 }],
-      cdnBase: 'https://cdn.adplatform.is',
+      cdnBase: 'https://serving.birtingur.app',
     });
     expect(html).toContain('data-adplatform-slot="slot_abc123"');
     expect(html).toContain('min-height:90px');
-    expect(html).toContain('https://cdn.adplatform.is/v1/snippet.js');
+    expect(html).toContain('https://serving.birtingur.app/widget.js');
   });
 
   it('escapes slot id (defensive)', () => {
     const html = buildSnippetHtml({
       slotId: 'slot_"><script>alert(1)</script>',
       sizes: [{ width: 728, height: 90 }],
-      cdnBase: 'https://cdn.adplatform.is',
+      cdnBase: 'https://serving.birtingur.app',
     });
     expect(html).not.toContain('<script>alert');
   });
@@ -762,7 +762,7 @@ describe('buildSnippetHtml', () => {
         { width: 728, height: 90 },
         { width: 300, height: 600 },
       ],
-      cdnBase: 'https://cdn.adplatform.is',
+      cdnBase: 'https://serving.birtingur.app',
     });
     expect(html).toContain('min-height:600px');
   });
@@ -1013,7 +1013,7 @@ export async function updateSlot(id: string, patch: UpdateSlotInput): Promise<Sl
 export async function getSnippetForSlot(slotId: string): Promise<string> {
   const slot = await getSlot(slotId);
   if (!slot) throw notFound('slot_not_found', `Slot ${slotId} not found`);
-  const cdnBase = process.env.AD_CDN_BASE ?? 'https://cdn.adplatform.is';
+  const cdnBase = process.env.AD_CDN_BASE ?? 'https://serving.birtingur.app';
   return buildSnippetHtml({ slotId, sizes: slot.sizes, cdnBase });
 }
 ```

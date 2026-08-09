@@ -292,7 +292,7 @@ export default function Bjarni() {
                 <span className="text-white/60">{'  '}</span>
                 <span className="text-amber-300">"imageUrl"</span>
                 <span className="text-white/60">: </span>
-                <span className="text-emerald-300">"https://cdn.birtingur.app/..."</span>
+                <span className="text-emerald-300">"https://serving.birtingur.app/..."</span>
                 <span className="text-white/60">,</span>
                 {`\n`}
                 <span className="text-white/60">{'  '}</span>

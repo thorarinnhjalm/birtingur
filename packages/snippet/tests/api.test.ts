@@ -9,7 +9,7 @@ const okResponse = () =>
   }) as Response;
 
 beforeEach(() => {
-  process.env.SERVE_BASE = 'https://serve.adplatform.is';
+  process.env.SERVE_BASE = 'https://serving.birtingur.app';
 });
 
 afterEach(() => {

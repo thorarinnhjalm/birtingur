@@ -11,7 +11,7 @@ Kerfið notar Firebase fyrir auðkenningu, skjalagagnagrunn (Firestore) og geyms
 1. Stofnaðu nýtt verkefni í [Firebase Console](https://console.firebase.google.com/).
 2. **Authentication:**
    - Virkjaðu **Email/Password** og **Google Sign-In**.
-   - Undir _Authorized Domains_ skaltu bæta við léninu þínu (t.d. `birtingur-dashboard.vercel.app` eða `app.adplatform.is`).
+   - Undir _Authorized Domains_ skaltu bæta við léninu þínu (t.d. `birtingur-dashboard.vercel.app` eða `www.birtingur.app`).
 3. **Cloud Firestore:**
    - Stofnaðu Firestore gagnagrunn í _production mode_.
    - Dreifðu öryggisreglum úr `firebase/firestore.rules` og vísitölum úr `firebase/firestore.indexes.json`.

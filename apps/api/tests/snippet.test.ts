@@ -17,19 +17,25 @@ describe('Snippet Builder', () => {
     expect(html).toContain(`<script async src="${cdnUrl}"></script>`);
   });
 
-  // The generated string is pasted into a publisher's own site, so a host
-  // that does not resolve is a silent, permanent breakage on someone else's
-  // page — nothing errors, the ad just never appears. Two hosts have already
-  // shipped in this position without ever being attached to a deployment
-  // (`cdn.birtingur.app`, `cdn.adplatform.is`) and one that does not exist in
-  // DNS at all (`cdn.birtingur.is`). Pin the live origin explicitly.
+  // The generated string is pasted into a publisher's own site, so a host that
+  // does not resolve is a silent, permanent breakage on someone else's page —
+  // nothing errors, the ad just never appears. Three hosts have already shipped
+  // in this position: two pointed at Vercel with no deployment attached, one
+  // never registered at all. Pin the live origin and name the dead ones.
+  //
+  // Hostnames are assembled from parts on purpose: a repo-wide find/replace of
+  // the dead names (2026-08-09) rewrote this list too, leaving every entry
+  // equal to the live host and the test asserting the output did not contain
+  // the very thing it must contain.
+  const DEAD_HOSTS = ['cdn.' + 'birtingur.app', 'cdn.' + 'birtingur.is', 'adplatform' + '.is'];
+
   it('points at the live serving origin, not a CDN host that was never deployed', () => {
     const html = generateSnippet({ slotId: 'slot_123' });
 
     if (!process.env.CDN_BASE_URL) {
       expect(html).toContain('src="https://serving.birtingur.app/widget.js"');
     }
-    for (const deadHost of ['cdn.birtingur.app', 'cdn.birtingur.is', 'adplatform.is']) {
+    for (const deadHost of DEAD_HOSTS) {
       expect(html).not.toContain(deadHost);
     }
   });

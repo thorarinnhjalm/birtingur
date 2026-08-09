@@ -33,7 +33,7 @@ This executes the script defined in `esbuild.config.mjs`:
 
 ## Cloudflare R2 CDN Upload & Deployment
 
-Once compiled, `dist/index.js` should be uploaded to a Cloudflare R2 bucket mapped to a custom domain (e.g., `cdn.birtingur.is/v1/snippet.js`).
+Once compiled, `dist/index.js` should be uploaded to a Cloudflare R2 bucket mapped to a custom domain (e.g., `serving.birtingur.app/widget.js`).
 
 ### Upload Configuration
 

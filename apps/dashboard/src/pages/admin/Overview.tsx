@@ -1376,7 +1376,7 @@ function AdminSlotsList() {
   }
 
   const generatedCode = embedSlot
-    ? `<div data-adplatform-slot="${embedSlot.id}"${embedSize ? ` data-adplatform-width="${embedSize.width}" data-adplatform-height="${embedSize.height}"` : ''}></div>\n<script async src="https://cdn.birtingur.app/widget.js"></script>`
+    ? `<div data-adplatform-slot="${embedSlot.id}"${embedSize ? ` data-adplatform-width="${embedSize.width}" data-adplatform-height="${embedSize.height}"` : ''}></div>\n<script async src="https://serving.birtingur.app/widget.js"></script>`
     : '';
 
   const handleCopyCode = () => {

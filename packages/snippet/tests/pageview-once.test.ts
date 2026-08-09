@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import type { AdResponse } from '../src/types';
 
-const SERVE_BASE = 'https://serve.adplatform.is';
+const SERVE_BASE = 'https://serving.birtingur.app';
 
 let firedSrcs: string[];
 
