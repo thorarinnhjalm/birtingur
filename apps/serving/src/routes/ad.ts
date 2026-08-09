@@ -145,18 +145,23 @@ adRoute.get('/', async (c) => {
     `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
     `&ts=${ts}&sig=${signature}`;
 
-  // Log pageview event for successful ad serve (traffic tracking)
-  void logEvent({
-    type: 'pageview',
-    slotId,
-    publisherId: slot.publisherId,
-    creativeId: creative.creativeId,
-    campaignId: creative.campaignId,
-    advertiserId: '',
-    country,
-    visitorToken: token,
-    ts,
-  });
+  // Log pageview event for successful ad serve (traffic tracking), awaited for
+  // durability. Never let a Redis outage block serving the ad — catch and log.
+  try {
+    await logEvent({
+      type: 'pageview',
+      slotId,
+      publisherId: slot.publisherId,
+      creativeId: creative.creativeId,
+      campaignId: creative.campaignId,
+      advertiserId: '',
+      country,
+      visitorToken: token,
+      ts,
+    });
+  } catch (err) {
+    console.error('logEvent failed (ad):', err);
+  }
 
   // Impression is counted when the pixel fires (impression.ts), not here.
 

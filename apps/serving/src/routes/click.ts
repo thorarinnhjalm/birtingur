@@ -50,17 +50,23 @@ clickRoute.get('/', async (c) => {
 
     const isDuplicated = await isClickDeduplicated(creativeId, ip);
     if (!isDuplicated) {
-      void logEvent({
-        type: 'click',
-        slotId,
-        publisherId: slot?.publisherId ?? '',
-        creativeId,
-        campaignId: 'cmp_fallback',
-        advertiserId: '',
-        country: c.req.header('CF-IPCountry') ?? 'XX',
-        visitorToken: token,
-        ts: Date.now(),
-      });
+      try {
+        await logEvent({
+          type: 'click',
+          slotId,
+          publisherId: slot?.publisherId ?? '',
+          creativeId,
+          campaignId: 'cmp_fallback',
+          advertiserId: '',
+          country: c.req.header('CF-IPCountry') ?? 'XX',
+          visitorToken: token,
+          ts: Date.now(),
+        });
+      } catch (err) {
+        // Never let a Redis failure block the redirect — a lost click event is
+        // acceptable, a dead redirect is not.
+        console.error('logEvent failed (fallback click):', err);
+      }
     } else {
       console.warn(
         `Click rate limited/deduplicated for fallback creative ${creativeId} from IP ${ip}`,
@@ -89,18 +95,23 @@ clickRoute.get('/', async (c) => {
   }
 
   if (!isDuplicated && isAllowed) {
-    // Log click event (fire-and-forget best effort)
-    void logEvent({
-      type: 'click',
-      slotId,
-      publisherId: slot.publisherId,
-      creativeId,
-      campaignId: creative.campaignId,
-      advertiserId: '', // populated in batch aggregation
-      country: c.req.header('CF-IPCountry') ?? 'XX',
-      visitorToken: token,
-      ts: Date.now(),
-    });
+    // Log click event, awaited for durability — but never let a Redis failure
+    // block the redirect — a lost click event is acceptable, a dead redirect is not.
+    try {
+      await logEvent({
+        type: 'click',
+        slotId,
+        publisherId: slot.publisherId,
+        creativeId,
+        campaignId: creative.campaignId,
+        advertiserId: '', // populated in batch aggregation
+        country: c.req.header('CF-IPCountry') ?? 'XX',
+        visitorToken: token,
+        ts: Date.now(),
+      });
+    } catch (err) {
+      console.error('logEvent failed (click):', err);
+    }
   } else {
     console.warn(
       `Click rate limited/deduplicated for creative ${creativeId} from IP ${ip} (isDuplicated=${isDuplicated}, isAllowed=${isAllowed})`,

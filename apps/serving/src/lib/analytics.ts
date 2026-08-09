@@ -13,20 +13,47 @@ export interface AdEvent {
   ts: number;
 }
 
+export const EVENT_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+/** Hour bucket (UTC) an event belongs to, keyed by the event's OWN ts so a
+ * late drain still lands in the hour the event happened. Mirrored by the
+ * aggregator's `recorded:{hour}` counter — the two are compared by the
+ * daily reconciliation cron (2026-08-09 design, Part 3). */
+export function emittedCounterKey(ts: number): string {
+  const d = new Date(ts);
+  const hk =
+    d.getUTCFullYear().toString() +
+    String(d.getUTCMonth() + 1).padStart(2, '0') +
+    String(d.getUTCDate()).padStart(2, '0') +
+    String(d.getUTCHours()).padStart(2, '0');
+  return `emitted:${hk}`;
+}
+
 /**
  * Fan out each event to independent Redis lists. Stats aggregation and CPM accrual are
  * separate consumers with different cadences; sharing one list let whichever cron popped
  * first cannibalize the other's events (pageviews were dropped, impressions never reached
  * stats). Every event goes to the stats queue; only impressions go to the accrual queue
  * (accrual bills impressions only).
+ *
+ * Awaited (not fire-and-forget) so the write is durable: on Vercel's Node runtime the
+ * instance can freeze right after the response is sent, before a detached write lands,
+ * and the event vanishes with no error. All four commands (two possible lpush, the emitted
+ * counter incr, and its expire) go through a SINGLE pipelined round trip — that's what
+ * makes awaiting affordable on this latency-critical path (2026-08-09 design).
  */
 export async function logEvent(ev: AdEvent): Promise<void> {
   const redis = getRedis();
   const payload = JSON.stringify(ev);
-  await redis.lpush(EVENT_QUEUE_STATS, payload);
+  const key = emittedCounterKey(ev.ts);
+  const p = redis.pipeline();
+  p.lpush(EVENT_QUEUE_STATS, payload);
   if (ev.type === 'impression') {
-    await redis.lpush(EVENT_QUEUE_ACCRUAL, payload);
+    p.lpush(EVENT_QUEUE_ACCRUAL, payload);
   }
+  p.incr(key);
+  p.expire(key, EVENT_COUNTER_TTL_SECONDS);
+  await p.exec();
 }
 
 /**

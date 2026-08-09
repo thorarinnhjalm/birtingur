@@ -77,7 +77,7 @@ impressionRoute.get('/', async (c) => {
 
       const slot = await getSlotCache(slotId);
       if (slot?.publisherId) {
-        void logEvent({
+        await logEvent({
           type: 'pageview',
           slotId,
           publisherId: slot.publisherId,
@@ -110,7 +110,7 @@ impressionRoute.get('/', async (c) => {
 
         if (isAllowed) {
           // Log the impression now — the pixel firing proves the ad was actually seen
-          void logEvent({
+          await logEvent({
             type: 'impression',
             slotId,
             publisherId: slot.publisherId,
