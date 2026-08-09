@@ -1,8 +1,14 @@
 import type { DocumentData } from 'firebase-admin/firestore';
-import { COLLECTIONS, campaignConverter, ledgerEntryConverter } from '@ada/shared/firestore';
+import {
+  COLLECTIONS,
+  campaignConverter,
+  ledgerEntryConverter,
+  payoutConverter,
+} from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { getRedis, isRedisConfigured } from '../lib/redis.js';
 import { alertOps } from './ops-alerts.js';
+import { MIN_PAYOUT_ISK } from '@ada/shared';
 import type { Campaign, LedgerEntry } from '@ada/shared';
 
 /**
@@ -20,7 +26,9 @@ export type ReconciliationFindingKind =
   | 'money_conservation_mismatch'
   | 'advertiser_mirror_mismatch'
   | 'redis_budget_overseeded'
-  | 'stale_agent_pending_campaign';
+  | 'stale_agent_pending_campaign'
+  | 'publisher_negative_balance'
+  | 'publisher_stuck_payable';
 
 export interface ReconciliationFinding {
   kind: ReconciliationFindingKind;
@@ -245,6 +253,127 @@ function checkStaleAgentPendingCampaigns(
   }
 }
 
+const PAYOUT_LEDGER_TYPES = ['publisher_credit', 'payout'] as const;
+
+/**
+ * Checks 6 & 7: publisher-side money health, computed independently from
+ * services/payouts.ts. This deliberately DUPLICATES the payout basis
+ * arithmetic (total credits minus all payout docs' netIsk) rather than
+ * importing it — same philosophy as checkCampaign above: if a bug is ever
+ * introduced into generateMonthlyPayouts' math, this check must not share
+ * it, or reconciliation would silently agree with a broken payout run
+ * instead of catching it.
+ *
+ * Read-only: only queries the ledger and payouts collections, never writes.
+ */
+async function checkPublisherBalances(findings: ReconciliationFinding[]): Promise<void> {
+  const ledgerSnap = await db
+    .collection(COLLECTIONS.ledger)
+    .where('type', 'in', [...PAYOUT_LEDGER_TYPES])
+    .withConverter(ledgerEntryConverter)
+    .get();
+
+  const creditsByPublisher = new Map<string, LedgerEntry[]>();
+  const payoutLedgerSumByPublisher = new Map<string, number>();
+  for (const doc of ledgerSnap.docs) {
+    const e = doc.data();
+    if (e.party.type !== 'publisher') continue;
+    if (e.type === 'publisher_credit') {
+      const list = creditsByPublisher.get(e.party.id) ?? [];
+      list.push(e);
+      creditsByPublisher.set(e.party.id, list);
+    } else {
+      // 'payout' entries are stored negative (see LedgerEntrySchema) and
+      // only ever get written by markPayoutCompleted — a payout doc still
+      // 'pending'/'processing' has no ledger entry yet.
+      payoutLedgerSumByPublisher.set(
+        e.party.id,
+        (payoutLedgerSumByPublisher.get(e.party.id) ?? 0) + e.amountIsk,
+      );
+    }
+  }
+
+  const payoutsSnap = await db.collection(COLLECTIONS.payouts).withConverter(payoutConverter).get();
+  const paidNetByPublisher = new Map<string, number>();
+  for (const doc of payoutsSnap.docs) {
+    const p = doc.data();
+    paidNetByPublisher.set(p.publisherId, (paidNetByPublisher.get(p.publisherId) ?? 0) + p.netIsk);
+  }
+
+  // Union of every publisher that has either a credit or a disbursed payout
+  // ledger entry — a publisher with a 'payout' entry but no credits (which
+  // should never legitimately happen) must still be checked for a negative
+  // balance rather than silently skipped because it's absent from the
+  // credits-keyed map.
+  const publisherIds = new Set<string>([
+    ...creditsByPublisher.keys(),
+    ...payoutLedgerSumByPublisher.keys(),
+  ]);
+
+  const now = new Date();
+  const currentMonthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+  for (const publisherId of publisherIds) {
+    const credits = creditsByPublisher.get(publisherId) ?? [];
+    const totalCredits = credits.reduce((acc, e) => acc + e.amountIsk, 0);
+
+    // Check 6: negative balance — the actual disbursed ledger 'payout'
+    // entries (negative) outweigh total credits, e.g. VAT-hold drift or a
+    // double disbursement. This is the same "money conservation" spirit as
+    // checkCampaign's checks, applied to the publisher side of the ledger.
+    const payoutLedgerSum = payoutLedgerSumByPublisher.get(publisherId) ?? 0;
+    const balance = totalCredits + payoutLedgerSum;
+    if (balance < 0) {
+      findings.push({
+        kind: 'publisher_negative_balance',
+        entityId: publisherId,
+        detail:
+          'sum(publisher_credit) plus sum(payout ledger entries) is negative for this ' +
+          'publisher — they appear to have been disbursed more than they earned',
+        expected: 0,
+        actual: balance,
+      });
+    }
+
+    // Check 7: stuck payable — the unpaid basis (total credits minus ALL
+    // payout docs' netIsk, any status — mirrors generateMonthlyPayouts
+    // exactly, including that a still-'pending' doc already counts as
+    // spoken-for) is at or above MIN_PAYOUT_ISK, AND the oldest credit that
+    // still contributes to that unpaid basis predates this month's payout
+    // run (the 1st of the current month) — meaning the monthly cron should
+    // already have generated a payout doc for this publisher and didn't.
+    const paidNet = paidNetByPublisher.get(publisherId) ?? 0;
+    const unpaidBasis = totalCredits - paidNet;
+    if (unpaidBasis >= MIN_PAYOUT_ISK) {
+      // FIFO walk: credits are consumed oldest-first by the running paidNet
+      // total, so the first credit whose cumulative sum exceeds paidNet is
+      // the oldest one still (at least partly) unpaid.
+      const sorted = [...credits].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      let cumulative = 0;
+      let oldestUnpaidCreditAt: Date | undefined;
+      for (const c of sorted) {
+        cumulative += c.amountIsk;
+        if (cumulative > paidNet) {
+          oldestUnpaidCreditAt = c.createdAt;
+          break;
+        }
+      }
+      if (oldestUnpaidCreditAt && oldestUnpaidCreditAt < currentMonthStart) {
+        findings.push({
+          kind: 'publisher_stuck_payable',
+          entityId: publisherId,
+          detail:
+            'unpaid publisher_credit basis is at or above MIN_PAYOUT_ISK and the oldest ' +
+            "still-unpaid credit predates this month's payout run — the monthly payout cron " +
+            'should already have generated a payout for this publisher',
+          expected: MIN_PAYOUT_ISK,
+          actual: unpaidBasis,
+        });
+      }
+    }
+  }
+}
+
 function buildAlertMessage(findings: ReconciliationFinding[]): string {
   const shown = findings.slice(0, 10);
   const lines = shown.map(
@@ -286,6 +415,8 @@ export async function runReconciliation(): Promise<ReconciliationReport> {
   if (isRedisConfigured()) {
     redisBudgetsChecked = await checkRedisBudgets(campaigns, findings);
   }
+
+  await checkPublisherBalances(findings);
 
   const report: ReconciliationReport = {
     findings,

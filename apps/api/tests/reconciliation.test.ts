@@ -1,7 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
-import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
-import type { Campaign } from '@ada/shared';
+import {
+  COLLECTIONS,
+  campaignConverter,
+  ledgerEntryConverter,
+  payoutConverter,
+} from '@ada/shared/firestore';
+import {
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  LedgerEntrySchema,
+  PayoutSchema,
+  MIN_PAYOUT_ISK,
+} from '@ada/shared';
+import type { Campaign, LedgerParty, LedgerEntryType, Payout } from '@ada/shared';
 import { db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
 import { createAdvertiser } from '../src/services/advertisers';
@@ -9,6 +19,7 @@ import { topUp, chargeCampaign, creditPublisher } from '../src/services/wallet';
 import { appendLedger } from '../src/services/ledger';
 import { isRedisConfigured } from '../src/lib/redis';
 import { runReconciliation } from '../src/services/reconciliation';
+import { generateId } from '../src/lib/id';
 
 // These tests run against the real Firestore emulator (not a mocked db), like
 // tests/wallet-reservation.test.ts — reconciliation.ts issues genuine
@@ -85,6 +96,69 @@ describe('runReconciliation', () => {
       .doc(id)
       .withConverter(campaignConverter)
       .set(campaign);
+  }
+
+  // Task 3 (publisher-side reconciliation checks) needs to seed raw ledger
+  // 'publisher_credit'/'payout' entries with an explicit backdated createdAt,
+  // and raw payout docs with an explicit status — direct writes, mirroring
+  // tests/payouts.test.ts's appendLedgerAt/credit helpers, not the real
+  // creditPublisher/markPayoutCompleted flows (which always stamp "now").
+  async function creditPublisherLedger(publisherId: string, amountIsk: number, at: Date) {
+    const entry = LedgerEntrySchema.parse({
+      id: generateId('ldg'),
+      party: { type: 'publisher', id: publisherId } satisfies LedgerParty,
+      type: 'publisher_credit' satisfies LedgerEntryType,
+      amountIsk,
+      relatedId: 'cmp_reconcile_test',
+      createdAt: at,
+    });
+    await db
+      .collection(COLLECTIONS.ledger)
+      .doc(entry.id)
+      .withConverter(ledgerEntryConverter)
+      .set(entry);
+  }
+
+  async function payoutLedgerEntry(
+    publisherId: string,
+    amountIsk: number,
+    relatedId: string,
+    at: Date,
+  ) {
+    const entry = LedgerEntrySchema.parse({
+      id: generateId('ldg'),
+      party: { type: 'publisher', id: publisherId } satisfies LedgerParty,
+      type: 'payout' satisfies LedgerEntryType,
+      amountIsk, // negative, per LedgerEntrySchema's sign refinement
+      relatedId,
+      createdAt: at,
+    });
+    await db
+      .collection(COLLECTIONS.ledger)
+      .doc(entry.id)
+      .withConverter(ledgerEntryConverter)
+      .set(entry);
+  }
+
+  async function writePayoutDoc(
+    id: string,
+    publisherId: string,
+    netIsk: number,
+    status: Payout['status'],
+  ) {
+    const payout: Payout = PayoutSchema.parse({
+      id,
+      publisherId,
+      periodStart: new Date(Date.UTC(2026, 6, 1)),
+      periodEnd: new Date(Date.UTC(2026, 6, 31, 23, 59, 59)),
+      grossIsk: netIsk,
+      platformFeeIsk: 0,
+      netIsk,
+      vatIsk: 0,
+      status,
+      bankReference: status === 'completed' ? 'B-TEST' : '',
+    });
+    await db.collection(COLLECTIONS.payouts).doc(id).withConverter(payoutConverter).set(payout);
   }
 
   it('reports zero findings for a fully consistent seeded state', async () => {
@@ -254,5 +328,63 @@ describe('runReconciliation', () => {
     expect(report.findings.some((f) => f.entityId === campaignId || f.entityId === adv.id)).toBe(
       false,
     );
+  });
+
+  // Task 3: checkPublisherBalances — independent publisher-side checks.
+  it('flags a publisher whose ledger balance is negative (credits < completed payouts)', async () => {
+    const publisherId = 'pub_negative_balance';
+    await creditPublisherLedger(publisherId, 5_000, new Date(Date.UTC(2026, 5, 1)));
+    const payoutId = 'pay_pub_negative_balance_202606';
+    await writePayoutDoc(payoutId, publisherId, 10_000, 'completed');
+    await payoutLedgerEntry(publisherId, -10_000, payoutId, new Date(Date.UTC(2026, 6, 1)));
+
+    const report = await runReconciliation();
+
+    const finding = report.findings.find(
+      (f) => f.kind === 'publisher_negative_balance' && f.entityId === publisherId,
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.actual).toBe(-5_000);
+  });
+
+  it('flags a publisher stuck above the minimum across a payout run', async () => {
+    const publisherId = 'pub_stuck_payable';
+    const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+    await creditPublisherLedger(publisherId, 15_000, fortyFiveDaysAgo);
+
+    const report = await runReconciliation();
+
+    const finding = report.findings.find(
+      (f) => f.kind === 'publisher_stuck_payable' && f.entityId === publisherId,
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.expected).toBe(MIN_PAYOUT_ISK);
+    expect(finding?.actual).toBe(15_000);
+  });
+
+  it('is quiet for a healthy publisher (below minimum, recent, no payouts)', async () => {
+    const publisherId = 'pub_healthy';
+    await creditPublisherLedger(publisherId, 3_000, new Date());
+
+    const report = await runReconciliation();
+
+    expect(report.findings.filter((f) => f.kind.startsWith('publisher_'))).toHaveLength(0);
+  });
+
+  // Self-review case: a payout doc already exists for this publisher's
+  // unpaid basis but hasn't been disbursed yet (still 'pending', awaiting
+  // bank transfer) — generateMonthlyPayouts already accounted for it (ALL
+  // payout docs count, any status), so this must NOT be reported as stuck,
+  // and since markPayoutCompleted hasn't run there's no ledger 'payout'
+  // entry yet either, so it must not be reported as negative-balance.
+  it('does not flag a publisher whose unpaid basis is already covered by a pending payout doc', async () => {
+    const publisherId = 'pub_pending_covered';
+    const fortyFiveDaysAgo = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+    await creditPublisherLedger(publisherId, 15_000, fortyFiveDaysAgo);
+    await writePayoutDoc('pay_pub_pending_covered_202607', publisherId, 15_000, 'pending');
+
+    const report = await runReconciliation();
+
+    expect(report.findings.filter((f) => f.kind.startsWith('publisher_'))).toHaveLength(0);
   });
 });
