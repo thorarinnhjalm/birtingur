@@ -124,9 +124,9 @@ export default function SlotDetail() {
               <div className="space-y-1">
                 <h4 className="font-bold text-slate-900 text-sm">Samþættingu ekki lokið</h4>
                 <p className="leading-relaxed text-slate-500 font-medium">
-                  Við höfum ekki greint neina vefumferð (flettingar) á þessu auglýsingaplássi ennþá.
-                  Gakktu úr skugga um að þú hafir fellt inn HTML kóðabútinn rétt á síðuna þína og að
-                  hún sé að fá umferð.
+                  Við höfum ekki greint neinar hleðslur á þessu auglýsingaplássi ennþá. Gakktu úr
+                  skugga um að þú hafir fellt inn HTML kóðabútinn rétt á síðuna þína og að hún sé að
+                  fá umferð.
                 </p>
               </div>
             </div>
@@ -252,7 +252,7 @@ export default function SlotDetail() {
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                       }`}
                     >
-                      {key === 'money' ? 'Áætlaðar tekjur' : 'Vefumferð'}
+                      {key === 'money' ? 'Áætlaðar tekjur' : 'Hleðslur'}
                     </button>
                   );
                 })}
