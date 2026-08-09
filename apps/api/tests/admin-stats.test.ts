@@ -105,6 +105,30 @@ describe('getAdminStats — botTraffic summary', () => {
     expect(stats.botTraffic).toBeNull();
   });
 
+  it('floors unclassified at 0 when the summed classes exceed the day total', async () => {
+    await seedPublisher('pub_a');
+
+    // Transient inconsistency: a document written mid-aggregation-boundary
+    // can (briefly) carry byBotClass counts that sum to more than the day's
+    // own `impressions`/`pageViewsTrue` totals. `unclassified` must never go
+    // negative in that case — it's a defensive floor, not a real deficit.
+    await seedPublisherDayDoc('pub_a', 1, {
+      impressions: 10,
+      pageViewsTrue: 4,
+      byBotClass: {
+        human: { impressions: 8, pageViewsTrue: 3 },
+        known_bot: { impressions: 5, pageViewsTrue: 3 }, // 8 + 5 = 13 > 10
+      },
+    });
+
+    const stats = await getAdminStats();
+
+    expect(stats.botTraffic).not.toBeNull();
+    const bt = stats.botTraffic!;
+    expect(bt.impressions.unclassified).toBe(0);
+    expect(bt.pageViews.unclassified).toBe(0);
+  });
+
   it('ignores publisher-day documents belonging to non-active publishers', async () => {
     await seedPublisher('pub_suspended', 'suspended');
     await seedPublisherDayDoc('pub_suspended', 1, {

@@ -397,7 +397,7 @@ function Home() {
       {!isLoading && (
         <Card className="p-6">
           <h3 className="text-base font-bold text-slate-900 mb-1">
-            Vélmennaflokkun umferðar (7 dagar)
+            Vélmennaflokkun umferðar (síðustu 7 heilu dagar)
           </h3>
           <p className="text-xs text-slate-400 font-semibold mb-4">
             Mæling eingöngu — engum birtingum er sleppt og ekkert er ófrádregið.
