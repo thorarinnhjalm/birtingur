@@ -8,6 +8,7 @@ export interface AdResponse {
   width?: number;
   height?: number;
   impressionPixel?: string;
+  pageviewPixel?: string;
   ttl?: number;
   showBacklink?: boolean;
 }

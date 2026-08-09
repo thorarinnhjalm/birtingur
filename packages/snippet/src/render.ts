@@ -60,7 +60,29 @@ function firePixelWithViewability(el: HTMLElement, pixelUrl: string): void {
   }
 }
 
+// One page view per page load, regardless of how many ad slots the page
+// carries — the previous per-slot counting multiplied a publisher's
+// reported traffic by their slots-per-page (2026-08-09 design). Module
+// scope is per script execution, i.e. per page load.
+let pageviewFired = false;
+
+export function firePageviewOnce(pixelUrl: string): void {
+  if (pageviewFired) return;
+  pageviewFired = true;
+  const pixel = new Image(1, 1);
+  pixel.src = resolveServeUrl(pixelUrl);
+  pixel.style.position = 'absolute';
+  pixel.style.left = '-9999px';
+  document.body.appendChild(pixel);
+}
+
 export function renderAd(el: HTMLElement, ad: AdResponse): void {
+  // Page view is not an ad impression — fire it immediately, unconditionally,
+  // before the viewability-gated impression pixel below.
+  if (ad.pageviewPixel) {
+    firePageviewOnce(ad.pageviewPixel);
+  }
+
   // Always fire the tracking pixel first — even for empty/fallback responses.
   // Before this fix, empty responses ({empty:true}) never fired a pixel, making
   // uncached-slot visits completely invisible to publisher stats.
