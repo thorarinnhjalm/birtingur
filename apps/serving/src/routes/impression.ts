@@ -109,18 +109,25 @@ impressionRoute.get('/', async (c) => {
         const isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'impression');
 
         if (isAllowed) {
-          // Log the impression now — the pixel firing proves the ad was actually seen
-          await logEvent({
-            type: 'impression',
-            slotId,
-            publisherId: slot.publisherId,
-            creativeId,
-            campaignId: creative.campaignId,
-            advertiserId: '', // populated in batch aggregation
-            country: c.req.header('CF-IPCountry') ?? 'XX',
-            visitorToken: token,
-            ts: Date.now(),
-          });
+          // Log the impression now — the pixel firing proves the ad was actually seen.
+          // Own try/catch: a Redis pipeline failure here must not skip the budget
+          // decrement/pacing/visitor-cap side effects below, which used to run
+          // unconditionally when this was fire-and-forget.
+          try {
+            await logEvent({
+              type: 'impression',
+              slotId,
+              publisherId: slot.publisherId,
+              creativeId,
+              campaignId: creative.campaignId,
+              advertiserId: '', // populated in batch aggregation
+              country: c.req.header('CF-IPCountry') ?? 'XX',
+              visitorToken: token,
+              ts: Date.now(),
+            });
+          } catch (err) {
+            console.error('logEvent failed (impression):', err);
+          }
 
           if (token) {
             void recordVisitorImpression(token, creativeId);

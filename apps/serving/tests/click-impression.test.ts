@@ -212,6 +212,23 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // 1000 cpm / 1000 = 1 isk
   });
 
+  it('still returns the pixel and decrements budget when the logEvent write fails', async () => {
+    // logEvent's own try/catch must not skip recordVisitorImpression/decrementBudget/
+    // incrementPaceSpent below it — those used to run unconditionally when logEvent was
+    // fire-and-forget, and a transient Redis failure on just the event write must not
+    // silently skip the real-time budget gate.
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    vi.mocked(logEvent).mockRejectedValueOnce(new Error('redis down'));
+
+    const res = await app.request(`/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/gif');
+    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1);
+  });
+
   it('returns pixel even when missing query parameters', async () => {
     const res = await app.request('/v1/impression?s=slot_a');
     expect(res.status).toBe(200);
