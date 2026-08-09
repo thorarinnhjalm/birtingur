@@ -14,9 +14,17 @@ export function registerGetChangelog(server: McpServer) {
     },
     async () => {
       const changelog = `--- BIRTINGUR API VERSION & CHANGELOG ---
-Núverandi útgáfa Serving API: v1.2
+Núverandi útgáfa Serving API: v1.3
 
 ÚTGÁFUSAGA & DEPLOY BREYTINGAR:
+
+[2026-08-09] API v1.3 - Raunveruleg vefumferð (pageviewPixel) & öruggari empty-svör
+* Nýtt pageviewPixel svæði:
+  Öll /v1/ad svör sem skila auglýsingu (fyllt eða fallback) innihalda nú valfrjálst "pageviewPixel" svæði — undirritað "pixel" sem á að fýra NÁKVÆMLEGA EINU SINNI á hverja síðuhleðslu, óháð fjölda auglýsingaplássa á síðunni. Þetta er aðgreint frá impressionPixel (fýrt einu sinni á hvert pláss) og er grunnurinn að réttri "Vefumferð" tölfræði (dashboard notar núna "pageViewsTrue" en ekki gamla "pageviews" svæðið sem taldi hleðslur plássa, ekki síðuhleðslur).
+* BirtingurAdSlot component (MCP) uppfært:
+  Component-inn sem get_react_component skilar fýrir nú pageviewPixel með global-flaggi (líkt og JS snippet-ið) svo margar <BirtingurAdSlot> einingar á sömu síðu skrá aðeins EITT raunverulegt vefumferðaratvik. Útgefendur sem sóttu component-inn fyrir þessa útgáfu ættu að sækja hann aftur með get_react_component — annars situr "Vefumferð" þeirra föst á "—" í dashboard-inu.
+* Öruggari {empty:true} svör við cache-miss:
+  Þegar pláss er alls ekki í cache (fyrsta flettingin á nýju plássi, eða cache runnið út) skilar API-ið ekki lengur pageviewPixel í því svari — aðeins impressionPixel. Cache-miss svör skila sér hraðast allra og hefðu annars kerfisbundið "unnið" kapphlaupið um að skrá vefumferðina, jafnvel þegar önnur pláss á sömu síðu voru í cache og hefðu getað skráð hana rétt.
 
 [2026-06-07] API v1.2 - Zero-Stats Lagfæring & IAB Viewability
 * Lagfæring á {empty:true} svörum:

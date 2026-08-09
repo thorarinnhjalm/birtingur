@@ -25,4 +25,17 @@ describe('buildBirtingurReactDoc', () => {
     const doc = buildBirtingurReactDoc({ slotId: 'slot_x', width: 300, height: 250 });
     expect(doc.toLowerCase()).toContain('undefined');
   });
+
+  it('fires the real pageviewPixel once per page load via a global-flag guard, mirroring the embed snippet', () => {
+    // IMPORTANT-4 (2026-08-09 fix wave): before this, the generated component only ever
+    // fired impressionPixel (once per slot), so a publisher integrating via this component
+    // would see the dashboard's "Vefumferð" figure stuck at "—" forever even though their
+    // slots kept loading and counting fine.
+    const doc = buildBirtingurReactDoc({ slotId: 'slot_x', width: 300, height: 250 });
+    expect(doc).toContain('pageviewPixel');
+    expect(doc).toContain('firePageviewOnce');
+    // Global object, not module scope — a page can end up with more than one bundled
+    // copy of this component, and only a global flag survives that.
+    expect(doc).toContain('__birtingurPageviewFired');
+  });
 });
