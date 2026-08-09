@@ -145,12 +145,14 @@ describe('runReconciliation', () => {
     publisherId: string,
     netIsk: number,
     status: Payout['status'],
+    periodEnd: Date = new Date(Date.UTC(2026, 6, 31, 23, 59, 59)),
   ) {
+    const periodStart = new Date(periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
     const payout: Payout = PayoutSchema.parse({
       id,
       publisherId,
-      periodStart: new Date(Date.UTC(2026, 6, 1)),
-      periodEnd: new Date(Date.UTC(2026, 6, 31, 23, 59, 59)),
+      periodStart,
+      periodEnd,
       grossIsk: netIsk,
       platformFeeIsk: 0,
       netIsk,
@@ -432,5 +434,87 @@ describe('runReconciliation', () => {
     const report = await runReconciliation();
 
     expect(report.findings.filter((f) => f.kind.startsWith('publisher_'))).toHaveLength(0);
+  });
+
+  // IMPORTANT-1 (adversarial review): cron-reconcile runs "0 5 * * *" and
+  // cron-payouts runs "0 6 1 * *" (apps/api/vercel.json) — on the 1st,
+  // between 05:00 and 06:00 UTC, last month's credits are already past
+  // currentMonthStart but this month's payout run hasn't executed yet, so
+  // check 7 would false-alert on every publisher about to be paid correctly
+  // an hour later. `now` is injected (not global-time-mocked) to make the
+  // pre/post-cutoff behavior deterministic.
+  it('suppresses the stuck-payable check inside the pre-payout-run window on the 1st', async () => {
+    const publisherId = 'pub_prerun_window';
+    const lastMonth = new Date(Date.UTC(2026, 6, 15)); // firmly in July
+    await creditPublisherLedger(publisherId, 15_000, lastMonth);
+
+    // 05:00 UTC on Aug 1 — cron-reconcile's own scheduled time, one hour
+    // before cron-payouts (06:00 UTC) is due to run.
+    const insidePreRunWindow = new Date(Date.UTC(2026, 7, 1, 5, 0, 0));
+    const report = await runReconciliation(insidePreRunWindow);
+
+    expect(
+      report.findings.some(
+        (f) => f.kind === 'publisher_stuck_payable' && f.entityId === publisherId,
+      ),
+    ).toBe(false);
+  });
+
+  it('flags the same genuinely stuck publisher once the pre-payout-run window has passed', async () => {
+    const publisherId = 'pub_postrun_window';
+    const lastMonth = new Date(Date.UTC(2026, 6, 15)); // firmly in July
+    await creditPublisherLedger(publisherId, 15_000, lastMonth);
+
+    // 06:00:01 UTC on Aug 1 — just after cron-payouts' scheduled run should
+    // have generated a payout doc; since none exists, this publisher really
+    // is stuck.
+    const justAfterCutoff = new Date(Date.UTC(2026, 7, 1, 6, 0, 1));
+    const report = await runReconciliation(justAfterCutoff);
+
+    const finding = report.findings.find(
+      (f) => f.kind === 'publisher_stuck_payable' && f.entityId === publisherId,
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.actual).toBe(15_000);
+  });
+
+  // IMPORTANT-2 (adversarial review): a payout doc stuck 'pending'/
+  // 'processing' is subtracted from the basis forever, and neither check 6
+  // (no ledger 'payout' entry yet, so balance looks fine) nor check 7
+  // (paidNet already counts this doc's netIsk, so the basis looks covered)
+  // ever notices — money is frozen silently. Check 8 flags it directly.
+  it('flags a payout doc stuck pending/processing more than 35 days past its periodEnd', async () => {
+    const publisherId = 'pub_stale_payout';
+    const oldPeriodEnd = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+    await writePayoutDoc('pay_stale_pending', publisherId, 12_000, 'pending', oldPeriodEnd);
+
+    const report = await runReconciliation();
+
+    const finding = report.findings.find(
+      (f) => f.kind === 'publisher_stale_payout_doc' && f.entityId === 'pay_stale_pending',
+    );
+    expect(finding).toBeDefined();
+    expect(finding?.expected).toBe(35);
+    expect(finding?.actual).toBeGreaterThanOrEqual(40);
+  });
+
+  it('does not flag a fresh pending payout doc (well within 35 days of its periodEnd)', async () => {
+    const publisherId = 'pub_fresh_payout';
+    const recentPeriodEnd = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    await writePayoutDoc('pay_fresh_pending', publisherId, 12_000, 'pending', recentPeriodEnd);
+
+    const report = await runReconciliation();
+
+    expect(report.findings.some((f) => f.kind === 'publisher_stale_payout_doc')).toBe(false);
+  });
+
+  it('does not flag an old COMPLETED payout doc — only pending/processing count as stuck', async () => {
+    const publisherId = 'pub_old_completed';
+    const oldPeriodEnd = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+    await writePayoutDoc('pay_old_completed', publisherId, 12_000, 'completed', oldPeriodEnd);
+
+    const report = await runReconciliation();
+
+    expect(report.findings.some((f) => f.kind === 'publisher_stale_payout_doc')).toBe(false);
   });
 });
