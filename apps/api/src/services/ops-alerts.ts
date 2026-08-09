@@ -212,10 +212,16 @@ export async function checkCronHeartbeats(): Promise<{ stale: string[] }> {
   return { stale: stale.map((s) => s.name) };
 }
 
-async function alreadyAlerted(cronName: string): Promise<boolean> {
+/**
+ * Dedupe key for any alert, not just per-cron failures — exported so other
+ * money-flow modules (e.g. services/accrual.ts, for its "this run billed
+ * nothing net" alert) can reuse the same 6h dedupe window instead of paging
+ * every 15 minutes for a condition that persists across runs.
+ */
+export async function alreadyAlerted(key: string): Promise<boolean> {
   if (!isRedisConfigured()) return false;
   try {
-    const res = await getRedis().set(`${ALERT_DEDUPE_PREFIX}${cronName}`, '1', {
+    const res = await getRedis().set(`${ALERT_DEDUPE_PREFIX}${key}`, '1', {
       nx: true,
       ex: ALERT_DEDUPE_TTL_SECONDS,
     });
