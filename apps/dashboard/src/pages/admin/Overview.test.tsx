@@ -103,7 +103,9 @@ test('renders the bot-traffic share as percentages with absolute counts when bot
   expect(within(impressionsSection).getByText(/Óflokkað/i)).toBeDefined();
   // the measurement-only disclaimer must be present so a reader can't infer filtering
   expect(
-    screen.getByText(/Mæling eingöngu — engum birtingum er sleppt og ekkert er ófrádregið\./),
+    screen.getByText(
+      /Mæling eingöngu — engum birtingum er sleppt og ekkert er dregið frá reikningum\./,
+    ),
   ).toBeDefined();
 });
 

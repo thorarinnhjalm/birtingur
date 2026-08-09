@@ -89,9 +89,13 @@ interface AdminStats {
 
 // Order matters here: rendered top-to-bottom, and `unclassified` deliberately
 // sits last and separately labelled — it is pre-classifier-deploy or
-// otherwise unclassified traffic, never folded into "Fólk" (human).
+// otherwise unclassified traffic, never folded into "Ekkert vélmennamerki"
+// (human). NB: "human" here is a residual default (everything that matched
+// no bot signal), not a positive identification — see the blind-spot note
+// on HEADLESS_PATTERNS in bot-class.ts. Don't relabel it back to something
+// that reads as a headcount.
 const BOT_CLASS_ROWS: Array<{ key: keyof BotTrafficBreakdown; label: string }> = [
-  { key: 'human', label: 'Fólk' },
+  { key: 'human', label: 'Ekkert vélmennamerki' },
   { key: 'known_bot', label: 'Þekkt vélmenni' },
   { key: 'suspected_bot', label: 'Grunuð vélmenni' },
   { key: 'unclassified', label: 'Óflokkað' },
@@ -400,7 +404,7 @@ function Home() {
             Vélmennaflokkun umferðar (síðustu 7 heilu dagar)
           </h3>
           <p className="text-xs text-slate-400 font-semibold mb-4">
-            Mæling eingöngu — engum birtingum er sleppt og ekkert er ófrádregið.
+            Mæling eingöngu — engum birtingum er sleppt og ekkert er dregið frá reikningum.
           </p>
           {stats?.botTraffic ? (
             <div className="grid sm:grid-cols-2 gap-6">
@@ -419,8 +423,7 @@ function Home() {
             </div>
           ) : (
             <p className="text-xs font-semibold text-slate-500">
-              Engin vélmennaflokkun er tiltæk fyrir síðustu 7 daga — annaðhvort söfnuðust gögnin
-              áður en flokkunin var tekin í notkun, eða engin umferð hefur mælst enn á tímabilinu.
+              Engin flokkunargögn tiltæk fyrir þetta tímabil.
             </p>
           )}
         </Card>
