@@ -135,6 +135,14 @@ export async function markPayoutCompleted(
     throw new AppError(404, `Payout ${payoutId} not found`, 'NOT_FOUND');
   }
   const payout = snap.data() as Payout;
+  // Idempotency guard: a duplicated request (retry, double-click) for an
+  // already-completed payout must not append a second negative ledger
+  // 'payout' entry — appendLedger has no dedup of its own, so without this
+  // early return a retry would silently double-disburse the publisher's
+  // recorded balance while the actual bank transfer only happened once.
+  if (payout.status === 'completed') {
+    return payout;
+  }
   const updated: Payout = PayoutSchema.parse({ ...payout, status: 'completed', bankReference });
   await ref.withConverter(payoutConverter).set(updated);
 
@@ -151,6 +159,45 @@ export async function markPayoutCompleted(
     relatedId: payoutId,
   });
   return updated;
+}
+
+/**
+ * IMPORTANT-5 (adversarial review): the publisher Earnings screen used to
+ * derive its "pending payout" figure from a trailing-30-day spend stat, not
+ * from what's actually unpaid — a creator earning below the minimum every
+ * month would permanently see "0 kr." and a below-minimum warning, even in
+ * the month they're actually about to get paid the accumulated total. This
+ * computes the REAL unpaid basis, the same way generateMonthlyPayouts does
+ * (all publisher_credit to date minus all payout docs' netIsk, any status),
+ * summed across every publisher doc passed in — an owner may hold several,
+ * same aggregation Earnings already does for its other stats. Read-only.
+ */
+export async function getUnpaidBasisIsk(publisherIds: string[]): Promise<number> {
+  let totalCredits = 0;
+  let totalPaid = 0;
+
+  for (const publisherId of publisherIds) {
+    const creditsSnap = await db
+      .collection(COLLECTIONS.ledger)
+      .where('party.id', '==', publisherId)
+      .where('type', '==', 'publisher_credit')
+      .withConverter(ledgerEntryConverter)
+      .get();
+    for (const doc of creditsSnap.docs) {
+      totalCredits += doc.data().amountIsk;
+    }
+
+    const payoutsSnap = await db
+      .collection(COLLECTIONS.payouts)
+      .where('publisherId', '==', publisherId)
+      .withConverter(payoutConverter)
+      .get();
+    for (const doc of payoutsSnap.docs) {
+      totalPaid += doc.data().netIsk;
+    }
+  }
+
+  return totalCredits - totalPaid;
 }
 
 export async function listPublisherPayouts(publisherId: string): Promise<Payout[]> {

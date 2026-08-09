@@ -205,4 +205,24 @@ describe('generateMonthlyPayouts — cumulative basis', () => {
     expect(ledger.size).toBe(1);
     expect(ledger.docs[0]!.data().amountIsk).toBe(-payout!.netIsk); // net only, no VAT
   });
+
+  // MINOR-7 (adversarial review): markPayoutCompleted had no early return for
+  // an already-completed payout, so a duplicated request (retry, double
+  // click) appended a SECOND negative ledger entry — double-disbursing the
+  // publisher's recorded balance while only one real bank transfer happened.
+  it('is idempotent: completing an already-completed payout again does not append a second ledger entry', async () => {
+    await seedPublisher('pub_double_complete');
+    await credit('pub_double_complete', 20_000, new Date(Date.UTC(2026, 7, 5)));
+    const [payout] = await generateMonthlyPayouts(P_START, P_END);
+
+    const first = await markPayoutCompleted(payout!.id, 'B-001');
+    expect(first.status).toBe('completed');
+
+    const second = await markPayoutCompleted(payout!.id, 'B-002-ignored');
+    expect(second.status).toBe('completed');
+    expect(second.bankReference).toBe('B-001'); // unchanged — the retry's bankReference is ignored
+
+    const ledger = await db.collection(COLLECTIONS.ledger).where('type', '==', 'payout').get();
+    expect(ledger.size).toBe(1); // still exactly one disbursement entry
+  });
 });
