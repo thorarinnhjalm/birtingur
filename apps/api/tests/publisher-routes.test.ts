@@ -2,7 +2,10 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../src/index';
 import { auth, db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
-import { COLLECTIONS } from '@ada/shared/firestore';
+import { COLLECTIONS, ledgerEntryConverter, payoutConverter } from '@ada/shared/firestore';
+import { LedgerEntrySchema, PayoutSchema, MIN_PAYOUT_ISK } from '@ada/shared';
+import type { Payout } from '@ada/shared';
+import { generateId } from '../src/lib/id';
 
 import type * as firebaseModule from '../src/lib/firebase';
 
@@ -354,6 +357,120 @@ describe('Publisher HTTP Routes', () => {
       const body = await res.json();
       expect(body.impressions).toBe(100);
       expect(body.bySite).toBeUndefined();
+    });
+  });
+
+  // IMPORTANT-5 (adversarial review): the real unpaid basis backing
+  // Earnings.tsx's "Beðið eftir útgreiðslu" figure — computed the same way
+  // generateMonthlyPayouts computes it (all publisher_credit to date minus
+  // all payout docs' netIsk, any status), summed across every site the
+  // caller owns.
+  describe('GET /v1/publishers/me/balance', () => {
+    async function creditPublisherLedger(publisherId: string, amountIsk: number) {
+      const entry = LedgerEntrySchema.parse({
+        id: generateId('ldg'),
+        party: { type: 'publisher', id: publisherId },
+        type: 'publisher_credit',
+        amountIsk,
+        relatedId: 'cmp_balance_test',
+        createdAt: new Date(),
+      });
+      await db
+        .collection(COLLECTIONS.ledger)
+        .doc(entry.id)
+        .withConverter(ledgerEntryConverter)
+        .set(entry);
+    }
+
+    async function writePayoutDoc(
+      id: string,
+      publisherId: string,
+      netIsk: number,
+      status: Payout['status'],
+    ) {
+      const payout: Payout = PayoutSchema.parse({
+        id,
+        publisherId,
+        periodStart: new Date(Date.UTC(2026, 6, 1)),
+        periodEnd: new Date(Date.UTC(2026, 6, 31, 23, 59, 59)),
+        grossIsk: netIsk,
+        platformFeeIsk: 0,
+        netIsk,
+        vatIsk: 0,
+        status,
+        bankReference: status === 'completed' ? 'B-TEST' : '',
+      });
+      await db.collection(COLLECTIONS.payouts).doc(id).withConverter(payoutConverter).set(payout);
+    }
+
+    async function createSite(domain: string, displayName: string): Promise<string> {
+      const res = await app.request('/v1/publishers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer valid-token' },
+        body: JSON.stringify({
+          domain,
+          displayName,
+          payoutMethod: samplePayout,
+          contentPolicy: samplePolicy,
+          categories: ['matur'],
+        }),
+      });
+      expect(res.status).toBe(201);
+      return (await res.json()).id;
+    }
+
+    it('returns 404 when the caller has no publisher profile', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+
+      const res = await app.request('/v1/publishers/me/balance', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('sums the unpaid basis across every site the caller owns', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-balance-a.is', 'Vefur Balance A');
+      const b = await createSite('vefur-balance-b.is', 'Vefur Balance B');
+      await creditPublisherLedger(a, 6_000);
+      await creditPublisherLedger(b, 5_000);
+
+      const res = await app.request('/v1/publishers/me/balance', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.unpaidBasisIsk).toBe(11_000);
+      expect(body.minPayoutIsk).toBe(MIN_PAYOUT_ISK);
+    });
+
+    it('subtracts payout docs of ANY status from the basis, not just completed ones', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-balance-c.is', 'Vefur Balance C');
+      await creditPublisherLedger(a, 15_000);
+      await writePayoutDoc('pay_balance_pending', a, 15_000, 'pending');
+      // New credit lands after the (still-pending) payout doc was created.
+      await creditPublisherLedger(a, 3_000);
+
+      const res = await app.request('/v1/publishers/me/balance', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.unpaidBasisIsk).toBe(3_000);
+    });
+
+    it('reflects a below-minimum basis honestly (not zeroed out) so Earnings can show its warning correctly', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-balance-d.is', 'Vefur Balance D');
+      await creditPublisherLedger(a, MIN_PAYOUT_ISK - 1);
+
+      const res = await app.request('/v1/publishers/me/balance', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      const body = await res.json();
+      expect(body.unpaidBasisIsk).toBe(MIN_PAYOUT_ISK - 1);
+      expect(body.unpaidBasisIsk).toBeLessThan(body.minPayoutIsk);
     });
   });
 });

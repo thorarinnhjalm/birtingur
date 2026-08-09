@@ -25,6 +25,11 @@ interface StatsResponse {
   }[];
 }
 
+interface BalanceResponse {
+  unpaidBasisIsk: number;
+  minPayoutIsk: number;
+}
+
 export default function Earnings() {
   const navigate = useNavigate();
   const { siteId } = useSiteFilter();
@@ -55,12 +60,27 @@ export default function Earnings() {
     queryFn: () => apiFetch<Payout[]>('/v1/publishers/me/payouts'),
   });
 
-  if (isPubsLoading || isStatsLoading || isPayoutsLoading) return <LoadingState />;
+  // The real unpaid basis (all publisher_credit to date minus all payout
+  // docs' netIsk, any status, summed across every site the caller owns) —
+  // NOT derived from the 30-day spend stat above. A creator earning below
+  // the minimum every month would otherwise permanently see "0 kr." and a
+  // below-minimum warning even in the month they're actually about to be
+  // paid the accumulated carry-forward total.
+  const { data: balance, isLoading: isBalanceLoading } = useQuery<BalanceResponse>({
+    queryKey: ['publisher', 'balance'],
+    queryFn: () => apiFetch<BalanceResponse>('/v1/publishers/me/balance'),
+    enabled: !!publishers,
+  });
+
+  if (isPubsLoading || isStatsLoading || isPayoutsLoading || isBalanceLoading)
+    return <LoadingState />;
 
   const earningsTotal = stats?.spendIsk || 0;
   const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
-  const pendingPayoutIsk = netEarningsTotal >= MIN_PAYOUT_ISK ? netEarningsTotal : 0;
-  const belowMinimum = netEarningsTotal > 0 && pendingPayoutIsk === 0;
+  const unpaidBasisIsk = balance?.unpaidBasisIsk ?? 0;
+  const minPayoutIsk = balance?.minPayoutIsk ?? MIN_PAYOUT_ISK;
+  const pendingPayoutIsk = unpaidBasisIsk >= minPayoutIsk ? unpaidBasisIsk : 0;
+  const belowMinimum = unpaidBasisIsk > 0 && pendingPayoutIsk === 0;
 
   // Next payout date (1st of next month) — payout batches are generated on
   // the 1st per cron-payouts; hedged with "Áætlað" (not a confirmed
@@ -92,12 +112,17 @@ export default function Earnings() {
 
       {/* ===== STAT CARDS =====
           Labels and order copied verbatim from the template's three
-          StatCards. Values are real: "Tekjur í mánuðinum" and "Beðið eftir
-          útgreiðslu" both derive from the same 30-day net-revenue figure the
-          pre-redesign page already computed (spendIsk minus the platform
-          fee) — "Beðið eftir útgreiðslu" additionally applies the existing
-          MIN_PAYOUT_ISK gate (renders 0 kr. below the minimum, same logic
-          the pre-redesign page used for its "next payout" figure). */}
+          StatCards. "Tekjur í mánuðinum" is the trailing-30-day net-revenue
+          figure (spendIsk minus the platform fee) — a rolling window, not
+          a payout basis. "Beðið eftir útgreiðslu" (IMPORTANT-5 fix,
+          adversarial review) is DIFFERENT: it comes from
+          GET /v1/publishers/me/balance, the real unpaid basis computed the
+          same way generateMonthlyPayouts computes it (all credits to date
+          minus all payout docs, any status) — using the 30-day stat here
+          instead permanently showed "0 kr." and a below-minimum warning for
+          any publisher earning under the minimum every month, even in the
+          month they're actually about to be paid the carried-forward
+          total. */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <StatCard label="Tekjur í mánuðinum" value={formatIsk(netEarningsTotal)} />
         <StatCard label="Beðið eftir útgreiðslu" value={formatIsk(pendingPayoutIsk)} />
