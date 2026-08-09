@@ -17,6 +17,10 @@ import type { Campaign, LedgerEntry } from '@ada/shared';
  *   2. campaign.budget.remainingIsk in Firestore (the enforced spend cap), and
  *   3. the budget:{id} Redis counter (the serve-time gate).
  *
+ * Also runs a fourth, non-money check: the emitted-vs-recorded event pipeline
+ * (see checkEventPipeline below) — the independent second count that catches
+ * events serving queued but the aggregator never wrote.
+ *
  * This service NEVER mutates state — it only reads and reports. Findings are
  * surfaced to ops via alertOps(); fixing drift is a manual/human follow-up.
  */
@@ -27,6 +31,7 @@ export type ReconciliationFindingKind =
   | 'advertiser_mirror_mismatch'
   | 'redis_budget_overseeded'
   | 'stale_agent_pending_campaign'
+  | 'event_pipeline_loss'
   | 'publisher_negative_balance'
   | 'publisher_stuck_payable'
   | 'publisher_stale_payout_doc';
@@ -45,6 +50,7 @@ export interface ReconciliationReport {
     campaignsChecked: number;
     advertisersChecked: number;
     redisBudgetsChecked: number;
+    eventPipelineHoursChecked: number;
   };
   generatedAt: string;
 }
@@ -254,6 +260,81 @@ function checkStaleAgentPendingCampaigns(
   }
 }
 
+// Mirrors serving's emittedCounterKey (apps/serving/src/lib/analytics.ts) and the
+// aggregator's recordedCounterKey (apps/api/src/services/stats-aggregator.ts) —
+// same YYYYMMDDHH (UTC) key shape, duplicated here rather than imported across
+// module boundaries (same convention as the aggregator's own duplicate).
+function hourKeyUTC(d: Date): string {
+  return (
+    d.getUTCFullYear().toString() +
+    String(d.getUTCMonth() + 1).padStart(2, '0') +
+    String(d.getUTCDate()).padStart(2, '0') +
+    String(d.getUTCHours()).padStart(2, '0')
+  );
+}
+
+const EVENT_PIPELINE_LOOKBACK_HOURS = 24;
+// Events queue in Redis and drain on the hourly cron-aggregate cadence, plus
+// serving retries/late writes — an hour that's still within its own window
+// can legitimately show recorded << emitted just because the aggregator
+// hasn't drained it yet. Two hours covers a missed/late aggregate run without
+// crying wolf on in-flight data (2026-08-09 design, Part 3).
+const EVENT_PIPELINE_SETTLE_HOURS = 2;
+const EVENT_PIPELINE_MIN_ABS_TOLERANCE = 50;
+const EVENT_PIPELINE_REL_TOLERANCE = 0.01;
+
+/**
+ * Check 6: emitted-vs-recorded event pipeline. Serving increments
+ * `emitted:{hour}` as it queues each event (every type); the aggregator
+ * increments `recorded:{hour}` as it writes each event's stats. Absence of
+ * the `emitted` counter is NOT evidence of loss — it means the bucket
+ * expired (7-day TTL) or nothing ever emitted for that hour — so it is
+ * skipped, never treated as zero-recorded. A missing `recorded` counter
+ * (the key never created at all) DOES count as zero: the aggregator ran
+ * for that hour's neighbours but produced nothing for this one, which is a
+ * real signal.
+ *
+ * Strictly read-only: only redis.get, never a write.
+ */
+async function checkEventPipeline(findings: ReconciliationFinding[], now: Date): Promise<number> {
+  if (!isRedisConfigured()) return 0;
+  const redis = getRedis();
+
+  const hourMs = 60 * 60 * 1000;
+  const settleCutoffMs = now.getTime() - EVENT_PIPELINE_SETTLE_HOURS * hourMs;
+
+  let checked = 0;
+  for (let i = 0; i < EVENT_PIPELINE_LOOKBACK_HOURS; i++) {
+    const bucketMs = settleCutoffMs - i * hourMs;
+    const hk = hourKeyUTC(new Date(bucketMs));
+
+    const emittedRaw = await redis.get<number | string>(`emitted:${hk}`);
+    if (emittedRaw == null) continue; // absent emitted counter: skip, not zero.
+    const emitted = Number(emittedRaw);
+    checked++;
+
+    const recordedRaw = await redis.get<number | string>(`recorded:${hk}`);
+    const recorded = recordedRaw == null ? 0 : Number(recordedRaw);
+
+    const tolerance = Math.max(
+      EVENT_PIPELINE_MIN_ABS_TOLERANCE,
+      emitted * EVENT_PIPELINE_REL_TOLERANCE,
+    );
+    if (recorded < emitted - tolerance) {
+      findings.push({
+        kind: 'event_pipeline_loss',
+        entityId: hk,
+        detail:
+          `emitted:${hk} counted ${emitted} event(s) but recorded:${hk} shows only ${recorded} ` +
+          '— events queued by serving may not be reaching the aggregator',
+        expected: emitted,
+        actual: recorded,
+      });
+    }
+  }
+  return checked;
+}
+
 const PAYOUT_LEDGER_TYPES = ['publisher_credit', 'payout'] as const;
 
 // cron-payouts runs "0 6 1 * *" (06:00 UTC on the 1st, apps/api/vercel.json)
@@ -425,17 +506,20 @@ async function checkPublisherBalances(
 
 function buildAlertMessage(findings: ReconciliationFinding[]): string {
   const shown = findings.slice(0, 10);
-  const lines = shown.map(
-    (f) =>
-      `- [${f.kind}] ${f.entityId}: vænt ${f.expected} kr., raun ${f.actual} kr. (${f.detail})`,
-  );
+  const lines = shown.map((f) => {
+    if (f.kind === 'event_pipeline_loss') {
+      return `- [${f.kind}] ${f.entityId}: vænt ${f.expected} atburðir, raun ${f.actual} atburðir (${f.detail})`;
+    }
+    return `- [${f.kind}] ${f.entityId}: vænt ${f.expected} kr., raun ${f.actual} kr. (${f.detail})`;
+  });
   const more =
     findings.length > shown.length
       ? `\n... og ${findings.length - shown.length} atriði til viðbótar.`
       : '';
   return (
-    `Dagleg afstemming (cron-reconcile) fann ${findings.length} misræmi milli ledger-sins, ` +
-    `campaign.budget.remainingIsk og Redis budget-teljarans. Fyrstu ${shown.length} atriðin:\n` +
+    `Dagleg afstemming (cron-reconcile) fann ${findings.length} misræmi í peningaflæði og/eða ` +
+    `atburðaflæði (ledger, campaign.budget.remainingIsk, Redis budget-teljari, emitted-vs-recorded). ` +
+    `Fyrstu ${shown.length} atriðin:\n` +
     `${lines.join('\n')}${more}\n\n` +
     'Þetta er ekki sjálfkrafa leiðrétt — athugaðu Firestore ledger og /api/cron-diagnostics handvirkt.'
   );
@@ -464,6 +548,10 @@ export async function runReconciliation(now: Date = new Date()): Promise<Reconci
   if (isRedisConfigured()) {
     redisBudgetsChecked = await checkRedisBudgets(campaigns, findings);
   }
+  // checkEventPipeline has its own isRedisConfigured() guard (it returns 0
+  // and pushes nothing when Redis isn't configured), matching how checkRedisBudgets
+  // is gated above.
+  const eventPipelineHoursChecked = await checkEventPipeline(findings, now);
 
   await checkPublisherBalances(findings, now);
 
@@ -473,13 +561,14 @@ export async function runReconciliation(now: Date = new Date()): Promise<Reconci
       campaignsChecked: campaigns.length,
       advertisersChecked: advertisersSnap.size,
       redisBudgetsChecked,
+      eventPipelineHoursChecked,
     },
     generatedAt: new Date().toISOString(),
   };
 
   if (findings.length > 0) {
     await alertOps(
-      `Afstemming fann misræmi í peningaflæði (${findings.length} atriði)`,
+      `Afstemming fann misræmi (${findings.length} atriði)`,
       buildAlertMessage(findings),
     );
   }

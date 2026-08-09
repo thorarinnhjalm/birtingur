@@ -12,19 +12,25 @@ const mockIncr = vi.fn(async (key: string) => {
   mockIncrStore.set(key, next);
   return next;
 });
+// Hoisted (not recreated per getRedis() call) so tests can assert on it directly —
+// this is the seam that proves claimSignatureOnce's SET NX actually ran, for
+// branches where the claim has no other observable side effect (nothing logged).
+const mockSet = vi.fn(
+  async (key: string, _val: string, options?: { nx?: boolean; ex?: number }) => {
+    if (options?.nx) {
+      if (mockSeenKeys.has(key)) {
+        return null;
+      }
+      mockSeenKeys.add(key);
+      return 'OK';
+    }
+    return 'OK';
+  },
+);
 
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
-    set: vi.fn(async (key: string, val: string, options?: { nx?: boolean; ex?: number }) => {
-      if (options?.nx) {
-        if (mockSeenKeys.has(key)) {
-          return null;
-        }
-        mockSeenKeys.add(key);
-        return 'OK';
-      }
-      return 'OK';
-    }),
+    set: mockSet,
     incrby: mockIncrby,
     incr: mockIncr,
     expire: mockExpire,
@@ -212,6 +218,23 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // 1000 cpm / 1000 = 1 isk
   });
 
+  it('still returns the pixel and decrements budget when the logEvent write fails', async () => {
+    // logEvent's own try/catch must not skip recordVisitorImpression/decrementBudget/
+    // incrementPaceSpent below it — those used to run unconditionally when logEvent was
+    // fire-and-forget, and a transient Redis failure on just the event write must not
+    // silently skip the real-time budget gate.
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    vi.mocked(logEvent).mockRejectedValueOnce(new Error('redis down'));
+
+    const res = await app.request(`/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/gif');
+    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1);
+  });
+
   it('returns pixel even when missing query parameters', async () => {
     const res = await app.request('/v1/impression?s=slot_a');
     expect(res.status).toBe(200);
@@ -306,25 +329,83 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  it('records a correctly signed fallback pageview', async () => {
+  // The slot load for the known-slot fallback (cre_fallback_*) is already
+  // recorded by ad.ts at serve time — this legacy pixel firing again must NOT
+  // write a second one. This is the double-count guard.
+  it('returns the pixel for a correctly signed cre_fallback_birtingur pageview but logs nothing (already counted at serve time)', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
     const res = await app.request(
       `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
     );
     expect(res.status).toBe(200);
-    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'pageview', slotId: 'slot_a', publisherId: 'pub_a' }),
-    );
+    expect(res.headers.get('Content-Type')).toBe('image/gif');
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  it('counts a replayed signed pageview only once', async () => {
+  // With the write gone for cre_fallback_*, a fresh and an already-claimed
+  // signature both return an identical 200 gif — logEvent call counts can no
+  // longer prove the replay guard runs. Assert directly on the Redis SET NX
+  // seam (mockSet/mockSeenKeys) instead, so this stays a real pin on
+  // claimSignatureOnce and would fail if that call were ever removed.
+  it('still claims (rate-limits) a replayed signed cre_fallback_birtingur pageview even though nothing is logged', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
     const url = `/v1/impression?s=slot_a&c=cre_fallback_birtingur&t=tok123&type=pageview&ts=${ts}&sig=${sig}`;
-    await app.request(url);
-    await app.request(url);
+
+    const first = await app.request(url);
+    expect(first.status).toBe(200);
+    expect(mockSet).toHaveBeenCalledWith(
+      `seen:pv:${sig}`,
+      '1',
+      expect.objectContaining({ nx: true }),
+    );
+    expect(mockSeenKeys.has(`seen:pv:${sig}`)).toBe(true);
+
+    const callsBeforeReplay = mockSet.mock.calls.length;
+    const second = await app.request(url);
+    expect(second.status).toBe(200);
+    // The claim is attempted again on replay (one more SET NX call), it just
+    // returns null instead of 'OK' because the key is already present.
+    expect(mockSet.mock.calls.length).toBe(callsBeforeReplay + 1);
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
+  });
+
+  // Recovery path for the true cache-miss case: ad.ts's `!slot` branch served
+  // cre_nocache and could not log the slot load itself (no publisherId at
+  // serve time). If the cache has repopulated by the time this pixel fires,
+  // this is the only remaining chance to record that slot load.
+  it('recovers the slot load for a valid cre_nocache pixel once the cache has repopulated', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_nocache', 'slot_a', 'tok123', ts);
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_nocache&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
+    );
+    expect(res.status).toBe(200);
     expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(1);
+    // Wire type stays the ordinary 'pageview' (see AdEvent.type in
+    // lib/analytics.ts) — creativeId: 'cre_nocache' is the marker that makes
+    // this a slot load, not the wire type. This is deliberate: it means the
+    // event is classified correctly by the aggregator regardless of which of
+    // apps/serving or apps/api deploys first.
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'pageview',
+        slotId: 'slot_a',
+        publisherId: 'pub_a',
+        creativeId: 'cre_nocache',
+      }),
+    );
+  });
+
+  it('records nothing for a valid cre_nocache pixel while the cache is still cold', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_nocache', 'slot_still_cold', 'tok123', ts);
+    const res = await app.request(
+      `/v1/impression?s=slot_still_cold&c=cre_nocache&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
   it('drops stale impression when slot cache expired between serve and view', async () => {

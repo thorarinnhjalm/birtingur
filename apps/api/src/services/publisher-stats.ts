@@ -10,16 +10,26 @@ export interface SiteBreakdown {
   impressions: number;
   clicks: number;
   pageviews: number;
+  // Real page views (Task 4). Absent — not zero — for a site whose window
+  // has no post-switch day with measured true traffic yet.
+  pageViewsTrue?: number;
   spendIsk: number;
 }
 
 export interface PublisherStatsResponse extends PublisherStatsBreakdown {
+  // Real page views summed across the window. Absent — not zero — when no
+  // day in the window has a measured value (all pre-switch, or no data at
+  // all): the UI must render "no accurate data yet", never a false zero.
+  pageViewsTrue?: number;
   history: {
     date: string;
     impressions: number;
     clicks: number;
     spendIsk: number;
     pageviews: number;
+    // Absent for a specific day that has no measured true pageviews (either
+    // pre-switch, or a post-switch day the aggregator left unset).
+    pageViewsTrue?: number;
   }[];
   bySite?: SiteBreakdown[];
 }
@@ -34,11 +44,18 @@ export async function getPublisherStats(
     clicks: number;
     spendIsk: number;
     pageviews: number;
+    pageViewsTrue?: number;
   }[] = [];
   let totalImpressions = 0;
   let totalClicks = 0;
   let totalSpendIsk = 0;
   let totalPageviews = 0;
+  let totalPageViewsTrue = 0;
+  // True per-day pageviews are only ever present from the switch date
+  // onward (Task 4 leaves the field absent, not zero, before it). Track
+  // whether ANY day in the window measured it so the total can stay
+  // undefined rather than silently reporting a false zero.
+  let anyPageViewsTrue = false;
 
   const now = new Date();
   let hasRealData = false;
@@ -57,6 +74,10 @@ export async function getPublisherStats(
       let dayClicks = 0;
       let daySpendIsk = 0;
       let dayPageviews = 0;
+      // Undefined unless a doc for this day actually carries the field \u2014
+      // never defaulted to 0, so a pre-switch (or otherwise unmeasured) day
+      // stays distinguishable from a genuine zero-traffic day.
+      let dayPageViewsTrue: number | undefined;
       let dayHasRealData = false;
 
       if (subSnap.exists) {
@@ -67,6 +88,9 @@ export async function getPublisherStats(
           dayClicks = data.clicks || 0;
           daySpendIsk = data.spendIsk || 0;
           dayPageviews = data.pageviews || 0;
+          if (typeof data.pageViewsTrue === 'number') {
+            dayPageViewsTrue = data.pageViewsTrue;
+          }
         }
       } else {
         // 2. Fallback to top-level stats collection
@@ -85,6 +109,9 @@ export async function getPublisherStats(
             dayClicks += pubData.clicks || 0;
             daySpendIsk += pubData.spendIsk || 0;
             dayPageviews += pubData.pageviews || 0;
+            if (typeof pubData.pageViewsTrue === 'number') {
+              dayPageViewsTrue = (dayPageViewsTrue ?? 0) + pubData.pageViewsTrue;
+            }
           }
         }
       }
@@ -95,6 +122,7 @@ export async function getPublisherStats(
         clicks: dayClicks,
         spendIsk: daySpendIsk,
         pageviews: dayPageviews,
+        pageViewsTrue: dayPageViewsTrue,
         hasRealData: dayHasRealData,
       };
     });
@@ -112,12 +140,17 @@ export async function getPublisherStats(
       clicks: res.clicks,
       spendIsk: res.spendIsk,
       pageviews: res.pageviews,
+      pageViewsTrue: res.pageViewsTrue,
     });
 
     totalImpressions += res.impressions;
     totalClicks += res.clicks;
     totalSpendIsk += res.spendIsk;
     totalPageviews += res.pageviews;
+    if (res.pageViewsTrue !== undefined) {
+      anyPageViewsTrue = true;
+      totalPageViewsTrue += res.pageViewsTrue;
+    }
   }
 
   // 3. Fallback to mock data if empty and running in dev/emulator
@@ -175,6 +208,7 @@ export async function getPublisherStats(
     clicks: totalClicks,
     spendIsk: totalSpendIsk,
     pageviews: totalPageviews,
+    pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     history,
   };
 }
@@ -200,11 +234,19 @@ export async function getAggregatedPublisherStats(
   let totalClicks = 0;
   let totalSpendIsk = 0;
   let totalPageviews = 0;
+  let totalPageViewsTrue = 0;
+  let anyPageViewsTrue = false;
 
   // Use a map to aggregate history by date
   const historyMap: Record<
     string,
-    { impressions: number; clicks: number; spendIsk: number; pageviews: number }
+    {
+      impressions: number;
+      clicks: number;
+      spendIsk: number;
+      pageviews: number;
+      pageViewsTrue?: number;
+    }
   > = {};
 
   for (const stats of allStats) {
@@ -212,6 +254,10 @@ export async function getAggregatedPublisherStats(
     totalClicks += stats.clicks;
     totalSpendIsk += stats.spendIsk;
     totalPageviews += stats.pageviews || 0;
+    if (stats.pageViewsTrue !== undefined) {
+      anyPageViewsTrue = true;
+      totalPageViewsTrue += stats.pageViewsTrue;
+    }
 
     for (const h of stats.history) {
       if (!historyMap[h.date]) {
@@ -221,6 +267,10 @@ export async function getAggregatedPublisherStats(
       historyMap[h.date]!.clicks += h.clicks;
       historyMap[h.date]!.spendIsk += h.spendIsk;
       historyMap[h.date]!.pageviews += h.pageviews || 0;
+      if (h.pageViewsTrue !== undefined) {
+        historyMap[h.date]!.pageViewsTrue =
+          (historyMap[h.date]!.pageViewsTrue ?? 0) + h.pageViewsTrue;
+      }
     }
   }
 
@@ -242,6 +292,7 @@ export async function getAggregatedPublisherStats(
             impressions: allStats[i]!.impressions,
             clicks: allStats[i]!.clicks,
             pageviews: allStats[i]!.pageviews || 0,
+            pageViewsTrue: allStats[i]!.pageViewsTrue,
             spendIsk: allStats[i]!.spendIsk,
           }))
           .sort((a, b) => b.impressions - a.impressions)
@@ -252,6 +303,7 @@ export async function getAggregatedPublisherStats(
     clicks: totalClicks,
     spendIsk: totalSpendIsk,
     pageviews: totalPageviews,
+    pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     history,
     ...(bySite.length > 0 ? { bySite } : {}),
   };

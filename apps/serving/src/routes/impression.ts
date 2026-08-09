@@ -67,31 +67,53 @@ impressionRoute.get('/', async (c) => {
     }
 
     if (isFallback) {
-      // Claimed under its own kind: a house-ad fallback reuses one signature
-      // for its pageview pixel AND its click URL, so sharing a namespace would
-      // make one cancel the other (see SignatureKind in lib/crypto.ts).
+      // Split by creativeId, because the two fallback cases differ in whether
+      // ad.ts already recorded the slot load at serve time:
+      //   - cre_fallback_transparent / cre_fallback_birtingur: the slot WAS
+      //     known when the ad was served, so ad.ts's `!creative` branch already
+      //     logged it. Writing again here would double-count it — no write for
+      //     these.
+      //   - cre_nocache: ad.ts's `!slot` branch served this because the cache
+      //     was a miss, so it could NOT log a slot load (no publisherId to
+      //     attribute it to). This pixel fires seconds later, after the cache
+      //     has often repopulated, so it's the only remaining chance to record
+      //     that slot load — do the lookup again here and log it if the
+      //     publisher is now known.
+      // Either way, keep the signature check and claim below so old cached
+      // snippets still firing this legacy `type=pageview` pixel are validated
+      // and rate-limited (the claim also still prevents the signature from
+      // being replayed against the click branch, since fallback click URLs
+      // share this signature — see SignatureKind in lib/crypto.ts).
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'pv');
       if (!fresh) {
         return pixelResponse();
       }
 
-      const slot = await getSlotCache(slotId);
-      if (slot?.publisherId) {
-        void logEvent({
-          type: 'pageview',
-          slotId,
-          publisherId: slot.publisherId,
-          creativeId: typeof creativeId === 'string' ? creativeId : 'cre_fallback_transparent',
-          campaignId: 'cmp_fallback',
-          advertiserId: '',
-          country: c.req.header('CF-IPCountry') ?? 'XX',
-          visitorToken: token,
-          ts: Date.now(),
-        });
+      if (creativeId === 'cre_nocache') {
+        try {
+          const slot = await getSlotCache(slotId);
+          if (slot?.publisherId) {
+            // Wire type is the ordinary 'pageview' (see AdEvent.type in
+            // lib/analytics.ts) — creativeId: 'cre_nocache' is what marks this
+            // as a slot load, not the wire type.
+            await logEvent({
+              type: 'pageview',
+              slotId,
+              publisherId: slot.publisherId,
+              creativeId: 'cre_nocache',
+              campaignId: 'cmp_fallback',
+              advertiserId: '',
+              country: c.req.header('CF-IPCountry') ?? 'XX',
+              visitorToken: token,
+              ts: Date.now(),
+            });
+          }
+          // If the cache is still cold, we still don't know the publisher —
+          // drop it, same as everywhere else in this file.
+        } catch (err) {
+          console.error('logEvent failed (impression, cache-miss recovery):', err);
+        }
       }
-      // If the slot cache has expired, we don't know which publisher this pageview
-      // belongs to. Logging with publisherId='' would write to a garbage Firestore
-      // path (stats/publishers//YYYYMMDD) and accumulate junk data.
     } else {
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'imp');
       if (!fresh) {
@@ -109,18 +131,25 @@ impressionRoute.get('/', async (c) => {
         const isAllowed = await checkAndIncrementRateLimit(creative.campaignId, ip, 'impression');
 
         if (isAllowed) {
-          // Log the impression now — the pixel firing proves the ad was actually seen
-          void logEvent({
-            type: 'impression',
-            slotId,
-            publisherId: slot.publisherId,
-            creativeId,
-            campaignId: creative.campaignId,
-            advertiserId: '', // populated in batch aggregation
-            country: c.req.header('CF-IPCountry') ?? 'XX',
-            visitorToken: token,
-            ts: Date.now(),
-          });
+          // Log the impression now — the pixel firing proves the ad was actually seen.
+          // Own try/catch: a Redis pipeline failure here must not skip the budget
+          // decrement/pacing/visitor-cap side effects below, which used to run
+          // unconditionally when this was fire-and-forget.
+          try {
+            await logEvent({
+              type: 'impression',
+              slotId,
+              publisherId: slot.publisherId,
+              creativeId,
+              campaignId: creative.campaignId,
+              advertiserId: '', // populated in batch aggregation
+              country: c.req.header('CF-IPCountry') ?? 'XX',
+              visitorToken: token,
+              ts: Date.now(),
+            });
+          } catch (err) {
+            console.error('logEvent failed (impression):', err);
+          }
 
           if (token) {
             void recordVisitorImpression(token, creativeId);

@@ -222,9 +222,14 @@ export class AdplatformStats extends HTMLElement {
     impressions: number;
     clicks: number;
     spendIsk: number;
-    // Slot traffic incl. no-fill pageviews; absent in stale/cached API
-    // responses from before the field existed, so render it as 0 then.
-    pageviews?: number;
+    // Real page views (one per page load) — NOT `pageviews`, which counts
+    // ad-slot loads (one per slot per page) and overstates traffic by the
+    // site's slots-per-page ratio. Absent for a period that predates the
+    // 2026-08-09 traffic-measurement-integrity switch date, where no accurate
+    // figure was ever measured; render an em dash then, never a false 0 —
+    // same honesty rule as the publisher dashboard
+    // (apps/dashboard/src/pages/publisher/Dashboard.tsx).
+    pageViewsTrue?: number;
     history: { date: string; impressions: number; clicks: number; spendIsk: number }[];
   }) {
     const isDark = this.getActiveTheme() === 'dark';
@@ -274,7 +279,7 @@ export class AdplatformStats extends HTMLElement {
         <div class="grid">
           <div class="metric-card">
             <div class="metric-label">Vefumferð</div>
-            <div class="metric-value">${this.formatNum(data.pageviews ?? 0)}</div>
+            <div class="metric-value">${data.pageViewsTrue !== undefined ? this.formatNum(data.pageViewsTrue) : '—'}</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Heildarbirtingar</div>

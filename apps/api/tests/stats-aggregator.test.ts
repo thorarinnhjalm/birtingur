@@ -1,6 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { aggregateEvents } from '../src/services/stats-aggregator';
-import type { QueuedEvent } from '../src/services/stats-aggregator';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { db } from '../src/lib/firebase';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { clearFirestoreEmulator } from './helpers/emulator';
@@ -14,10 +12,42 @@ import { clearFirestoreEmulator } from './helpers/emulator';
 // aggregateEvents used to produce were silently dead in production while the
 // mocked test happily "passed". Reading the real documents back after a real
 // commit is the only way this class of bug gets caught again.
+//
+// Firestore is real (the emulator); Redis is not — there is no Redis emulator
+// wired into `--only firestore`, so the `recorded:{hour}` counter is verified
+// against a tiny in-memory fake standing in for `getRedis()`.
+
+const mockRedisCounters = new Map<string, number>();
+
+vi.mock('../src/lib/redis', () => ({
+  getRedis: () => ({
+    pipeline: () => {
+      const ops: Array<() => void> = [];
+      const p = {
+        incr: (key: string) => {
+          ops.push(() => mockRedisCounters.set(key, (mockRedisCounters.get(key) ?? 0) + 1));
+          return p;
+        },
+        expire: () => p,
+        exec: async () => {
+          for (const op of ops) op();
+        },
+      };
+      return p;
+    },
+  }),
+}));
+
+import { aggregateEvents } from '../src/services/stats-aggregator';
+import type { QueuedEvent } from '../src/services/stats-aggregator';
 
 async function getDoc(path: string) {
   const snap = await db.doc(path).get();
   return snap.exists ? snap.data() : undefined;
+}
+
+async function redisGet(key: string): Promise<number | undefined> {
+  return mockRedisCounters.get(key);
 }
 
 function makeEvent(overrides: Partial<QueuedEvent> = {}): QueuedEvent {
@@ -38,6 +68,7 @@ function makeEvent(overrides: Partial<QueuedEvent> = {}): QueuedEvent {
 describe('aggregateEvents', () => {
   beforeEach(async () => {
     await clearFirestoreEmulator();
+    mockRedisCounters.clear();
   });
 
   it('groups impressions and clicks into hourly/daily buckets per campaign, publisher, slot and creative', async () => {
@@ -118,11 +149,11 @@ describe('aggregateEvents', () => {
     expect(creDoc!.clicks).toBe(1);
   });
 
-  it('groups pageviews into hourly buckets for fallback creatives', async () => {
+  it('groups slot loads into hourly pageviews buckets for fallback creatives', async () => {
     const ts = Date.UTC(2026, 5, 2, 14, 30, 0); // 2026-06-02 14:30:00 UTC
     const events: QueuedEvent[] = [
       {
-        type: 'pageview',
+        type: 'slot_load',
         campaignId: 'cmp_fallback',
         publisherId: 'pub_a',
         creativeId: 'cre_fallback_birtingur',
@@ -226,6 +257,156 @@ describe('aggregateEvents', () => {
       const doc = await getDoc(`${COLLECTIONS.stats}/campaigns/cmp_1/2026080812`);
       expect(doc!.byPublisherCreative).toBeUndefined();
       expect(doc!.byPublisher.pub_a.impressions).toBe(1);
+    });
+  });
+
+  describe('slot_load vs pageview', () => {
+    // makeEvent()'s default ts is Date.UTC(2026, 7, 8, 12, 30, 0) => day 20260808.
+    const DAY = '20260808';
+    // Mirrors serving's PAGEVIEW_CREATIVE_ID / the aggregator's TRUE_PAGEVIEW_CREATIVE_ID:
+    // the marker that distinguishes a genuine page-level pageview event from a
+    // 'pageview' event that actually means a slot load (apps/serving emits both
+    // shapes with the SAME wire type — see TRUE_PAGEVIEW_CREATIVE_ID in
+    // stats-aggregator.ts for why that's deliberate, not legacy).
+    const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
+    it('counts slot_load into pageviews and pageview into pageViewsTrue', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'slot_load' }),
+        makeEvent({ type: 'slot_load' }),
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+      ]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.pageviews).toBe(2); // slot loads — fill-rate denominator
+      expect(doc.pageViewsTrue).toBe(1); // real page views
+      // Guard against the 2026-08-08 dot-path bug: `pageViewsTrue` must be its own real
+      // field key on the document, not a literal string "byPublisher.pub_a.pageViewsTrue"
+      // (or similar) that `batch.set(..., { merge: true })` would have failed to split.
+      expect(Object.keys(doc)).toContain('pageViewsTrue');
+      expect(Object.keys(doc).some((k) => k.includes('.'))).toBe(false);
+
+      const slotDoc = (
+        await db.doc(`${COLLECTIONS.stats}/publisher_slots/pub_a_slot_1/${DAY}`).get()
+      ).data()!;
+      expect(slotDoc.pageviews).toBe(2);
+      expect(slotDoc.pageViewsTrue).toBe(1);
+    });
+
+    it('increments the recorded counter per event, bucketed by event hour', async () => {
+      await aggregateEvents([
+        makeEvent({
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+          ts: Date.UTC(2026, 7, 9, 13, 5),
+        }),
+        makeEvent({
+          type: 'pageview',
+          creativeId: TRUE_PAGEVIEW_CREATIVE_ID,
+          ts: Date.UTC(2026, 7, 9, 13, 55),
+        }),
+      ]);
+      expect(await redisGet('recorded:2026080913')).toBe(2);
+    });
+
+    it('increments the recorded counter for every event type, not just pageview', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'impression', ts: Date.UTC(2026, 7, 9, 13, 5) }),
+        makeEvent({ type: 'slot_load', ts: Date.UTC(2026, 7, 9, 13, 6) }),
+      ]);
+      expect(await redisGet('recorded:2026080913')).toBe(2);
+    });
+
+    it('leaves pageViewsTrue absent for a day that saw only slot loads', async () => {
+      await aggregateEvents([makeEvent({ type: 'slot_load' })]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.pageviews).toBe(1);
+      expect(doc.pageViewsTrue).toBeUndefined();
+
+      const slotDoc = (
+        await db.doc(`${COLLECTIONS.stats}/publisher_slots/pub_a_slot_1/${DAY}`).get()
+      ).data()!;
+      expect(slotDoc.pageViewsTrue).toBeUndefined();
+    });
+
+    it('treats slot_load exactly like the old pageview branch for creative-hour bookkeeping', async () => {
+      await aggregateEvents([makeEvent({ type: 'slot_load' })]);
+      const creDoc = (
+        await db.doc(`${COLLECTIONS.stats}/creatives/cre_1/2026080812`).get()
+      ).data()!;
+      expect(creDoc.pageviews).toBe(1);
+    });
+
+    describe('pageview wire-type marker (creativeId discriminates slot load vs true page view)', () => {
+      // This is the primary contract, not a compatibility shim: apps/serving
+      // deliberately emits every slot load with wire type 'pageview' (see
+      // AdEvent.type in apps/serving/src/lib/analytics.ts) rather than a
+      // distinct type, so apps/serving and apps/api — separate Vercel projects
+      // that redeploy simultaneously on one push — stay correct regardless of
+      // which one goes live first.
+      it('a true pageview (creativeId: TRUE_PAGEVIEW_CREATIVE_ID) increments pageViewsTrue and not pageviews', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageViewsTrue).toBe(1);
+        expect(doc.pageviews ?? 0).toBe(0);
+      });
+
+      it('a slot-load-shaped pageview (real creativeId) increments pageviews and leaves pageViewsTrue absent', async () => {
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: 'cre_abc' })]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageviews).toBe(1);
+        expect(doc.pageViewsTrue).toBeUndefined();
+
+        // A slot-load-shaped 'pageview' event also carries creative-hour
+        // bookkeeping, same as an explicit 'slot_load' event does.
+        const creDoc = (
+          await db.doc(`${COLLECTIONS.stats}/creatives/cre_abc/2026080812`).get()
+        ).data()!;
+        expect(creDoc.pageviews).toBe(1);
+      });
+
+      it('a mixed batch of true and slot-load-shaped pageviews lands in the right buckets', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+          makeEvent({ type: 'pageview', creativeId: 'cre_abc' }),
+          makeEvent({ type: 'pageview', creativeId: 'cre_fallback_birtingur' }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageViewsTrue).toBe(2); // the two true pageviews
+        expect(doc.pageviews).toBe(2); // the two slot-load-shaped pageviews
+      });
+    });
+  });
+
+  describe('unrecognized event types (CRITICAL-1 hardening)', () => {
+    // Regression pin for the exact deploy-order hazard this fix wave closes:
+    // main's old aggregator classified events as
+    // `if (pageview) {...} else { if (impression) impressions++ else clicks++ }`,
+    // so ANY event type it didn't special-case fell through and was counted as
+    // a click. The current aggregator must instead skip an unrecognized type
+    // outright rather than silently miscounting it.
+    it('does not count an unrecognized event type as a click', async () => {
+      await aggregateEvents([
+        // @ts-expect-error deliberately outside the QueuedEvent union
+        makeEvent({ type: 'something_new' }),
+      ]);
+      const doc = await getDoc(`${COLLECTIONS.stats}/publishers/pub_a/20260808`);
+      // Nothing should have been written at all for a batch containing only an
+      // unrecognized event.
+      expect(doc).toBeUndefined();
+    });
+
+    it('still counts the recognized events in a batch that also contains an unrecognized type', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'click' }),
+        // @ts-expect-error deliberately outside the QueuedEvent union
+        makeEvent({ type: 'something_new' }),
+      ]);
+      const doc = await getDoc(`${COLLECTIONS.stats}/campaigns/cmp_1/2026080812`);
+      expect(doc!.clicks).toBe(1);
+      expect(doc!.impressions ?? 0).toBe(0);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   COLLECTIONS,
   campaignConverter,
@@ -18,6 +18,28 @@ import { createAdvertiser } from '../src/services/advertisers';
 import { topUp, chargeCampaign, creditPublisher } from '../src/services/wallet';
 import { appendLedger } from '../src/services/ledger';
 import { isRedisConfigured } from '../src/lib/redis';
+import type * as redisModule from '../src/lib/redis';
+
+// checkEventPipeline (event_pipeline_loss) needs to read emitted:{hour} /
+// recorded:{hour} counters from Redis, but there is no Redis emulator wired
+// into `--only firestore` (see stats-aggregator.test.ts for the same
+// constraint) — so getRedis() is mocked with a tiny in-memory fake here.
+// isRedisConfigured() is kept real (via importOriginal) so the existing
+// "skips gracefully when Redis is unconfigured" test below still exercises
+// the genuine env-var-driven code path; the event-pipeline tests instead set
+// those env vars themselves for the duration of the test.
+const mockRedisStore = new Map<string, number>();
+
+vi.mock('../src/lib/redis', async (importOriginal) => {
+  const actual = await importOriginal<typeof redisModule>();
+  return {
+    ...actual,
+    getRedis: () => ({
+      get: async (key: string) => mockRedisStore.get(key) ?? null,
+    }),
+  };
+});
+
 import { runReconciliation } from '../src/services/reconciliation';
 import { generateId } from '../src/lib/id';
 
@@ -26,11 +48,15 @@ import { generateId } from '../src/lib/id';
 // `where('relatedId', ...)` / `where('party.type', ...)` queries that a hand
 // -rolled mock would have to reimplement anyway.
 //
-// Redis is deliberately kept unconfigured for the whole file: a developer's
-// local .env.local may carry real Upstash credentials, and these tests must
-// never depend on (or reach out to) a real Redis instance. Every test but the
-// last one is exercising checks 1-3, which don't touch Redis at all; the last
-// test asserts the check-4 skip path explicitly.
+// Redis is deliberately kept unconfigured by default for the whole file: a
+// developer's local .env.local may carry real Upstash credentials, and these
+// tests must never depend on (or reach out to) a real Redis instance. Most
+// tests exercise checks 1-3, which don't touch Redis at all; the dedicated
+// check-4 test asserts the skip path explicitly. The event-pipeline tests
+// (check 6) opt back into "configured" for their own duration via
+// withRedisConfigured() below — isRedisConfigured() itself is real (see the
+// vi.mock's importOriginal above), only getRedis() is faked, so this still
+// exercises the genuine env-var gate.
 const REDIS_ENV_KEYS = [
   'UPSTASH_REDIS_REST_URL',
   'UPSTASH_REDIS_REST_TOKEN',
@@ -39,6 +65,18 @@ const REDIS_ENV_KEYS = [
 ] as const;
 let savedRedisEnv: Record<string, string | undefined> = {};
 
+/** Makes isRedisConfigured() return true for the duration of `fn`, then restores. */
+async function withRedisConfigured<T>(fn: () => Promise<T>): Promise<T> {
+  process.env.UPSTASH_REDIS_REST_URL = 'http://fake-redis.test';
+  process.env.UPSTASH_REDIS_REST_TOKEN = 'fake-token';
+  try {
+    return await fn();
+  } finally {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  }
+}
+
 describe('runReconciliation', () => {
   beforeEach(async () => {
     savedRedisEnv = {};
@@ -46,6 +84,7 @@ describe('runReconciliation', () => {
       savedRedisEnv[key] = process.env[key];
       delete process.env[key];
     }
+    mockRedisStore.clear();
     await clearFirestoreEmulator();
   });
 
@@ -96,6 +135,25 @@ describe('runReconciliation', () => {
       .doc(id)
       .withConverter(campaignConverter)
       .set(campaign);
+  }
+
+  /** UTC YYYYMMDDHH bucket for a Date, matching hourKeyUTC in reconciliation.ts. */
+  function hourKeyFor(d: Date): string {
+    return (
+      d.getUTCFullYear().toString() +
+      String(d.getUTCMonth() + 1).padStart(2, '0') +
+      String(d.getUTCDate()).padStart(2, '0') +
+      String(d.getUTCHours()).padStart(2, '0')
+    );
+  }
+
+  /** Seeds the fake Redis store's emitted:{hour} / recorded:{hour} counters directly. */
+  async function seedCounters(
+    hour: string,
+    counts: { emitted?: number; recorded?: number },
+  ): Promise<void> {
+    if (counts.emitted !== undefined) mockRedisStore.set(`emitted:${hour}`, counts.emitted);
+    if (counts.recorded !== undefined) mockRedisStore.set(`recorded:${hour}`, counts.recorded);
   }
 
   // Task 3 (publisher-side reconciliation checks) needs to seed raw ledger
@@ -326,10 +384,99 @@ describe('runReconciliation', () => {
 
     expect(report.counts.redisBudgetsChecked).toBe(0);
     expect(report.findings.some((f) => f.kind === 'redis_budget_overseeded')).toBe(false);
+    // The event-pipeline check (check 6) shares the same isRedisConfigured() gate.
+    expect(report.counts.eventPipelineHoursChecked).toBe(0);
+    expect(report.findings.some((f) => f.kind === 'event_pipeline_loss')).toBe(false);
     // Checks 1-3 still ran and found nothing wrong with this consistent campaign.
     expect(report.findings.some((f) => f.entityId === campaignId || f.entityId === adv.id)).toBe(
       false,
     );
+  });
+
+  // Check 6: emitted-vs-recorded event pipeline. Serving increments
+  // `emitted:{hour}` for every event it queues; the aggregator increments
+  // `recorded:{hour}` for every event it writes. A materially lower recorded
+  // count for an hour that's had time to settle means events are getting
+  // lost between the two — this is the independent second count whose
+  // absence let a measurement bug live undetected for months.
+  describe('event pipeline (emitted vs recorded)', () => {
+    // Fixed "now" two hours after the seeded hour bucket, well clear of the
+    // in-flight settle window, so the checked bucket always falls inside the
+    // 24-hour lookback and outside the 2-hour settle window.
+    const seededHour = '2026080910';
+    const now = new Date(Date.UTC(2026, 7, 9, 15)); // 2026-08-09T15:00:00Z
+
+    it('flags an hour where materially fewer events were recorded than emitted', async () => {
+      await withRedisConfigured(async () => {
+        await seedCounters(seededHour, { emitted: 1000, recorded: 800 });
+        const report = await runReconciliation(now);
+        const finding = report.findings.find(
+          (f) => f.kind === 'event_pipeline_loss' && f.entityId === seededHour,
+        );
+        expect(finding).toBeDefined();
+        expect(finding?.expected).toBe(1000);
+        expect(finding?.actual).toBe(800);
+      });
+    });
+
+    it('tolerates a small gap', async () => {
+      await withRedisConfigured(async () => {
+        // tolerance = max(50, 1000 * 0.01) = 50; 995 >= 1000 - 50, so no finding.
+        await seedCounters(seededHour, { emitted: 1000, recorded: 995 });
+        const report = await runReconciliation(now);
+        expect(report.findings.some((f) => f.kind === 'event_pipeline_loss')).toBe(false);
+      });
+    });
+
+    it('ignores hours younger than two hours (events still in flight)', async () => {
+      await withRedisConfigured(async () => {
+        // Seed the counter for `now`'s own hour bucket — inside the 2-hour
+        // settle window, so the lookback walk never even examines it.
+        const inFlightHour = hourKeyFor(now);
+        await seedCounters(inFlightHour, { emitted: 1000, recorded: 0 });
+        const report = await runReconciliation(now);
+        expect(report.findings.some((f) => f.kind === 'event_pipeline_loss')).toBe(false);
+      });
+    });
+
+    it('ignores an hour with no emitted counter (evicted/expired)', async () => {
+      await withRedisConfigured(async () => {
+        // No emitted:{hour} at all (TTL expired or nothing ever emitted);
+        // recorded present at 0 would otherwise look like total loss.
+        await seedCounters(seededHour, { recorded: 0 });
+        const report = await runReconciliation(now);
+        expect(report.findings.some((f) => f.kind === 'event_pipeline_loss')).toBe(false);
+        // Absence must not even count toward "hours checked".
+        expect(report.counts.eventPipelineHoursChecked).toBe(0);
+      });
+    });
+
+    it('checks the hour exactly at the two-hour settle boundary (not skipped by an off-by-one)', async () => {
+      await withRedisConfigured(async () => {
+        const boundaryHour = hourKeyFor(new Date(now.getTime() - 2 * 60 * 60 * 1000));
+        await seedCounters(boundaryHour, { emitted: 1000, recorded: 800 });
+        const report = await runReconciliation(now);
+        expect(
+          report.findings.some(
+            (f) => f.kind === 'event_pipeline_loss' && f.entityId === boundaryHour,
+          ),
+        ).toBe(true);
+      });
+    });
+
+    it('treats a missing recorded counter as zero when emitted is present', async () => {
+      await withRedisConfigured(async () => {
+        // The aggregator ran for the neighbouring hours but produced nothing
+        // at all for this one — a real signal, unlike a missing emitted key.
+        await seedCounters(seededHour, { emitted: 500 });
+        const report = await runReconciliation(now);
+        const finding = report.findings.find(
+          (f) => f.kind === 'event_pipeline_loss' && f.entityId === seededHour,
+        );
+        expect(finding).toBeDefined();
+        expect(finding?.actual).toBe(0);
+      });
+    });
   });
 
   // Task 3: checkPublisherBalances — independent publisher-side checks.

@@ -8,6 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
+import { TRAFFIC_MEASUREMENT_START } from '@ada/shared';
+import { formatDate } from '@/lib/format';
 
 interface ChartDataPoint {
   date: string;
@@ -15,6 +17,11 @@ interface ChartDataPoint {
   clicks: number;
   spendIsk?: number;
   pageviews?: number;
+  // Real page views (Task 4/6). Absent — not zero — for a day with no
+  // measured true traffic (pre-switch, or a post-switch day the aggregator
+  // left unset); the "Vefumferð" series below relies on that absence to
+  // leave a gap instead of drawing a false zero.
+  pageViewsTrue?: number;
 }
 
 interface AnalyticsChartProps {
@@ -65,6 +72,14 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
     };
   });
 
+  // The traffic tab plots pageViewsTrue only (see getMetricDetails below), which is
+  // deliberately absent — not zero — for every day before the 2026-08-09 switch date.
+  // A window that predates the switch entirely therefore has no plottable point at
+  // all, and Recharts just renders an empty area with no indication why. Same
+  // muted explanation as the publisher dashboard's "Vefumferð" stat card
+  // (apps/dashboard/src/pages/publisher/Dashboard.tsx) instead of a blank chart.
+  const hasTrafficData = formattedData.some((d) => d.pageViewsTrue !== undefined);
+
   const getMetricDetails = () => {
     switch (selectedMetric) {
       case 'clicks':
@@ -91,7 +106,11 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
       case 'pageviews':
         return {
           label: 'Vefumferð',
-          dataKey: 'pageviews',
+          // Real page views, NOT the raw `pageviews` field (that one counts
+          // ad-slot loads). Left absent rather than defaulted to 0 on days
+          // with no measured value, so Recharts draws a gap instead of a
+          // false zero for the pre-switch history.
+          dataKey: 'pageViewsTrue',
           color: '#0ea5e9', // sky-500
           formatter: (v: number) => v.toLocaleString('is-IS'),
         };
@@ -152,83 +171,95 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
         })}
       </div>
 
-      <div className="h-80 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-            <defs>
-              <linearGradient id="metricGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={metric.color} stopOpacity={0.2} />
-                <stop offset="100%" stopColor={metric.color} stopOpacity={0.0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis
-              dataKey="label"
-              stroke="#94a3b8"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-            />
-            <YAxis
-              stroke="#94a3b8"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => {
-                if (selectedMetric === 'money')
-                  return `${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} kr.`;
-                if (selectedMetric === 'ctr') return `${v.toFixed(0)}%`;
-                return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v;
-              }}
-            />
-            <Tooltip
-              cursor={{ stroke: 'rgba(148, 163, 184, 0.1)', strokeWidth: 1 }}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const val = payload[0]!.value as number;
-                  const item = payload[0]!.payload;
-                  let formattedDate = item.date;
-                  try {
-                    const parsed = new Date(item.date);
-                    if (!isNaN(parsed.getTime())) {
-                      formattedDate = parsed.toLocaleDateString('is-IS', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      });
+      {selectedMetric === 'pageviews' && !hasTrafficData ? (
+        <div className="h-80 w-full flex items-center justify-center text-center px-6">
+          <p className="text-sm font-medium text-slate-400">
+            Nákvæm umferðarmæling hófst {formatDate(TRAFFIC_MEASUREMENT_START)}
+          </p>
+        </div>
+      ) : (
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+              <defs>
+                <linearGradient id="metricGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={metric.color} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={metric.color} stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+              <XAxis
+                dataKey="label"
+                stroke="#94a3b8"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                stroke="#94a3b8"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => {
+                  if (selectedMetric === 'money')
+                    return `${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} kr.`;
+                  if (selectedMetric === 'ctr') return `${v.toFixed(0)}%`;
+                  return v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v;
+                }}
+              />
+              <Tooltip
+                cursor={{ stroke: 'rgba(148, 163, 184, 0.1)', strokeWidth: 1 }}
+                content={({ active, payload }) => {
+                  // A gap point (e.g. pre-switch pageViewsTrue, deliberately
+                  // left undefined rather than 0) has no plottable value —
+                  // render nothing instead of crashing the formatter or
+                  // showing a misleading 0.
+                  if (active && payload && payload.length && payload[0]!.value != null) {
+                    const val = payload[0]!.value as number;
+                    const item = payload[0]!.payload;
+                    let formattedDate = item.date;
+                    try {
+                      const parsed = new Date(item.date);
+                      if (!isNaN(parsed.getTime())) {
+                        formattedDate = parsed.toLocaleDateString('is-IS', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        });
+                      }
+                    } catch {
+                      // ignore
                     }
-                  } catch {
-                    // ignore
-                  }
 
-                  return (
-                    <div className="bg-slate-950/95 backdrop-blur text-white p-3.5 rounded-xl text-xs font-semibold shadow-xl border border-slate-800 space-y-1.5">
-                      <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">
-                        {formattedDate}
-                      </p>
-                      <div className="flex justify-between items-center gap-6">
-                        <span className="text-slate-350">{metric.label}:</span>
-                        <span className="font-bold text-right" style={{ color: metric.color }}>
-                          {metric.formatter(val)}
-                        </span>
+                    return (
+                      <div className="bg-slate-950/95 backdrop-blur text-white p-3.5 rounded-xl text-xs font-semibold shadow-xl border border-slate-800 space-y-1.5">
+                        <p className="text-slate-400 font-bold border-b border-slate-800 pb-1">
+                          {formattedDate}
+                        </p>
+                        <div className="flex justify-between items-center gap-6">
+                          <span className="text-slate-350">{metric.label}:</span>
+                          <span className="font-bold text-right" style={{ color: metric.color }}>
+                            {metric.formatter(val)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey={metric.dataKey}
-              stroke={metric.color}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill="url(#metricGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey={metric.dataKey}
+                stroke={metric.color}
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#metricGradient)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

@@ -63,17 +63,21 @@ vi.mock('../src/lib/visitor', () => ({
   recordVisitorImpression: vi.fn(),
 }));
 
-vi.mock('../src/lib/analytics', () => ({
-  logEvent: vi.fn(),
-  decrementBudget: vi.fn(async () => 100),
-  incrementPaceSpent: vi.fn(),
-  getRemainingBudgets: vi.fn(async (ids: string[]) =>
-    Object.fromEntries(ids.map((id) => [id, Number.POSITIVE_INFINITY])),
-  ),
-  getPaceState: vi.fn(async (ids: string[]) =>
-    Object.fromEntries(ids.map((id) => [id, { limit: Number.POSITIVE_INFINITY, spent: 0 }])),
-  ),
-}));
+vi.mock('../src/lib/analytics', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    logEvent: vi.fn(),
+    decrementBudget: vi.fn(async () => 100),
+    incrementPaceSpent: vi.fn(),
+    getRemainingBudgets: vi.fn(async (ids: string[]) =>
+      Object.fromEntries(ids.map((id) => [id, Number.POSITIVE_INFINITY])),
+    ),
+    getPaceState: vi.fn(async (ids: string[]) =>
+      Object.fromEntries(ids.map((id) => [id, { limit: Number.POSITIVE_INFINITY, spent: 0 }])),
+    ),
+  };
+});
 
 import { decrementBudget } from '../src/lib/analytics';
 import app from '../src/index';

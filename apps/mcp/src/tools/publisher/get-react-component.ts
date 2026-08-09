@@ -17,6 +17,24 @@ const SERVING_BASE = 'https://serving.birtingur.app';
 // because they should display their CTA ("Auglýstu hér á 550 kr. CPM").
 const HIDDEN_FALLBACKS = new Set(['cre_fallback_transparent', 'cre_nocache']);
 
+// One page view per page load, regardless of how many <BirtingurAdSlot> instances
+// mount on the page — one component per ad slot would otherwise multiply a
+// publisher's reported traffic by their slots-per-page ratio (mirrors the rule
+// the embed snippet in packages/snippet follows). The flag lives on the global
+// object rather than module scope: a page can bundle more than one copy of this
+// component (e.g. two independently built routes/chunks each importing their own
+// copy), and only a global flag survives that and still reports a single page view.
+const PAGEVIEW_FIRED_KEY = '__birtingurPageviewFired';
+
+function firePageviewOnce(pixelUrl: string): void {
+  const w = window as unknown as Record<string, boolean | undefined>;
+  if (w[PAGEVIEW_FIRED_KEY]) return;
+  w[PAGEVIEW_FIRED_KEY] = true;
+  const targetUrl = pixelUrl.startsWith('http') ? pixelUrl : \`\${SERVING_BASE}\${pixelUrl}\`;
+  const img = new Image();
+  img.src = targetUrl;
+}
+
 interface BirtingurAd {
   creativeId: string;
   imageUrl: string;
@@ -24,6 +42,11 @@ interface BirtingurAd {
   width: number;
   height: number;
   impressionPixel: string;
+  // Signed page-level pixel — one per real page load, distinct from
+  // impressionPixel (one per ad slot). Present on every non-empty /v1/ad
+  // response; fired once per page regardless of how many BirtingurAdSlot
+  // instances mount (see firePageviewOnce below).
+  pageviewPixel?: string;
   ttl: number;
 }
 
@@ -57,8 +80,11 @@ interface Props {
  * 2. Ef villa kemur upp er hún skráð í console logga (warning/error) til að auðvelda greiningu í þróun.
  * 3. Í framleiðsluumhverfi (production) fellur component-inn plássið saman sjálfkrafa (renderar gagnsætt fallback)
  *    til að tryggja að notendaupplifun skemmist ekki og engin ljót villuboð sjáist á síðunni.
- * 4. Frá v1.2: Jafnvel þegar slot er ekki í cache skilar serving tracking pixel sem skráir pageview,
+ * 4. Frá v1.2: Jafnvel þegar slot er ekki í cache skilar serving tracking pixel sem skráir slot-hleðslu,
  *    þannig að tölfræði útgefandans sýnir rétta umferð.
+ * 5. Frá v1.3: Component-inn fýrir pageviewPixel úr svarinu (ein raunveruleg vefumferð á hverja
+ *    síðuhleðslu, óháð fjölda auglýsingaplássa) NÁKVÆMLEGA EINU SINNI á hverja síðu — óháð því hversu
+ *    mörg <BirtingurAdSlot> eru á síðunni — með sömu global-flögg aðferð og JS snippet-ið notar.
  */
 
 /**
@@ -261,7 +287,9 @@ export function BirtingurAdSlot({
     }
   }, [ad]);
 
-  // Fire pageview tracking pixel for empty responses.
+  // Fire pageview tracking pixel for empty responses (cache miss with no
+  // pageviewPixel of its own — impressionPixel is tagged type=pageview server
+  // side and is the only signal available in that case).
   useEffect(() => {
     if (!ad || pageviewFired.current) return;
     if ('empty' in ad && ad.impressionPixel) {
@@ -272,6 +300,15 @@ export function BirtingurAdSlot({
       const img = new Image();
       img.src = url;
     }
+  }, [ad]);
+
+  // Fire the real page-view pixel once per page load (not once per slot) for a
+  // filled or fallback response. Without this, publishers using this component
+  // only ever fire impressionPixel (once per slot) and their "Vefumferð" figure
+  // in the dashboard stays "—" forever even though their slots keep loading.
+  useEffect(() => {
+    if (!isAd(ad) || !ad.pageviewPixel) return;
+    firePageviewOnce(ad.pageviewPixel);
   }, [ad]);
 
   if (loading) {

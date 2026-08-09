@@ -5,7 +5,7 @@ import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface QueuedEvent {
-  type: 'impression' | 'click' | 'pageview';
+  type: 'impression' | 'click' | 'pageview' | 'slot_load';
   slotId: string;
   publisherId: string;
   creativeId: string;
@@ -35,6 +35,40 @@ function dayKey(ts: number): string {
   );
 }
 
+// Mirrors serving's `emittedCounterKey` (apps/serving/src/lib/analytics.ts) — same
+// `recorded:${YYYYMMDDHH}` (UTC) key shape and 7-day TTL, duplicated here rather than
+// imported across the app boundary. The daily reconciliation cron compares the two
+// counters per hour (2026-08-09 design, Part 3).
+const RECORDED_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+function recordedCounterKey(ts: number): string {
+  return `recorded:${hourKey(ts)}`;
+}
+
+// Primary wire contract (2026-08-09 design, revised after a deploy-order hazard
+// was caught in review): a slot load (one per /v1/ad request) and a true page
+// view (one per page load, apps/serving/src/routes/pageview.ts) DELIBERATELY
+// share the same wire type 'pageview' — the ONLY discriminator is creativeId. A
+// true page view carries creativeId === TRUE_PAGEVIEW_CREATIVE_ID; a slot load
+// carries the real (or fallback) creativeId of whatever was served
+// (`cre_…`, `cre_fallback_transparent`, `cre_fallback_birtingur`, `cre_nocache`).
+//
+// An earlier version of this branch instead renamed slot-load events to a
+// separate 'slot_load' wire type. That was reverted: apps/serving and apps/api
+// are separate Vercel projects that rebuild simultaneously on one push, so
+// "serving live before api" (or the reverse) is a real, uncontrollable window.
+// A 'slot_load' event drained by main's OLD aggregator — which only
+// special-cases 'pageview' and buckets everything else as an impression/click —
+// would have been counted as a CLICK, inflating publisher CTR and campaign/
+// creative click totals irreversibly. Keeping the wire type constant means an
+// old aggregator instead counts every 'pageview' event (slot loads included) as
+// a pageview: bounded, harmless overcounting, never a click. Either deploy
+// order is safe.
+//
+// Duplicated from serving's PAGEVIEW_CREATIVE_ID (apps/serving/src/lib/
+// analytics.ts) rather than imported across the app boundary.
+const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
 
@@ -43,6 +77,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     impressions: number;
     clicks: number;
     pageviews: number;
+    // Real page views (the `pageview` event) — distinct from `pageviews`, which is fed
+    // by `slot_load` and remains the fill-rate denominator. Left undefined (never 0)
+    // when a bucket saw no true page views, so the doc field stays absent.
+    pageViewsTrue?: number;
     byCampaign: Record<string, { impressions: number; clicks: number }>;
   }
   interface CampaignBucket {
@@ -62,7 +100,23 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   const creativeHour = new Map<string, CreativeStats>();
 
   for (const ev of events) {
-    if (ev.type === 'pageview') {
+    // Primary discriminator (see TRUE_PAGEVIEW_CREATIVE_ID above): a 'pageview'
+    // event whose creativeId is anything other than the true-pageview marker is
+    // a slot load, not a page view. Route it through the exact same path as
+    // 'slot_load'.
+    const isSlotLoadByMarker =
+      ev.type === 'pageview' && ev.creativeId !== TRUE_PAGEVIEW_CREATIVE_ID;
+
+    if (ev.type === 'slot_load' || isSlotLoadByMarker) {
+      // 'slot_load' as an explicit wire type is accepted here purely for
+      // forward/backward compatibility (an already-queued event, or some future
+      // emitter) — apps/serving itself never sends it (see AdEvent.type in
+      // apps/serving/src/lib/analytics.ts). The marker path above is what
+      // production actually exercises.
+      //
+      // A slot load is one per ad request — the fill-rate denominator. The
+      // `pageviews` field keeps its historical name and meaning regardless of
+      // which of the two wire shapes fed it.
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
       for (const map of [publisherDay, publisherSlotDay]) {
@@ -79,7 +133,27 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         crb.pageviews++;
         creativeHour.set(cr, crb);
       }
-    } else {
+    } else if (ev.type === 'pageview') {
+      // Real page view (creativeId === TRUE_PAGEVIEW_CREATIVE_ID, guaranteed by the
+      // isSlotLoadByMarker check above) — one per page load, independent of ad-slot fill.
+      // Only the publisher-day and publisher-slot-day buckets track it (no creative-hour
+      // bookkeeping: a true pageview isn't tied to a served creative).
+      const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
+      const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+      for (const map of [publisherDay, publisherSlotDay]) {
+        const key = map === publisherDay ? pd : psd;
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0, byCampaign: {} };
+        b.pageViewsTrue = (b.pageViewsTrue ?? 0) + 1;
+        map.set(key, b);
+      }
+    } else if (ev.type === 'impression' || ev.type === 'click') {
+      // Explicitly impression/click only — NOT a bare `else`. A bare `else` here
+      // is exactly the class of bug this fix wave exists to close: main's
+      // pre-2026-08-09 aggregator classified events as `if (pageview) {...} else
+      // { if (impression) impressions++ else clicks++ }`, so any event type it
+      // didn't recognize (a renamed 'slot_load', or any future type) silently
+      // fell through and was counted as a CLICK. Skip and warn instead of
+      // guessing.
       const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
@@ -148,6 +222,14 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         }
         map.set(key, b);
       }
+    } else {
+      // Unknown event type: skip rather than silently miscounting it as a
+      // click (see the comment above the impression/click branch). Cast
+      // needed only because TS has narrowed `ev.type` to `never` here — every
+      // literal in the QueuedEvent union is provably handled above.
+      console.warn(
+        `[stats-aggregator] Skipping event with unrecognized type: ${String((ev as { type: unknown }).type)}`,
+      );
     }
   }
 
@@ -225,6 +307,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
+    // Only written when the bucket actually saw a pageview event — leaving the field
+    // absent (never FieldValue.increment(0)) lets the dashboard distinguish "no accurate
+    // data yet" from "zero traffic" for days that predate this event type.
+    if (b.pageViewsTrue) {
+      updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
+    }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
@@ -246,6 +334,9 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
+    if (b.pageViewsTrue) {
+      updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
+    }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
@@ -260,6 +351,19 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   }
 
   await batch.commit();
+
+  // recorded:{hour} mirrors serving's emitted:{hour} — the daily reconciliation cron
+  // compares the two to catch events that were emitted but never made it into a stats
+  // doc. One event, one increment, bucketed by the event's own ts; a single pipeline
+  // round trip for the whole batch.
+  const redis = getRedis();
+  const pipeline = redis.pipeline();
+  for (const ev of events) {
+    const key = recordedCounterKey(ev.ts);
+    pipeline.incr(key);
+    pipeline.expire(key, RECORDED_COUNTER_TTL_SECONDS);
+  }
+  await pipeline.exec();
 }
 
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {

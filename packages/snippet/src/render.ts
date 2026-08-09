@@ -60,7 +60,35 @@ function firePixelWithViewability(el: HTMLElement, pixelUrl: string): void {
   }
 }
 
+// One page view per page load, regardless of how many ad slots the page
+// carries — the previous per-slot counting multiplied a publisher's
+// reported traffic by their slots-per-page (2026-08-09 design). The flag
+// lives on the global object, not module scope: this file is built as a
+// classic (IIFE) script, and browsers don't dedupe repeated <script src>
+// tags, so a publisher who embeds the snippet twice on one page (theme
+// header + widget area, a routine copy-paste leftover in ad-tag land)
+// evaluates this module — and its module scope — twice. A global flag is
+// the only guard that survives that and still reports a single page view.
+const PAGEVIEW_FIRED_KEY = '__adpPageviewFired';
+
+export function firePageviewOnce(pixelUrl: string): void {
+  const w = globalThis as unknown as Record<string, boolean | undefined>;
+  if (w[PAGEVIEW_FIRED_KEY]) return;
+  w[PAGEVIEW_FIRED_KEY] = true;
+  const pixel = new Image(1, 1);
+  pixel.src = resolveServeUrl(pixelUrl);
+  pixel.style.position = 'absolute';
+  pixel.style.left = '-9999px';
+  document.body.appendChild(pixel);
+}
+
 export function renderAd(el: HTMLElement, ad: AdResponse): void {
+  // Page view is not an ad impression — fire it immediately, unconditionally,
+  // before the viewability-gated impression pixel below.
+  if (ad.pageviewPixel) {
+    firePageviewOnce(ad.pageviewPixel);
+  }
+
   // Always fire the tracking pixel first — even for empty/fallback responses.
   // Before this fix, empty responses ({empty:true}) never fired a pixel, making
   // uncached-slot visits completely invisible to publisher stats.

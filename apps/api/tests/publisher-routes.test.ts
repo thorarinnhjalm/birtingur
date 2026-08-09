@@ -255,12 +255,21 @@ describe('Publisher HTTP Routes', () => {
       return (await res.json()).id;
     }
 
-    async function seedDay(publisherId: string, impressions: number, clicks: number) {
+    async function seedDay(
+      publisherId: string,
+      impressions: number,
+      clicks: number,
+      pageViewsTrue?: number,
+    ) {
       await db.doc(`stats/publishers/${publisherId}/${todayKey()}`).set({
         impressions,
         clicks,
         spendIsk: Math.round((impressions / 1000) * 550),
         pageviews: impressions * 2,
+        // Only set when the caller passes it — the schema requires the field
+        // to be genuinely ABSENT (not zero) on days with no measured true
+        // traffic, same as the real stats-aggregator behavior (Task 4).
+        ...(pageViewsTrue !== undefined ? { pageViewsTrue } : {}),
       });
     }
 
@@ -357,6 +366,41 @@ describe('Publisher HTTP Routes', () => {
       const body = await res.json();
       expect(body.impressions).toBe(100);
       expect(body.bySite).toBeUndefined();
+    });
+
+    it('sums pageViewsTrue across days and includes it per site in bySite', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-a.is', 'Vefur A');
+      const b = await createSite('vefur-b.is', 'Vefur B');
+      await seedDay(a, 1000, 10, 400);
+      await seedDay(b, 500, 5, 100);
+
+      const res = await app.request('/v1/publishers/stats?timeframe=7', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.pageViewsTrue).toBe(500);
+      const siteA = body.bySite.find((s: any) => s.publisherId === a);
+      const siteB = body.bySite.find((s: any) => s.publisherId === b);
+      expect(siteA.pageViewsTrue).toBe(400);
+      expect(siteB.pageViewsTrue).toBe(100);
+    });
+
+    it('leaves pageViewsTrue absent (not zero) when no day in the window has measured it', async () => {
+      vi.mocked(auth.verifyIdToken).mockResolvedValue(mockUser as any);
+      const a = await createSite('vefur-a.is', 'Vefur A');
+      // No pageViewsTrue arg: the day doc has `pageviews` (slot loads) but no
+      // `pageViewsTrue` field at all, mirroring a pre-switch day.
+      await seedDay(a, 100, 1);
+
+      const res = await app.request('/v1/publishers/stats?timeframe=7', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.impressions).toBe(100);
+      expect(body.pageViewsTrue).toBeUndefined();
     });
   });
 

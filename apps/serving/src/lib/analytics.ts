@@ -2,6 +2,31 @@ import { getRedis } from './redis.js';
 import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
 export interface AdEvent {
+  // DELIBERATELY no separate 'slot_load' wire type here. A slot load (one per
+  // /v1/ad request) and a true page view (one per page load, see
+  // routes/pageview.ts) share the SAME wire type 'pageview' — the only
+  // discriminator is `creativeId`: a true page view carries
+  // creativeId === PAGEVIEW_CREATIVE_ID, a slot load carries the real (or
+  // fallback) creativeId of whatever was served.
+  //
+  // This is a deploy-order-safety decision, not an oversight. apps/serving and
+  // apps/api are separate Vercel projects that rebuild simultaneously on one
+  // push, so "serving live before api" (or vice versa) is a real, uncontrollable
+  // window. An earlier version of this branch renamed slot-load events to a
+  // 'slot_load' wire type; a 'slot_load' event drained by main's OLD aggregator
+  // (which only special-cases 'pageview', then buckets everything else as an
+  // impression/click) would have been counted as a CLICK — inflating publisher
+  // CTR, campaign byPublisher clicks and creative clicks, irreversibly. Keeping
+  // the wire type constant and using `creativeId` as the discriminator means
+  // either deploy order is safe: an old aggregator counts every 'pageview'
+  // event (slot loads included) as a pageview — bounded, harmless overcounting,
+  // never a click — and the new aggregator (apps/api/src/services/
+  // stats-aggregator.ts) already routes on the creativeId marker. See
+  // docs/superpowers/specs/2026-08-09-traffic-measurement-integrity-design.md.
+  //
+  // Do not reintroduce a distinct 'slot_load' wire type here. apps/api's
+  // aggregator still accepts one defensively (forward/backward compat), but
+  // apps/serving must never emit it.
   type: 'impression' | 'click' | 'pageview';
   slotId: string;
   publisherId: string;
@@ -13,20 +38,55 @@ export interface AdEvent {
   ts: number;
 }
 
+/** The creativeId component used when signing a page-level pixel — no creative is
+ * involved, so the ad-serve signature namespace needs a stand-in constant that the
+ * route (pageview.ts) and its signer (ad.ts) agree on. This value doubles as the
+ * discriminator described on `AdEvent.type` above: any 'pageview' event carrying
+ * this exact creativeId is a true page view; any other creativeId means a slot
+ * load. */
+export const PAGEVIEW_CREATIVE_ID = 'pageview';
+
+export const EVENT_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+/** Hour bucket (UTC) an event belongs to, keyed by the event's OWN ts so a
+ * late drain still lands in the hour the event happened. Mirrored by the
+ * aggregator's `recorded:{hour}` counter — the two are compared by the
+ * daily reconciliation cron (2026-08-09 design, Part 3). */
+export function emittedCounterKey(ts: number): string {
+  const d = new Date(ts);
+  const hk =
+    d.getUTCFullYear().toString() +
+    String(d.getUTCMonth() + 1).padStart(2, '0') +
+    String(d.getUTCDate()).padStart(2, '0') +
+    String(d.getUTCHours()).padStart(2, '0');
+  return `emitted:${hk}`;
+}
+
 /**
  * Fan out each event to independent Redis lists. Stats aggregation and CPM accrual are
  * separate consumers with different cadences; sharing one list let whichever cron popped
  * first cannibalize the other's events (pageviews were dropped, impressions never reached
  * stats). Every event goes to the stats queue; only impressions go to the accrual queue
  * (accrual bills impressions only).
+ *
+ * Awaited (not fire-and-forget) so the write is durable: on Vercel's Node runtime the
+ * instance can freeze right after the response is sent, before a detached write lands,
+ * and the event vanishes with no error. All four commands (two possible lpush, the emitted
+ * counter incr, and its expire) go through a SINGLE pipelined round trip — that's what
+ * makes awaiting affordable on this latency-critical path (2026-08-09 design).
  */
 export async function logEvent(ev: AdEvent): Promise<void> {
   const redis = getRedis();
   const payload = JSON.stringify(ev);
-  await redis.lpush(EVENT_QUEUE_STATS, payload);
+  const key = emittedCounterKey(ev.ts);
+  const p = redis.pipeline();
+  p.lpush(EVENT_QUEUE_STATS, payload);
   if (ev.type === 'impression') {
-    await redis.lpush(EVENT_QUEUE_ACCRUAL, payload);
+    p.lpush(EVENT_QUEUE_ACCRUAL, payload);
   }
+  p.incr(key);
+  p.expire(key, EVENT_COUNTER_TTL_SECONDS);
+  await p.exec();
 }
 
 /**
