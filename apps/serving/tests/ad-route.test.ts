@@ -106,21 +106,24 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toContain('/v1/impression?');
   });
 
-  it('logs slot_load (not pageview) and returns a signed pageviewPixel on the fill path', async () => {
+  it('logs the slot load with wire type pageview (creativeId is the marker) and returns a signed pageviewPixel on the fill path', async () => {
     const res = await app.request('/v1/ad?slot=slot_a&consent=full');
     const body = await res.json();
     expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=slot_a&t=.*&ts=\d+&sig=[a-f0-9]+$/);
-    expect(loggedEvents().map((e) => e.type)).toContain('slot_load');
-    expect(loggedEvents().map((e) => e.type)).not.toContain('pageview');
+    // Wire type stays 'pageview' — see AdEvent.type in lib/analytics.ts — deploy-order
+    // safety depends on this NOT being a distinct type. The real/fallback creativeId is
+    // what marks it as a slot load, not a true page view.
+    expect(loggedEvents().map((e) => e.type)).toEqual(['pageview']);
+    expect(loggedEvents()[0]!.creativeId).toBe('cre_a');
   });
 
-  it('logs slot_load and returns a pageviewPixel on the no-fill path too', async () => {
+  it('logs the slot load with wire type pageview and returns a pageviewPixel on the no-fill path too', async () => {
     const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
     const body = await res.json();
     expect(body.creativeId).toBe('cre_fallback_birtingur');
     expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=slot_empty&t=.*&ts=\d+&sig=[a-f0-9]+$/);
-    expect(loggedEvents().map((e) => e.type)).toContain('slot_load');
-    expect(loggedEvents().map((e) => e.type)).not.toContain('pageview');
+    expect(loggedEvents().map((e) => e.type)).toEqual(['pageview']);
+    expect(loggedEvents()[0]!.creativeId).toBe('cre_fallback_birtingur');
   });
 
   it('returns Birtingur house ad fallback for slot with no matching creatives', async () => {
@@ -151,7 +154,7 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toContain('type=pageview');
   });
 
-  it('returns empty for unknown slot with pageview tracking pixel', async () => {
+  it('returns empty for unknown slot with an impression tracking pixel but no pageviewPixel', async () => {
     const res = await app.request('/v1/ad?slot=missing&consent=none');
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -160,10 +163,16 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toBeDefined();
     expect(body.impressionPixel).toContain('type=pageview');
     expect(body.impressionPixel).toContain('s=missing');
-    // A true cache miss has no publisherId to attribute a slot_load to, so
+    // A true cache miss has no publisherId to attribute a slot load to, so
     // nothing is logged at serve time here — recovery (if the cache warms up
     // before the legacy pixel fires) is impression.ts's job, not ad.ts's.
-    expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=missing&t=.*&ts=\d+&sig=[a-f0-9]+$/);
+    //
+    // No pageviewPixel on this response (IMPORTANT-2, 2026-08-09 fix wave):
+    // cache-miss responses return fastest of all and would otherwise
+    // systematically win the snippet's one-shot pageview race, burning the
+    // page's one true page view on a slot that couldn't even be attributed —
+    // even when other, cached slots on the same page could have reported it.
+    expect(body.pageviewPixel).toBeUndefined();
     expect(loggedEvents()).toHaveLength(0);
   });
 

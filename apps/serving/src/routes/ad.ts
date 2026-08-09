@@ -60,24 +60,27 @@ adRoute.get('/', async (c) => {
 
   if (!slot) {
     // Even when the slot cache is empty (expired or never populated), return a tracking
-    // pixel so we can record a pageview. Without this, uncached-slot visits are invisible
+    // pixel so we can record a slot load. Without this, uncached-slot visits are invisible
     // to stats — a silent black hole that makes it look like the publisher has zero traffic.
-    // No slot_load is logged here: without a cached slot we don't know the publisherId,
+    // No slot load is logged here: without a cached slot we don't know the publisherId,
     // and logging with an empty one would write junk data (same guard as impression.ts's
-    // stale-cache drop). The pageviewPixel is still handed out — the pageview route does
-    // its own cache lookup when the pixel fires later, so if the cache has repopulated by
-    // then the pageview still gets counted even though this slot_load could not be.
+    // stale-cache drop). The impressionPixel (tagged type=pageview so impression.ts treats
+    // it as the pageview/slot-load branch) is still handed out — impression.ts does its own
+    // cache lookup when the pixel fires later, so if the cache has repopulated by then the
+    // slot load still gets counted even though it could not be logged here.
+    //
+    // Deliberately NO pageviewPixel on this response. Cache-miss responses return fastest
+    // of all — no creative selection, no budget/pace lookups — so they systematically win
+    // the snippet's one-shot "fire from whichever slot's response arrives first" race. A
+    // slot we know nothing about would then burn the page's one true page view even when
+    // other, cached slots on the same page could have attributed it correctly. Omitting the
+    // pixel here lets a later, cached slot's response fire it instead (see IMPORTANT-2,
+    // 2026-08-09 traffic-measurement-integrity fix wave).
     const ts = Date.now();
     const signature = createSignature('cre_nocache', slotId, token, ts);
-    const pvTs = Date.now();
-    const pvSig = createSignature(PAGEVIEW_CREATIVE_ID, slotId, token, pvTs);
-    const pageviewPixel =
-      `/v1/pageview?s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
-      `&ts=${pvTs}&sig=${pvSig}`;
     return c.json({
       empty: true,
       impressionPixel: `/v1/impression?c=cre_nocache&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}&type=pageview&ts=${ts}&sig=${signature}`,
-      pageviewPixel,
     });
   }
 
@@ -127,10 +130,14 @@ adRoute.get('/', async (c) => {
 
     // Slot is known (we have publisherId from the cache) even though no creative
     // filled it — that's exactly the fill-rate denominator this event exists for.
-    // Awaited like the fill-path log below; never let a Redis outage block serving.
+    // Logged with the ordinary wire type 'pageview' (see AdEvent.type in
+    // lib/analytics.ts) carrying the real fallback creativeId — that creativeId,
+    // not the wire type, is what marks this as a slot load rather than a true
+    // page view. Awaited like the fill-path log below; never let a Redis outage
+    // block serving.
     try {
       await logEvent({
-        type: 'slot_load',
+        type: 'pageview',
         slotId,
         publisherId: slot.publisherId,
         creativeId: fallbackCreativeId,
@@ -192,13 +199,15 @@ adRoute.get('/', async (c) => {
     `&s=${encodeURIComponent(slotId)}&t=${encodeURIComponent(token)}` +
     `&ts=${ts}&sig=${signature}`;
 
-  // Log slot_load for successful ad serve — this is the per-request fill-rate
+  // Log the slot load for successful ad serve — this is the per-request fill-rate
   // denominator, not a page view (a page with three slots would otherwise
-  // report three "page views"). Awaited for durability. Never let a Redis
-  // outage block serving the ad — catch and log.
+  // report three "page views"). Wire type is the ordinary 'pageview' (see
+  // AdEvent.type in lib/analytics.ts); creative.creativeId is what marks this
+  // as a slot load, not the wire type. Awaited for durability. Never let a
+  // Redis outage block serving the ad — catch and log.
   try {
     await logEvent({
-      type: 'slot_load',
+      type: 'pageview',
       slotId,
       publisherId: slot.publisherId,
       creativeId: creative.creativeId,

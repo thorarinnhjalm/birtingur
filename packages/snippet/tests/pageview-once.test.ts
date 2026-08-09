@@ -19,6 +19,22 @@ function firedUrls(): string[] {
   return firedSrcs;
 }
 
+/** Like mockFetchAd, but resolves a different response per slot id — parsed out of the
+ * requested URL's `slot=` query param — so a test can simulate one slot being a cache
+ * miss (no pageviewPixel, per IMPORTANT-2) while another slot on the same page is a
+ * normal cache hit (has one). */
+function mockFetchAdBySlot(responses: Record<string, AdResponse | null>): void {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    const slotId = new URL(url).searchParams.get('slot') ?? '';
+    const response = responses[slotId] ?? null;
+    if (response === null) {
+      return { ok: false, json: async () => ({}) } as Response;
+    }
+    return { ok: true, json: async () => response } as Response;
+  });
+}
+
 // Re-imports the snippet entrypoint with a fresh module registry so the
 // module-scoped `pageviewFired` guard in render.ts starts false for every
 // test, matching a real page load. index.ts runs `init()` as a side effect
@@ -93,6 +109,32 @@ describe('one page view per page load', () => {
     await initAndSettle();
 
     expect(firedUrls().filter((u) => u.includes('/v1/pageview'))).toHaveLength(0);
+  });
+
+  it('still reports the page view from a later, cached slot when the first slot is a true cache miss', async () => {
+    // IMPORTANT-2 (2026-08-09 fix wave): cache-miss (`!slot`) responses from
+    // apps/serving no longer carry a pageviewPixel at all — they return
+    // fastest of all, and handing one out would systematically win this
+    // exact race and burn the page's one true page view on a slot the server
+    // couldn't even attribute. slot_1 here simulates that cache miss (no
+    // pageviewPixel); slot_2 is a normal cache hit and must be the one that
+    // ends up reporting the page view.
+    document.body.innerHTML = `
+      <div data-adplatform-slot="slot_1"></div>
+      <div data-adplatform-slot="slot_2"></div>`;
+    mockFetchAdBySlot({
+      slot_1: {
+        empty: true,
+        impressionPixel: '/v1/impression?c=cre_nocache&s=slot_1&type=pageview',
+      },
+      slot_2: { empty: true, pageviewPixel: '/v1/pageview?s=slot_2&ts=1&sig=y' },
+    });
+
+    await initAndSettle();
+
+    const pageviewUrls = firedUrls().filter((u) => u.includes('/v1/pageview'));
+    expect(pageviewUrls).toHaveLength(1);
+    expect(pageviewUrls[0]).toBe(`${SERVE_BASE}/v1/pageview?s=slot_2&ts=1&sig=y`);
   });
 
   it('resolves the pixel against SERVE_BASE like other pixels', async () => {

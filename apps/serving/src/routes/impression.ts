@@ -68,13 +68,13 @@ impressionRoute.get('/', async (c) => {
 
     if (isFallback) {
       // Split by creativeId, because the two fallback cases differ in whether
-      // ad.ts already recorded slot_load at serve time:
+      // ad.ts already recorded the slot load at serve time:
       //   - cre_fallback_transparent / cre_fallback_birtingur: the slot WAS
       //     known when the ad was served, so ad.ts's `!creative` branch already
-      //     logged slot_load. Writing again here would double-count it — no
-      //     write for these.
+      //     logged it. Writing again here would double-count it — no write for
+      //     these.
       //   - cre_nocache: ad.ts's `!slot` branch served this because the cache
-      //     was a miss, so it could NOT log slot_load (no publisherId to
+      //     was a miss, so it could NOT log a slot load (no publisherId to
       //     attribute it to). This pixel fires seconds later, after the cache
       //     has often repopulated, so it's the only remaining chance to record
       //     that slot load — do the lookup again here and log it if the
@@ -93,8 +93,11 @@ impressionRoute.get('/', async (c) => {
         try {
           const slot = await getSlotCache(slotId);
           if (slot?.publisherId) {
+            // Wire type is the ordinary 'pageview' (see AdEvent.type in
+            // lib/analytics.ts) — creativeId: 'cre_nocache' is what marks this
+            // as a slot load, not the wire type.
             await logEvent({
-              type: 'slot_load',
+              type: 'pageview',
               slotId,
               publisherId: slot.publisherId,
               creativeId: 'cre_nocache',

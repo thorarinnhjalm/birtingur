@@ -329,9 +329,9 @@ describe('GET /v1/impression', () => {
     expect(vi.mocked(logEvent)).not.toHaveBeenCalled();
   });
 
-  // slot_load for the known-slot fallback (cre_fallback_*) is already recorded
-  // by ad.ts at serve time — this legacy pixel firing again must NOT write a
-  // second one. This is the double-count guard.
+  // The slot load for the known-slot fallback (cre_fallback_*) is already
+  // recorded by ad.ts at serve time — this legacy pixel firing again must NOT
+  // write a second one. This is the double-count guard.
   it('returns the pixel for a correctly signed cre_fallback_birtingur pageview but logs nothing (already counted at serve time)', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_fallback_birtingur', 'slot_a', 'tok123', ts);
@@ -372,10 +372,10 @@ describe('GET /v1/impression', () => {
   });
 
   // Recovery path for the true cache-miss case: ad.ts's `!slot` branch served
-  // cre_nocache and could not log slot_load itself (no publisherId at serve
-  // time). If the cache has repopulated by the time this pixel fires, this is
-  // the only remaining chance to record that slot load.
-  it('recovers slot_load for a valid cre_nocache pixel once the cache has repopulated', async () => {
+  // cre_nocache and could not log the slot load itself (no publisherId at
+  // serve time). If the cache has repopulated by the time this pixel fires,
+  // this is the only remaining chance to record that slot load.
+  it('recovers the slot load for a valid cre_nocache pixel once the cache has repopulated', async () => {
     const ts = Date.now();
     const sig = createSignature('cre_nocache', 'slot_a', 'tok123', ts);
     const res = await app.request(
@@ -383,9 +383,14 @@ describe('GET /v1/impression', () => {
     );
     expect(res.status).toBe(200);
     expect(vi.mocked(logEvent)).toHaveBeenCalledTimes(1);
+    // Wire type stays the ordinary 'pageview' (see AdEvent.type in
+    // lib/analytics.ts) — creativeId: 'cre_nocache' is the marker that makes
+    // this a slot load, not the wire type. This is deliberate: it means the
+    // event is classified correctly by the aggregator regardless of which of
+    // apps/serving or apps/api deploys first.
     expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: 'slot_load',
+        type: 'pageview',
         slotId: 'slot_a',
         publisherId: 'pub_a',
         creativeId: 'cre_nocache',

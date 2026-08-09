@@ -2,7 +2,32 @@ import { getRedis } from './redis.js';
 import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 
 export interface AdEvent {
-  type: 'impression' | 'click' | 'pageview' | 'slot_load';
+  // DELIBERATELY no separate 'slot_load' wire type here. A slot load (one per
+  // /v1/ad request) and a true page view (one per page load, see
+  // routes/pageview.ts) share the SAME wire type 'pageview' — the only
+  // discriminator is `creativeId`: a true page view carries
+  // creativeId === PAGEVIEW_CREATIVE_ID, a slot load carries the real (or
+  // fallback) creativeId of whatever was served.
+  //
+  // This is a deploy-order-safety decision, not an oversight. apps/serving and
+  // apps/api are separate Vercel projects that rebuild simultaneously on one
+  // push, so "serving live before api" (or vice versa) is a real, uncontrollable
+  // window. An earlier version of this branch renamed slot-load events to a
+  // 'slot_load' wire type; a 'slot_load' event drained by main's OLD aggregator
+  // (which only special-cases 'pageview', then buckets everything else as an
+  // impression/click) would have been counted as a CLICK — inflating publisher
+  // CTR, campaign byPublisher clicks and creative clicks, irreversibly. Keeping
+  // the wire type constant and using `creativeId` as the discriminator means
+  // either deploy order is safe: an old aggregator counts every 'pageview'
+  // event (slot loads included) as a pageview — bounded, harmless overcounting,
+  // never a click — and the new aggregator (apps/api/src/services/
+  // stats-aggregator.ts) already routes on the creativeId marker. See
+  // docs/superpowers/specs/2026-08-09-traffic-measurement-integrity-design.md.
+  //
+  // Do not reintroduce a distinct 'slot_load' wire type here. apps/api's
+  // aggregator still accepts one defensively (forward/backward compat), but
+  // apps/serving must never emit it.
+  type: 'impression' | 'click' | 'pageview';
   slotId: string;
   publisherId: string;
   creativeId: string;
@@ -15,7 +40,10 @@ export interface AdEvent {
 
 /** The creativeId component used when signing a page-level pixel — no creative is
  * involved, so the ad-serve signature namespace needs a stand-in constant that the
- * route (pageview.ts) and its signer (ad.ts) agree on. */
+ * route (pageview.ts) and its signer (ad.ts) agree on. This value doubles as the
+ * discriminator described on `AdEvent.type` above: any 'pageview' event carrying
+ * this exact creativeId is a true page view; any other creativeId means a slot
+ * load. */
 export const PAGEVIEW_CREATIVE_ID = 'pageview';
 
 export const EVENT_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
