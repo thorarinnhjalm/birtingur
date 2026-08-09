@@ -5,7 +5,7 @@ import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface QueuedEvent {
-  type: 'impression' | 'click' | 'pageview';
+  type: 'impression' | 'click' | 'pageview' | 'slot_load';
   slotId: string;
   publisherId: string;
   creativeId: string;
@@ -35,6 +35,16 @@ function dayKey(ts: number): string {
   );
 }
 
+// Mirrors serving's `emittedCounterKey` (apps/serving/src/lib/analytics.ts) — same
+// `recorded:${YYYYMMDDHH}` (UTC) key shape and 7-day TTL, duplicated here rather than
+// imported across the app boundary. The daily reconciliation cron compares the two
+// counters per hour (2026-08-09 design, Part 3).
+const RECORDED_COUNTER_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+function recordedCounterKey(ts: number): string {
+  return `recorded:${hourKey(ts)}`;
+}
+
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
 
@@ -43,6 +53,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     impressions: number;
     clicks: number;
     pageviews: number;
+    // Real page views (the `pageview` event) — distinct from `pageviews`, which is fed
+    // by `slot_load` and remains the fill-rate denominator. Left undefined (never 0)
+    // when a bucket saw no true page views, so the doc field stays absent.
+    pageViewsTrue?: number;
     byCampaign: Record<string, { impressions: number; clicks: number }>;
   }
   interface CampaignBucket {
@@ -62,7 +76,10 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   const creativeHour = new Map<string, CreativeStats>();
 
   for (const ev of events) {
-    if (ev.type === 'pageview') {
+    if (ev.type === 'slot_load') {
+      // slot_load is one per ad request — the fill-rate denominator. It takes over the
+      // bookkeeping the old 'pageview' branch used to do (the `pageviews` field keeps its
+      // existing meaning; only the event type feeding it has changed).
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
       for (const map of [publisherDay, publisherSlotDay]) {
@@ -78,6 +95,18 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         const crb = creativeHour.get(cr) ?? { impressions: 0, clicks: 0, pageviews: 0 };
         crb.pageviews++;
         creativeHour.set(cr, crb);
+      }
+    } else if (ev.type === 'pageview') {
+      // Real page view — one per page load, independent of ad-slot fill. Only the
+      // publisher-day and publisher-slot-day buckets track it (no creative-hour
+      // bookkeeping: a true pageview isn't tied to a served creative).
+      const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
+      const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+      for (const map of [publisherDay, publisherSlotDay]) {
+        const key = map === publisherDay ? pd : psd;
+        const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0, byCampaign: {} };
+        b.pageViewsTrue = (b.pageViewsTrue ?? 0) + 1;
+        map.set(key, b);
       }
     } else {
       const ch = `${ev.campaignId}/${hourKey(ev.ts)}`;
@@ -225,6 +254,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
+    // Only written when the bucket actually saw a pageview event — leaving the field
+    // absent (never FieldValue.increment(0)) lets the dashboard distinguish "no accurate
+    // data yet" from "zero traffic" for days that predate this event type.
+    if (b.pageViewsTrue) {
+      updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
+    }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
@@ -246,6 +281,9 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       pageviews: FieldValue.increment(b.pageviews),
       spendIsk: FieldValue.increment(Math.round((b.impressions / 1000) * FLAT_CPM_ISK)),
     };
+    if (b.pageViewsTrue) {
+      updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
+    }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
@@ -260,6 +298,19 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   }
 
   await batch.commit();
+
+  // recorded:{hour} mirrors serving's emitted:{hour} — the daily reconciliation cron
+  // compares the two to catch events that were emitted but never made it into a stats
+  // doc. One event, one increment, bucketed by the event's own ts; a single pipeline
+  // round trip for the whole batch.
+  const redis = getRedis();
+  const pipeline = redis.pipeline();
+  for (const ev of events) {
+    const key = recordedCounterKey(ev.ts);
+    pipeline.incr(key);
+    pipeline.expire(key, RECORDED_COUNTER_TTL_SECONDS);
+  }
+  await pipeline.exec();
 }
 
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {
