@@ -36,6 +36,19 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import type { Publisher, Advertiser } from '@ada/shared';
 
+interface BotTrafficBreakdown {
+  human: number;
+  known_bot: number;
+  suspected_bot: number;
+  unclassified: number;
+}
+
+interface BotTrafficSummary {
+  windowDays: number;
+  impressions: BotTrafficBreakdown;
+  pageViews: BotTrafficBreakdown;
+}
+
 interface AdminStats {
   totalImpressions: number;
   totalClicks: number;
@@ -66,6 +79,53 @@ interface AdminStats {
   advertisersCount?: number;
   slotsCount?: number;
   campaignsCount?: number;
+  // Bot-classification measurement summary — see docs/superpowers/sdd/
+  // 2026-08-09-bot-classification-phase1. `null` when no publisher-day
+  // document in the 7-day window carries `byBotClass` at all (e.g. before
+  // the classifier deploy landed) — the card shows an explanation, never
+  // zeros, in that case.
+  botTraffic?: BotTrafficSummary | null;
+}
+
+// Order matters here: rendered top-to-bottom, and `unclassified` deliberately
+// sits last and separately labelled — it is pre-classifier-deploy or
+// otherwise unclassified traffic, never folded into "Fólk" (human).
+const BOT_CLASS_ROWS: Array<{ key: keyof BotTrafficBreakdown; label: string }> = [
+  { key: 'human', label: 'Fólk' },
+  { key: 'known_bot', label: 'Þekkt vélmenni' },
+  { key: 'suspected_bot', label: 'Grunuð vélmenni' },
+  { key: 'unclassified', label: 'Óflokkað' },
+];
+
+function botBreakdownTotal(b: BotTrafficBreakdown): number {
+  return b.human + b.known_bot + b.suspected_bot + b.unclassified;
+}
+
+function BotTrafficBreakdownRows({ breakdown }: { breakdown: BotTrafficBreakdown }) {
+  const total = botBreakdownTotal(breakdown);
+  return (
+    <div className="space-y-2">
+      {BOT_CLASS_ROWS.map(({ key, label }) => {
+        const count = breakdown[key];
+        const pct = total > 0 ? (count / total) * 100 : 0;
+        return (
+          <div key={key} className="flex items-center justify-between text-xs">
+            <span
+              className={`font-semibold ${key === 'unclassified' ? 'text-slate-400' : 'text-slate-600'}`}
+            >
+              {label}
+            </span>
+            <span className="font-bold text-slate-800">
+              {pct.toFixed(1).replace('.', ',')}%{' '}
+              <span className="font-semibold text-slate-400">
+                ({count.toLocaleString('is-IS')})
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // 1. Admin Home (Overview metrics)
@@ -327,6 +387,42 @@ function Home() {
               </tbody>
             </table>
           </div>
+        </Card>
+      )}
+
+      {/* Bot-traffic measurement summary — see docs/superpowers/sdd/
+          2026-08-09-bot-classification-phase1/task-4-brief.md. Admin-only,
+          measurement only: nothing here filters or deducts billed
+          impressions, and no other number on this page moves. */}
+      {!isLoading && (
+        <Card className="p-6">
+          <h3 className="text-base font-bold text-slate-900 mb-1">
+            Vélmennaflokkun umferðar (7 dagar)
+          </h3>
+          <p className="text-xs text-slate-400 font-semibold mb-4">
+            Mæling eingöngu — engum birtingum er sleppt og ekkert er ófrádregið.
+          </p>
+          {stats?.botTraffic ? (
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Innheimtanlegar birtingar (CPM)
+                </h4>
+                <BotTrafficBreakdownRows breakdown={stats.botTraffic.impressions} />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Vefumferð (síðuskoðanir)
+                </h4>
+                <BotTrafficBreakdownRows breakdown={stats.botTraffic.pageViews} />
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs font-semibold text-slate-500">
+              Engin vélmennaflokkun er tiltæk fyrir síðustu 7 daga — annaðhvort söfnuðust gögnin
+              áður en flokkunin var tekin í notkun, eða engin umferð hefur mælst enn á tímabilinu.
+            </p>
+          )}
         </Card>
       )}
     </div>
