@@ -160,6 +160,11 @@ describe('GET /v1/ad', () => {
     expect(body.impressionPixel).toBeDefined();
     expect(body.impressionPixel).toContain('type=pageview');
     expect(body.impressionPixel).toContain('s=missing');
+    // A true cache miss has no publisherId to attribute a slot_load to, so
+    // nothing is logged at serve time here — recovery (if the cache warms up
+    // before the legacy pixel fires) is impression.ts's job, not ad.ts's.
+    expect(body.pageviewPixel).toMatch(/^\/v1\/pageview\?s=missing&t=.*&ts=\d+&sig=[a-f0-9]+$/);
+    expect(loggedEvents()).toHaveLength(0);
   });
 
   it('400 when slot param missing', async () => {

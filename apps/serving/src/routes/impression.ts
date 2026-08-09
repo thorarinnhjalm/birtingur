@@ -67,16 +67,49 @@ impressionRoute.get('/', async (c) => {
     }
 
     if (isFallback) {
-      // No write here anymore: slot_load (routes/ad.ts) now covers no-fill slot
-      // loads server-side at serve time, so this pixel firing would double-count
-      // the same slot load a second time. Keep the signature check and claim
-      // below so old cached snippets still firing this legacy `type=pageview`
-      // pixel are validated and rate-limited (the claim also still prevents the
-      // signature from being replayed against the click branch, since fallback
-      // click URLs share this signature — see SignatureKind in lib/crypto.ts).
+      // Split by creativeId, because the two fallback cases differ in whether
+      // ad.ts already recorded slot_load at serve time:
+      //   - cre_fallback_transparent / cre_fallback_birtingur: the slot WAS
+      //     known when the ad was served, so ad.ts's `!creative` branch already
+      //     logged slot_load. Writing again here would double-count it — no
+      //     write for these.
+      //   - cre_nocache: ad.ts's `!slot` branch served this because the cache
+      //     was a miss, so it could NOT log slot_load (no publisherId to
+      //     attribute it to). This pixel fires seconds later, after the cache
+      //     has often repopulated, so it's the only remaining chance to record
+      //     that slot load — do the lookup again here and log it if the
+      //     publisher is now known.
+      // Either way, keep the signature check and claim below so old cached
+      // snippets still firing this legacy `type=pageview` pixel are validated
+      // and rate-limited (the claim also still prevents the signature from
+      // being replayed against the click branch, since fallback click URLs
+      // share this signature — see SignatureKind in lib/crypto.ts).
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'pv');
       if (!fresh) {
         return pixelResponse();
+      }
+
+      if (creativeId === 'cre_nocache') {
+        try {
+          const slot = await getSlotCache(slotId);
+          if (slot?.publisherId) {
+            await logEvent({
+              type: 'slot_load',
+              slotId,
+              publisherId: slot.publisherId,
+              creativeId: 'cre_nocache',
+              campaignId: 'cmp_fallback',
+              advertiserId: '',
+              country: c.req.header('CF-IPCountry') ?? 'XX',
+              visitorToken: token,
+              ts: Date.now(),
+            });
+          }
+          // If the cache is still cold, we still don't know the publisher —
+          // drop it, same as everywhere else in this file.
+        } catch (err) {
+          console.error('logEvent failed (impression, cache-miss recovery):', err);
+        }
       }
     } else {
       const fresh = await claimSignatureOnce(sig, IMPRESSION_MAX_AGE_MS / 1000, 'imp');
