@@ -77,6 +77,18 @@ describe('GET /v1/pageview', () => {
     });
   });
 
+  it('stamps botClass on the pageview event from a crawler request', async () => {
+    const ts = Date.now();
+    const sig = createSignature(PAGEVIEW_CREATIVE_ID, 'slot_1', 'vis_1', ts);
+    const res = await app.request(`/v1/pageview?s=slot_1&t=vis_1&ts=${ts}&sig=${sig}`, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(loggedEvents().every((e) => e.botClass === 'known_bot')).toBe(true);
+  });
+
   it('ignores a replay of the same signature', async () => {
     const ts = Date.now();
     const sig = createSignature(PAGEVIEW_CREATIVE_ID, 'slot_1', 'vis_1', ts);

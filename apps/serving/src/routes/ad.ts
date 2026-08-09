@@ -11,6 +11,7 @@ import {
   PAGEVIEW_CREATIVE_ID,
 } from '../lib/analytics.js';
 import { createSignature } from '../lib/crypto.js';
+import { classifyRequest } from '../lib/bot-class.js';
 
 export const adRoute = new Hono();
 
@@ -28,6 +29,10 @@ adRoute.get('/', async (c) => {
 
   const country = c.req.header('CF-IPCountry') ?? 'XX';
   const token = getVisitorToken(c.req.query('vid'));
+  const botClass = classifyRequest({
+    userAgent: c.req.header('user-agent'),
+    acceptLanguage: c.req.header('accept-language'),
+  });
 
   let slot = await getSlotCache(slotId);
   if (!slot && (slotId === 'slot_demo_abc' || process.env.NODE_ENV === 'development')) {
@@ -146,6 +151,7 @@ adRoute.get('/', async (c) => {
         country,
         visitorToken: token,
         ts,
+        botClass,
       });
     } catch (err) {
       console.error('logEvent failed (ad, no-fill):', err);
@@ -216,6 +222,7 @@ adRoute.get('/', async (c) => {
       country,
       visitorToken: token,
       ts,
+      botClass,
     });
   } catch (err) {
     console.error('logEvent failed (ad):', err);

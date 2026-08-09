@@ -126,6 +126,38 @@ describe('GET /v1/ad', () => {
     expect(loggedEvents()[0]!.creativeId).toBe('cre_fallback_birtingur');
   });
 
+  it('stamps botClass on the slot-load event from a crawler request', async () => {
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(loggedEvents().every((e) => e.botClass === 'known_bot')).toBe(true);
+  });
+
+  it('stamps human for an ordinary browser request', async () => {
+    const res = await app.request('/v1/ad?slot=slot_a&consent=full', {
+      headers: {
+        'user-agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'accept-language': 'is,en;q=0.9',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(loggedEvents().every((e) => e.botClass === 'human')).toBe(true);
+  });
+
+  it('stamps botClass on the no-fill fallback slot-load event too', async () => {
+    const res = await app.request('/v1/ad?slot=slot_empty&consent=none', {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(loggedEvents().every((e) => e.botClass === 'known_bot')).toBe(true);
+  });
+
   it('returns Birtingur house ad fallback for slot with no matching creatives', async () => {
     const res = await app.request('/v1/ad?slot=slot_empty&consent=none');
     expect(res.status).toBe(200);

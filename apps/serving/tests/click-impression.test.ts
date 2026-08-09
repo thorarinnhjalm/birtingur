@@ -139,6 +139,39 @@ describe('GET /v1/click', () => {
     );
   });
 
+  it('stamps botClass on the click event from a crawler request', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const res = await app.request(`/v1/click?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`, {
+      headers: {
+        'CF-IPCountry': 'IS',
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(res.status).toBe(302);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'click', botClass: 'known_bot' }),
+    );
+  });
+
+  it('stamps botClass on the fallback click event from a crawler request', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_fallback_birtingur', 'slot_empty', 'tok123', ts);
+    const res = await app.request(
+      `/v1/click?s=slot_empty&c=cre_fallback_birtingur&t=tok123&ts=${ts}&sig=${sig}`,
+      {
+        headers: {
+          'CF-IPCountry': 'IS',
+          'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        },
+      },
+    );
+    expect(res.status).toBe(302);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'click', botClass: 'known_bot' }),
+    );
+  });
+
   it('returns 400 when missing query parameters', async () => {
     const res = await app.request('/v1/click?s=slot_a');
     expect(res.status).toBe(400);
@@ -216,6 +249,20 @@ describe('GET /v1/impression', () => {
 
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // 1000 cpm / 1000 = 1 isk
+  });
+
+  it('stamps botClass on the impression event from a crawler request', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok123', ts);
+    const res = await app.request(`/v1/impression?s=slot_a&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`, {
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'impression', botClass: 'known_bot' }),
+    );
   });
 
   it('still returns the pixel and decrements budget when the logEvent write fails', async () => {
@@ -395,6 +442,23 @@ describe('GET /v1/impression', () => {
         publisherId: 'pub_a',
         creativeId: 'cre_nocache',
       }),
+    );
+  });
+
+  it('stamps botClass on the cache-miss recovery slot-load event', async () => {
+    const ts = Date.now();
+    const sig = createSignature('cre_nocache', 'slot_a', 'tok123', ts);
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_nocache&t=tok123&type=pageview&ts=${ts}&sig=${sig}`,
+      {
+        headers: {
+          'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        },
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(vi.mocked(logEvent)).toHaveBeenCalledWith(
+      expect.objectContaining({ creativeId: 'cre_nocache', botClass: 'known_bot' }),
     );
   });
 

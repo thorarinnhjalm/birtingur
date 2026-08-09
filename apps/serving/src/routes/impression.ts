@@ -5,6 +5,7 @@ import { decrementBudget, logEvent, incrementPaceSpent } from '../lib/analytics.
 import { verifySignature, claimSignatureOnce } from '../lib/crypto.js';
 import { getClientIp } from '../lib/ip.js';
 import { checkAndIncrementRateLimit } from '../lib/fraud.js';
+import { classifyRequest } from '../lib/bot-class.js';
 
 // Transparent 1x1 GIF tracking pixel
 const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -35,6 +36,10 @@ impressionRoute.get('/', async (c) => {
     const slotId = c.req.query('s');
     const token = c.req.query('t') ?? '';
     const typeParam = c.req.query('type');
+    const botClass = classifyRequest({
+      userAgent: c.req.header('user-agent'),
+      acceptLanguage: c.req.header('accept-language'),
+    });
 
     if (!creativeId || !slotId) {
       return pixelResponse();
@@ -106,6 +111,7 @@ impressionRoute.get('/', async (c) => {
               country: c.req.header('CF-IPCountry') ?? 'XX',
               visitorToken: token,
               ts: Date.now(),
+              botClass,
             });
           }
           // If the cache is still cold, we still don't know the publisher —
@@ -146,6 +152,7 @@ impressionRoute.get('/', async (c) => {
               country: c.req.header('CF-IPCountry') ?? 'XX',
               visitorToken: token,
               ts: Date.now(),
+              botClass,
             });
           } catch (err) {
             console.error('logEvent failed (impression):', err);

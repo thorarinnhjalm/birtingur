@@ -1,5 +1,6 @@
 import { getRedis } from './redis.js';
 import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import type { BotClass } from './bot-class.js';
 
 export interface AdEvent {
   // DELIBERATELY no separate 'slot_load' wire type here. A slot load (one per
@@ -36,6 +37,13 @@ export interface AdEvent {
   country: string;
   visitorToken: string;
   ts: number;
+  // Stamped by serving (classifyRequest, lib/bot-class.ts) on every event —
+  // required here because the producer always classifies. CONSUMERS must
+  // treat this field's ABSENCE as "unclassified", never as 'human': events
+  // already sitting in the Redis queue when a deploy lands were written by
+  // the old shape and carry no botClass at all, and apps/api (the consumer)
+  // deploys independently of apps/serving (the producer).
+  botClass: BotClass;
 }
 
 /** The creativeId component used when signing a page-level pixel — no creative is
