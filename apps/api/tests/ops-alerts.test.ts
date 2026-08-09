@@ -110,13 +110,21 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     await checkCronHeartbeats(); // records 800, no alert (no baseline yet)
     setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
     await checkCronHeartbeats();
-    expect(sentAlerts().some((a) => a.subject.includes('accrual queue'))).toBe(true);
+    expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(true);
   });
 
   it('does not alert when the queue shrinks or holds', async () => {
-    setQueueDepth(EVENT_QUEUE_ACCRUAL, 800);
-    await checkCronHeartbeats();
-    setQueueDepth(EVENT_QUEUE_ACCRUAL, 300);
+    // shrinks
+    setQueueDepth(EVENT_QUEUE_ACCRUAL, 900);
+    await checkCronHeartbeats(); // records 900, no alert (no baseline yet)
+    setQueueDepth(EVENT_QUEUE_ACCRUAL, 600);
+    await checkCronHeartbeats(); // 600 < 900: shrink
+    expect(sentAlerts()).toHaveLength(0);
+
+    // holds flat at 600 — still above the 500 alert floor, so this pins a
+    // strict `depth > prev` comparison: a regression to `depth >= prev`
+    // would incorrectly fire here since depth === prev.
+    setQueueDepth(EVENT_QUEUE_ACCRUAL, 600);
     await checkCronHeartbeats();
     expect(sentAlerts()).toHaveLength(0);
   });
@@ -142,7 +150,7 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     await checkCronHeartbeats(); // first alert
     setQueueDepth(EVENT_QUEUE_ACCRUAL, 2400);
     await checkCronHeartbeats(); // still growing, but deduped within the window
-    expect(sentAlerts().filter((a) => a.subject.includes('accrual queue'))).toHaveLength(1);
+    expect(sentAlerts().filter((a) => a.subject.includes('Innheimtu-biðröð'))).toHaveLength(1);
   });
 
   it('does not alert on queue growth when cron-accrue itself is stale (already covered by the staleness alert)', async () => {
@@ -152,7 +160,7 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     await checkCronHeartbeats();
     setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
     await checkCronHeartbeats();
-    expect(sentAlerts().some((a) => a.subject.includes('accrual queue'))).toBe(false);
+    expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(false);
   });
 
   it('does not alert when Redis is unavailable for the depth read', async () => {
@@ -161,6 +169,6 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
     mockRedisDown = true;
     await checkCronHeartbeats();
-    expect(sentAlerts().some((a) => a.subject.includes('accrual queue'))).toBe(false);
+    expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(false);
   });
 });

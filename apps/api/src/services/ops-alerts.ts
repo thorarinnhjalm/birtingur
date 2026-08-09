@@ -193,15 +193,19 @@ export async function checkCronHeartbeats(): Promise<{ stale: string[] }> {
       !(await alreadyAlerted('accrual-queue-growth'))
     ) {
       await alertOps(
-        'accrual queue growing',
+        'Innheimtu-biðröð hleðst upp',
         `events:accrual dýptin jókst úr ${prev} í ${depth} milli tveggja síðustu athugana, á meðan cron-accrue er enn að keyra — cronið heldur ekki í við álagið. Athugaðu Vercel logs, Redis og /api/cron-diagnostics.`,
       );
     }
 
     try {
       await redis.set(QUEUE_DEPTH_PREV_ACCRUAL_KEY, depth);
-    } catch {
-      /* best effort */
+    } catch (err) {
+      // Best-effort like the rest of this module, but silent failure here
+      // would leave the growth check permanently blind (every future call
+      // sees prev == null and never re-establishes a baseline) with no
+      // trace anywhere — log it so a persistent write failure is visible.
+      console.error('[ops-alerts] failed to record accrual queue depth baseline:', err);
     }
   }
 
