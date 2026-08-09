@@ -35,6 +35,14 @@ adminPayoutsRoutes.post('/generate', async (c) => {
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
     return c.json({ error: 'Invalid date range' }, 400);
   }
+  // An inverted range (end <= start) would otherwise reach
+  // generateMonthlyPayouts and throw a raw ZodError mid-loop (PayoutSchema's
+  // periodEnd > periodStart refinement) only after earlier publishers in the
+  // iteration already had their payout docs created — reject it up front
+  // instead of partially applying the run.
+  if (end <= start) {
+    return c.json({ error: 'periodEnd must be after periodStart' }, 400);
+  }
   const created = await generateMonthlyPayouts(start, end);
   return c.json({ created: created.length });
 });
