@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { classifyRequest, KNOWN_BOT_PATTERNS, type BotClass } from '../src/lib/bot-class';
 
+// NON_BROWSER_CLIENT_PATTERNS isn't exported (KNOWN_BOT_PATTERNS is, only so
+// the "one coverage row per entry" guard below can size itself against it);
+// its count is pinned directly in the "full pattern coverage" describe block.
+
 const UA = {
   chromeDesktop:
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
@@ -33,6 +37,31 @@ const UA = {
   // Electron token alone must never push a human into suspected_bot.
   electronApp:
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Slack/4.36.140 Chrome/114.0.5735.289 Electron/25.9.7 Safari/537.36',
+  // IMPORTANT-2(b) fixtures: self-declared non-browser HTTP clients. These
+  // announce themselves plainly but don't match any KNOWN_BOT_PATTERNS or
+  // HEADLESS_PATTERNS entry, so before NON_BROWSER_CLIENT_PATTERNS existed
+  // they fell all the way through to 'human'.
+  curl: 'curl/8.4.0',
+  wget: 'Wget/1.21',
+  pythonRequests: 'python-requests/2.31.0',
+  pythonUrllib: 'Python-urllib/3.11',
+  goHttpClient: 'Go-http-client/1.1',
+  okhttp: 'okhttp/4.12.0',
+  javaClient: 'Java/17',
+  libwwwPerl: 'libwww-perl/6.67',
+  apacheHttpClient: 'Apache-HttpClient/4.5.13 (Java/17)',
+  axios: 'axios/1.6.0',
+  nodeFetch: 'node-fetch/3.3.2',
+  postman: 'PostmanRuntime/7.36',
+  // IMPORTANT-2(a) fixture: Chrome's `--headless=new` mode (Puppeteer's
+  // default since v22) sends a UA byte-identical to headed desktop Chrome —
+  // no "HeadlessChrome" token, nothing else distinguishing it. This is
+  // deliberately the SAME string as `chromeDesktop` above: the whole point
+  // of the fixture is that the two are indistinguishable from the
+  // user-agent alone, which is exactly the blind spot the HEADLESS_PATTERNS
+  // comment documents. There is no separate "stealth" string to write.
+  stealthHeadlessChrome:
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
 };
 
 const CASES: Array<
@@ -67,6 +96,36 @@ const CASES: Array<
   [
     'Electron-shelled desktop app (Slack desktop, human)',
     { userAgent: UA.electronApp, acceptLanguage: 'en-US' },
+    'human',
+  ],
+  // IMPORTANT-2(b): self-declared non-browser HTTP clients. Accept-Language
+  // is set on each so the assertion isolates the new signal rather than
+  // piggybacking on the missing-header signal that already catches some of
+  // these by accident.
+  ['curl', { userAgent: UA.curl, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['Wget', { userAgent: UA.wget, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['python-requests', { userAgent: UA.pythonRequests, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['Python-urllib', { userAgent: UA.pythonUrllib, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['Go-http-client', { userAgent: UA.goHttpClient, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['okhttp', { userAgent: UA.okhttp, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['bare Java client', { userAgent: UA.javaClient, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['libwww-perl', { userAgent: UA.libwwwPerl, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  [
+    'Apache HttpClient',
+    { userAgent: UA.apacheHttpClient, acceptLanguage: 'en-US' },
+    'suspected_bot',
+  ],
+  ['axios', { userAgent: UA.axios, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['node-fetch', { userAgent: UA.nodeFetch, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  ['PostmanRuntime', { userAgent: UA.postman, acceptLanguage: 'en-US' }, 'suspected_bot'],
+  // IMPORTANT-2(a): documents the known blind spot rather than pretending it
+  // doesn't exist. A stock `--headless=new` UA is byte-identical to headed
+  // Chrome, so it lands in 'human' — see the HEADLESS_PATTERNS comment in
+  // bot-class.ts. This is NOT a bug to fix by adding Sec-CH-UA sniffing; it
+  // is the documented floor of what a user-agent-only classifier can see.
+  [
+    'stock-UA --headless=new Chrome (documented blind spot, not detectable)',
+    { userAgent: UA.stealthHeadlessChrome, acceptLanguage: 'en-US' },
     'human',
   ],
 ];
@@ -205,6 +264,32 @@ describe('classifyRequest — full pattern coverage', () => {
     it(`classifies headless pattern "${name}" as suspected_bot`, () => {
       // Accept-Language set so the assertion isolates the headless signal
       // rather than piggybacking on the missing-header signal.
+      expect(classifyRequest({ userAgent: ua, acceptLanguage: 'en-US' })).toBe('suspected_bot');
+    });
+  }
+
+  // IMPORTANT-2(b): one row per NON_BROWSER_CLIENT_PATTERNS entry. That list
+  // isn't exported (same treatment as HEADLESS_PATTERNS), so there's no
+  // count-guard test here — this block itself is the pin.
+  const NON_BROWSER_CLIENT_COVERAGE: Array<[string, string]> = [
+    ['curl', 'curl/8.4.0'],
+    ['wget', 'Wget/1.21'],
+    ['python-requests', 'python-requests/2.31.0'],
+    ['python-urllib', 'Python-urllib/3.11'],
+    ['go-http-client', 'Go-http-client/1.1'],
+    ['okhttp', 'okhttp/4.12.0'],
+    ['java/', 'Java/17'],
+    ['libwww-perl', 'libwww-perl/6.67'],
+    ['apache-httpclient', 'Apache-HttpClient/4.5.13 (Java/17)'],
+    ['axios', 'axios/1.6.0'],
+    ['node-fetch', 'node-fetch/3.3.2'],
+    ['postmanruntime', 'PostmanRuntime/7.36'],
+  ];
+
+  for (const [name, ua] of NON_BROWSER_CLIENT_COVERAGE) {
+    it(`classifies non-browser-client pattern "${name}" as suspected_bot`, () => {
+      // Accept-Language set so the assertion isolates the non-browser-client
+      // signal rather than piggybacking on the missing-header signal.
       expect(classifyRequest({ userAgent: ua, acceptLanguage: 'en-US' })).toBe('suspected_bot');
     });
   }

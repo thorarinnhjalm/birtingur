@@ -59,6 +59,20 @@ export const KNOWN_BOT_PATTERNS: RegExp[] = [
  * class is money-inert today, but the whole point of this phase is to
  * produce a number the owner will make a billing decision from, so it must
  * not be inflated with humans. Do not re-add "electron" here.
+ *
+ * KNOWN BLIND SPOT, stated plainly because this number feeds a real billing
+ * decision: these patterns only catch old-style headless runtimes that
+ * still announce themselves (a bare "HeadlessChrome" token, or a driver
+ * name like puppeteer/playwright/selenium/webdriver in the UA string).
+ * Chrome's `--headless=new` mode — Puppeteer's default since v22 — sends a
+ * user-agent byte-identical to headed Chrome, with NO `HeadlessChrome`
+ * token at all, and is NOT detectable from the user-agent by any pattern
+ * here or anywhere else in this file. That traffic falls straight through
+ * to 'human'. Do not add Sec-CH-UA sniffing to try to close this gap here —
+ * that is speculative and deliberately out of scope for a money input; see
+ * the 2026-08-09 phase-1 fix-wave notes. Read `suspected_bot` as a floor,
+ * not a ceiling: the true bot share of what's labelled 'human' is unknown
+ * and nonzero.
  */
 const HEADLESS_PATTERNS: RegExp[] = [
   /headlesschrome/i,
@@ -67,6 +81,32 @@ const HEADLESS_PATTERNS: RegExp[] = [
   /playwright/i,
   /selenium/i,
   /webdriver/i,
+];
+
+/** Self-declared non-browser HTTP clients: scripts, SDKs, and CLI tools that
+ * announce themselves in their default UA rather than mimicking a browser.
+ * These are not crawlers (no entry in KNOWN_BOT_PATTERNS declares intent to
+ * index content) and not automation frameworks driving a real browser
+ * engine (HEADLESS_PATTERNS) — they're plain HTTP clients a script or
+ * server-side job used to fetch a URL. Classified 'suspected_bot', same as
+ * headless: suggestive only, never billing-affecting. Checked after
+ * KNOWN_BOT_PATTERNS on purpose — a client whose UA happens to also match a
+ * declared-crawler pattern should keep the stronger, more specific
+ * known_bot signal.
+ */
+const NON_BROWSER_CLIENT_PATTERNS: RegExp[] = [
+  /curl\//i,
+  /wget\//i,
+  /python-requests/i,
+  /python-urllib/i,
+  /go-http-client/i,
+  /okhttp/i,
+  /java\//i,
+  /libwww-perl/i,
+  /apache-httpclient/i,
+  /axios\//i,
+  /node-fetch/i,
+  /postmanruntime/i,
 ];
 
 /** A user-agent shaped like a real browser. Used only to decide whether a
@@ -87,6 +127,7 @@ export function classifyRequest(h: {
 
   if (ua.length === 0) return 'suspected_bot';
   if (KNOWN_BOT_PATTERNS.some((re) => re.test(ua))) return 'known_bot';
+  if (NON_BROWSER_CLIENT_PATTERNS.some((re) => re.test(ua))) return 'suspected_bot';
   if (HEADLESS_PATTERNS.some((re) => re.test(ua))) return 'suspected_bot';
 
   const lang = (h.acceptLanguage ?? '').trim();
