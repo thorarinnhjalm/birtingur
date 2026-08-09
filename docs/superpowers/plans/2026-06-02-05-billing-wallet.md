@@ -606,8 +606,8 @@ walletRoutes.post('/topup', async (c) => {
     const session = await teya.createCheckoutSession({
       advertiserId: adv.id,
       amountIsk: body.amountIsk,
-      successUrl: `${process.env.APP_BASE_URL ?? 'https://app.adplatform.is'}/wallet?topup=success`,
-      cancelUrl: `${process.env.APP_BASE_URL ?? 'https://app.adplatform.is'}/wallet?topup=cancelled`,
+      successUrl: `${process.env.APP_BASE_URL ?? 'https://www.birtingur.app'}/wallet?topup=success`,
+      cancelUrl: `${process.env.APP_BASE_URL ?? 'https://www.birtingur.app'}/wallet?topup=cancelled`,
       idempotencyKey: generateId('idem'),
     });
     return c.json({ checkoutUrl: session.url, sessionId: session.sessionId }, 201);

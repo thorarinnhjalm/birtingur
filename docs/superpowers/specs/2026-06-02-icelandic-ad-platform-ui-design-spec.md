@@ -77,7 +77,7 @@ Hosted dashboard uses Firebase Auth. V1 supports:
 ```
 ┌──────────────────────────────────────────────┐
 │                                              │
-│              [Logo: adplatform.is]           │
+│              [Logo: birtingur.app]           │
 │                                              │
 │         Skráðu þig inn til að halda          │
 │              áfram                           │
@@ -469,7 +469,7 @@ Hvers konar auglýsingar viltu ekki sjá?
 │  <div data-adplatform-slot="slot_abc123"                │
 │       style="min-height:90px"></div>                    │
 │  <script async                                          │
-│    src="https://cdn.adplatform.is/v1/snippet.js">       │
+│    src="https://serving.birtingur.app/widget.js">       │
 │  </script>                                              │
 └─────────────────────────────────────────────────────────┘
                                           [Afrita kóða]
@@ -699,7 +699,7 @@ Searchable tables. Columns: Name, status badge, total earnings/spend, last activ
 Web components delivered as a single `<script>` include:
 
 ```html
-<script src="https://widgets.adplatform.is/v1/widgets.js" defer></script>
+<script src="https://serving.birtingur.app/v1/widgets.js" defer></script>
 ```
 
 ### 6.1 `<adplatform-stats>`

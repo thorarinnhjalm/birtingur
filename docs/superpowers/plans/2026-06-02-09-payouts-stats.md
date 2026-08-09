@@ -697,7 +697,7 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            --data '{"files":["https://cdn.adplatform.is/v1/snippet.js"]}' \
+            --data '{"files":["https://serving.birtingur.app/widget.js"]}' \
             https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache
 ```
 
@@ -877,11 +877,11 @@ Append to `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/README.md`:
 
 | App       | Host                                 | URL                             |
 | --------- | ------------------------------------ | ------------------------------- |
-| API       | Vercel                               | api.adplatform.is               |
-| Dashboard | Vercel                               | app.adplatform.is               |
-| MCP       | Vercel                               | mcp.adplatform.is               |
-| Serving   | Vercel (V1) / Cloudflare Worker (V2) | serve.adplatform.is             |
-| Snippet   | Cloudflare R2 + CDN                  | cdn.adplatform.is/v1/snippet.js |
+| API       | Vercel                               | api.birtingur.app               |
+| Dashboard | Vercel                               | www.birtingur.app               |
+| MCP       | Vercel                               | mcp.birtingur.app               |
+| Serving   | Vercel (V1) / Cloudflare Worker (V2) | serving.birtingur.app           |
+| Snippet   | Cloudflare R2 + CDN                  | serving.birtingur.app/widget.js |
 | Firestore | Firebase                             | ada-prod project                |
 | Redis     | Upstash                              | ada-prod database               |
 

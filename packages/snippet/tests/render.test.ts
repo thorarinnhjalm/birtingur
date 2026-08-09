@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderAd } from '../src/render';
 import type { AdResponse } from '../src/types';
 
-const SERVE_BASE = 'https://serve.adplatform.is';
+const SERVE_BASE = 'https://serving.birtingur.app';
 
 function makeAd(overrides: Partial<AdResponse> = {}): AdResponse {
   return {

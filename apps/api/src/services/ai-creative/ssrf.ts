@@ -254,7 +254,7 @@ async function ssrfGuardedFetchCore(
       response = await fetch(current, {
         redirect: 'manual',
         signal: globalThis.AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        headers: { 'User-Agent': 'BirtingurCreativeBot/1.0 (+https://adplatform.is)' },
+        headers: { 'User-Agent': 'BirtingurCreativeBot/1.0 (+https://www.birtingur.app)' },
       });
     } catch (err) {
       throw new SsrfBlockedError(

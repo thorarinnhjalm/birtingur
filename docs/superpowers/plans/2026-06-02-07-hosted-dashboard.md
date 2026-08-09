@@ -319,7 +319,7 @@ Write `/Users/thorarinnhjalmarsson/Documents/Antigravity/ada/apps/dashboard/src/
 ```ts
 import { auth } from './firebase';
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.adplatform.is';
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.birtingur.app';
 
 export class ApiError extends Error {
   constructor(
@@ -1676,7 +1676,7 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-VITE_API_BASE=https://api.adplatform.is
+VITE_API_BASE=https://api.birtingur.app
 ```
 
 - [ ] **Step 2: Commit**

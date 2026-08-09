@@ -540,7 +540,7 @@ describe('Agent purchase (advertiser-MCP agentic buying)', () => {
       // approved, and flip the campaign straight to 'active', letting the
       // agent effectively self-activate its own over-the-limit purchase via
       // creative re-scan. With the fix, it must stay put.
-      await adminReview(creative.id, { action: 'approve', adminEmail: 'admin@adplatform.is' });
+      await adminReview(creative.id, { action: 'approve', adminEmail: 'admin@birtingur.app' });
 
       const stillPending = await getCampaign(cmp.id);
       expect(stillPending!.status).toBe('pending_approval');
@@ -591,7 +591,7 @@ describe('Agent purchase (advertiser-MCP agentic buying)', () => {
       // agent-purchase tag — a dead creative kills the campaign either way.
       await adminReview(creative.id, {
         action: 'reject',
-        adminEmail: 'admin@adplatform.is',
+        adminEmail: 'admin@birtingur.app',
         reason: 'Test rejection',
       });
 

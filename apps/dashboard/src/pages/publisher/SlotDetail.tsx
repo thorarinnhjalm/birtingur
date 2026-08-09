@@ -84,7 +84,7 @@ export default function SlotDetail() {
   // Generate JavaScript HTML Integration Code
   const snippetCode = `<!-- Birtingur Auglýsingapláss: ${slot.name} -->
 <div data-adplatform-slot="${slot.id}"></div>
-<script async src="https://cdn.birtingur.app/widget.js"></script>`;
+<script async src="https://serving.birtingur.app/widget.js"></script>`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(snippetCode);

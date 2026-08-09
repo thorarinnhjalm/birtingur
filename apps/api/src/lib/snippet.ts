@@ -22,8 +22,9 @@ export function generateSnippet(options: SnippetOptions): string {
   // host here is a silent, permanent breakage on someone else's page. There
   // is no separate CDN: the serving app's build copies the compiled snippet
   // to `public/widget.js` (see apps/serving/package.json), so it is served
-  // from the serving origin itself. The old default, `cdn.birtingur.app`, was
-  // never attached to a deployment and returned Vercel's DEPLOYMENT_NOT_FOUND.
+  // from the serving origin itself. The old default was a `cdn.` host that was
+  // never attached to a deployment and returned Vercel's DEPLOYMENT_NOT_FOUND;
+  // see tests/snippet.test.ts, which names the dead hosts and pins this one.
   const cdnBase = process.env.CDN_BASE_URL ?? 'https://serving.birtingur.app';
   return `<div data-adplatform-slot="${escapedSlotId}"${widthAttr}${heightAttr}></div>\n<script async src="${cdnBase}/widget.js"></script>`;
 }

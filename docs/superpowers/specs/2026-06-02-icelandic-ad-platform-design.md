@@ -82,17 +82,17 @@ A two-sided self-service advertising marketplace for the Icelandic market. Adver
 
 ### 3.2 Components
 
-1. **REST API** (`api.adplatform.is`) — Vercel functions, TypeScript, Firebase Auth. Source of truth for all operations. Every client (dashboard, widgets, MCP) is a thin caller.
+1. **REST API** (`api.birtingur.app`) — Vercel functions, TypeScript, Firebase Auth. Source of truth for all operations. Every client (dashboard, widgets, MCP) is a thin caller.
 
-2. **Hosted Dashboard** (`app.adplatform.is`) — React 19 + Vite + Tailwind v4 + Firebase, mirroring markadssetning.is stack. First-class product surface: advertiser flow (top-up, create campaign, view stats), publisher flow (slots, stats, approvals, payout setup), admin flow (creative review queue, payout processing, platform settings).
+2. **Hosted Dashboard** (`www.birtingur.app`) — React 19 + Vite + Tailwind v4 + Firebase, mirroring markadssetning.is stack. First-class product surface: advertiser flow (top-up, create campaign, view stats), publisher flow (slots, stats, approvals, payout setup), admin flow (creative review queue, payout processing, platform settings).
 
-3. **Embed Widgets** (`widgets.adplatform.is`) — Web components published to npm + CDN. Drop-in stats and approval-queue components for developer-friendly publishers. Authenticated with scoped widget keys, not Firebase tokens.
+3. **Embed Widgets** (`serving.birtingur.app`) — Web components published to npm + CDN. Drop-in stats and approval-queue components for developer-friendly publishers. Authenticated with scoped widget keys, not Firebase tokens.
 
-4. **MCP Server** (`mcp.adplatform.is`) — Vercel HTTP MCP server. Thin shim over REST API. Bilingual tool documentation (IS/EN). Power-user / future-proofing interface; first-mover positioning for AI-agent-driven publishers and advertisers.
+4. **MCP Server** (`mcp.birtingur.app`) — Vercel HTTP MCP server. Thin shim over REST API. Bilingual tool documentation (IS/EN). Power-user / future-proofing interface; first-mover positioning for AI-agent-driven publishers and advertisers.
 
-5. **Hot-path serving** (`serve.adplatform.is`) — V1: Vercel function + Upstash Redis cache. V2 (when traffic >50k impressions/day): Cloudflare Worker + KV. Same JSON response contract across both implementations; snippet does not change.
+5. **Hot-path serving** (`serving.birtingur.app`) — V1: Vercel function + Upstash Redis cache. V2 (when traffic >50k impressions/day): Cloudflare Worker + KV. Same JSON response contract across both implementations; snippet does not change.
 
-6. **Snippet** (`cdn.adplatform.is/v1/snippet.js`) — ~3kb static JS, no dependencies. Reads `data-adplatform-slot` attributes, respects publisher CMP, calls serving endpoint, renders banner, fails silently on any error.
+6. **Snippet** (`serving.birtingur.app/widget.js`) — ~3kb static JS, no dependencies. Reads `data-adplatform-slot` attributes, respects publisher CMP, calls serving endpoint, renders banner, fails silently on any error.
 
 ### 3.3 Key principles
 
@@ -255,7 +255,7 @@ Vercel cron aggregates hourly into `stats/{campaignId}/hourly/...` for dashboard
 
 ```html
 <div data-adplatform-slot="slot_abc123" style="min-height:250px"></div>
-<script async src="https://cdn.adplatform.is/v1/snippet.js"></script>
+<script async src="https://serving.birtingur.app/widget.js"></script>
 ```
 
 No config, no API key, no per-page initialization. Slot ID encodes the publisher.
@@ -264,7 +264,7 @@ No config, no API key, no per-page initialization. Slot ID encodes the publisher
 
 1. On DOMContentLoaded, find all `[data-adplatform-slot]` elements.
 2. Read publisher CMP consent (`window.__cmpConsent`, configurable per publisher).
-3. For each slot, `GET https://serve.adplatform.is/v1/ad?slot={id}&consent={full|none}&v=1`.
+3. For each slot, `GET https://serving.birtingur.app/v1/ad?slot={id}&consent={full|none}&v=1`.
 4. On response:
    - `{ empty: true }` → hide slot (`display:none`).
    - `{ creativeId, imageUrl, clickUrl, width, height, impressionPixel, ttl }` → render `<a href="{clickRedirect}"><img></a>` and 1×1 impression pixel.
@@ -290,7 +290,7 @@ No config, no API key, no per-page initialization. Slot ID encodes the publisher
 
 ### 5.4 Click flow
 
-Click URL in rendered banner points to `https://serve.adplatform.is/v1/click?c={creativeId}&s={slotId}&t={visitorToken}`. Server logs click → 302 redirect to actual `clickUrl`. Server-side counting avoids JS dependency and ad-block interference on click tracking.
+Click URL in rendered banner points to `https://serving.birtingur.app/v1/click?c={creativeId}&s={slotId}&t={visitorToken}`. Server logs click → 302 redirect to actual `clickUrl`. Server-side counting avoids JS dependency and ad-block interference on click tracking.
 
 ### 5.5 Budget exhaustion
 

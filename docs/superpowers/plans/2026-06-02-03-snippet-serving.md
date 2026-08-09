@@ -131,7 +131,7 @@ await build({
   legalComments: 'none',
   define: {
     'process.env.SERVE_BASE': JSON.stringify(
-      process.env.SERVE_BASE ?? 'https://serve.adplatform.is',
+      process.env.SERVE_BASE ?? 'https://serving.birtingur.app',
     ),
   },
 });
@@ -1314,7 +1314,7 @@ Outputs `dist/snippet.js` (minified, ~3 KB).
 V1 deployment is via Cloudflare R2 / CDN:
 
 1. Upload `dist/snippet.js` to `r2://ada-cdn/v1/snippet.js`.
-2. Configure a Cloudflare Worker route at `cdn.adplatform.is/v1/snippet.js` that serves the file with:
+2. Configure a Cloudflare Worker route at `serving.birtingur.app/widget.js` that serves the file with:
    - `Cache-Control: public, max-age=300`
    - `Access-Control-Allow-Origin: *`
    - `Content-Type: application/javascript`
@@ -1326,7 +1326,7 @@ CI step (added in Plan #9) automates upload after build.
 \`\`\`html
 
 <div data-adplatform-slot="slot_xxxxx" style="min-height:90px"></div>
-<script async src="https://cdn.adplatform.is/v1/snippet.js"></script>
+<script async src="https://serving.birtingur.app/widget.js"></script>
 \`\`\`
 
 ## Failure modes (intentional)

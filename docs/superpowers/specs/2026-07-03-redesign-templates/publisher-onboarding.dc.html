@@ -232,7 +232,7 @@ class Component extends DCLogic {
     const selectedCatName = (this.CATS.find(c => c.key === s.category) || {}).name || '';
     const tagOpen = '<' + 'script';
     const tagClose = '<' + '/script>';
-    const snippetText = tagOpen + ' src="https://cdn.birtingur.is/s.js" data-site="' + slug + '" async>' + tagClose;
+    const snippetText = tagOpen + ' src="https://serving.birtingur.app/widget.js" data-site="' + slug + '" async>' + tagClose;
     const apiKey = 'birt_live_' + (slug.replace(/-/g, '').slice(0, 10) + '000000000').slice(0, 10) + '7f2a9c';
     return {
       domain: s.domain, onDomain: (e) => this.setState({ domain: e.target.value }),

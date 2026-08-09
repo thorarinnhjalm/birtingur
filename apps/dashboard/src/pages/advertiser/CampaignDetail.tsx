@@ -563,14 +563,14 @@ export default function CampaignDetail() {
             </label>
             <div className="flex gap-2">
               <div className="font-mono text-xs bg-slate-900 text-slate-100 p-3 rounded-lg grow overflow-x-auto whitespace-nowrap">
-                {`<script src="https://cdn.birtingur.app/v1/widgets.js" defer></script>`}
+                {`<script src="https://serving.birtingur.app/v1/widgets.js" defer></script>`}
               </div>
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => {
                   navigator.clipboard.writeText(
-                    '<script src="https://cdn.birtingur.app/v1/widgets.js" defer></script>',
+                    '<script src="https://serving.birtingur.app/v1/widgets.js" defer></script>',
                   );
                   setCopiedScript(true);
                   setTimeout(() => setCopiedScript(false), 2000);
