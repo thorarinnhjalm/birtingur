@@ -1,3 +1,4 @@
+import { EVENT_QUEUE_ACCRUAL } from '@ada/shared';
 import { getRedis, isRedisConfigured } from '../lib/redis.js';
 import { createNotification } from './notifications.js';
 import { sendOpsAlertEmail } from './mail.js';
@@ -21,6 +22,12 @@ import { sendOpsAlertEmail } from './mail.js';
 const HEARTBEAT_PREFIX = 'heartbeat:';
 const ALERT_DEDUPE_PREFIX = 'alerted:';
 const ALERT_DEDUPE_TTL_SECONDS = 6 * 60 * 60;
+
+/** Previous events:accrual depth reading, so the next check can tell growth
+ *  from shrinkage. Overwritten every check — no TTL needed. */
+const QUEUE_DEPTH_PREV_ACCRUAL_KEY = 'queue_depth_prev:accrual';
+/** Below this, a growing queue is just normal traffic variance, not backlog. */
+const ACCRUAL_QUEUE_ALERT_THRESHOLD = 500;
 
 /** Staleness thresholds per cron: schedule interval + generous grace. */
 export const CRON_STALENESS_MINUTES: Record<string, number> = {
@@ -156,6 +163,48 @@ export async function checkCronHeartbeats(): Promise<{ stale: string[] }> {
       `Síðasta heartbeat frá ${s.name} er ${s.ageMinutes} mínútna gamalt (þröskuldur ${CRON_STALENESS_MINUTES[s.name]} mín). Cron-ið virðist hafa hætt að keyra — athugaðu Vercel cron stillingar og logs.`,
     );
   }
+
+  // Backlog-growth check: an independent signal from staleness above. A
+  // stale cron-accrue heartbeat means the cron isn't running at all
+  // (already alerted on above); this instead catches the opposite failure
+  // mode from the previous task's changes — the cron IS running (fresh
+  // heartbeat) but keeps falling behind, so events:accrual grows tick over
+  // tick instead of draining. Gated on cron-accrue not being stale so this
+  // never fires as a redundant echo of the staleness alert, and gated on
+  // having a real previous reading so a cold start or a single busy check
+  // never alerts on its own — only two consecutive checks that both show
+  // growth, past a floor that rules out ordinary traffic variance.
+  const accrueStale = stale.some((s) => s.name === 'cron-accrue');
+  const depth = await redis.llen(EVENT_QUEUE_ACCRUAL).catch(() => null);
+  if (typeof depth === 'number') {
+    const prev: number | null = await redis
+      .get<number | string>(QUEUE_DEPTH_PREV_ACCRUAL_KEY)
+      .then((raw) => {
+        const parsed = raw == null ? null : Number(raw);
+        return parsed == null || Number.isNaN(parsed) ? null : parsed;
+      })
+      .catch(() => null); // absence of a baseline is never evidence of a problem
+
+    if (
+      prev != null &&
+      depth > prev &&
+      depth > ACCRUAL_QUEUE_ALERT_THRESHOLD &&
+      !accrueStale &&
+      !(await alreadyAlerted('accrual-queue-growth'))
+    ) {
+      await alertOps(
+        'accrual queue growing',
+        `events:accrual dýptin jókst úr ${prev} í ${depth} milli tveggja síðustu athugana, á meðan cron-accrue er enn að keyra — cronið heldur ekki í við álagið. Athugaðu Vercel logs, Redis og /api/cron-diagnostics.`,
+      );
+    }
+
+    try {
+      await redis.set(QUEUE_DEPTH_PREV_ACCRUAL_KEY, depth);
+    } catch {
+      /* best effort */
+    }
+  }
+
   return { stale: stale.map((s) => s.name) };
 }
 
