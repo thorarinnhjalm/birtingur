@@ -33,6 +33,11 @@ let mockEventsQueue: string[] = [];
 // proves end-to-end that a mirror-sync failure after a successful charge
 // does not cause accrual to re-queue (and thus double-bill) those events.
 let failMirrorSyncFor = new Set<string>();
+// Campaign ids for which the mocked campaigns-collection `update` throws —
+// used to simulate the auto-pause write itself failing (e.g. Firestore
+// outage), so tests can prove events are never dropped when the pause
+// didn't actually happen.
+let failCampaignUpdateFor = new Set<string>();
 
 vi.mock('../src/lib/firebase', () => {
   return {
@@ -102,6 +107,9 @@ vi.mock('../src/lib/firebase', () => {
             id,
             update: vi.fn(async (fields: any) => {
               if (colName === 'campaigns') {
+                if (failCampaignUpdateFor.has(id)) {
+                  throw new Error('campaign doc write unavailable');
+                }
                 const found = mockCampaigns.get(id);
                 if (found) {
                   if (fields['budget.remainingIsk'] !== undefined) {
@@ -370,6 +378,11 @@ function failMirrorSyncAfterChargeFor(campaignId: string) {
   failMirrorSyncFor.add(`adv_${campaignId}`);
 }
 
+/** Force the campaign-doc `status: 'paused'` write to throw — simulates the auto-pause itself failing. */
+function failPauseFor(campaignId: string) {
+  failCampaignUpdateFor.add(campaignId);
+}
+
 /** Campaign ids that have at least one recorded campaign_charge ledger entry. */
 function chargedCampaigns(): string[] {
   const ids = new Set<string>();
@@ -411,6 +424,7 @@ describe('Accrual Service', () => {
     failAfterChargeCampaigns = new Set();
     failMirrorSyncFor = new Set();
     mockKv = new Map();
+    failCampaignUpdateFor = new Set();
     chargeCallCounts = new Map();
   });
 
@@ -453,6 +467,7 @@ describe('drainAndAccrueAll', () => {
     failAfterChargeCampaigns = new Set();
     failMirrorSyncFor = new Set();
     mockKv = new Map();
+    failCampaignUpdateFor = new Set();
     chargeCallCounts = new Map();
   });
 
@@ -547,5 +562,50 @@ describe('drainAndAccrueAll', () => {
     expect(mockCampaigns.get('cmp_sustained')!.status).toBe('paused');
     expect(alertOps).toHaveBeenCalledTimes(1);
     expect(queueLength()).toBe(0); // dropped (not re-queued) once paused
+
+    // The alert must say the campaign WAS paused — never claim that when it
+    // wasn't (see the companion test below for the pause-failed case).
+    const [subject, message] = vi.mocked(alertOps).mock.calls[0]!;
+    expect(subject).toContain('sett í bið');
+    expect(message).toMatch(/var sjálfkrafa sett í bið/);
+    expect(message).not.toMatch(/ekki tókst|mistókst að setja/i);
+  });
+
+  it('re-queues (never drops) events and alerts that pausing failed, when the auto-pause write itself throws', async () => {
+    // Same three-strikes setup as above, but this time the campaign-doc
+    // write that would pause it also fails (e.g. the same Firestore outage
+    // that caused the charge failures in the first place — the scenario
+    // the coordinator flagged as "reachable exactly when it matters most").
+    // The campaign must stay active, its events must come back to the
+    // queue (nothing silently discarded), the failure counter must NOT be
+    // cleared (so the very next run retries the pause immediately), and the
+    // alert text must say plainly that the pause failed and the campaign is
+    // still serving — never the "paused" wording from the happy path.
+    await seedQueueFor('cmp_pause_fails', 10);
+    failChargeFor('cmp_pause_fails');
+    failPauseFor('cmp_pause_fails');
+
+    await drainAndAccrueAll(); // failure 1
+    await drainAndAccrueAll(); // failure 2
+    const res3 = await drainAndAccrueAll(); // failure 3 — crosses the threshold, pause attempt fails too
+
+    expect(mockCampaigns.get('cmp_pause_fails')!.status).toBe('active'); // NOT paused
+    expect(res3.requeued).toBe(10); // events re-queued, not dropped
+    expect(queueLength()).toBe(10); // queue depth restored, nothing lost
+    expect(alertOps).toHaveBeenCalledTimes(1);
+
+    const [subject, message] = vi.mocked(alertOps).mock.calls[0]!;
+    expect(subject.toLowerCase()).toMatch(/ekki tókst|villa/);
+    expect(message).toMatch(/mistókst/);
+    expect(message).toMatch(/ENN VIRK/);
+    expect(message).not.toMatch(/var sjálfkrafa sett í bið/);
+
+    // Counter was NOT cleared — the very next run should re-attempt the
+    // pause (and this time succeed, since we stop forcing the write to fail)
+    // rather than needing three more fresh failures first.
+    failCampaignUpdateFor.delete('cmp_pause_fails');
+    await drainAndAccrueAll(); // failure 4, but pause succeeds this time
+    expect(mockCampaigns.get('cmp_pause_fails')!.status).toBe('paused');
+    expect(alertOps).toHaveBeenCalledTimes(2);
   });
 });

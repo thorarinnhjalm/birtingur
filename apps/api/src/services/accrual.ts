@@ -207,31 +207,54 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
 
       if (failCount >= ACCRUAL_FAIL_THRESHOLD) {
         console.error(
-          `[cron-accrue] ${campaignId} failed to charge ${failCount} times in a row — pausing and alerting instead of re-queueing again:`,
+          `[cron-accrue] ${campaignId} failed to charge ${failCount} times in a row — attempting to pause:`,
           err,
         );
+        // The drop-and-don't-re-queue decision below is only safe if the
+        // pause ACTUALLY happened. If it didn't, the campaign is still
+        // active and will keep serving unbilled — dropping these events too
+        // would under-bill the advertiser AND leave the publisher never
+        // credited for real, permanently, on top of that. So `paused` gates
+        // both the alert wording (never tell ops "paused" when it wasn't)
+        // and whether we fall through to the normal re-queue path.
+        let paused = false;
         try {
           await db.collection(COLLECTIONS.campaigns).doc(campaignId).update({
             status: 'paused',
           });
           await pushCacheForCampaign(campaignId);
+          paused = true;
         } catch (pauseErr) {
           console.error(
             `[cron-accrue] failed to pause ${campaignId} after sustained accrual failures:`,
             pauseErr,
           );
         }
-        await alertOps(
-          `Herferð ${campaignId} sett í bið — endurteknar villur við innheimtu`,
-          `Innheimta fyrir herferð ${campaignId} hefur mistekist ${failCount} sinnum í röð (síðasta villa: ${String(err).slice(0, 300)}). Herferðin var sjálfkrafa sett í bið til að stöðva ófrágengnar birtingar — skoðaðu Vercel logs og /api/cron-diagnostics.`,
-        );
-        try {
-          await redis.del(failKey);
-        } catch {
-          /* best effort — a stale count just means one extra failure is
-           * needed before the next pause decision, not a correctness issue */
+
+        if (paused) {
+          await alertOps(
+            `Herferð ${campaignId} sett í bið — endurteknar villur við innheimtu`,
+            `Innheimta fyrir herferð ${campaignId} hefur mistekist ${failCount} sinnum í röð (síðasta villa: ${String(err).slice(0, 300)}). Herferðin var sjálfkrafa sett í bið til að stöðva ófrágengnar birtingar — skoðaðu Vercel logs og /api/cron-diagnostics.`,
+          );
+          try {
+            await redis.del(failKey);
+          } catch {
+            /* best effort — a stale count just means one extra failure is
+             * needed before the next pause decision, not a correctness issue */
+          }
+          continue; // paused — safe to drop this batch's events deliberately
         }
-        continue; // paused — do not re-queue this batch of events
+
+        // Pause failed too — the campaign is still active and will keep
+        // serving. Do NOT drop these events (nothing may be lost when we
+        // failed to stop the campaign) and do NOT clear the counter (so the
+        // very next run retries the pause immediately instead of waiting
+        // for three more fresh failures). Fall through to the normal
+        // re-queue below instead of `continue`ing.
+        await alertOps(
+          `VILLA: Ekki tókst að setja herferð ${campaignId} í bið — hún er ENN VIRK`,
+          `Innheimta fyrir herferð ${campaignId} hefur mistekist ${failCount} sinnum í röð OG sjálfvirk tilraun til að setja herferðina í bið mistókst líka (síðasta innheimtuvilla: ${String(err).slice(0, 300)}). Herferðin er ENN VIRK og gæti verið að birtast án innheimtu núna — settu hana í bið handvirkt strax og skoðaðu Vercel logs og /api/cron-diagnostics.`,
+        );
       }
 
       console.warn(`[cron-accrue] re-queueing ${evs.length} events for ${campaignId}:`, err);
