@@ -2703,13 +2703,11 @@ function AdminSettings() {
                       </span>
                     </div>
                     <div className="p-2 rounded bg-slate-50 border border-slate-100 flex justify-between col-span-2">
-                      <span>PRIVATE_KEY (Stærð):</span>
+                      <span>PRIVATE_KEY:</span>
                       <span
                         className={`font-mono font-bold ${diag?.env?.FIREBASE_PRIVATE_KEY_EXISTS ? 'text-green-600' : 'text-red-600'}`}
                       >
-                        {diag?.env?.FIREBASE_PRIVATE_KEY_EXISTS
-                          ? `Virkur (${diag.env.FIREBASE_PRIVATE_KEY_LENGTH} stafir)`
-                          : 'VANTAR'}
+                        {diag?.env?.FIREBASE_PRIVATE_KEY_EXISTS ? 'Virkur' : 'VANTAR'}
                       </span>
                     </div>
                   </div>

@@ -69,7 +69,9 @@ adminRoutes.get('/waitlist/stats', async (c) => {
 adminRoutes.get('/diagnostics', async (c) => {
   const diagnosticResult: Record<string, any> = {};
 
-  // 1. Env vars status (safe masking)
+  // 1. Env vars: presence only, never values and never lengths. A secret's
+  // length is not the secret, but it narrows a brute force and buys the
+  // reader nothing that the boolean doesn't already tell them.
   diagnosticResult.env = {
     VERCEL: process.env.VERCEL ?? null,
     NODE_ENV: process.env.NODE_ENV ?? null,
@@ -77,11 +79,9 @@ adminRoutes.get('/diagnostics', async (c) => {
     FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL ?? null,
     FIREBASE_DATABASE_ID: process.env.FIREBASE_DATABASE_ID ?? null,
     FIREBASE_PRIVATE_KEY_EXISTS: !!process.env.FIREBASE_PRIVATE_KEY,
-    FIREBASE_PRIVATE_KEY_LENGTH: process.env.FIREBASE_PRIVATE_KEY?.length ?? 0,
     UPSTASH_REDIS_REST_URL_EXISTS: !!process.env.UPSTASH_REDIS_REST_URL,
     KV_REST_API_URL_EXISTS: !!process.env.KV_REST_API_URL,
     CRON_SECRET_EXISTS: !!process.env.CRON_SECRET,
-    CRON_SECRET_LENGTH: process.env.CRON_SECRET?.length ?? 0,
   };
 
   // 2. Test Firestore connection
@@ -95,7 +95,6 @@ adminRoutes.get('/diagnostics', async (c) => {
     diagnosticResult.firestore = {
       status: 'error',
       message: err.message,
-      stack: err.stack,
     };
   }
 
@@ -110,7 +109,6 @@ adminRoutes.get('/diagnostics', async (c) => {
     diagnosticResult.slotsQuery = {
       status: 'error',
       message: err.message,
-      stack: err.stack,
     };
   }
 
@@ -126,7 +124,6 @@ adminRoutes.get('/diagnostics', async (c) => {
     diagnosticResult.slotsWithConverter = {
       status: 'error',
       message: err.message,
-      stack: err.stack,
     };
   }
 
@@ -173,7 +170,6 @@ adminRoutes.get('/diagnostics', async (c) => {
     diagnosticResult.redis = {
       status: 'error',
       message: err.message,
-      stack: err.stack,
     };
   }
 
@@ -188,25 +184,10 @@ adminRoutes.get('/diagnostics', async (c) => {
     diagnosticResult.ops = { status: 'error', message: err.message };
   }
 
-  // 7. Legacy: a hardcoded per-publisher stats probe left from one
-  // incident. Retained only until the ops section above is confirmed in
-  // production, then delete.
-  try {
-    const today = new Date().toISOString().split('T')[0]!.replace(/-/g, '');
-    const testPublisherId = 'pub_95af8e6a4b0a8a3530ddeede'; // pizzadeig.is
-    const ref = db.doc(`stats/publishers/${testPublisherId}/${today}`);
-    const snap = await ref.get();
-    diagnosticResult.firestoreStats = {
-      path: ref.path,
-      exists: snap.exists,
-      data: snap.data() ?? null,
-    };
-  } catch (err: any) {
-    diagnosticResult.firestoreStats = {
-      status: 'error',
-      message: err.message,
-    };
-  }
+  // A hardcoded probe of one publisher's stats doc (pizzadeig.is) used to sit
+  // here, left over from a single incident. It reported on that publisher
+  // forever and on nobody else, so it answered "is the pipeline running"
+  // only by coincidence. The `ops` section above answers it for real.
 
   return c.json(diagnosticResult);
 });
