@@ -35,6 +35,7 @@ describe('createMcpServer scope-based tool registration', () => {
 
     expect(names).toContain('register_publisher');
     expect(names).toContain('create_slot');
+    expect(names).toContain('check_slot_delivery');
     expect(names).not.toContain('create_campaign');
     expect(names).not.toContain('get_wallet');
     expect(names).not.toContain('list_categories');
@@ -62,6 +63,7 @@ describe('createMcpServer scope-based tool registration', () => {
     expect(names).toContain('list_campaigns');
     expect(names).not.toContain('register_publisher');
     expect(names).not.toContain('create_slot');
+    expect(names).not.toContain('check_slot_delivery');
   });
 
   it('registers both tool sets for a both-scoped key', async () => {

@@ -6,6 +6,7 @@ import { registerUpdateSlot } from './update-slot.js';
 import { registerGetSnippet } from './get-snippet.js';
 import { registerGetReactComponent } from './get-react-component.js';
 import { registerGetStats } from './get-stats.js';
+import { registerCheckDelivery } from './check-delivery.js';
 import { registerSetContentPolicy } from './set-content-policy.js';
 import { registerGetChangelog } from './get-changelog.js';
 
@@ -17,6 +18,7 @@ export function registerPublisherTools(server: McpServer, apiKey: string) {
   registerGetSnippet(server, apiKey);
   registerGetReactComponent(server, apiKey);
   registerGetStats(server, apiKey);
+  registerCheckDelivery(server, apiKey);
   registerSetContentPolicy(server, apiKey);
   registerGetChangelog(server);
 }
