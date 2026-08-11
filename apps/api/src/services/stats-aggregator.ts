@@ -107,10 +107,12 @@ const BATCH_COMMIT_AT = FIRESTORE_BATCH_LIMIT - 50;
 function chunkedBatch() {
   let current = db.batch();
   let ops = 0;
+  let sealed = false;
   const commits: Promise<unknown>[] = [];
 
   return {
     set(ref: DocumentReference, data: DocumentData, options: SetOptions) {
+      if (sealed) throw new Error('chunkedBatch: set() after commit()');
       current.set(ref, data, options);
       ops++;
       if (ops >= BATCH_COMMIT_AT) {
@@ -120,7 +122,14 @@ function chunkedBatch() {
       }
     },
     async commit() {
-      if (ops > 0) commits.push(current.commit());
+      // Sealing makes a second commit() await the same already-settled
+      // promises instead of re-committing a WriteBatch that has already run,
+      // which would double-apply every FieldValue.increment in it.
+      if (!sealed) {
+        sealed = true;
+        if (ops > 0) commits.push(current.commit());
+        ops = 0;
+      }
       await Promise.all(commits);
     },
   };
@@ -338,9 +347,13 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   // before, because the drain was slow enough that a run never accumulated
   // enough buckets to reach it — speeding the drain up would have turned a
   // timeout into a hard INVALID_ARGUMENT. Committing in chunks also means a
-  // failure late in the write phase now loses only the uncommitted chunk
-  // rather than every bucket in the run; the recorded:{hour} counters below
-  // still let the daily reconciliation cron see whatever did not land.
+  // failure late in the write phase loses only the uncommitted chunks rather
+  // than every bucket in the run — strictly better than before, since the
+  // events are already gone from Redis either way. Note what it does NOT buy:
+  // the recorded:{hour} counters below never run when commit() throws, so the
+  // daily reconciliation cron still sees the whole batch as missing even when
+  // some chunks landed. It over-reports drift on a partial failure; it never
+  // under-reports it.
   const batch = chunkedBatch();
 
   for (const [key, b] of campaignHour) {
@@ -484,26 +497,38 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
  */
 const RPOP_CHUNK = 200;
 
-/** Wall-clock budget for one cron invocation, well under Vercel's 60s cap. */
-const DEFAULT_AGGREGATE_DEADLINE_MS = 40_000;
+/**
+ * Wall-clock budget for one cron invocation.
+ *
+ * Checked between batches, so the real worst case is this budget plus one
+ * batch's duration plus the heartbeat and watchdog work the cron entrypoint
+ * does afterwards — which is why it is well under Vercel's 60s cap rather
+ * than close to it.
+ */
+const DEFAULT_AGGREGATE_DEADLINE_MS = 30_000;
 
-/** Normalizes `rpop(key, count)`, which yields an array, a bare value, or null. */
-function toEventList(raw: unknown): QueuedEvent[] {
-  if (raw == null) return [];
-  const items = Array.isArray(raw) ? raw : [raw];
-  const out: QueuedEvent[] = [];
+/**
+ * Normalizes `rpop(key, count)`, which yields an array, a bare value, or null.
+ *
+ * `rawCount` is how many entries Redis actually handed back, which is NOT
+ * `events.length` when an entry fails to parse. The drain uses the raw count
+ * to decide whether the queue is exhausted — see the short-read note there.
+ */
+function toEventList(raw: unknown): { events: QueuedEvent[]; rawCount: number } {
+  if (raw == null) return { events: [], rawCount: 0 };
+  const items = (Array.isArray(raw) ? raw : [raw]).filter((i) => i != null);
+  const events: QueuedEvent[] = [];
   for (const item of items) {
-    if (item == null) continue;
     try {
       // The Upstash SDK auto-deserializes JSON, so an item may already be an object.
-      out.push(
+      events.push(
         typeof item === 'string' ? (JSON.parse(item) as QueuedEvent) : (item as QueuedEvent),
       );
     } catch {
       console.warn('[cron-aggregate] Failed to parse event from queue:', typeof item, item);
     }
   }
-  return out;
+  return { events, rawCount: items.length };
 }
 
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {
@@ -515,12 +540,18 @@ export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
     while (events.length < batchSize) {
       const want = Math.min(RPOP_CHUNK, batchSize - events.length);
-      const popped = toEventList(await redis.rpop<unknown>(queue, want));
-      if (popped.length === 0) break;
+      const { events: popped, rawCount } = toEventList(await redis.rpop<unknown>(queue, want));
+      // Both of these test the RAW count on purpose. Testing the parsed count
+      // instead conflates "the queue is empty" with "this chunk contained
+      // something that failed to parse": one malformed entry among 400 good
+      // ones ended the drain after a single chunk and stranded the rest, and a
+      // chunk of nothing but garbage made the whole run look like an empty
+      // queue — the unbounded-backlog failure this fix exists to prevent.
+      if (rawCount === 0) break;
       events.push(...popped);
       // A short read means the queue is drained; asking again just costs a
       // round trip to be told the same thing.
-      if (popped.length < want) break;
+      if (rawCount < want) break;
     }
   }
   await aggregateEvents(events);
@@ -532,6 +563,8 @@ export interface AggregateRunResult {
   batches: number;
   /** True when the wall-clock budget, not an empty queue, ended the run. */
   timedOut: boolean;
+  /** True when the batch cap, not an empty queue, ended the run. */
+  capped: boolean;
 }
 
 /**
@@ -555,6 +588,11 @@ export async function drainAndAggregateAll(
   let aggregated = 0;
   let batches = 0;
   let timedOut = false;
+  // Only an empty batch proves the queues ran dry. Exiting the loop any other
+  // way means work was left behind, and "left work behind" has to be
+  // distinguishable from "nothing to do" — otherwise a cron that is
+  // permanently an hour behind looks exactly like a healthy one.
+  let drained = false;
 
   while (batches < maxBatches) {
     if (now() >= deadlineAt) {
@@ -564,8 +602,11 @@ export async function drainAndAggregateAll(
     const n = await drainAndAggregate(batchSize);
     batches++;
     aggregated += n;
-    if (n === 0) break;
+    if (n === 0) {
+      drained = true;
+      break;
+    }
   }
 
-  return { aggregated, batches, timedOut };
+  return { aggregated, batches, timedOut, capped: !drained && !timedOut };
 }

@@ -46,6 +46,22 @@ const CRON_NAMES = Object.keys(CRON_STALENESS_MINUTES);
 /** Depth past which `events:accrual` is a backlog rather than normal traffic. */
 const ACCRUAL_BACKLOG_THRESHOLD = 500;
 
+/**
+ * Depth past which `events:stats` is a backlog: one `cron-aggregate` run
+ * clears at most `maxBatches × batchSize` = 5000 events, so anything above
+ * that is a queue the hourly cron cannot catch up with in a single run.
+ */
+const STATS_BACKLOG_THRESHOLD = 5000;
+
+/**
+ * An hourly cron should never leave an event waiting three hours. This is the
+ * signal a depth check alone cannot give: `cron-aggregate` now degrades to
+ * "drain less this run" instead of timing out, which is the right behaviour
+ * but is silent — a run that quietly leaves work behind every hour records a
+ * perfectly fresh heartbeat.
+ */
+const STATS_OLDEST_AGE_ALERT_SECONDS = 3 * 60 * 60;
+
 function envPresence(): Record<string, boolean> {
   return {
     CRON_SECRET: Boolean(process.env.CRON_SECRET),
@@ -130,6 +146,19 @@ export async function collectOpsDiagnostics(): Promise<OpsDiagnostics> {
       oldestStatsEventAgeSeconds,
     };
 
+    if (statsLen > STATS_BACKLOG_THRESHOLD) {
+      problems.push(
+        `Tölfræðibiðröðin (events:stats) er með ${statsLen} atburði í bið, meira en cron-aggregate nær í einni keyrslu.`,
+      );
+    }
+    if (
+      oldestStatsEventAgeSeconds !== null &&
+      oldestStatsEventAgeSeconds > STATS_OLDEST_AGE_ALERT_SECONDS
+    ) {
+      problems.push(
+        `Elsti atburðurinn í events:stats hefur beðið í ${Math.round(oldestStatsEventAgeSeconds / 3600)} klst. Cron-aggregate hefur ekki undan.`,
+      );
+    }
     if (accrualLen > ACCRUAL_BACKLOG_THRESHOLD) {
       problems.push(
         `Uppsöfnunarbiðröðin (events:accrual) er með ${accrualLen} atburði í bið, sem bendir til að cron-accrue sé ekki að tæma hana.`,

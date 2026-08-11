@@ -76,7 +76,8 @@ describe('drainAndAggregate', () => {
     const n = await drainAndAggregate(1000);
 
     expect(n).toBe(450);
-    // 200 + 200 + 50 (short read ends it) — not 450 round trips.
+    // Three chunks asked for 200 each; the third comes back with 50 and ends
+    // the loop. Not 450 round trips.
     expect(statsPops().map((c) => c.count)).toEqual([200, 200, 200]);
     expect(statsPops().length).toBeLessThan(10);
   });
@@ -130,6 +131,42 @@ describe('drainAndAggregate', () => {
     expect(snap.data()?.impressions).toBe(2);
   });
 
+  // The short-read exit has to test the RAW chunk size, not the parsed one.
+  // Testing the parsed size made one bad entry among 400 look identical to an
+  // exhausted queue: the drain stopped after a single chunk and stranded 201
+  // events, every hour, forever.
+  it('keeps draining past a chunk that contained a malformed entry', async () => {
+    enqueue(
+      EVENT_QUEUE_STATS,
+      ...Array.from({ length: 200 }, () => makeEvent()),
+      '{not json',
+      ...Array.from({ length: 199 }, () => makeEvent()),
+    );
+
+    const n = await drainAndAggregate(1000);
+
+    expect(n).toBe(399);
+    expect(queues.get(EVENT_QUEUE_STATS)?.length ?? 0).toBe(0);
+  });
+
+  // Worse still: a chunk of nothing but garbage parsed to zero events, which
+  // read as "the queue is empty" and ended the entire run — leaving the good
+  // events behind it untouched.
+  it('does not mistake a chunk of pure garbage for an empty queue', async () => {
+    // Enqueued head-first, popped tail-first — so the garbage listed last is
+    // what the very first chunk hits.
+    enqueue(
+      EVENT_QUEUE_STATS,
+      ...Array.from({ length: 300 }, () => makeEvent()),
+      ...Array.from({ length: 200 }, () => '{not json'),
+    );
+
+    const run = await drainAndAggregateAll();
+
+    expect(run.aggregated).toBe(300);
+    expect(queues.get(EVENT_QUEUE_STATS)?.length ?? 0).toBe(0);
+  });
+
   it('accepts entries the Upstash SDK already deserialized into objects', async () => {
     // rpop is typed as returning strings, but the SDK auto-parses JSON, so in
     // production the chunk can come back as objects.
@@ -163,7 +200,9 @@ describe('drainAndAggregate', () => {
     const n = await drainAndAggregate(1000);
 
     expect(n).toBe(200);
-    expect(batchSpy.mock.calls.length).toBeGreaterThan(1);
+    // Exactly two: 800 ops at a 450-op commit boundary. Asserting the number
+    // rather than ">1" also rules out an implementation that commits per op.
+    expect(batchSpy.mock.calls.length).toBe(2);
     batchSpy.mockRestore();
 
     const first = await db.doc(`${COLLECTIONS.stats}/publishers/pub_0/20260808`).get();
@@ -197,16 +236,19 @@ describe('drainAndAggregateAll', () => {
 
     expect(run.aggregated).toBe(3);
     expect(run.timedOut).toBe(false);
+    expect(run.capped).toBe(false);
     // 3 batches of 1, plus the batch that found nothing left.
     expect(run.batches).toBe(4);
   });
 
-  it('stops at maxBatches and leaves the rest queued', async () => {
+  it('stops at maxBatches and says so, leaving the rest queued', async () => {
     enqueue(EVENT_QUEUE_STATS, ...Array.from({ length: 5 }, () => makeEvent()));
 
     const run = await drainAndAggregateAll({ batchSize: 1, maxBatches: 2 });
 
-    expect(run).toEqual({ aggregated: 2, batches: 2, timedOut: false });
+    // `capped` is what makes "ran out of batches with work left" different
+    // from "the queue was empty" — both otherwise look like a clean run.
+    expect(run).toEqual({ aggregated: 2, batches: 2, timedOut: false, capped: true });
     expect(queues.get(EVENT_QUEUE_STATS)?.length).toBe(3);
   });
 
@@ -220,6 +262,7 @@ describe('drainAndAggregateAll', () => {
     const run = await drainAndAggregateAll({ batchSize: 1, deadlineMs: 100, now });
 
     expect(run.timedOut).toBe(true);
+    expect(run.capped).toBe(false);
     expect(run.aggregated).toBe(1);
     // The point of the deadline: the remainder waits for the next hour instead
     // of the run being terminated by the platform with no heartbeat recorded.
@@ -227,8 +270,12 @@ describe('drainAndAggregateAll', () => {
   });
 
   it('reports an empty run without touching Firestore', async () => {
+    const batchSpy = vi.spyOn(db, 'batch');
+
     const run = await drainAndAggregateAll();
 
-    expect(run).toEqual({ aggregated: 0, batches: 1, timedOut: false });
+    expect(run).toEqual({ aggregated: 0, batches: 1, timedOut: false, capped: false });
+    expect(batchSpy).not.toHaveBeenCalled();
+    batchSpy.mockRestore();
   });
 });

@@ -28,6 +28,15 @@ export async function GET(req) {
     // Vercel's 60s limit — a killed run records no heartbeat, and the
     // heartbeat watchdog below runs inside this very cron.
     const run = await drainAndAggregateAll();
+    if (run.timedOut || run.capped) {
+      // The response body goes nowhere on a Vercel cron, and the run still
+      // records a healthy heartbeat — so without this line a permanently
+      // behind-schedule aggregator is invisible. The ops card's events:stats
+      // depth and oldest-event age are the other half of the same signal.
+      console.warn(
+        `[cron-aggregate] Left work in the queue: aggregated ${run.aggregated} in ${run.batches} batches (timedOut=${run.timedOut}, capped=${run.capped}).`,
+      );
+    }
     await recordHeartbeat('cron-aggregate');
     const watchdog = await checkCronHeartbeats();
     return new Response(JSON.stringify({ ...run, staleCrons: watchdog.stale }), {

@@ -44,7 +44,6 @@ describe('collectOpsDiagnostics', () => {
     vi.clearAllMocks();
     redisConfigured = true;
     process.env.CRON_SECRET = 'x';
-    process.env.SIGNING_SECRET = 'x';
     process.env.FIREBASE_PRIVATE_KEY = 'x';
     setQueues({});
     mockMget.mockResolvedValue(healthyHeartbeats(Date.now()));
@@ -168,15 +167,16 @@ describe('collectOpsDiagnostics', () => {
     expect(d.problems.join(' ')).toContain('FIREBASE_PRIVATE_KEY');
   });
 
-  // SIGNING_SECRET lives in apps/serving's environment, not the API's. Reporting
-  // it here made the admin ops card permanently red with a problem no API-side
+  // SIGNING_SECRET lives in apps/serving's environment, not the API's, so it is
+  // absent from the report whether or not it happens to be set here. Reporting
+  // it made the admin ops card permanently red with a problem no API-side
   // change could fix.
   it('does not report SIGNING_SECRET, which belongs to another deploy', async () => {
-    delete process.env.SIGNING_SECRET;
+    process.env.SIGNING_SECRET = 'set-in-this-process-but-irrelevant';
 
     const d = await collectOpsDiagnostics();
 
-    expect(d.env.SIGNING_SECRET).toBeUndefined();
+    expect(Object.keys(d.env)).not.toContain('SIGNING_SECRET');
     expect(d.problems.join(' ')).not.toContain('SIGNING_SECRET');
   });
 });
