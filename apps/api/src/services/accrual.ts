@@ -3,7 +3,7 @@ import { COLLECTIONS, campaignConverter } from '@ada/shared/firestore';
 import { db } from '../lib/firebase.js';
 import { chargeCampaign, creditPublisher } from './wallet.js';
 import { pushCacheForCampaign } from '../lib/push-cache.js';
-import { FLAT_CPM_ISK, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import { FLAT_CPM_ISK, EVENT_QUEUE_ACCRUAL, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
 import { AppError } from '../lib/errors.js';
 import { alertOps, alreadyAlerted } from './ops-alerts.js';
 
@@ -15,6 +15,21 @@ interface QueuedEvent {
   campaignId: string;
   ts: number;
 }
+
+/**
+ * Smallest gross that `creditPublisher` can split into a whole-króna
+ * publisher credit and a whole-króna platform fee.
+ *
+ * The fee is `round(gross * feePercent / 100)`, so it only reaches 1 ISK once
+ * `gross >= 50 / feePercent` — 3 ISK at the current 20%. Below that the fee
+ * rounds to zero, and `LedgerEntrySchema` rejects a zero-amount entry, which
+ * is exactly the error that made every cron-accrue run throw on 2026-08-11:
+ * the campaign was charged, the publisher credited, and then the fee entry
+ * blew up, aborting the rest of the batch. At a 550 ISK CPM this covers any
+ * publisher with fewer than five impressions in a single run, which on a
+ * long-tail network is most of them.
+ */
+export const MIN_SPLITTABLE_GROSS_ISK = Math.ceil(50 / DEFAULT_PLATFORM_FEE_PERCENT);
 
 const ACCRUAL_FAIL_PREFIX = 'accrual-fail:';
 // A campaign that fails to charge (for a reason OTHER than insufficient
@@ -48,6 +63,14 @@ const ACCRUAL_FAIL_TTL_SECONDS = 4 * 60 * 60; // a few hours — bounds a sparse
 interface DrainBatchResult {
   drained: number;
   requeued: number;
+  /**
+   * Events pushed back because their gross was too small to split yet. Kept
+   * apart from `requeued` (which means "a failure sent these back to be
+   * retried") because a run where every publisher is below threshold is
+   * normal operation on a long-tail network, not a stalled pipeline — and
+   * the zero-progress alert in drainAndAccrueAll must not page ops for it.
+   */
+  deferred: number;
 }
 
 /**
@@ -114,7 +137,7 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
     redis = getRedis();
   } catch {
     // If Redis is not configured (e.g. offline testing), skip
-    return { drained: 0, requeued: 0 };
+    return { drained: 0, requeued: 0, deferred: 0 };
   }
 
   const events: QueuedEvent[] = [];
@@ -140,10 +163,10 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
       popErr,
     );
     const pushedBack = await safeRequeue(redis, events, 'rpop failure mid-batch');
-    return { drained: 0, requeued: pushedBack };
+    return { drained: 0, requeued: pushedBack, deferred: 0 };
   }
 
-  if (events.length === 0) return { drained: 0, requeued: 0 };
+  if (events.length === 0) return { drained: 0, requeued: 0, deferred: 0 };
 
   // Group by campaign for charging
   const byCampaign = new Map<string, QueuedEvent[]>();
@@ -155,6 +178,7 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
   }
 
   let requeued = 0;
+  let deferred = 0;
   // Not-yet-resolved campaigns for this batch — see the safety-net note in
   // the docstring above. Deleted from as each campaign is resolved one way
   // or another; whatever remains when the loop exits (normally OR via an
@@ -172,6 +196,10 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
       // but it's a job for the daily reconciliation cron and ops alerting, not
       // for the queue.
       let charged = false;
+      // Declared out here so the outer catch can re-queue the right subset:
+      // once the deferral block below has pushed the small publishers' events
+      // back, only these may go back again.
+      let settleableEvents = evs;
       try {
         const cmpSnap = await db
           .collection(COLLECTIONS.campaigns)
@@ -196,13 +224,69 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
         }
 
         // Gross per publisher = round(cpm * count / 1000); campaign charge = sum (conserves money).
+        //
+        // A gross below MIN_SPLITTABLE_GROSS_ISK cannot be split into a
+        // publisher credit and a platform fee that are both whole króna, so
+        // it is not billed at all this run — its events go back on the queue
+        // and accumulate until they are worth splitting. Crediting the
+        // publisher the full gross instead would silently waive the platform
+        // fee, and on a network of small publishers those tiny batches are
+        // most of the volume. Deferring the whole line (charge, credit and
+        // fee together) is what keeps `checkCampaign`'s money-conservation
+        // invariant intact: credits + fees must equal charges exactly, so
+        // nothing may be charged before it can also be credited.
+        // A campaign that is no longer running can never accumulate more
+        // impressions, so deferring its residue would strand it on the queue
+        // forever: popped, re-deferred and re-pushed every 15 minutes, the
+        // publisher never paid and `events:accrual` growing by one residue
+        // per ended campaign. Settle whatever it has instead and let
+        // creditPublisher waive the sub-króna fee.
+        const campaignStillRunning =
+          cmp.status === 'active' && cmp.schedule.endsAt.getTime() > Date.now();
+
         const grossByPublisher = new Map<string, number>();
+        const deferredPublishers = new Set<string>();
         let totalCharge = 0;
         for (const [publisherId, count] of countByPublisher) {
           const gross = Math.round((FLAT_CPM_ISK * count) / 1000);
           if (gross <= 0) continue;
+          if (gross < MIN_SPLITTABLE_GROSS_ISK && campaignStillRunning) {
+            deferredPublishers.add(publisherId);
+            continue;
+          }
           grossByPublisher.set(publisherId, gross);
           totalCharge += gross;
+        }
+
+        // Everything downstream — the two explicit re-queue sites, the
+        // dropped-events forensic record, and `pending` — must work off the
+        // settleable subset, never `evs`. The deferred events have already
+        // been pushed back by the time those run, and pushing them a second
+        // time bills the advertiser for impressions that never happened and
+        // pays the publisher for them twice. Conservation still holds in that
+        // case, so reconciliation cannot catch it.
+        if (deferredPublishers.size > 0) {
+          const deferredEvents = evs.filter((ev) => deferredPublishers.has(ev.publisherId));
+          settleableEvents = evs.filter((ev) => !deferredPublishers.has(ev.publisherId));
+          const pushed = await safeRequeue(
+            redis,
+            deferredEvents,
+            `gross below ${MIN_SPLITTABLE_GROSS_ISK} ISK for ${deferredPublishers.size} publisher(s) on ${campaignId}`,
+          );
+          deferred += pushed;
+          if (pushed === deferredEvents.length) {
+            // Only shrink `pending` once the push actually landed. If it
+            // didn't, leaving the full batch in `pending` lets the outer
+            // catch or the `finally` net have another go rather than dropping
+            // the small publishers' revenue.
+            if (settleableEvents.length > 0) {
+              pending.set(campaignId, settleableEvents);
+            } else {
+              pending.delete(campaignId);
+            }
+          } else {
+            settleableEvents = evs;
+          }
         }
 
         if (totalCharge > 0) {
@@ -263,7 +347,7 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
               // another shot at charging (or successfully pausing) it.
               const pushed = await safeRequeue(
                 redis,
-                evs,
+                settleableEvents,
                 `insufficient-balance pause failed for ${campaignId}`,
               );
               requeued += pushed;
@@ -286,7 +370,10 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
             await creditPublisher(publisherId, campaignId, gross);
           }
         } else {
-          pending.delete(campaignId); // nothing to charge (all grosses rounded to 0) — resolved
+          // Nothing settleable this run. Any deferred events were already
+          // re-queued above and removed from `pending`; what's left here is a
+          // campaign whose impressions all rounded to zero gross.
+          pending.delete(campaignId);
         }
       } catch (err) {
         if (charged) {
@@ -355,8 +442,13 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
             // many per publisher, so ops has a forensic record to manually
             // credit from if it comes to that. Logged to console AND put in
             // the alert body itself, not just one or the other.
+            // Only the settleable events are actually being dropped here;
+            // any deferred ones went back on the queue earlier and will be
+            // billed by a later run. Counting them as lost would send ops
+            // chasing a manual credit for a publisher who is about to be
+            // paid normally.
             const impressionsByPublisher = new Map<string, number>();
-            for (const ev of evs) {
+            for (const ev of settleableEvents) {
               impressionsByPublisher.set(
                 ev.publisherId,
                 (impressionsByPublisher.get(ev.publisherId) ?? 0) + 1,
@@ -364,7 +456,7 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
             }
             const discardedEvidence = {
               campaignId,
-              discardedEvents: evs.length,
+              discardedEvents: settleableEvents.length,
               impressionsByPublisher: Object.fromEntries(impressionsByPublisher),
             };
             console.error(
@@ -402,7 +494,11 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
         }
 
         console.warn(`[cron-accrue] re-queueing ${evs.length} events for ${campaignId}:`, err);
-        const pushed = await safeRequeue(redis, evs, `unexpected charge failure for ${campaignId}`);
+        const pushed = await safeRequeue(
+          redis,
+          settleableEvents,
+          `unexpected charge failure for ${campaignId}`,
+        );
         requeued += pushed;
         pending.delete(campaignId);
       }
@@ -429,7 +525,7 @@ async function drainBatch(batchSize: number): Promise<DrainBatchResult> {
     }
   }
 
-  return { drained: events.length, requeued };
+  return { drained: events.length, requeued, deferred };
 }
 
 /** Drain up to `batchSize` events and process them. Returns count drained. */
@@ -481,6 +577,8 @@ export async function drainAndAccrueAll(opts?: {
 }): Promise<{
   drained: number;
   netDrained: number;
+  /** Events held back because their gross was not yet splittable. */
+  deferred: number;
   batches: number;
   requeued: number;
   capped: boolean;
@@ -494,6 +592,7 @@ export async function drainAndAccrueAll(opts?: {
 
   let drained = 0;
   let requeued = 0;
+  let deferred = 0;
   let batches = 0;
   // True only when maxBatches cut the run short while it was still making
   // full-batch progress — i.e. there may be more work left in the queue than
@@ -515,20 +614,27 @@ export async function drainAndAccrueAll(opts?: {
     batches++; // count the call that actually happened, not a loop-increment guess
     drained += res.drained;
     requeued += res.requeued;
+    deferred += res.deferred;
     // Stop when the queue yielded less than a full batch (empty), or when a
-    // batch made no forward progress (everything re-queued — retrying in
-    // this run would just spin on the same failure).
-    if (res.drained < batchSize || res.drained === res.requeued) break;
+    // batch made no forward progress (everything went back — retrying in
+    // this run would just spin on the same failure, and re-popping deferred
+    // events would only defer them again).
+    if (res.drained < batchSize || res.drained === res.requeued + res.deferred) break;
     if (batches === maxBatches) capped = true;
   }
 
-  const netDrained = drained - requeued;
+  const netDrained = drained - requeued - deferred;
   // A run that popped events but billed nothing net — every one of them
   // ended up back on the queue — is exactly the failure mode a heartbeat
   // alone can't see: the cron ran, didn't throw, and will happily record a
   // green heartbeat while genuinely making zero progress (e.g. a sustained
   // Firestore/Redis blip hitting every campaign this run touched).
-  if (netDrained === 0 && drained > 0) {
+  //
+  // Deferrals are excluded deliberately. A run where every publisher was
+  // below the splittable threshold also bills nothing, but that is normal
+  // operation on a network of small publishers — paging ops for it would
+  // turn this alert into noise on exactly the signal it exists to carry.
+  if (netDrained === 0 && drained > 0 && requeued > 0) {
     if (!(await alreadyAlerted(ACCRUAL_ZERO_PROGRESS_ALERT_KEY))) {
       await alertOps(
         'Innheimta skilaði engu — allar birtingar fóru aftur í biðröð',
@@ -537,5 +643,5 @@ export async function drainAndAccrueAll(opts?: {
     }
   }
 
-  return { drained, netDrained, batches, requeued, capped, timedOut };
+  return { drained, netDrained, batches, requeued, deferred, capped, timedOut };
 }

@@ -16,7 +16,17 @@ interface MockCampaign {
   advertiserId: string;
   budget: { mode: 'cpm_capped' | 'slot_purchased'; totalIsk: number; remainingIsk: number };
   status: string;
+  // Accrual reads this to decide whether a campaign can still accumulate
+  // impressions — an ended one must have its residue settled rather than
+  // deferred forever.
+  schedule: { startsAt: Date; endsAt: Date };
 }
+
+const A_DAY = 86_400_000;
+const RUNNING_SCHEDULE = () => ({
+  startsAt: new Date(Date.now() - A_DAY),
+  endsAt: new Date(Date.now() + A_DAY),
+});
 
 interface MockSlot {
   id: string;
@@ -297,6 +307,7 @@ async function seedWalletCampaignSlot({
       remainingIsk: totalIsk,
     },
     status: 'active',
+    schedule: RUNNING_SCHEDULE(),
   });
 
   mockSlots.set('slot_acc', {
@@ -361,6 +372,7 @@ function seedFundedCampaign({
     advertiserId,
     budget: { mode: 'cpm_capped', totalIsk, remainingIsk: totalIsk },
     status: 'active',
+    schedule: RUNNING_SCHEDULE(),
   });
 }
 
@@ -475,6 +487,248 @@ describe('Accrual Service', () => {
     await drainAndAccrue(2000);
     const charge = await getCampaignChargeTotal('adv_acc');
     expect(charge).toBe(FLAT_CPM_ISK);
+  });
+
+  // 2026-08-11 production incident: every cron-accrue run threw. The
+  // publisher was credited, then the platform_fee entry for the same gross
+  // was rejected as a zero amount, aborting the rest of the batch. At a 550
+  // ISK CPM the 20% fee only reaches 1 ISK once gross is 3, i.e. from five
+  // impressions per publisher per run.
+  describe('grosses too small to split into whole króna', () => {
+    it('does not charge, credit or throw for a publisher below the threshold', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 4, // gross 2, fee rounds to 0
+      });
+
+      await expect(drainAndAccrue(2000)).resolves.toBeDefined();
+
+      expect(await getCampaignChargeTotal('adv_acc')).toBe(0);
+      // The seeded top-up is the only entry; accrual added nothing.
+      expect(
+        mockLedgerEntries.filter((e) =>
+          ['publisher_credit', 'platform_fee', 'campaign_charge'].includes(e.type),
+        ),
+      ).toHaveLength(0);
+    });
+
+    it('puts those impressions back on the queue instead of dropping them', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 4,
+      });
+
+      await drainAndAccrue(2000);
+
+      expect(mockEventsQueue).toHaveLength(4);
+    });
+
+    it('settles once the deferred impressions accumulate past the threshold', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 4,
+      });
+      await drainAndAccrue(2000); // deferred
+
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 1,
+      });
+      await drainAndAccrue(2000); // 5 impressions now: gross 3, fee 1, net 2
+
+      expect(await getCampaignChargeTotal('adv_acc')).toBe(3);
+      const credit = mockLedgerEntries.find((e) => e.type === 'publisher_credit');
+      const fee = mockLedgerEntries.find((e) => e.type === 'platform_fee');
+      expect(credit!.amountIsk).toBe(2);
+      expect(fee!.amountIsk).toBe(1);
+      expect(mockEventsQueue).toHaveLength(0);
+    });
+
+    // The invariant reconciliation.ts enforces per campaign: nothing may be
+    // charged that is not also credited and fee'd, to the króna. Exercised
+    // with a mixed batch so the deferral branch actually runs — the same
+    // assertion against a single large publisher would pass even with the
+    // whole deferral block deleted.
+    it('keeps credits plus fees equal to the charge when part of the batch defers', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_big',
+        count: 37,
+      });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_small',
+        count: 2,
+      });
+
+      await drainAndAccrue(2000);
+
+      const charge = await getCampaignChargeTotal('adv_acc');
+      const creditsAndFees = mockLedgerEntries
+        .filter((e) => e.type === 'publisher_credit' || e.type === 'platform_fee')
+        .reduce((acc, e) => acc + e.amountIsk, 0);
+      expect(charge).toBeGreaterThan(0);
+      expect(creditsAndFees).toBe(charge);
+    });
+
+    // Independent review found this: the deferred events were pushed back
+    // once by the deferral block and a second time by the failure re-queue,
+    // which still worked off the full batch. The advertiser then paid for
+    // impressions that never happened and the publisher was credited twice
+    // for the same ones — and conservation still held, so reconciliation
+    // could not see it.
+    it('does not re-queue the deferred events a second time when the charge fails', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_big',
+        count: 100,
+      });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_small',
+        count: 4,
+      });
+      failChargeFor('cmp_acc');
+
+      await drainAndAccrue(2000);
+
+      const back = mockEventsQueue.map((raw) => JSON.parse(raw).publisherId);
+      expect(back.filter((p: string) => p === 'pub_small')).toHaveLength(4);
+      expect(back.filter((p: string) => p === 'pub_big')).toHaveLength(100);
+    });
+
+    // Same defect on the other explicit re-queue site: insufficient balance
+    // where the auto-pause write also fails.
+    it('does not duplicate deferred events when an insufficient-balance pause fails', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 1, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_big',
+        count: 100,
+      });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_small',
+        count: 2,
+      });
+      failPauseFor('cmp_acc');
+
+      await drainAndAccrue(2000);
+
+      const back = mockEventsQueue.map((raw) => JSON.parse(raw).publisherId);
+      expect(back.filter((p: string) => p === 'pub_small')).toHaveLength(2);
+    });
+
+    // Without this, a campaign that stops serving strands its sub-threshold
+    // tail on the queue forever: popped and re-deferred every 15 minutes,
+    // the publisher never paid, events:accrual growing by one residue per
+    // ended campaign.
+    it('settles the residue of a campaign that has ended instead of deferring it forever', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      mockCampaigns.get('cmp_acc')!.schedule = {
+        startsAt: new Date(Date.now() - 2 * A_DAY),
+        endsAt: new Date(Date.now() - A_DAY),
+      };
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 2, // gross 1, fee would round to 0
+      });
+
+      await drainAndAccrue(2000);
+
+      expect(mockEventsQueue).toHaveLength(0);
+      expect(await getCampaignChargeTotal('adv_acc')).toBe(1);
+      const credit = mockLedgerEntries.find((e) => e.type === 'publisher_credit');
+      expect(credit!.amountIsk).toBe(1);
+      // No fee entry at all rather than a rejected zero-amount one.
+      expect(mockLedgerEntries.filter((e) => e.type === 'platform_fee')).toHaveLength(0);
+    });
+
+    it('settles the residue of a paused campaign too', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      mockCampaigns.get('cmp_acc')!.status = 'paused';
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_acc',
+        count: 2,
+      });
+
+      await drainAndAccrue(2000);
+
+      expect(mockEventsQueue).toHaveLength(0);
+      expect(await getCampaignChargeTotal('adv_acc')).toBe(1);
+    });
+
+    // safeRequeue is now on the routine path, not just the failure path. If
+    // the push does not land, the batch must stay recoverable rather than
+    // silently losing the small publisher's revenue.
+    it('keeps the batch recoverable when the deferral push itself fails', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_small',
+        count: 2,
+      });
+      lpushShouldFail = true;
+
+      await drainAndAccrue(2000);
+
+      // Nothing was charged for an event the queue could not take back.
+      expect(await getCampaignChargeTotal('adv_acc')).toBe(0);
+    });
+
+    // A small publisher must not block a large one sharing the same campaign
+    // and the same batch.
+    it('settles the big publisher and defers only the small one', async () => {
+      await seedWalletCampaignSlot({ balanceIsk: 100000, cpmIsk: FLAT_CPM_ISK });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_big',
+        count: 100,
+      });
+      enqueueImpressions({
+        campaignId: 'cmp_acc',
+        slotId: 'slot_acc',
+        publisherId: 'pub_small',
+        count: 2,
+      });
+
+      await drainAndAccrue(2000);
+
+      const credits = mockLedgerEntries.filter((e) => e.type === 'publisher_credit');
+      expect(credits).toHaveLength(1);
+      expect(credits[0]!.party.id).toBe('pub_big');
+      // Exactly the small publisher's two events went back, no duplicates of
+      // the big publisher's.
+      expect(mockEventsQueue).toHaveLength(2);
+      expect(mockEventsQueue.every((raw) => JSON.parse(raw).publisherId === 'pub_small')).toBe(
+        true,
+      );
+    });
   });
 
   it('decrements campaign remainingIsk by the charged amount', async () => {

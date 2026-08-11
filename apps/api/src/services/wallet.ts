@@ -308,10 +308,22 @@ export async function creditPublisher(
     relatedId: campaignId,
   });
 
-  await appendLedger({
-    party: { type: 'platform', id: 'platform' },
-    type: 'platform_fee',
-    amountIsk: feeIsk,
-    relatedId: campaignId,
-  });
+  // A gross small enough that the fee rounds to zero gets no fee entry at
+  // all. `LedgerEntrySchema` rejects a zero amount, and on 2026-08-11 that
+  // rejection threw *after* the credit above had already landed and the
+  // campaign had already been charged — aborting the rest of the batch on
+  // every single cron-accrue run. Skipping the entry keeps
+  // `reconciliation.ts`'s money-conservation invariant intact (a zero fee
+  // contributes nothing to the sum either way) and means the platform simply
+  // earns nothing on that sliver. `services/accrual.ts` defers such batches
+  // so the fee is usually captured rather than waived; this is the backstop
+  // for the residue that can never accumulate any further.
+  if (feeIsk > 0) {
+    await appendLedger({
+      party: { type: 'platform', id: 'platform' },
+      type: 'platform_fee',
+      amountIsk: feeIsk,
+      relatedId: campaignId,
+    });
+  }
 }
