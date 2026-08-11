@@ -27,10 +27,6 @@ export default function SlotCreate() {
     }
   }, [publishers, selectedPublisherId]);
 
-  const [pricingMode, setPricingMode] = useState<'cpm' | 'slot'>('cpm');
-  const [slotPriceIsk, setSlotPriceIsk] = useState<string>('50000');
-  const [slotPeriodDays, setSlotPeriodDays] = useState<string>('30');
-
   const toggleSize = (size: { width: number; height: number }) => {
     setSelectedSizes((prev) => {
       const exists = prev.some((s) => s.width === size.width && s.height === size.height);
@@ -55,29 +51,10 @@ export default function SlotCreate() {
       return;
     }
 
-    let pricing;
-    if (pricingMode === 'cpm') {
-      pricing = {
-        mode: 'cpm' as const,
-        cpmIsk: FLAT_CPM_ISK,
-      };
-    } else {
-      const priceVal = parseInt(slotPriceIsk, 10);
-      const daysVal = parseInt(slotPeriodDays, 10);
-      if (isNaN(priceVal) || priceVal <= 0) {
-        setError('Verð tímabils verður að vera jákvæð heiltala');
-        return;
-      }
-      if (isNaN(daysVal) || daysVal <= 0) {
-        setError('Fjöldi daga verður að vera jákvæð heiltala');
-        return;
-      }
-      pricing = {
-        mode: 'slot' as const,
-        slotPriceIsk: priceVal,
-        slotPeriodDays: daysVal,
-      };
-    }
+    // Pricing is not a choice: the platform books every impression at the
+    // flat CPM regardless of what a slot doc says, and createSlot pins it
+    // server-side anyway.
+    const pricing = { mode: 'cpm' as const, cpmIsk: FLAT_CPM_ISK };
 
     try {
       await createSlotMutation.mutateAsync({
@@ -175,104 +152,19 @@ export default function SlotCreate() {
             </div>
           </div>
 
-          {/* Verðlagningarval */}
-          <div className="space-y-4">
-            <span className="block text-sm font-bold text-slate-700">Verðlagningarleið *</span>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                type="button"
-                onClick={() => setPricingMode('cpm')}
-                className={`flex-1 p-4 border rounded-xl text-left cursor-pointer transition-all ${
-                  pricingMode === 'cpm'
-                    ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <span className="block font-bold text-xs text-slate-900">CPM (Flatt verð)</span>
-                <span className="block text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">
-                  Fast samræmt verð upp á <strong>{FLAT_CPM_ISK} kr. CPM</strong> á öllu netinu
-                  samkvæmt stefnuyfirlýsingu okkar.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPricingMode('slot')}
-                className={`flex-1 p-4 border rounded-xl text-left cursor-pointer transition-all ${
-                  pricingMode === 'slot'
-                    ? 'border-primary bg-blue-50/20 ring-1 ring-primary'
-                    : 'border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <span className="block font-bold text-xs text-slate-900">
-                  Tímabil (Fast leiguverð)
-                </span>
-                <span className="block text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">
-                  Auglýsandi leigir plássið fyrir fast verð yfir ákveðinn fjölda daga sem þú ákveður
-                  sjálfur.
-                </span>
-              </button>
+          {/* Verðlagning (föst á vettvangnum) */}
+          <div className="bg-blue-50/40 border border-blue-200/80 rounded-lg p-5 flex gap-3 text-xs font-semibold text-slate-655">
+            <span className="material-symbols-outlined text-primary mt-0.5">info</span>
+            <div>
+              <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
+              <p className="leading-relaxed text-slate-500 mt-1 font-medium">
+                Vefurinn notar samræmt og gagnsætt verðlag upp á{' '}
+                <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir
+                hverjar 1.000 sýningar. Verðið er óbreytanlegt til að standa vörð um
+                stefnuyfirlýsingu okkar.
+              </p>
             </div>
           </div>
-
-          {/* Verðlagningar inntak */}
-          {pricingMode === 'cpm' ? (
-            <div className="bg-blue-50/40 border border-blue-200/80 rounded-lg p-5 flex gap-3 text-xs font-semibold text-slate-655">
-              <span className="material-symbols-outlined text-primary mt-0.5">info</span>
-              <div>
-                <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
-                <p className="leading-relaxed text-slate-500 mt-1 font-medium">
-                  Vefurinn notar samræmt og gagnsætt verðlag upp á{' '}
-                  <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong>{' '}
-                  fyrir hverjar 1.000 sýningar. Verðið er óbreytanlegt til að standa vörð um
-                  stefnuyfirlýsingu okkar.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input
-                type="number"
-                label="Verð fyrir tímabilið (kr.) *"
-                placeholder="Dæmi: 50000"
-                value={slotPriceIsk}
-                onChange={(e) => setSlotPriceIsk(e.target.value)}
-                required
-                min={1}
-                disabled={createSlotMutation.isPending}
-              />
-              <Input
-                type="number"
-                label="Dagar í tímabili *"
-                placeholder="Dæmi: 30"
-                value={slotPeriodDays}
-                onChange={(e) => setSlotPeriodDays(e.target.value)}
-                required
-                min={1}
-                disabled={createSlotMutation.isPending}
-              />
-            </div>
-          )}
-
-          {/* Viðmið og leiðbeiningar fyrir tímabil */}
-          {pricingMode === 'slot' && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-5 text-xs text-slate-650 space-y-2">
-              <h5 className="font-bold text-slate-900 text-sm">Viðmið fyrir tímabilsleigu</h5>
-              <p className="font-medium text-slate-500">
-                Hér eru gróf viðmið á íslenska markaðinum til að aðstoða við verðlagningu
-                leiguplássa:
-              </p>
-              <ul className="list-disc pl-5 space-y-1 text-slate-500 font-medium">
-                <li>
-                  <strong>300x250 (in-content / hliðarborði)</strong>: t.d. 30.000–80.000 kr. á
-                  mánuði (miðað við miðlungsvef).
-                </li>
-                <li>
-                  <strong>Stærri pláss (leiðarar og risaborð)</strong>: oft verðlögð hærra, allt
-                  eftir sýnileika og umferð.
-                </li>
-              </ul>
-            </div>
-          )}
 
           {/* Auto Approve campaigns toggle */}
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">

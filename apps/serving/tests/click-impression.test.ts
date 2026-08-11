@@ -248,7 +248,7 @@ describe('GET /v1/impression', () => {
     expect(res.headers.get('Content-Type')).toBe('image/gif');
 
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
-    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // 1000 cpm / 1000 = 1 isk
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // FLAT_CPM_ISK / 1000, rounded
   });
 
   it('stamps botClass on the impression event from a crawler request', async () => {

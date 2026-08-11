@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { FLAT_CPM_ISK } from '@ada/shared';
 import { getSlotCache } from '../lib/cache.js';
 import { recordVisitorImpression } from '../lib/visitor.js';
 import { decrementBudget, logEvent, incrementPaceSpent } from '../lib/analytics.js';
@@ -161,12 +162,21 @@ impressionRoute.get('/', async (c) => {
           if (token) {
             void recordVisitorImpression(token, creativeId);
           }
-          // CPM price models charge per 1000 impressions
-          if (slot.pricing.mode === 'cpm') {
-            const costIsk = Math.round((slot.pricing.cpmIsk ?? 0) / 1000);
-            void decrementBudget(creative.campaignId, costIsk);
-            void incrementPaceSpent(creative.campaignId, costIsk);
-          }
+          // Every impression charges the platform's flat CPM, regardless of
+          // what pricing the slot doc carries. Two reasons this is
+          // unconditional rather than gated on `pricing.mode === 'cpm'`:
+          //
+          // 1. The accrual cron already charges FLAT_CPM_ISK per impression
+          //    for every slot (services/accrual.ts). A slot whose stored
+          //    pricing said `slot` therefore still cost the campaign money,
+          //    but skipped this real-time decrement entirely — so it served
+          //    past its budget until the 15-minute cron caught up. That is
+          //    the one place in serving that could overspend.
+          // 2. Reading `slot.pricing.cpmIsk` let a legacy slot with some
+          //    other cached CPM disagree with what accrual actually books.
+          const costIsk = Math.round(FLAT_CPM_ISK / 1000);
+          void decrementBudget(creative.campaignId, costIsk);
+          void incrementPaceSpent(creative.campaignId, costIsk);
         } else {
           console.warn(
             `Impression rate limit exceeded for campaign ${creative.campaignId} from IP ${ip}`,

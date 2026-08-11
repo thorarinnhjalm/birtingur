@@ -11,6 +11,24 @@ import { isRedisConfigured } from '../lib/redis.js';
 import { getPublisherById } from './publishers.js';
 import { createNotification } from './notifications.js';
 
+/**
+ * The only pricing a slot can have.
+ *
+ * `PricingSchema` still models a `slot` (fixed price per period) mode so
+ * legacy documents stay readable, but nothing has ever honoured it:
+ * `services/accrual.ts` books every impression at `FLAT_CPM_ISK` no matter
+ * what the slot says, and `slotPriceIsk` is read nowhere in the money flow.
+ * Worse, serving used to gate its real-time budget decrement on
+ * `pricing.mode === 'cpm'`, so a slot-priced slot let a campaign serve past
+ * its budget until the 15-minute accrual cron caught up.
+ *
+ * Rather than keep a mode that costs money and buys nothing, writes are
+ * pinned here: no new slot can be created or updated into `slot` mode.
+ * Legacy docs keep parsing, and serving now charges them like everything
+ * else.
+ */
+const FLAT_PRICING = { mode: 'cpm' as const, cpmIsk: FLAT_CPM_ISK };
+
 const IAB_SIZE_KEYS = new Set(IAB_STANDARD_SIZES.map((s) => `${s.width}x${s.height}`));
 const IAB_SIZE_LIST = IAB_STANDARD_SIZES.map((s) => `${s.width}x${s.height} (${s.name})`).join(
   ', ',
@@ -47,41 +65,20 @@ export async function createSlot(input: {
   publisherId: string;
   name: string;
   sizes: any[];
+  /** Accepted for backwards compatibility and ignored — see FLAT_PRICING. */
   pricing?: any;
   placement: any;
   fallbackType?: 'house_ad' | 'transparent';
 }): Promise<Slot> {
   const id = generateId('slot');
   assertIabSizes(input.sizes);
-  // Normalize pricing: frontend uses type/amountIsk, backend expects mode/cpmIsk (or slot/slotPriceIsk/slotPeriodDays)
-  // Absent pricing defaults to the platform's flat CPM — the only pricing the
-  // money flow actually honours (accrual always computes FLAT_CPM_ISK), so
-  // callers that don't care shouldn't have to invent one.
-  let pricing = input.pricing ?? { mode: 'cpm' as const, cpmIsk: FLAT_CPM_ISK };
-  if (pricing) {
-    if (pricing.type) {
-      pricing = {
-        mode: pricing.type === 'flat' ? 'slot' : 'cpm',
-        cpmIsk: pricing.type === 'cpm' ? FLAT_CPM_ISK : undefined,
-        slotPriceIsk: pricing.type === 'flat' ? pricing.amountIsk : undefined,
-        slotPeriodDays: pricing.type === 'flat' ? 7 : undefined,
-      };
-      // Clean up undefined fields
-      Object.keys(pricing).forEach((key) => pricing[key] === undefined && delete pricing[key]);
-    } else if (pricing.mode === 'cpm') {
-      pricing = {
-        ...pricing,
-        cpmIsk: FLAT_CPM_ISK,
-      };
-    }
-  }
 
   const slotData = {
     id,
     publisherId: input.publisherId,
     name: input.name,
     sizes: input.sizes,
-    pricing,
+    pricing: FLAT_PRICING,
     placement: input.placement || { pageMatcher: '/*', position: 'sidebar' as const },
     status: 'active' as const,
     fallbackType: input.fallbackType || 'house_ad',
@@ -151,15 +148,10 @@ export async function updateSlot(
 
   const current = doc.data()!;
 
-  let updatedPricing = updates.pricing
-    ? { ...current.pricing, ...updates.pricing }
-    : current.pricing;
-  if (updatedPricing && updatedPricing.mode === 'cpm') {
-    updatedPricing = {
-      ...updatedPricing,
-      cpmIsk: FLAT_CPM_ISK,
-    };
-  }
+  // A patch can never change pricing: any write pins the slot to the flat
+  // CPM, which also migrates a legacy slot-priced doc the first time its
+  // owner edits anything.
+  const updatedPricing = FLAT_PRICING;
 
   const merged = {
     ...current,
