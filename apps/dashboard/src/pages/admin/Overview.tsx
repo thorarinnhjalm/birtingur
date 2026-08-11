@@ -34,6 +34,7 @@ import {
 } from '@/hooks/useAdmin';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
+import { OpsHealthCard } from '@/components/OpsHealthCard';
 import type { Publisher, Advertiser } from '@ada/shared';
 
 interface BotTrafficBreakdown {
@@ -2574,6 +2575,8 @@ function AdminSettings() {
           Umsjón með almennum kerfisbreytum, vefflokkum og greiningu á tengingum bakenda.
         </p>
       </div>
+
+      <OpsHealthCard data={diag?.ops} />
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left Side: General settings */}

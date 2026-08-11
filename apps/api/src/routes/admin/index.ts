@@ -6,6 +6,7 @@ import { adminReviewRoutes } from './review.js';
 import { adminPayoutsRoutes } from './payouts.js';
 import { adminEntitiesRoutes } from './entities.js';
 import { refreshAllActiveSlotCaches } from '../../services/cache-refresh.js';
+import { collectOpsDiagnostics } from '../../services/ops-diagnostics.js';
 import { previewCronBlockReason } from '../../lib/preview-guard.js';
 
 export const adminRoutes = new Hono<Env>();
@@ -176,7 +177,20 @@ adminRoutes.get('/diagnostics', async (c) => {
     };
   }
 
-  // 6. Check Firestore stats path for a known publisher
+  // 6. Cron health: when did each scheduled job last succeed, and is the
+  // pipeline healthy overall. Queue depths above answer "is work piling
+  // up"; this answers "is anything draining it", which is the half that
+  // was missing — a silently dead cron looks exactly like a quiet day
+  // until the queue has grown for hours.
+  try {
+    diagnosticResult.ops = await collectOpsDiagnostics();
+  } catch (err: any) {
+    diagnosticResult.ops = { status: 'error', message: err.message };
+  }
+
+  // 7. Legacy: a hardcoded per-publisher stats probe left from one
+  // incident. Retained only until the ops section above is confirmed in
+  // production, then delete.
   try {
     const today = new Date().toISOString().split('T')[0]!.replace(/-/g, '');
     const testPublisherId = 'pub_95af8e6a4b0a8a3530ddeede'; // pizzadeig.is
