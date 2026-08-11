@@ -79,6 +79,36 @@ describe('Slot Service', () => {
       expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
     });
 
+    // The legacy `slot` (fixed price per period) mode cost money and bought
+    // nothing: accrual books FLAT_CPM_ISK regardless, and serving used to
+    // skip its real-time budget decrement for such slots entirely.
+    it('ignores a slot-mode pricing request and pins the slot to flat CPM', async () => {
+      const slot = await createSlot({
+        publisherId: 'pub_x',
+        name: 'Leiga',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { mode: 'slot', slotPriceIsk: 25_000, slotPeriodDays: 30 },
+        placement: { pageMatcher: '/*', position: 'sidebar' },
+      });
+
+      expect(slot.pricing.mode).toBe('cpm');
+      expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
+      expect(slot.pricing).not.toHaveProperty('slotPriceIsk');
+    });
+
+    it('ignores the legacy frontend { type: "flat" } pricing shape too', async () => {
+      const slot = await createSlot({
+        publisherId: 'pub_x',
+        name: 'Leiga',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { type: 'flat', amountIsk: 25_000 },
+        placement: { pageMatcher: '/*', position: 'sidebar' },
+      });
+
+      expect(slot.pricing.mode).toBe('cpm');
+      expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
+    });
+
     // MCP's create_slot no longer asks the caller for pricing at all, since
     // the value was always overwritten below anyway.
     it('defaults to the locked flat CPM when no pricing is supplied', async () => {
@@ -220,6 +250,43 @@ describe('Slot Service', () => {
           name: 'Nýtt nafn',
         }),
       ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    // Production may still hold slot-priced docs. They keep parsing, and the
+    // first edit of any kind migrates them onto the flat CPM.
+    it('migrates a legacy slot-priced doc to flat CPM on any edit', async () => {
+      const created = await createSlot({
+        publisherId: 'pub_123',
+        name: 'Gamalt verð',
+        sizes: sampleSizes,
+        placement: samplePlacement,
+      });
+      await db
+        .collection(COLLECTIONS.slots)
+        .doc(created.id)
+        .update({ pricing: { mode: 'slot', slotPriceIsk: 25_000, slotPeriodDays: 30 } });
+
+      const updated = await updateSlot(created.id, { name: 'Nýtt nafn' });
+
+      expect(updated.name).toBe('Nýtt nafn');
+      expect(updated.pricing.mode).toBe('cpm');
+      expect((updated.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
+    });
+
+    it('rejects a patch that tries to set slot-mode pricing', async () => {
+      const created = await createSlot({
+        publisherId: 'pub_123',
+        name: 'Forsíða',
+        sizes: sampleSizes,
+        placement: samplePlacement,
+      });
+
+      const updated = await updateSlot(created.id, {
+        pricing: { mode: 'slot', slotPriceIsk: 9_000, slotPeriodDays: 7 },
+      } as Parameters<typeof updateSlot>[1]);
+
+      expect(updated.pricing.mode).toBe('cpm');
+      expect((updated.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
     });
 
     it('rejects a patch that introduces a non-IAB size', async () => {
