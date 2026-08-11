@@ -3,6 +3,7 @@ import { EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY, FLAT_CPM_ISK } from '@ada/shared
 import { db } from '../lib/firebase.js';
 import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
+import type { DocumentData, DocumentReference, SetOptions } from 'firebase-admin/firestore';
 
 export interface QueuedEvent {
   type: 'impression' | 'click' | 'pageview' | 'slot_load';
@@ -92,6 +93,38 @@ function byBotClassIncrement(
 // Duplicated from serving's PAGEVIEW_CREATIVE_ID (apps/serving/src/lib/
 // analytics.ts) rather than imported across the app boundary.
 const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
+/** Max operations per Firestore batched write. */
+const FIRESTORE_BATCH_LIMIT = 500;
+/** Leaves headroom under the cap so a late addition can never straddle it. */
+const BATCH_COMMIT_AT = FIRESTORE_BATCH_LIMIT - 50;
+
+/**
+ * A `db.batch()` stand-in that commits itself every `BATCH_COMMIT_AT`
+ * operations, so the write phase is not silently bounded by Firestore's
+ * 500-op limit.
+ */
+function chunkedBatch() {
+  let current = db.batch();
+  let ops = 0;
+  const commits: Promise<unknown>[] = [];
+
+  return {
+    set(ref: DocumentReference, data: DocumentData, options: SetOptions) {
+      current.set(ref, data, options);
+      ops++;
+      if (ops >= BATCH_COMMIT_AT) {
+        commits.push(current.commit());
+        current = db.batch();
+        ops = 0;
+      }
+    },
+    async commit() {
+      if (ops > 0) commits.push(current.commit());
+      await Promise.all(commits);
+    },
+  };
+}
 
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   if (events.length === 0) return;
@@ -301,7 +334,14 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   // instead of overwriting each other). So every per-key breakdown below must be built
   // as a nested object with `FieldValue.increment` at the leaves, never as a dotted
   // field-path string.
-  const batch = db.batch();
+  // Firestore caps a batched write at 500 operations. Nothing enforced that
+  // before, because the drain was slow enough that a run never accumulated
+  // enough buckets to reach it — speeding the drain up would have turned a
+  // timeout into a hard INVALID_ARGUMENT. Committing in chunks also means a
+  // failure late in the write phase now loses only the uncommitted chunk
+  // rather than every bucket in the run; the recorded:{hour} counters below
+  // still let the daily reconciliation cron see whatever did not land.
+  const batch = chunkedBatch();
 
   for (const [key, b] of campaignHour) {
     const [campaignId, hk] = key.split('/');
@@ -433,6 +473,39 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   await pipeline.exec();
 }
 
+/**
+ * Events popped per Redis round trip.
+ *
+ * This used to be one. Upstash is a REST API, so a 1000-event batch meant
+ * 1000 sequential HTTPS requests, and the cron entrypoint ran up to five such
+ * batches — which is why /api/cron-aggregate returned a 60-second Vercel
+ * timeout every hour from 19:00 on 2026-08-11 while events:stats grew to
+ * 1103. `RPOP key count` collapses each chunk into a single request.
+ */
+const RPOP_CHUNK = 200;
+
+/** Wall-clock budget for one cron invocation, well under Vercel's 60s cap. */
+const DEFAULT_AGGREGATE_DEADLINE_MS = 40_000;
+
+/** Normalizes `rpop(key, count)`, which yields an array, a bare value, or null. */
+function toEventList(raw: unknown): QueuedEvent[] {
+  if (raw == null) return [];
+  const items = Array.isArray(raw) ? raw : [raw];
+  const out: QueuedEvent[] = [];
+  for (const item of items) {
+    if (item == null) continue;
+    try {
+      // The Upstash SDK auto-deserializes JSON, so an item may already be an object.
+      out.push(
+        typeof item === 'string' ? (JSON.parse(item) as QueuedEvent) : (item as QueuedEvent),
+      );
+    } catch {
+      console.warn('[cron-aggregate] Failed to parse event from queue:', typeof item, item);
+    }
+  }
+  return out;
+}
+
 export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   const redis = getRedis();
   const events: QueuedEvent[] = [];
@@ -441,18 +514,58 @@ export async function drainAndAggregate(batchSize = 1000): Promise<number> {
   // is no contention here.
   for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
     while (events.length < batchSize) {
-      const raw = await redis.rpop<string | QueuedEvent>(queue);
-      if (!raw) break;
-      try {
-        // Upstash SDK auto-deserializes JSON, so `raw` may already be an object.
-        // Only call JSON.parse when it's still a string.
-        const ev: QueuedEvent = typeof raw === 'string' ? JSON.parse(raw) : raw;
-        events.push(ev);
-      } catch {
-        console.warn('[cron-aggregate] Failed to parse event from queue:', typeof raw, raw);
-      }
+      const want = Math.min(RPOP_CHUNK, batchSize - events.length);
+      const popped = toEventList(await redis.rpop<unknown>(queue, want));
+      if (popped.length === 0) break;
+      events.push(...popped);
+      // A short read means the queue is drained; asking again just costs a
+      // round trip to be told the same thing.
+      if (popped.length < want) break;
     }
   }
   await aggregateEvents(events);
   return events.length;
+}
+
+export interface AggregateRunResult {
+  aggregated: number;
+  batches: number;
+  /** True when the wall-clock budget, not an empty queue, ended the run. */
+  timedOut: boolean;
+}
+
+/**
+ * Drain the stats queues until they run dry, the batch cap is hit, or the
+ * time budget runs out.
+ *
+ * The deadline is the durable half of the timeout fix: however large the
+ * backlog gets, a run now stops early and leaves the rest for the next hour
+ * instead of being killed mid-flight by the platform. A killed run records no
+ * heartbeat, and the heartbeat watchdog lives inside this very cron — so a
+ * 504 here also silenced the alerting for every other cron.
+ */
+export async function drainAndAggregateAll(
+  opts: { batchSize?: number; maxBatches?: number; deadlineMs?: number; now?: () => number } = {},
+): Promise<AggregateRunResult> {
+  const batchSize = opts.batchSize ?? 1000;
+  const maxBatches = opts.maxBatches ?? 5;
+  const now = opts.now ?? Date.now;
+  const deadlineAt = now() + (opts.deadlineMs ?? DEFAULT_AGGREGATE_DEADLINE_MS);
+
+  let aggregated = 0;
+  let batches = 0;
+  let timedOut = false;
+
+  while (batches < maxBatches) {
+    if (now() >= deadlineAt) {
+      timedOut = true;
+      break;
+    }
+    const n = await drainAndAggregate(batchSize);
+    batches++;
+    aggregated += n;
+    if (n === 0) break;
+  }
+
+  return { aggregated, batches, timedOut };
 }

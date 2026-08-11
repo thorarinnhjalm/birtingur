@@ -160,11 +160,23 @@ describe('collectOpsDiagnostics', () => {
   });
 
   it('flags a missing required secret', async () => {
-    delete process.env.SIGNING_SECRET;
+    delete process.env.FIREBASE_PRIVATE_KEY;
 
     const d = await collectOpsDiagnostics();
 
     expect(d.healthy).toBe(false);
-    expect(d.problems.join(' ')).toContain('SIGNING_SECRET');
+    expect(d.problems.join(' ')).toContain('FIREBASE_PRIVATE_KEY');
+  });
+
+  // SIGNING_SECRET lives in apps/serving's environment, not the API's. Reporting
+  // it here made the admin ops card permanently red with a problem no API-side
+  // change could fix.
+  it('does not report SIGNING_SECRET, which belongs to another deploy', async () => {
+    delete process.env.SIGNING_SECRET;
+
+    const d = await collectOpsDiagnostics();
+
+    expect(d.env.SIGNING_SECRET).toBeUndefined();
+    expect(d.problems.join(' ')).not.toContain('SIGNING_SECRET');
   });
 });

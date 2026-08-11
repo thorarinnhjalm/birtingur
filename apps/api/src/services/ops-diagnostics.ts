@@ -53,7 +53,11 @@ function envPresence(): Record<string, boolean> {
     FIREBASE_PROJECT_ID: Boolean(process.env.FIREBASE_PROJECT_ID),
     FIREBASE_CLIENT_EMAIL: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
     FIREBASE_PRIVATE_KEY: Boolean(process.env.FIREBASE_PRIVATE_KEY),
-    SIGNING_SECRET: Boolean(process.env.SIGNING_SECRET),
+    // SIGNING_SECRET is deliberately absent: it belongs to apps/serving, a
+    // separate Vercel project with its own environment. Nothing in apps/api
+    // reads it, so reporting it here only ever produced a permanent red
+    // "SIGNING_SECRET vantar" on the admin ops card that no API-side change
+    // could clear.
     RESEND_API_KEY: Boolean(process.env.RESEND_API_KEY),
     GEMINI_API_KEY: Boolean(process.env.GEMINI_API_KEY),
   };
@@ -156,10 +160,7 @@ export async function collectOpsDiagnostics(): Promise<OpsDiagnostics> {
   for (const [key, present] of Object.entries(env)) {
     // Only the vars whose absence breaks the money flow are treated as
     // problems; the optional ones degrade to a documented fallback.
-    if (
-      !present &&
-      ['CRON_SECRET', 'REDIS', 'FIREBASE_PRIVATE_KEY', 'SIGNING_SECRET'].includes(key)
-    ) {
+    if (!present && ['CRON_SECRET', 'REDIS', 'FIREBASE_PRIVATE_KEY'].includes(key)) {
       problems.push(`${key} vantar í umhverfið.`);
     }
   }
