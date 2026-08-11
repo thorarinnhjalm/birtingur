@@ -14,26 +14,9 @@ const Input = z.object({
         }),
       )
       .optional()
-      .describe('Nýjar leyfðar stærðir fyrir plássið'),
-    pricing: z
-      .union([
-        z.object({
-          mode: z.literal('cpm'),
-          cpmIsk: z
-            .number()
-            .int()
-            .positive()
-            .optional()
-            .describe('Fast CPM verð í krónum. Sjálfgefið 550 kr.'),
-        }),
-        z.object({
-          mode: z.literal('slot'),
-          slotPriceIsk: z.number().int().positive().describe('Fast verð í krónum'),
-          slotPeriodDays: z.number().int().positive().describe('Dagar í tímabili'),
-        }),
-      ])
-      .optional()
-      .describe('Nýtt greiðslu- og verðlagningarform'),
+      .describe(
+        'Nýjar leyfðar stærðir fyrir plássið. Aðeins IAB-staðlaðar stærðir — sjá list_ad_sizes.',
+      ),
     placement: z
       .object({
         pageMatcher: z.string().describe('Slóðaregla, t.d. "/uppskriftir/*" eða "*"'),
@@ -56,26 +39,13 @@ export function registerUpdateSlot(server: McpServer, apiKey: string) {
     {
       title: 'Uppfæra pláss',
       description:
-        'Breytir nafni, stærðum, verði, staðsetningu eða stöðu plássins. Athugið að ef pricing er uppfært í cpm en cpmIsk vantar, verður það sjálfkrafa sett á 550.',
+        'Breytir nafni, stærðum, staðsetningu eða stöðu plássins. Verðlagning er ekki stillanleg — vettvangurinn notar fast CPM á öll pláss.',
       inputSchema: Input.shape,
     },
     async ({ slotId, patch }) => {
-      const requestPatch = { ...patch };
-      if (
-        requestPatch.pricing &&
-        typeof requestPatch.pricing === 'object' &&
-        'mode' in requestPatch.pricing &&
-        requestPatch.pricing.mode === 'cpm' &&
-        !('cpmIsk' in requestPatch.pricing)
-      ) {
-        requestPatch.pricing = {
-          ...requestPatch.pricing,
-          cpmIsk: 550,
-        };
-      }
       const r = await apiCall<unknown>(`/v1/publishers/me/slots/${slotId}`, {
         method: 'PATCH',
-        body: requestPatch,
+        body: patch,
         apiKey,
       });
       let warning: string | undefined;

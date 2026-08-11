@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/lib/firebase';
 import { COLLECTIONS, slotConverter } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, IAB_STANDARD_SIZES } from '@ada/shared';
 import { clearFirestoreEmulator } from './helpers/emulator';
 import {
   createSlot,
@@ -77,6 +77,62 @@ describe('Slot Service', () => {
       });
       expect(slot.pricing.mode).toBe('cpm');
       expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
+    });
+
+    // MCP's create_slot no longer asks the caller for pricing at all, since
+    // the value was always overwritten below anyway.
+    it('defaults to the locked flat CPM when no pricing is supplied', async () => {
+      const slot = await createSlot({
+        publisherId: 'pub_x',
+        name: 'Án verðs',
+        sizes: [{ width: 300, height: 250 }],
+        placement: { pageMatcher: '/*', position: 'sidebar' },
+      });
+      expect(slot.pricing.mode).toBe('cpm');
+      expect((slot.pricing as { cpmIsk: number }).cpmIsk).toBe(FLAT_CPM_ISK);
+    });
+
+    // Every client surface promised IAB sizes only (dashboard picker, MCP
+    // tool description, FAQ) but nothing enforced it, so an agent or raw
+    // `ak_` key could create a slot in a size no creative is ever rendered
+    // at — it would then serve nothing and be silently dropped from the
+    // category size forecast.
+    it('rejects a size outside IAB_STANDARD_SIZES', async () => {
+      await expect(
+        createSlot({
+          publisherId: 'pub_123',
+          name: 'Ólögleg stærð',
+          sizes: [{ width: 970, height: 250 }],
+          pricing: samplePricing,
+          placement: samplePlacement,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_SIZE' });
+    });
+
+    it('rejects a non-IAB size declared alongside a valid one', async () => {
+      await expect(
+        createSlot({
+          publisherId: 'pub_123',
+          name: 'Blönduð stærð',
+          sizes: [
+            { width: 300, height: 250 },
+            { width: 970, height: 250 },
+          ],
+          pricing: samplePricing,
+          placement: samplePlacement,
+        }),
+      ).rejects.toMatchObject({ code: 'INVALID_SIZE' });
+    });
+
+    it('accepts every IAB standard size', async () => {
+      const slot = await createSlot({
+        publisherId: 'pub_123',
+        name: 'Allar stærðir',
+        sizes: IAB_STANDARD_SIZES.map((s) => ({ width: s.width, height: s.height })),
+        pricing: samplePricing,
+        placement: samplePlacement,
+      });
+      expect(slot.sizes).toHaveLength(IAB_STANDARD_SIZES.length);
     });
   });
 
@@ -163,7 +219,44 @@ describe('Slot Service', () => {
         updateSlot('slot_nonexistent', {
           name: 'Nýtt nafn',
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    it('rejects a patch that introduces a non-IAB size', async () => {
+      const created = await createSlot({
+        publisherId: 'pub_123',
+        name: 'Forsíða stór',
+        sizes: sampleSizes,
+        pricing: samplePricing,
+        placement: samplePlacement,
+      });
+
+      await expect(
+        updateSlot(created.id, { sizes: [{ width: 970, height: 250 }] }),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'INVALID_SIZE' });
+    });
+
+    // Legacy slots may already carry a non-IAB size (seed.ts creates one).
+    // Only patches that actually touch `sizes` are validated, so their owners
+    // can still rename or pause them.
+    it('allows editing a legacy slot whose stored sizes are non-IAB', async () => {
+      const legacy = await createSlot({
+        publisherId: 'pub_123',
+        name: 'Gamalt pláss',
+        sizes: sampleSizes,
+        pricing: samplePricing,
+        placement: samplePlacement,
+      });
+      // Backdate it past the check, the way pre-existing production data got in.
+      await db
+        .collection(COLLECTIONS.slots)
+        .doc(legacy.id)
+        .update({ sizes: [{ width: 970, height: 250 }] });
+
+      const updated = await updateSlot(legacy.id, { status: 'paused' });
+
+      expect(updated.status).toBe('paused');
+      expect(updated.sizes).toEqual([{ width: 970, height: 250 }]);
     });
   });
 

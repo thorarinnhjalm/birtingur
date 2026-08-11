@@ -15,31 +15,7 @@ const Input = z.object({
     )
     .min(1)
     .describe(
-      'Listi yfir leyfðar stærðir. Styður IAB staðla: 728x90, 300x250, 300x600, 320x100, 980x120',
-    ),
-  pricing: z
-    .discriminatedUnion('mode', [
-      z.object({
-        mode: z.literal('cpm'),
-        cpmIsk: z
-          .number()
-          .int()
-          .positive()
-          .optional()
-          .describe('Verð fyrir hverjar 1.000 birtingar (CPM). Sjálfgefið 550 ISK.'),
-      }),
-      z.object({
-        mode: z.literal('slot'),
-        slotPriceIsk: z
-          .number()
-          .int()
-          .positive()
-          .describe('Fast verð fyrir tímabil í krónum, t.d. 25000'),
-        slotPeriodDays: z.number().int().positive().describe('Lengd tímabils í dögum, t.d. 30'),
-      }),
-    ])
-    .describe(
-      'Greiðslutilhögun plássins: annaðhvort CPM (per 1.000 flettingar) eða Slot fastaverð per tímabil',
+      'Listi yfir leyfðar stærðir. Aðeins IAB-staðlaðar stærðir eru leyfðar — sæktu þær með list_ad_sizes í stað þess að harðkóða þær.',
     ),
   placement: z
     .object({
@@ -61,20 +37,16 @@ export function registerCreateSlot(server: McpServer, apiKey: string) {
     {
       title: 'Búa til auglýsingapláss',
       description:
-        'Býr til nýtt auglýsingapláss með nafni, stærðum, verðlagningu (CPM eða tímabil) og staðsetningu á síðunni. Eftir gerð, kalla á get_snippet_code til að fá HTML kóða eða get_react_component fyrir Next.js/React kóða. Styður einungis eftirfarandi staðlaðar stærðir: 728x90, 300x250, 300x600, 320x100 og 980x120.',
+        'Býr til nýtt auglýsingapláss með nafni, stærðum og staðsetningu á síðunni. Plássið tilheyrir útgefandanum sem lykillinn á — kallaðu á whoami fyrst ef þú þarft publisherId. Verðlagning er ekki stillanleg: vettvangurinn notar fast CPM á öll pláss. Eftir gerð, kalla á get_snippet_code til að fá HTML kóða eða get_react_component fyrir Next.js/React kóða.',
       inputSchema: Input.shape,
     },
     async (input) => {
-      const requestBody = { ...input };
-      if (requestBody.pricing.mode === 'cpm' && !requestBody.pricing.cpmIsk) {
-        requestBody.pricing = {
-          ...requestBody.pricing,
-          cpmIsk: 550,
-        };
-      }
+      // No pricing is sent: createSlot locks every slot to FLAT_CPM_ISK and
+      // accrual only ever computes that rate, so any price passed here was
+      // overwritten server-side without telling the caller.
       const r = await apiCall<unknown>('/v1/publishers/me/slots', {
         method: 'POST',
-        body: requestBody,
+        body: input,
         apiKey,
       });
       let warning: string | undefined;

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ApiKeyPurchasePanel } from '@/components/ApiKeyPurchasePanel';
+import { McpConnectPanel } from '@/components/McpConnectPanel';
 import { apiFetch } from '@/lib/api';
 import { Check, ShieldAlert, Copy, Trash2, Key, Plus } from 'lucide-react';
 
@@ -284,6 +285,25 @@ export default function Settings() {
               </table>
             </div>
           )}
+        </div>
+      </Card>
+
+      {/* MCP Connection Guide */}
+      <Card className="p-6 space-y-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-xl">smart_toy</span>
+            <span>Gervigreindartenging (Model Context Protocol - MCP)</span>
+          </h3>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Tengdu gervigreindartól (Claude, Cursor, Lovable) beint við Birting. Tólið getur þá
+            skoðað flokka og framboð, lesið stöðu herferða og keypt birtingar innan þeirra marka sem
+            þú setur á lykilinn hér að ofan.
+          </p>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100">
+          <McpConnectPanel apiKey={newKey} />
         </div>
       </Card>
 
