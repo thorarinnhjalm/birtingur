@@ -90,7 +90,10 @@ Skref 3: Sæktu React component eða innfellingarkóða
 - Fyrir React/Next.js: Kallaðu á 'get_react_component' til að fá tilbúinn React kóða sem höndlar loading, fallbacks án layout shifts, og viewability mælingar.
 - Fyrir venjulegt HTML: Kallaðu á 'get_snippet_code' til að fá hefðbundna innfellingarskriftu.
 
-Skref 4: Fylgstu með árangri og tekjum
+Skref 4: Staðfestu að auglýsingar skili sér
+Kallaðu á 'check_slot_delivery' fyrir plássið. Það segir hvort raunverulegar auglýsingar séu að birtast og, ef ekki, hver ástæðan er. ATH: húsauglýsing Birtings í plássinu þýðir yfirleitt að engin herferð sé í þínum flokki akkúrat núna, ekki að samþættingin sé biluð.
+
+Skref 5: Fylgstu með árangri og tekjum
 Notaðu 'get_stats' reglulega til að sjá heildarfjölda birtinga, smella og uppsafnaðar tekjur fyrir þinn vef.`,
       },
     ],
@@ -112,8 +115,9 @@ Mælt vinnuflæði útgefanda:
 1. 'register_publisher' (stofna prófíl útgefanda með léni, flokkum og bankareikningi — sleppt ef whoami skilar prófíl)
 2. 'list_ad_sizes' + 'create_slot' (stofna auglýsingapláss á vefnum, t.d. Billboard 980x120 eða Mobile Banner 320x100)
 3. 'get_react_component' (Next.js/React - mælt með) eða 'get_snippet_code' (hefðbundið HTML/JS)
-4. 'list_pending_approvals' og 'approve_creative' (stýra og leyfa herferðir)
-5. 'get_stats' (fylgjast með birtingum, smellum og tekjum)`,
+4. 'check_slot_delivery' (staðfesta að auglýsingar skili sér, og fá ástæðu ef ekki)
+5. 'list_pending_approvals' og 'approve_creative' (stýra og leyfa herferðir)
+6. 'get_stats' (fylgjast með birtingum, smellum og tekjum)`,
         },
       },
     ],

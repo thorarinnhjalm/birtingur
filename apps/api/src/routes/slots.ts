@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { requireAuth, requireScope, type Env } from '../lib/auth.js';
-import { getPublishersByOwnerEmail } from '../services/publishers.js';
+import { getPublishersByOwnerEmail, getPublisherById } from '../services/publishers.js';
 import {
   createSlot,
   getSlot,
@@ -9,6 +9,7 @@ import {
   getSnippetForSlot,
 } from '../services/slots.js';
 import { getSlotStats } from '../services/slot-stats.js';
+import { diagnoseSlotDelivery } from '../services/slot-delivery.js';
 import { AppError } from '../lib/errors.js';
 
 export const slotsRouter = new Hono<Env>();
@@ -111,6 +112,24 @@ slotsRouter.get('/:id/stats', async (c) => {
   const timeframe = c.req.query('timeframe') === '30' ? 30 : 7;
   const stats = await getSlotStats(slot.publisherId, id, timeframe);
   return c.json(stats);
+});
+
+// Read-only: replays the serving eligibility pipeline and reports why the
+// slot is (or isn't) filling. Registered before '/:id' so the literal path
+// wins over the parameter match.
+slotsRouter.get('/:id/delivery', async (c) => {
+  const user = c.get('user');
+  const id = c.req.param('id');
+  const slot = await verifySlotOwnership(id, user.email);
+  if (!slot) {
+    throw new AppError(404, `Slot with ID ${id} not found`, 'NOT_FOUND');
+  }
+  const publisher = await getPublisherById(slot.publisherId);
+  if (!publisher) {
+    throw new AppError(404, `Publisher for slot ${id} not found`, 'NOT_FOUND');
+  }
+  const diagnosis = await diagnoseSlotDelivery(slot, publisher);
+  return c.json(diagnosis);
 });
 
 slotsRouter.get('/:id', async (c) => {
