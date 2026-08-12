@@ -235,23 +235,19 @@ their own approvals. Admin is granted in exactly one place.
 
 **Invariants.**
 
-| Invariant                                                                                                                           | Enforced by                                                                                                                                                                                                |
-| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ak_` keys are blocked from dashboard-only mutations                                                                                | `apps/api/tests/agent-mutation-lockout.test.ts`                                                                                                                                                            |
-| Creating a campaign with an `ak_` key requires `purchase.enabled`, respects the monthly cap, and pends above the auto-approve limit | `apps/api/tests/agent-purchase.test.ts`                                                                                                                                                                    |
-| A non-admin authenticated user gets 403 on admin routes                                                                             | `apps/api/tests/auth.test.ts`                                                                                                                                                                              |
-| MCP registers no tools when scope resolution fails                                                                                  | `apps/mcp/tests/server-scope.test.ts`                                                                                                                                                                      |
-| Firestore and Storage rules deny what they should                                                                                   | `firebase/tests/firestore-rules.test.ts`, `storage-rules.test.ts`                                                                                                                                          |
-| **Admin comes from `ADMIN_EMAILS` only — no domain-suffix grant, ever**                                                             | **UNENFORCED** — `auth.test.ts` exercises `requireAdmin` with a stubbed flag, not the resolution itself. This is the exact hole that made an unregistered domain a route to `/v1/admin/*` until 2026-08-09 |
-| **There is no bypass token**                                                                                                        | **UNENFORCED** — the `demo-mock-token` backdoor was removed in 21b1b29 / 0c0c70a; nothing stops it coming back                                                                                             |
+| Invariant                                                                                                                           | Enforced by                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ak_` keys are blocked from dashboard-only mutations                                                                                | `apps/api/tests/agent-mutation-lockout.test.ts`                                                                                                                           |
+| Creating a campaign with an `ak_` key requires `purchase.enabled`, respects the monthly cap, and pends above the auto-approve limit | `apps/api/tests/agent-purchase.test.ts`                                                                                                                                   |
+| A non-admin authenticated user gets 403 on admin routes                                                                             | `apps/api/tests/auth.test.ts`                                                                                                                                             |
+| MCP registers no tools when scope resolution fails                                                                                  | `apps/mcp/tests/server-scope.test.ts`                                                                                                                                     |
+| Firestore and Storage rules deny what they should                                                                                   | `firebase/tests/firestore-rules.test.ts`, `storage-rules.test.ts`                                                                                                         |
+| Admin comes from `ADMIN_EMAILS` only — no domain-suffix grant, ever                                                                 | `auth.test.ts` "admin resolution": a listed address is admin (case-insensitively), a same-domain unlisted address is NOT, an unset list grants nobody, an `ak_` key never |
+| There is no bypass token                                                                                                            | `auth.test.ts` "no bypass token": scans `lib/auth.ts` for literal token comparisons (only the `ak_` prefix dispatch is allowed) and for the removed backdoor's markers    |
+| An email-bearing token with an unverified address is rejected before any grant                                                      | `auth.test.ts` (401, "Email address must be verified")                                                                                                                    |
 
-**Bridge.**
-
-1. Test the admin resolution itself: an email in `ADMIN_EMAILS` is admin, a
-   same-domain email that is not listed is not. Small, and it pins the most
-   expensive class of mistake this repo has made.
-2. A test asserting no hardcoded token string grants auth. Cheap insurance
-   against a reintroduced dev shortcut.
+**Bridge.** Both items done 2026-08-12 (gap items 3 and 8), plus a pin for the
+unverified-email rejection, which was implemented but untested.
 
 ---
 
@@ -357,12 +353,13 @@ one:
    — done 2026-08-12, `packages/snippet/scripts/check-host.mjs` in CI.
 2. ~~Fail-closed budget gate test without mocks (subsystem 1)~~ — done
    2026-08-12, `apps/serving/tests/budget-gate.test.ts`.
-3. Admin resolution test: `ADMIN_EMAILS` only, no domain grant (subsystem 5).
+3. ~~Admin resolution test: `ADMIN_EMAILS` only, no domain grant (subsystem 5)~~ — done 2026-08-12, `auth.test.ts` "admin resolution".
 4. `events:stats` growth alert on the hourly watchdog caller (subsystem 2).
 5. Structural test that two crons call `checkCronHeartbeats` (subsystem 4).
 6. Sitemap vs prerender snapshot parity (subsystem 7).
 7. MCP tool-list test: no money-adding tool (subsystem 6).
-8. No-bypass-token test (subsystem 5).
+8. ~~No-bypass-token test (subsystem 5)~~ — done 2026-08-12, `auth.test.ts`
+   "no bypass token".
 9. Widget smoke tests (subsystem 8).
 10. ~~`.env.local` out of the test env (subsystem 9)~~ — done 2026-08-12,
     pinned by `tests/env-isolation.test.ts`.
