@@ -49,28 +49,40 @@ Confirmed and stable, restated so nothing drifts:
   nothing beyond it. Notably: stats are **hourly**, never "real-time", and
   serving sets **no cookies at all**.
 
-Direction that needs confirmation before it drives work:
+Owner decisions, asked and answered 2026-08-12. These are settled — do not
+re-ask them; a future session that wants to reverse one brings the owner
+evidence, not the same question:
 
-- **OWNER: is agentic buying via MCP a growth bet or a side door?** The whole
-  advertiser tool set, purchase gating, monthly caps and the approval flow are
-  built (`apps/mcp`, `services/api-keys.ts`). If it is a bet, the next six
-  months want onboarding and docs aimed at agents. If it is a side door, it
-  needs no further investment and should stop appearing in roadmaps.
-- **OWNER: what is the English site for?** The `/en` SEO/GEO push shipped
-  2026-08-01. Advertiser acquisition, publisher acquisition and investor
-  legibility are three different content strategies; the site currently reads as
-  all three.
-- **OWNER: bot traffic — measure, or stop billing?** Phase 1 classification
-  shipped 2026-08-09 and is collecting data; the readout is due 2026-08-30. The
-  decision (do we stop charging for `known_bot` impressions, and do we tell
-  publishers) is a product decision with revenue consequences, not a technical
-  one.
-- **OWNER: serving V2 on Cloudflare Workers.** In the specs, never built.
-  V1 on Vercel is serving correctly now. This should either get a date or be
-  written off, because "V2 is coming" is currently shaping how V1 is discussed.
-- **Not being built, to be deleted from any spec that still implies otherwise:**
-  the Cloudflare R2 CDN (any `cdn.*` host is fiction), per-category pricing
-  tiers, real-time stats.
+- **Agentic buying via MCP is a growth bet.** The next six months include
+  agent-facing onboarding and documentation: better error copy, worked
+  examples, MCP coverage in the public/llms.txt material. It earns
+  prioritisation space alongside the rest of the roadmap.
+- **The English site serves both audiences, separated harder.** Keep
+  advertisers and publishers on `/en`, but split the structure
+  (advertiser-facing vs publisher-facing paths with their own content tracks)
+  instead of blending both into one landing narrative. Feeds directly into the
+  late-August GSC revision.
+- **Bot billing waits for the 2026-08-30 readout.** No billing change before
+  the Phase 1 data shows the actual `known_bot` share. If it is negligible the
+  decision is small; if it is large it gets its own discussion then.
+- **Serving V2 on Cloudflare is written off.** V1 on Vercel IS the serving
+  system; performance and reliability investment goes there. Cloudflare only
+  returns to the table if measured latency or cost forces it. Any spec still
+  implying a V2 migration should be read with this decision on top.
+- **VSK confirm-screen copy: remove the misleading line now.** The
+  "VSK (24%)" row and the budget+24% total on campaign confirm show a number
+  that is never debited and contradict TopUp/FAQ copy. Strip it (point at the
+  FAQ instead) without waiting for the accountant; the full alignment pass
+  (confirm copy + `DISBURSE_VAT` + Payday/Blikk invoicing, in one PR, never
+  piecemeal) still waits for the accountant's answer per
+  `follow-ups-2026-08-09.md`.
+- **`OPS_ALERT_EMAILS` in production: unverified.** The owner is checking the
+  Vercel env vars on `birtingur-api`. Until confirmed, assume alerting may be
+  console-only in prod and treat "no alert arrived" as evidence of nothing.
+
+Not being built, to be deleted from any spec that still implies otherwise:
+the Cloudflare R2 CDN (any `cdn.*` host is fiction), per-category pricing
+tiers, real-time stats.
 
 ---
 
@@ -168,9 +180,10 @@ read-only and alert-only by design.
 
 **Bridge.**
 
-1. **OWNER: the VSK (VAT) gate mismatch in campaign confirm.** Carried on the
-   deferred list since before 2026-08; it is a decision about what the advertiser
-   is shown and charged, so it cannot be closed technically.
+1. **VSK confirm copy — decided 2026-08-12** (see Product direction): remove
+   the misleading "VSK (24%)" line and total from campaign confirm now; the
+   full alignment pass (`DISBURSE_VAT`, Payday/Blikk, all copy in one PR)
+   still waits for the accountant.
 2. Gross vs net balance display and the top-up prefill — both small dashboard
    items on the same deferred list, both visible to advertisers, neither risky.
 
@@ -201,9 +214,10 @@ report it.
 1. A cheap structural test that asserts both cron entrypoints import and call
    `checkCronHeartbeats` (read the two files, assert the call is present). Ugly,
    but it is the only way this invariant survives someone tidying an entrypoint.
-2. Decide whether `OPS_ALERT_EMAILS` is set in production. Alerting silently
-   degrades to console-only when it is not, which would make this whole section
-   decorative. **OWNER**, one line to verify.
+2. Verify `OPS_ALERT_EMAILS` (or the `ADMIN_EMAILS` fallback) is set in
+   production — the owner is checking the Vercel env vars (see Product
+   direction). Alerting silently degrades to console-only when neither is set,
+   which would make this whole section decorative.
 
 ---
 
@@ -259,8 +273,9 @@ a low-impact migration and the SDK has nothing newer to move to.
 1. A test that enumerates the registered tool names per scope and asserts the
    list contains no money-adding tool. It reads as paranoid until someone adds
    `top_up_wallet` for convenience.
-2. **OWNER**: the agent-onboarding question from the direction section. Nothing
-   technical is blocked on it, but docs and error copy are.
+2. Agent-facing onboarding and docs — unblocked 2026-08-12 by the owner's
+   "growth bet" decision (see Product direction): better error copy, worked
+   examples, MCP coverage in the public material.
 
 ---
 
@@ -343,10 +358,13 @@ one:
 9. Widget smoke tests (subsystem 8).
 10. `.env.local` out of the test env (subsystem 9).
 
-Then the owner decisions, none of which anyone should guess at: VSK gate,
-agentic-buying investment, English site purpose, bot billing after the
-2026-08-30 readout, serving V2 date or write-off, and whether
-`OPS_ALERT_EMAILS` is actually set in production.
+The owner decisions were asked and answered 2026-08-12 — see Product
+direction. What they unlocked, in work-item form: strip the misleading VSK
+line from campaign confirm, split `/en` into advertiser and publisher tracks
+in the GSC revision, start agent-facing MCP docs, and stop reading serving V2
+into any plan. Still pending externally: the accountant's VSK answer, the
+2026-08-30 bot readout, and the owner's check of `OPS_ALERT_EMAILS` in the
+Vercel prod env.
 
 Product work not listed here is not thereby deprioritised; it is simply not what
 this document is for. This is the spine, and the spine should be boring.
