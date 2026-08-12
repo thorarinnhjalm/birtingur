@@ -337,14 +337,14 @@ a discovery.
 
 Not a subsystem, but it costs real hours.
 
-- **`.env.local` makes local API tests hit production Redis.**
-  `apps/api/src/lib/env.ts` loads the repo-root `.env.local` at import time, so
-  on a developer machine `isRedisConfigured()` is true and tests talk to prod.
-  `tests/slot-delivery.test.ts` fails locally for exactly this reason (a real
-  `slot:{id}` cache entry gets written to production Redis, then the diagnosis
-  reads it) while passing in CI. **Bridge:** keep `.env.local` out of the vitest
-  env, or point tests at a stub. Until then, a local-only failure must be
-  reproduced in a clean worktree before it is believed.
+- **`.env.local` no longer reaches tests** (fixed 2026-08-12, gap item 10).
+  `env.ts` used to load the repo-root `.env.local` unconditionally, so local
+  `pnpm test:api` runs inherited real Upstash credentials, wrote `slot:{id}`
+  keys into production Redis, and `tests/slot-delivery.test.ts` failed locally
+  while passing in CI. `env.ts` now skips the file entirely under Vitest and
+  strips shell-exported live-service credentials (Redis, Resend, Teya, Gemini,
+  Firebase) the same way it already stripped Firebase's. Pinned by
+  `apps/api/tests/env-isolation.test.ts`.
 - Tests need Java for the Firestore emulator, and `--only firestore` matters:
   booting Storage flips creative uploads to the real uploader.
 
@@ -364,7 +364,11 @@ one:
 7. MCP tool-list test: no money-adding tool (subsystem 6).
 8. No-bypass-token test (subsystem 5).
 9. Widget smoke tests (subsystem 8).
-10. `.env.local` out of the test env (subsystem 9).
+10. ~~`.env.local` out of the test env (subsystem 9)~~ — done 2026-08-12,
+    pinned by `tests/env-isolation.test.ts`.
+
+Execution order, effort estimates and PR grouping for this list live in
+`docs/superpowers/plans/2026-08-12-gap-execution-plan.md`.
 
 The owner decisions were asked and answered 2026-08-12 — see Product
 direction. What they unlocked, in work-item form: strip the misleading VSK
