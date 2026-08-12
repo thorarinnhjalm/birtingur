@@ -60,4 +60,20 @@ describe('Mail Service', () => {
     );
     expect(bodyObj.html).toContain('Test Fyrirtæki');
   });
+
+  it('falls back to the verified birtingur.app sender when SENDER_EMAIL is unset', async () => {
+    // The default must stay on the Resend-verified domain: the old
+    // onboarding@resend.dev fallback meant a prod deploy without SENDER_EMAIL
+    // silently delivered mail to nobody but the Resend account owner.
+    process.env.RESEND_API_KEY = 're_testkey';
+    delete process.env.SENDER_EMAIL;
+
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true, text: async () => 'ok' });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await sendWelcomeAdvertiserEmail('test@advertiser.is', 'Test Fyrirtæki');
+
+    const bodyObj = JSON.parse(mockFetch.mock.calls[0]![1].body);
+    expect(bodyObj.from).toBe('birtingur@birtingur.app');
+  });
 });

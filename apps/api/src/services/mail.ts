@@ -6,6 +6,21 @@ interface MailPayload {
 }
 
 /**
+ * Default sender. birtingur.app is verified in Resend (DKIM/SPF, eu-west-1,
+ * 2026-08-12), so this delivers to arbitrary recipients without any mailbox
+ * existing; inbound MX is enabled, so replies land in Resend. Baked into the
+ * code on purpose — an env-var-only sender meant prod silently fell back to
+ * `onboarding@resend.dev` (which Resend only delivers to the account's own
+ * address) whenever the var was forgotten. `SENDER_EMAIL` remains as an
+ * override for staging or a future sender split.
+ */
+const DEFAULT_SENDER = 'birtingur@birtingur.app';
+
+function sender(): string {
+  return process.env.SENDER_EMAIL || DEFAULT_SENDER;
+}
+
+/**
  * Almennt fall til að senda tölvupóst í gegnum Resend API.
  * Ef RESEND_API_KEY vantar, er tölvupósturinn skrifaður í console logs.
  */
@@ -50,9 +65,9 @@ export async function sendOpsAlertEmail(
   subject: string,
   message: string,
 ): Promise<void> {
-  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const from = sender();
   await sendMail({
-    from: `Birtingur Ops <${sender}>`,
+    from: `Birtingur Ops <${from}>`,
     to: toEmails,
     subject: `[Birtingur OPS] ${subject}`,
     html: `<p style="font-family:monospace;white-space:pre-wrap">${message}</p>`,
@@ -67,7 +82,7 @@ export async function sendWelcomePublisherEmail(
   displayName: string,
   domain: string,
 ): Promise<void> {
-  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const from = sender();
   const html = `
 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; line-height: 1.6;">
   <h2 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Velkomin(n) í Birting! 🚀</h2>
@@ -92,7 +107,7 @@ export async function sendWelcomePublisherEmail(
   `;
 
   await sendMail({
-    from: sender,
+    from,
     to: [toEmail],
     subject: 'Velkomin(n) í Birting – Byrjum að breyta umferð í krónur! 💸',
     html,
@@ -106,7 +121,7 @@ export async function sendWelcomeAdvertiserEmail(
   toEmail: string,
   companyName: string,
 ): Promise<void> {
-  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const from = sender();
   const html = `
 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #334155; line-height: 1.6;">
   <h2 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Velkomin(n) til leiks! 🚀</h2>
@@ -130,7 +145,7 @@ export async function sendWelcomeAdvertiserEmail(
   `;
 
   await sendMail({
-    from: sender,
+    from,
     to: [toEmail],
     subject: 'Velkomin(n) í Birting – Komdu þér á framfæri á íslenskum vefjum! 🎯',
     html,
@@ -148,7 +163,7 @@ export async function sendAgentCampaignPendingEmail(
   campaignId: string,
   amountIsk: number,
 ): Promise<void> {
-  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const from = sender();
   const appBaseUrl = process.env.APP_BASE_URL || 'https://app.birtingur.app';
   const amountLabel = `${amountIsk.toLocaleString('is-IS')} kr.`;
   const html = `
@@ -167,7 +182,7 @@ export async function sendAgentCampaignPendingEmail(
   `;
 
   await sendMail({
-    from: sender,
+    from,
     to: [toEmail],
     subject: `Agent óskar eftir herferð upp á ${amountLabel} — samþykktu eða hafnaðu`,
     html,
@@ -182,7 +197,7 @@ export async function sendWaitlistWelcomeEmail(
   role: string,
   category?: string,
 ): Promise<void> {
-  const sender = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+  const from = sender();
 
   // Basic HTML entity escaping to prevent HTML injection in emails
   const safeCategory = category
@@ -207,7 +222,7 @@ export async function sendWaitlistWelcomeEmail(
   `;
 
   await sendMail({
-    from: sender,
+    from,
     to: [toEmail],
     subject: 'Welcome to Birtingur Early Access!',
     html,
