@@ -108,6 +108,13 @@ _Fix:_ when the answer lands, align the confirm screen's VSK line and total,
 the TopUp copy, `DISBURSE_VAT`, and the Payday/Blikk invoicing in one pass.
 Do not change any of them piecemeal.
 
+_Update 2026-08-12:_ the owner decided the misleading confirm-screen rows
+should not wait: the "VSK (24%)" line and budget+24% "Samtals" were removed
+(the total is now the budget itself, with a note deferring VSK to the FAQ).
+That is a removal of a false figure, not a VSK-treatment decision — the
+one-pass rule above still governs everything else and remains blocked on the
+accountant.
+
 ## Publisher-facing
 
 ### Earnings shows 0 kr instead of an error state — fixed in #18

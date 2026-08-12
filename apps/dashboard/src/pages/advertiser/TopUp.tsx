@@ -14,6 +14,21 @@ import { AlertCircle, CreditCard, Lock, CheckCircle, AlertTriangle, FileText } f
 
 const PRESETS = [5000, 20000, 50000, 100000];
 
+/**
+ * Opening amount for the top-up form. CampaignCreate links here with
+ * `?amount=<shortfall>` when the wallet can't cover a campaign, so the form
+ * opens on the figure the advertiser actually needs instead of a hardcoded
+ * 20.000 kr. Rounded up to a whole thousand (nicer to pay, and covers the
+ * shortfall by definition), clamped between the 2.000 kr. minimum the submit
+ * handler enforces and a 10 m.kr. sanity ceiling; anything unparsable or
+ * non-positive falls back to the old default. Exported for its unit test.
+ */
+export function initialTopUpAmount(param: string | null): number {
+  const suggested = Number(param);
+  if (!Number.isFinite(suggested) || suggested <= 0) return 20000;
+  return Math.min(10_000_000, Math.max(2000, Math.ceil(suggested / 1000) * 1000));
+}
+
 export default function TopUp() {
   const wallet = useWallet();
   const topup = useTopUp();
@@ -24,7 +39,7 @@ export default function TopUp() {
   const success = searchParams.get('success') === 'true';
   const cancelled = searchParams.get('cancelled') === 'true';
 
-  const [amount, setAmount] = useState(20000);
+  const [amount, setAmount] = useState(() => initialTopUpAmount(searchParams.get('amount')));
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
@@ -401,6 +416,12 @@ export default function TopUp() {
             {wallet.isLoading ? 'Hleður...' : formatIsk(wallet.data?.balanceIsk ?? 0)}
           </span>
         </div>
+        {(wallet.data?.committedIsk ?? 0) > 0 && (
+          <p className="mt-3 text-xs text-slate-500 tabular-nums">
+            Þar af frátekið í virkar herferðir: {formatIsk(wallet.data?.committedIsk ?? 0)} · Laust
+            fyrir nýjar herferðir: {formatIsk(Math.max(0, wallet.data?.availableIsk ?? 0))}
+          </p>
+        )}
         <p className="mt-4 max-w-[46ch] text-sm leading-relaxed text-slate-500">
           Inneignin er notuð til að greiða fyrir birtingar herferða þinna. Veldu upphæð hér að neðan
           til að fylla á.
