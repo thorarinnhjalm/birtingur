@@ -1,7 +1,14 @@
 {
+  "ignoreCommand": "npx turbo-ignore @ada/dashboard",
   "rewrites": [
-    { "source": "/vibers", "destination": "/index.html" },
-    { "source": "/serfraedingar", "destination": "/index.html" },
+    {
+      "source": "/vibers",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/serfraedingar",
+      "destination": "/index.html"
+    },
     {
       "source": "/((?!assets/|favicon.svg|favicon.ico|robots.txt|sitemap.xml).*)",
       "destination": "/index.html"
@@ -10,15 +17,30 @@
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/vibers",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     },
     {
       "source": "/serfraedingar",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }
