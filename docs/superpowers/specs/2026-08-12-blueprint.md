@@ -134,15 +134,15 @@ way into a stats document.
 
 **Invariants.**
 
-| Invariant                                                                         | Enforced by                                                                                                                                                                                      |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| A failed write does not lose events (whole-batch failure is re-queued)            | `apps/api/tests/stats-drain.test.ts`                                                                                                                                                             |
-| A partially committed batch is never re-queued (no double counting)               | `apps/api/tests/stats-drain.test.ts`                                                                                                                                                             |
-| Falling behind is never silent (truncation, zero progress, lost events all alert) | `apps/api/tests/stats-drain.test.ts`                                                                                                                                                             |
-| An unrecognized event type is skipped, never counted as a click                   | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                                        |
-| Dotted field paths are never written (they are dead fields nobody reads)          | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                                        |
-| A post-write step cannot be misread as "nothing was committed"                    | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                                        |
-| **`events:stats` depth over time is watched, not just readable on demand**        | **UNENFORCED** — depth and oldest-event age are surfaced pull-based in `routes/admin/index.ts` / `services/ops-diagnostics.ts`; the growth alert in `ops-alerts.ts` covers `events:accrual` only |
+| Invariant                                                                         | Enforced by                                                                                                                                                                  |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A failed write does not lose events (whole-batch failure is re-queued)            | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| A partially committed batch is never re-queued (no double counting)               | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| Falling behind is never silent (truncation, zero progress, lost events all alert) | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| An unrecognized event type is skipped, never counted as a click                   | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| Dotted field paths are never written (they are dead fields nobody reads)          | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| A post-write step cannot be misread as "nothing was committed"                    | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| `events:stats` depth over time is watched, not just readable on demand            | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
 
 **Now.** PR #32 (merged 2026-08-12) raised the batch cap to 20 behind the 30s
 deadline, added the re-queue and the `AggregationError.anyCommitted` distinction,
@@ -150,11 +150,11 @@ and turned truncation into an ops alert. This subsystem is the one place in the
 repo where the invariants are now fully pinned by tests, which is why it reads
 shorter than the others.
 
-**Bridge.**
-
-1. Extend the `ops-alerts` growth check to `events:stats` with its own baseline
-   key, on the hourly caller only (the 10-minute caller must stay
-   staleness-only, see subsystem 4).
+**Bridge.** Done 2026-08-12 (gap item 4): the growth check generalized into
+`QUEUE_GROWTH_WATCHES` in `ops-alerts.ts`, watching both drained queues with
+their own baseline keys — `events:stats` at a 5000 floor (an hour of traffic
+legitimately queues between drains), guarded on cron-aggregate's staleness,
+on the hourly caller only.
 
 ---
 
@@ -213,27 +213,29 @@ report it.
 
 **Invariants.**
 
-| Invariant                                                                                                           | Enforced by                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Every successful cron records a heartbeat; a stale heartbeat alerts                                                 | `apps/api/tests/ops-alerts.test.ts`                                                                                                |
-| A missing heartbeat bootstraps rather than paging on first deploy                                                   | `apps/api/tests/ops-alerts.test.ts`                                                                                                |
-| Alerts dedupe per condition for 6h, so a stuck cron does not page every tick                                        | `apps/api/tests/ops-alerts.test.ts`                                                                                                |
-| The accrual backlog-growth check only runs on the hourly caller (a 10-minute sample would flag the normal sawtooth) | `apps/api/tests/ops-alerts.test.ts`                                                                                                |
-| A failing watchdog cannot take down the cron hosting it                                                             | code: isolated try/catch in `api/cron-refresh-cache.js` — **UNENFORCED**                                                           |
-| **The watchdog is hosted by more than one cron**                                                                    | **UNENFORCED** — true since #32 (cron-aggregate hourly + cron-refresh-cache every 10 min), but it is a wiring fact no test can see |
+| Invariant                                                                                                           | Enforced by                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Every successful cron records a heartbeat; a stale heartbeat alerts                                                 | `apps/api/tests/ops-alerts.test.ts`                                                                                     |
+| A missing heartbeat bootstraps rather than paging on first deploy                                                   | `apps/api/tests/ops-alerts.test.ts`                                                                                     |
+| Alerts dedupe per condition for 6h, so a stuck cron does not page every tick                                        | `apps/api/tests/ops-alerts.test.ts`                                                                                     |
+| The accrual backlog-growth check only runs on the hourly caller (a 10-minute sample would flag the normal sawtooth) | `apps/api/tests/ops-alerts.test.ts`                                                                                     |
+| A failing watchdog cannot take down the cron hosting it                                                             | `tests/cron-watchdog-wiring.test.ts` (structural: the call sits in its own try block)                                   |
+| The watchdog is hosted by more than one cron                                                                        | `tests/cron-watchdog-wiring.test.ts` (structural: both entrypoints call it; only the hourly one runs the growth checks) |
 
 **Now.** Two callers, email via Resend plus in-app admin notification, plus
 `/api/cron-diagnostics` and the admin ops card for pull-based checks.
 
 **Bridge.**
 
-1. A cheap structural test that asserts both cron entrypoints import and call
-   `checkCronHeartbeats` (read the two files, assert the call is present). Ugly,
-   but it is the only way this invariant survives someone tidying an entrypoint.
+1. ~~A cheap structural test that asserts both cron entrypoints call
+   `checkCronHeartbeats`~~ — done 2026-08-12,
+   `tests/cron-watchdog-wiring.test.ts` (also pins staleness-only on the
+   10-minute caller and the isolated try block).
 2. Alert email: `ADMIN_EMAILS` and `RESEND_API_KEY` both in Production and
    the birtingur.app domain verified in Resend, all as of 2026-08-12 (the key
-   was missing until then — no email had ever left prod). Left: set
-   `SENDER_EMAIL` in Production and observe one real email arriving.
+   was missing until then — no email had ever left prod). The default sender
+   became `birtingur@birtingur.app` in code (#34). Left: observe one real
+   email arriving.
 
 ---
 
@@ -364,8 +366,8 @@ one:
 2. ~~Fail-closed budget gate test without mocks (subsystem 1)~~ — done
    2026-08-12, `apps/serving/tests/budget-gate.test.ts`.
 3. ~~Admin resolution test: `ADMIN_EMAILS` only, no domain grant (subsystem 5)~~ — done 2026-08-12, `auth.test.ts` "admin resolution".
-4. `events:stats` growth alert on the hourly watchdog caller (subsystem 2).
-5. Structural test that two crons call `checkCronHeartbeats` (subsystem 4).
+4. ~~`events:stats` growth alert on the hourly watchdog caller (subsystem 2)~~ — done 2026-08-12, `QUEUE_GROWTH_WATCHES` in ops-alerts.ts.
+5. ~~Structural test that two crons call `checkCronHeartbeats` (subsystem 4)~~ — done 2026-08-12, `tests/cron-watchdog-wiring.test.ts`.
 6. Sitemap vs prerender snapshot parity (subsystem 7).
 7. MCP tool-list test: no money-adding tool (subsystem 6).
 8. ~~No-bypass-token test (subsystem 5)~~ — done 2026-08-12, `auth.test.ts`

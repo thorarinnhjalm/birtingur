@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import { EVENT_QUEUE_ACCRUAL, EVENT_QUEUE_STATS } from '@ada/shared';
 
 const MIN = 60_000;
 
@@ -10,6 +10,9 @@ let mockStore: Map<string, string | number>;
 // Named with the "mock" prefix so Vitest allows referencing it inside the
 // hoisted vi.mock factory below (same convention as accrual.test.ts).
 let mockRedisDown = false;
+// Keys whose llen specifically throws, so per-queue failure isolation can be
+// exercised (a global outage cannot distinguish `continue` from `break`).
+let mockDownLlenKeys: Set<string>;
 
 vi.mock('../src/lib/redis', () => ({
   isRedisConfigured: () => true,
@@ -22,7 +25,7 @@ vi.mock('../src/lib/redis', () => ({
     }),
     get: vi.fn(async (key: string) => mockStore.get(key) ?? null),
     llen: vi.fn(async (key: string) => {
-      if (mockRedisDown) throw new Error('redis unavailable');
+      if (mockRedisDown || mockDownLlenKeys.has(key)) throw new Error('redis unavailable');
       return Number(mockStore.get(key) ?? 0);
     }),
   }),
@@ -59,6 +62,7 @@ function sentAlerts() {
 beforeEach(() => {
   mockStore = new Map();
   mockRedisDown = false;
+  mockDownLlenKeys = new Set();
   sentEmails.length = 0;
   process.env.OPS_ALERT_EMAILS = 'ops@example.com';
 });
@@ -170,6 +174,72 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     mockRedisDown = true;
     await checkCronHeartbeats();
     expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(false);
+  });
+
+  describe('events:stats growth (the queue nothing watched until 2026-08-12)', () => {
+    // Same mechanics as the accrual watch above, but for the hourly-drained
+    // stats queue: threshold 5000 (a full hour of traffic legitimately queues
+    // up between drains), guarded on cron-aggregate's own staleness.
+    it('alerts when events:stats grows across consecutive checks past 5000', async () => {
+      setQueueDepth(EVENT_QUEUE_STATS, 6000);
+      await checkCronHeartbeats(); // records baseline, no alert
+      setQueueDepth(EVENT_QUEUE_STATS, 9000);
+      await checkCronHeartbeats();
+      expect(sentAlerts().some((a) => a.subject.includes('Tölfræði-biðröð'))).toBe(true);
+    });
+
+    it('ignores growth below the 5000 floor (an hour of traffic is normal)', async () => {
+      setQueueDepth(EVENT_QUEUE_STATS, 1000);
+      await checkCronHeartbeats();
+      setQueueDepth(EVENT_QUEUE_STATS, 4000);
+      await checkCronHeartbeats();
+      expect(sentAlerts()).toHaveLength(0);
+    });
+
+    it('does not alert when the stats queue shrinks', async () => {
+      setQueueDepth(EVENT_QUEUE_STATS, 9000);
+      await checkCronHeartbeats();
+      setQueueDepth(EVENT_QUEUE_STATS, 6000);
+      await checkCronHeartbeats();
+      expect(sentAlerts()).toHaveLength(0);
+    });
+
+    it('does not alert on stats growth when cron-aggregate itself is stale (staleness alert covers it)', async () => {
+      const staleTs = Date.now() - (CRON_STALENESS_MINUTES['cron-aggregate']! + 5) * MIN;
+      mockStore.set('heartbeat:cron-aggregate', staleTs);
+      setQueueDepth(EVENT_QUEUE_STATS, 6000);
+      await checkCronHeartbeats();
+      setQueueDepth(EVENT_QUEUE_STATS, 9000);
+      await checkCronHeartbeats();
+      expect(sentAlerts().some((a) => a.subject.includes('Tölfræði-biðröð'))).toBe(false);
+    });
+
+    it('watches both queues independently in one check', async () => {
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 800);
+      setQueueDepth(EVENT_QUEUE_STATS, 6000);
+      await checkCronHeartbeats(); // baselines for both
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
+      setQueueDepth(EVENT_QUEUE_STATS, 9000);
+      await checkCronHeartbeats();
+      expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(true);
+      expect(sentAlerts().some((a) => a.subject.includes('Tölfræði-biðröð'))).toBe(true);
+    });
+
+    it('a failing accrual depth read does not blind the stats watch', async () => {
+      // Pins the per-queue failure isolation (`.catch(() => null)` + continue,
+      // never break): adversarial review showed a continue→break mutation
+      // surviving every test, because the only outage the suite simulated hit
+      // both queues at once. Here only events:accrual's llen throws, on every
+      // check, while events:stats keeps growing — the stats alert must still
+      // fire.
+      mockDownLlenKeys.add(EVENT_QUEUE_ACCRUAL);
+      setQueueDepth(EVENT_QUEUE_STATS, 6000);
+      await checkCronHeartbeats(); // stats baseline lands despite the accrual failure
+      setQueueDepth(EVENT_QUEUE_STATS, 9000);
+      await checkCronHeartbeats();
+      expect(sentAlerts().some((a) => a.subject.includes('Tölfræði-biðröð'))).toBe(true);
+      expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(false);
+    });
   });
 
   describe('includeQueueDepth: false (the 10-minute caller)', () => {
