@@ -1,4 +1,4 @@
-import { EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import { EVENT_QUEUE_ACCRUAL, EVENT_QUEUE_STATS } from '@ada/shared';
 import { getRedis, isRedisConfigured } from '../lib/redis.js';
 import { createNotification } from './notifications.js';
 import { sendOpsAlertEmail } from './mail.js';
@@ -28,11 +28,42 @@ const HEARTBEAT_PREFIX = 'heartbeat:';
 const ALERT_DEDUPE_PREFIX = 'alerted:';
 const ALERT_DEDUPE_TTL_SECONDS = 6 * 60 * 60;
 
-/** Previous events:accrual depth reading, so the next check can tell growth
- *  from shrinkage. Overwritten every check — no TTL needed. */
-const QUEUE_DEPTH_PREV_ACCRUAL_KEY = 'queue_depth_prev:accrual';
-/** Below this, a growing queue is just normal traffic variance, not backlog. */
-const ACCRUAL_QUEUE_ALERT_THRESHOLD = 500;
+/**
+ * Backlog-growth watches, one per drained queue. Each compares the current
+ * depth against the previous hourly reading (stored under `prevKey`,
+ * overwritten every check — no TTL needed) and alerts when two consecutive
+ * checks both show growth past `threshold`, while `guardCron`'s heartbeat is
+ * fresh — a stale heartbeat means the cron is not running at all, which the
+ * staleness alert already covers; this catches the opposite failure, a cron
+ * that runs green but keeps falling behind.
+ *
+ * Thresholds: below them, a growing queue is normal traffic variance.
+ * events:accrual drains every 15 min so 500 queued is already several runs
+ * behind; events:stats drains hourly and legitimately accumulates a full
+ * hour of traffic, so its floor matches the 5000 ops-diagnostics uses.
+ */
+const QUEUE_GROWTH_WATCHES = [
+  {
+    queueKey: EVENT_QUEUE_ACCRUAL,
+    prevKey: 'queue_depth_prev:accrual',
+    threshold: 500,
+    guardCron: 'cron-accrue',
+    dedupeKey: 'accrual-queue-growth',
+    subject: 'Innheimtu-biðröð hleðst upp',
+    message: (prev: number, depth: number) =>
+      `events:accrual dýptin jókst úr ${prev} í ${depth} milli tveggja síðustu athugana, á meðan cron-accrue er enn að keyra — cronið heldur ekki í við álagið. Athugaðu Vercel logs, Redis og /api/cron-diagnostics.`,
+  },
+  {
+    queueKey: EVENT_QUEUE_STATS,
+    prevKey: 'queue_depth_prev:stats',
+    threshold: 5000,
+    guardCron: 'cron-aggregate',
+    dedupeKey: 'stats-queue-growth',
+    subject: 'Tölfræði-biðröð hleðst upp',
+    message: (prev: number, depth: number) =>
+      `events:stats dýptin jókst úr ${prev} í ${depth} milli tveggja síðustu athugana, á meðan cron-aggregate er enn að keyra — söfnunin heldur ekki í við álagið og tölur í viðmótinu dragast aftur úr. Athugaðu Vercel logs og /api/cron-diagnostics.`,
+  },
+] as const;
 
 /** Staleness thresholds per cron: schedule interval + generous grace. */
 export const CRON_STALENESS_MINUTES: Record<string, number> = {
@@ -184,48 +215,46 @@ export async function checkCronHeartbeats(opts?: {
     );
   }
 
-  // Backlog-growth check: an independent signal from staleness above. A
-  // stale cron-accrue heartbeat means the cron isn't running at all
-  // (already alerted on above); this instead catches the opposite failure
-  // mode from the previous task's changes — the cron IS running (fresh
-  // heartbeat) but keeps falling behind, so events:accrual grows tick over
-  // tick instead of draining. Gated on cron-accrue not being stale so this
-  // never fires as a redundant echo of the staleness alert, and gated on
-  // having a real previous reading so a cold start or a single busy check
-  // never alerts on its own — only two consecutive checks that both show
-  // growth, past a floor that rules out ordinary traffic variance.
-  const accrueStale = stale.some((s) => s.name === 'cron-accrue');
-  const depth = includeQueueDepth ? await redis.llen(EVENT_QUEUE_ACCRUAL).catch(() => null) : null;
-  if (typeof depth === 'number') {
-    const prev: number | null = await redis
-      .get<number | string>(QUEUE_DEPTH_PREV_ACCRUAL_KEY)
-      .then((raw) => {
-        const parsed = raw == null ? null : Number(raw);
-        return parsed == null || Number.isNaN(parsed) ? null : parsed;
-      })
-      .catch(() => null); // absence of a baseline is never evidence of a problem
+  // Backlog-growth checks: an independent signal from staleness above, one
+  // per drained queue — see QUEUE_GROWTH_WATCHES for the semantics. Each is
+  // gated on having a real previous reading, so a cold start or a single busy
+  // check never alerts on its own. events:stats joined 2026-08-12: it was the
+  // only drained queue nothing watched over time, so an aggregator that ran
+  // green while falling further behind every hour was invisible (the per-run
+  // capped/timedOut alerts cover a single run, not slow multi-hour drift).
+  if (includeQueueDepth) {
+    for (const watch of QUEUE_GROWTH_WATCHES) {
+      const guardStale = stale.some((s) => s.name === watch.guardCron);
+      const depth = await redis.llen(watch.queueKey).catch(() => null);
+      if (typeof depth !== 'number') continue;
 
-    if (
-      prev != null &&
-      depth > prev &&
-      depth > ACCRUAL_QUEUE_ALERT_THRESHOLD &&
-      !accrueStale &&
-      !(await alreadyAlerted('accrual-queue-growth'))
-    ) {
-      await alertOps(
-        'Innheimtu-biðröð hleðst upp',
-        `events:accrual dýptin jókst úr ${prev} í ${depth} milli tveggja síðustu athugana, á meðan cron-accrue er enn að keyra — cronið heldur ekki í við álagið. Athugaðu Vercel logs, Redis og /api/cron-diagnostics.`,
-      );
-    }
+      const prev: number | null = await redis
+        .get<number | string>(watch.prevKey)
+        .then((raw) => {
+          const parsed = raw == null ? null : Number(raw);
+          return parsed == null || Number.isNaN(parsed) ? null : parsed;
+        })
+        .catch(() => null); // absence of a baseline is never evidence of a problem
 
-    try {
-      await redis.set(QUEUE_DEPTH_PREV_ACCRUAL_KEY, depth);
-    } catch (err) {
-      // Best-effort like the rest of this module, but silent failure here
-      // would leave the growth check permanently blind (every future call
-      // sees prev == null and never re-establishes a baseline) with no
-      // trace anywhere — log it so a persistent write failure is visible.
-      console.error('[ops-alerts] failed to record accrual queue depth baseline:', err);
+      if (
+        prev != null &&
+        depth > prev &&
+        depth > watch.threshold &&
+        !guardStale &&
+        !(await alreadyAlerted(watch.dedupeKey))
+      ) {
+        await alertOps(watch.subject, watch.message(prev, depth));
+      }
+
+      try {
+        await redis.set(watch.prevKey, depth);
+      } catch (err) {
+        // Best-effort like the rest of this module, but silent failure here
+        // would leave the growth check permanently blind (every future call
+        // sees prev == null and never re-establishes a baseline) with no
+        // trace anywhere — log it so a persistent write failure is visible.
+        console.error(`[ops-alerts] failed to record ${watch.prevKey} baseline:`, err);
+      }
     }
   }
 
