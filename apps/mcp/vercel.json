@@ -1,6 +1,16 @@
 {
+  "ignoreCommand": "npx turbo-ignore @ada/mcp",
   "devCommand": "tsc --watch",
   "framework": null,
-  "functions": { "api/index.ts": { "maxDuration": 30 } },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
 }
