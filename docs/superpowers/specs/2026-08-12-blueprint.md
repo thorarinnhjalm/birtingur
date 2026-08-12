@@ -328,14 +328,20 @@ imported everywhere; embeddable widgets that a publisher can drop on a page.
 
 **Invariants.**
 
-| Invariant                                            | Enforced by                                             |
-| ---------------------------------------------------- | ------------------------------------------------------- |
-| Schemas, ISK formatting, dates and converters behave | 12 test files in `packages/shared/tests`                |
-| **The widgets work**                                 | **UNENFORCED** — `packages/widgets` has no tests at all |
+| Invariant                                            | Enforced by                                                                                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Schemas, ISK formatting, dates and converters behave | 12 test files in `packages/shared/tests`                                                                                        |
+| The widgets work                                     | `packages/widgets/tests/widgets-smoke.test.ts`: all three register, render, fetch from `API_BASE` with the key, fail visibly    |
+| The built widgets bundle targets the real API origin | `packages/widgets/scripts/check-host.mjs` in CI — added the day the production bundle was found calling `http://localhost:3001` |
 
-**Bridge.** Smoke-test each of the three widgets: it renders, it fetches, it
-fails visibly. Low urgency, but "zero tests" should be a stated fact rather than
-a discovery.
+**Bridge.** Done 2026-08-12 (gap item 9) — and it was not low urgency after
+all: writing the smoke tests surfaced that the PRODUCTION widgets bundle on
+serving.birtingur.app had `http://localhost:3001` baked in as its API origin
+(the esbuild define's default, same bug shape as the snippet's dead
+`serve.` host), so every embedded widget on an external page fetched the
+visitor's own machine and rendered its error state. The default is now the
+real API origin, and CI verifies the built artifact the same way it verifies
+the snippet's.
 
 ---
 
@@ -372,7 +378,8 @@ one:
 7. MCP tool-list test: no money-adding tool (subsystem 6).
 8. ~~No-bypass-token test (subsystem 5)~~ — done 2026-08-12, `auth.test.ts`
    "no bypass token".
-9. Widget smoke tests (subsystem 8).
+9. ~~Widget smoke tests (subsystem 8)~~ — done 2026-08-12; found the
+   production bundle calling localhost (see subsystem 8).
 10. ~~`.env.local` out of the test env (subsystem 9)~~ — done 2026-08-12,
     pinned by `tests/env-isolation.test.ts`.
 
