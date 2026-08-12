@@ -271,12 +271,12 @@ that adds money.
 
 **Invariants.**
 
-| Invariant                                                       | Enforced by                                                                                       |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Scope decides the tool set; failed resolution registers nothing | `apps/mcp/tests/server-scope.test.ts`                                                             |
-| Auth errors are reported as auth errors, not empty tool lists   | `apps/mcp/tests/auth-errors.test.ts`                                                              |
-| `create_campaign` carries idempotency and the channel header    | `apps/mcp/tests/create-campaign.test.ts`                                                          |
-| **No MCP tool can add funds**                                   | **UNENFORCED** — true by construction (top-ups and refunds are dashboard-only), pinned by nothing |
+| Invariant                                                       | Enforced by                                                                                                                                 |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scope decides the tool set; failed resolution registers nothing | `apps/mcp/tests/server-scope.test.ts`                                                                                                       |
+| Auth errors are reported as auth errors, not empty tool lists   | `apps/mcp/tests/auth-errors.test.ts`                                                                                                        |
+| `create_campaign` carries idempotency and the channel header    | `apps/mcp/tests/create-campaign.test.ts`                                                                                                    |
+| No MCP tool can add funds                                       | `apps/mcp/tests/tool-allowlist.test.ts`: exact 18-tool allowlist (any new tool fails until consciously listed) plus a money-in name pattern |
 
 **Now.** Six test files. Stateless by construction (fresh server and transport
 per request), static `Bearer ak_` auth, no OAuth. The 2026-07-28 spec revision is
@@ -301,12 +301,12 @@ claim the product cannot back.
 
 **Invariants.**
 
-| Invariant                                                    | Enforced by                                                                                                          |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Public copy claims nothing beyond the verified USP list      | `scripts/check-marketing-claims.mjs` (runs in `lint`, pre-push) + `apps/dashboard/tests/marketing-claims.test.ts`    |
-| Prerender snapshots are never captured against a stale build | `apps/dashboard/tests/prerender-staleness.test.ts` + the capture script's own guard                                  |
-| Editorial primitives and key components render               | 14 dashboard test files                                                                                              |
-| **Every route in `sitemap.xml` has a snapshot**              | **UNENFORCED** — the sitemap is the source of truth, but nothing fails when a route is missing from `snapshots.json` |
+| Invariant                                                    | Enforced by                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Public copy claims nothing beyond the verified USP list      | `scripts/check-marketing-claims.mjs` (runs in `lint`, pre-push) + `apps/dashboard/tests/marketing-claims.test.ts`                    |
+| Prerender snapshots are never captured against a stale build | `apps/dashboard/tests/prerender-staleness.test.ts` + the capture script's own guard                                                  |
+| Editorial primitives and key components render               | 14 dashboard test files                                                                                                              |
+| Every route in `sitemap.xml` has a snapshot, and vice versa  | `apps/dashboard/tests/sitemap-snapshot-parity.test.ts`, via the pipeline's own `readRoutes()` so the root-`/` exclusion cannot drift |
 
 **Now.** React 19 + Vite SPA, Tailwind 4 with brand tokens, prerender pipeline
 with a committed snapshot cache. `admin/Overview.tsx` is 2895 lines — not a bug,
@@ -368,8 +368,10 @@ one:
 3. ~~Admin resolution test: `ADMIN_EMAILS` only, no domain grant (subsystem 5)~~ — done 2026-08-12, `auth.test.ts` "admin resolution".
 4. ~~`events:stats` growth alert on the hourly watchdog caller (subsystem 2)~~ — done 2026-08-12, `QUEUE_GROWTH_WATCHES` in ops-alerts.ts.
 5. ~~Structural test that two crons call `checkCronHeartbeats` (subsystem 4)~~ — done 2026-08-12, `tests/cron-watchdog-wiring.test.ts`.
-6. Sitemap vs prerender snapshot parity (subsystem 7).
-7. MCP tool-list test: no money-adding tool (subsystem 6).
+6. ~~Sitemap vs prerender snapshot parity (subsystem 7)~~ — done 2026-08-12,
+   `sitemap-snapshot-parity.test.ts`.
+7. ~~MCP tool-list test: no money-adding tool (subsystem 6)~~ — done
+   2026-08-12, `tool-allowlist.test.ts`.
 8. ~~No-bypass-token test (subsystem 5)~~ — done 2026-08-12, `auth.test.ts`
    "no bypass token".
 9. Widget smoke tests (subsystem 8).
