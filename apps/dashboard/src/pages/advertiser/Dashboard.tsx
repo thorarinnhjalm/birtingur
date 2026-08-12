@@ -418,6 +418,12 @@ function AdvertiserHome() {
           <div className="text-4xl font-extrabold tracking-[-0.03em] tabular-nums md:text-5xl">
             {formatIsk(wallet?.balanceIsk ?? 0)}
           </div>
+          {(wallet?.committedIsk ?? 0) > 0 && (
+            <p className="mt-2 text-xs font-medium text-white/75 tabular-nums">
+              Þar af frátekið í virkar herferðir: {formatIsk(wallet?.committedIsk ?? 0)} · Laust
+              fyrir nýjar herferðir: {formatIsk(Math.max(0, wallet?.availableIsk ?? 0))}
+            </p>
+          )}
         </div>
         <div className="relative z-10 mt-6 flex flex-col items-start justify-between gap-4 border-t border-white/10 pt-4 sm:flex-row sm:items-center">
           <p className="max-w-sm text-xs leading-relaxed font-medium text-white/90 sm:text-sm">

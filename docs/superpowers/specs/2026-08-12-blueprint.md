@@ -184,14 +184,24 @@ not billed, and any drift is reported the next morning without anyone looking.
 Accrual is deadline-bounded with per-campaign re-queue; reconciliation is
 read-only and alert-only by design.
 
-**Bridge.**
+**Bridge.** All three advertiser-facing display items done 2026-08-12 (PR 4 of
+the execution plan):
 
-1. **VSK confirm copy — decided 2026-08-12** (see Product direction): remove
-   the misleading "VSK (24%)" line and total from campaign confirm now; the
-   full alignment pass (`DISBURSE_VAT`, Payday/Blikk, all copy in one PR)
-   still waits for the accountant.
-2. Gross vs net balance display and the top-up prefill — both small dashboard
-   items on the same deferred list, both visible to advertisers, neither risky.
+1. The confirm step shows no VSK line and totals exactly the budget the server
+   debits ("Dregst af inneign"), with a note deferring VSK to the FAQ — pinned
+   by `CampaignCreate.test.tsx`. The FULL VSK treatment (`DISBURSE_VAT`,
+   Payday/Blikk, all copy in one coherent PR) still waits for the accountant;
+   do not add VAT figures back piecemeal.
+2. Gross vs committed vs available is shown wherever the balance is: the
+   advertiser Dashboard wallet card and the TopUp summary both carry a
+   "frátekið í virkar herferðir / laust fyrir nýjar" breakdown when anything
+   is committed (CampaignCreate's confirm step already had it).
+3. The top-up path from a short wallet carries the shortfall
+   (`/advertiser/topup?amount=`), and TopUp opens prefilled on it (rounded up
+   to a whole thousand, clamped between the 2.000 kr. minimum and a 10 m.kr.
+   ceiling) instead of a hardcoded 20.000. The link is pinned by
+   `CampaignCreate.test.tsx`; the parsing/rounding/clamping by
+   `TopUp.test.tsx` (`initialTopUpAmount`).
 
 ---
 

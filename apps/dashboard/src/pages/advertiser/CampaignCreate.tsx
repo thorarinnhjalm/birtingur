@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCreateCampaign } from '@/hooks/useCampaigns';
 import { useCategoryInventory } from '@/hooks/useCategoryInventory';
 import { useWallet } from '@/hooks/useWallet';
@@ -16,7 +16,7 @@ import {
   StepIndicator,
 } from '@/components/ui/editorial';
 import { AlertTriangle, Upload, Check, AlertCircle, Info, Lock } from 'lucide-react';
-import { AD_CATEGORIES, FLAT_CPM_ISK, VAT_RATE } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -251,30 +251,23 @@ export default function CampaignCreate() {
   const walletAvailable = walletQuery.data?.availableIsk ?? walletBalance;
 
   // Live forecast — math per the buy-flow spec's renderVals(): flat CPM, 30-day
-  // flight, 24% VAT. Uses the shared constants instead of the spec's magic numbers.
+  // flight. Uses the shared constants instead of the spec's magic numbers.
   const totalImpressions = Math.round((totalBudget / FLAT_CPM_ISK) * 1000);
   const perDayImpressions = Math.round(totalImpressions / 30);
-  const vsk = Math.round(totalBudget * VAT_RATE);
-  const grandTotal = totalBudget + vsk;
-  // Gate on `totalBudget`, NOT `grandTotal`. POST /v1/campaigns sends
-  // budget.totalIsk and the server admits the campaign when available
-  // balance >= that figure (services/wallet.ts) — VAT is not part of what it
-  // debits. Gating the UI on budget + 24% made this screen strictly stricter
-  // than the thing that actually takes the money: an advertiser with exactly
-  // enough available balance for their budget was told they were 24% short
-  // and, because the branch below swaps the confirm button for a top-up link
-  // when this is false, had no way to buy at all. The over-strict gate
-  // protected nothing (the server is the authority on funds) and only lost
-  // the sale.
+  // Gate on `totalBudget` — the same figure POST /v1/campaigns debits. The
+  // server admits the campaign when available balance >= budget.totalIsk
+  // (services/wallet.ts); an earlier over-strict gate on budget + 24% VAT
+  // blocked an advertiser holding exactly enough money from buying at all
+  // (fixed in PR #18).
   //
-  // The VSK line and the "Samtals" figure below are deliberately left alone.
-  // Whether VAT is owed at purchase or (per the TopUp page's copy) applies to
-  // the platform fee at serving time is an open question with the owner's
-  // accountant; see docs/superpowers/follow-ups-2026-08-09.md. That decision
-  // changes the copy and possibly the server, and must land as one coherent
-  // pass across the confirm screen, TopUp, DISBURSE_VAT and Payday/Blikk.
-  // This change only stops the UI from disagreeing with the server about who
-  // may buy.
+  // There is deliberately NO VSK line or budget+24% total on this screen any
+  // more (owner decision 2026-08-12, see the blueprint's Product direction):
+  // that figure was never debited and contradicted TopUp/FaqPage, which both
+  // say the deposit is VAT-free agency credit with VAT applying only to the
+  // platform fee at serving time. The FULL VSK treatment (this copy,
+  // DISBURSE_VAT in payouts, Payday/Blikk invoicing) still waits on the
+  // owner's accountant and must land as ONE coherent pass — do not add VAT
+  // figures back here piecemeal; see docs/superpowers/follow-ups-2026-08-09.md.
   const walletSufficient = walletAvailable >= totalBudget;
   const topUpNeeded = Math.max(0, totalBudget - walletAvailable);
   const selectedDailyInventory = selectedCategories.reduce((sum, slug) => {
@@ -848,7 +841,7 @@ export default function CampaignCreate() {
             ) : (
               <button
                 type="button"
-                onClick={() => navigate('/advertiser/topup')}
+                onClick={() => navigate(`/advertiser/topup?amount=${topUpNeeded}`)}
                 className="text-sm text-primary font-semibold bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2"
               >
                 Vantar {fmtNum(topUpNeeded)} kr. — fylltu fyrst á veskið
@@ -863,19 +856,28 @@ export default function CampaignCreate() {
                 {fmtNum(totalBudget)} kr.
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[15px] text-slate-600">
-                VSK ({Math.round(VAT_RATE * 100)}%)
-              </span>
-              <span className="text-[15px] text-slate-900 tabular-nums">{fmtNum(vsk)} kr.</span>
-            </div>
             <div className="h-px bg-slate-200 my-0.5" />
             <div className="flex justify-between items-baseline">
-              <span className="text-[17px] font-bold text-slate-900">Samtals</span>
+              <span className="text-[17px] font-bold text-slate-900">Dregst af inneign</span>
               <span className="text-2xl font-extrabold text-slate-900 tracking-[-0.02em] tabular-nums">
-                {fmtNum(grandTotal)} kr.
+                {fmtNum(totalBudget)} kr.
               </span>
             </div>
+            <p className="text-[13px] text-slate-500 leading-normal">
+              Inneign í veskinu er umboðsfé án VSK — VSK leggst aðeins á þjónustugjald Birtings og
+              kemur fram á VSK-reikningi í Greiðslum.{' '}
+              {/* New tab on purpose: this sits on step 4 of a wizard with no
+                  state persistence — an in-tab navigation would throw away
+                  all four steps and force a full creative-wizard redo. */}
+              <Link
+                to="/faq"
+                target="_blank"
+                rel="noopener"
+                className="text-primary underline underline-offset-2"
+              >
+                Nánar um VSK
+              </Link>
+            </p>
           </div>
 
           <div className="mt-7.5">
@@ -889,7 +891,10 @@ export default function CampaignCreate() {
                 Hefja birtingu af inneign
               </Button>
             ) : (
-              <Button className="w-full h-13" onClick={() => navigate('/advertiser/topup')}>
+              <Button
+                className="w-full h-13"
+                onClick={() => navigate(`/advertiser/topup?amount=${topUpNeeded}`)}
+              >
                 Fylla fyrst á veskið
               </Button>
             )}

@@ -33,6 +33,12 @@ vi.mock('firebase/storage', () => ({
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  // The confirm step's VSK note links to /faq; an anchor is all the tests need.
+  Link: ({ to, children, ...rest }: any) => (
+    <a href={typeof to === 'string' ? to : '#'} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 const mockedApiFetch = vi.mocked(apiFetch);
@@ -319,6 +325,31 @@ test('a genuinely short wallet still shows the top-up path, with the shortfall n
   expect(screen.queryByText('Nóg inneign — engin áfylling þarf')).toBeNull();
   expect(screen.getByText('Fylla fyrst á veskið')).toBeDefined();
   expect(screen.getByText(/Vantar 5\.000 kr\./)).toBeDefined();
+
+  // The top-up path carries the shortfall with it, so TopUp opens prefilled
+  // on the 5.000 the advertiser actually needs instead of a hardcoded 20.000.
+  fireEvent.click(screen.getByText('Fylla fyrst á veskið'));
+  expect(mockNavigate).toHaveBeenCalledWith('/advertiser/topup?amount=5000');
+});
+
+test('the confirm step shows no VSK line and totals exactly what the server debits', async () => {
+  // Owner decision 2026-08-12 (see the blueprint's Product direction): the old
+  // "VSK (24%)" row and budget+24% "Samtals" showed a figure that was never
+  // debited and contradicted TopUp/FaqPage. The total must be the budget
+  // itself — the exact amount POST /v1/campaigns takes — with the VSK
+  // explanation deferred to the FAQ.
+  setupApiMock();
+  renderWithClient();
+  await fillBasicsAndProceed();
+  await selectCategoryAndProceed();
+  await completeWizardThroughToStepFour();
+
+  expect(screen.queryByText(/VSK \(24%\)/)).toBeNull();
+  expect(screen.queryByText('Samtals')).toBeNull();
+  expect(screen.getByText('Dregst af inneign')).toBeDefined();
+  // Budget 20.000 with no 24% added: 24.800 must appear nowhere.
+  expect(screen.queryByText(/24\.800/)).toBeNull();
+  expect(screen.getByText(/Nánar um VSK/)).toBeDefined();
 });
 
 test('a wallet response without availableIsk (old shape) falls back to gross balance', async () => {
