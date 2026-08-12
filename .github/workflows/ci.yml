@@ -29,6 +29,14 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # The snippet's SERVE_BASE is baked in at build time; a wrong host ships
+      # an embed that sends every ad request into a black hole with no error
+      # anywhere (this happened — see packages/snippet/esbuild.config.mjs).
+      # Fails when the built bundle lacks the canonical serving origin, carries
+      # a stray absolute origin, or the host stops resolving/responding.
+      - name: Verify snippet serving origin
+        run: pnpm --filter @ada/snippet check:host
+
       - name: Typecheck
         run: pnpm typecheck
 

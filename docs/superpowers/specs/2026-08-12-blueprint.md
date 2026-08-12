@@ -103,28 +103,26 @@ impression and click is attributable, signed, and counted exactly once.
 
 **Invariants.**
 
-| Invariant                                                                      | Enforced by                                                                                               |
-| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| One served ad's signature works for BOTH the impression pixel and the click    | `apps/serving/tests/click-after-impression.test.ts`                                                       |
-| Serving sets no cookies, on fill and on no-fill alike                          | `apps/serving/tests/ad-route.test.ts`                                                                     |
-| Every event reaches `events:stats`; impressions also reach `events:accrual`    | `apps/serving/tests/analytics-fanout.test.ts`                                                             |
-| A replayed signature is rejected per event kind                                | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                                      |
-| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin           | `packages/snippet/tests/render.test.ts`                                                                   |
-| **A missing or expired `budget:{id}` key stops serving; it never serves free** | **UNENFORCED** — every serving test mocks `getRemainingBudgets`, so the real missing-key path is untested |
-| **The snippet's baked-in `SERVE_BASE` resolves in DNS**                        | **UNENFORCED** — this is what broke serving for months (`serve.` vs `serving.`); nothing checks it        |
+| Invariant                                                                       | Enforced by                                                                                   |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| One served ad's signature works for BOTH the impression pixel and the click     | `apps/serving/tests/click-after-impression.test.ts`                                           |
+| Serving sets no cookies, on fill and on no-fill alike                           | `apps/serving/tests/ad-route.test.ts`                                                         |
+| Every event reaches `events:stats`; impressions also reach `events:accrual`     | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
+| A replayed signature is rejected per event kind                                 | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                          |
+| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin            | `packages/snippet/tests/render.test.ts`                                                       |
+| A missing or expired `budget:{id}` key stops serving; it never serves free      | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
+| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
 
-**Now.** V1 on Vercel at `serving.birtingur.app`, 13 test files. The snippet is
+**Now.** V1 on Vercel at `serving.birtingur.app`, 14 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.
-Fail-closed budget behaviour is implemented (`getRemainingBudgets` reads a
-missing key as 0) but not pinned.
 
-**Bridge.**
-
-1. Test the fail-closed budget gate without mocking it: seed no `budget:{id}`,
-   assert no fill. Small, and it guards revenue in the direction that matters.
-2. Add a build-time or CI assertion that the hostname the snippet is built
-   against resolves. A `curl -sI` in CI is enough. This is the single highest
-   value test in this document, because its absence cost months of zero serving.
+**Bridge.** Both items done 2026-08-12 (gap items 1 and 2): the budget gate is
+pinned unmocked in `tests/budget-gate.test.ts` (missing key ⇒ fallback,
+exhausted ⇒ fallback, Redis down ⇒ 500), and CI verifies after every build
+that the built snippet contains exactly the canonical serving origin and that
+the host resolves and answers over HTTPS (`check-host.mjs`). The fictional
+`deploy-snippet.yml` workflow (uploaded to an R2 bucket nothing serves from)
+was deleted in the same change.
 
 ---
 
@@ -355,8 +353,10 @@ Not a subsystem, but it costs real hours.
 Enforcement first, because each one converts a remembered fact into a guarded
 one:
 
-1. CI check that the snippet's `SERVE_BASE` hostname resolves (subsystem 1).
-2. Fail-closed budget gate test without mocks (subsystem 1).
+1. ~~CI check that the snippet's `SERVE_BASE` hostname resolves (subsystem 1)~~
+   — done 2026-08-12, `packages/snippet/scripts/check-host.mjs` in CI.
+2. ~~Fail-closed budget gate test without mocks (subsystem 1)~~ — done
+   2026-08-12, `apps/serving/tests/budget-gate.test.ts`.
 3. Admin resolution test: `ADMIN_EMAILS` only, no domain grant (subsystem 5).
 4. `events:stats` growth alert on the hourly watchdog caller (subsystem 2).
 5. Structural test that two crons call `checkCronHeartbeats` (subsystem 4).
