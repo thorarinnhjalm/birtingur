@@ -11,11 +11,22 @@ const originallyHadEmulator = !!(
 console.log('[API env] FIRESTORE_EMULATOR_HOST =', process.env.FIRESTORE_EMULATOR_HOST);
 console.log('[API env] originallyHadEmulator =', originallyHadEmulator);
 
+// Test detection happens BEFORE the .env.local load below, because the load
+// itself is the hazard: a developer's root .env.local carries real Upstash,
+// Resend, Teya and Gemini credentials, and until 2026-08-12 every local
+// `pnpm test:api` run inherited them — tests wrote real `slot:{id}` keys into
+// production Redis and produced local-only failures (tests/slot-delivery) that
+// passed in CI. Tests must see exactly what CI sees: the emulator, and nothing
+// live. Vitest sets VITEST=true in every worker, so this needs no config.
+const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const envPath = join(__dirname, '../../../../.env.local');
 
-if (existsSync(envPath)) {
+if (isTest) {
+  console.log('[API env] test run — skipping .env.local');
+} else if (existsSync(envPath)) {
   try {
     const content = readFileSync(envPath, 'utf8');
     for (const line of content.split('\n')) {
@@ -41,8 +52,6 @@ if (existsSync(envPath)) {
 }
 
 // Clear or set emulator host variables depending on environment
-const isTest = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test';
-
 if (isTest) {
   // Force emulator hosts for testing
   process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
@@ -53,6 +62,19 @@ if (isTest) {
   delete process.env.FIREBASE_CLIENT_EMAIL;
   delete process.env.FIREBASE_PROJECT_ID;
   delete process.env.FIREBASE_DATABASE_ID;
+  // Same guarantee for every other live service. Skipping .env.local above
+  // covers the file; these deletes cover credentials exported in the shell
+  // itself. Tests that need a "configured" state set the variable (or mock the
+  // module) for their own duration — see tests/reconciliation.test.ts, which
+  // already assumed this clean baseline and defended itself by hand.
+  delete process.env.UPSTASH_REDIS_REST_URL;
+  delete process.env.UPSTASH_REDIS_REST_TOKEN;
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
+  delete process.env.RESEND_API_KEY;
+  delete process.env.TEYA_API_KEY;
+  delete process.env.TEYA_WEBHOOK_SECRET;
+  delete process.env.GEMINI_API_KEY;
 } else {
   const isEmulatorRunning = originallyHadEmulator;
   const hasProductionCredentials =
