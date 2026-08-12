@@ -9,9 +9,14 @@ import { sendOpsAlertEmail } from './mail.js';
  * 1. Failure alerts — the cron entrypoints call `alertOps()` from their catch
  *    blocks, so a throwing cron pages someone instead of only console.error.
  * 2. Dead-man's switch — every successful cron run records a Redis heartbeat;
- *    the hourly cron-aggregate calls `checkCronHeartbeats()` to alert when a
- *    sibling cron has silently stopped firing (the failure mode alerts alone
- *    can't see: Vercel never invoking the function at all).
+ *    `checkCronHeartbeats()` alerts when a sibling cron has silently stopped
+ *    firing (the failure mode alerts alone can't see: Vercel never invoking the
+ *    function at all). TWO crons call it — cron-aggregate (hourly) and
+ *    cron-refresh-cache (every 10 min) — deliberately, not redundantly: a
+ *    watchdog hosted by a single cron goes quiet exactly when that cron dies,
+ *    which is when it is needed. Duplicate calls are safe (alerts dedupe per
+ *    cron name for 6h; the check only writes bootstrap heartbeats), and the
+ *    10-minute caller is what keeps detection latency off the hourly schedule.
  *
  * Alerts fan out to email (Resend, console fallback) and an in-app admin
  * notification, deduped per cron for 6h via Redis so a stuck cron does not
@@ -125,7 +130,22 @@ export async function alertCronFailure(cronName: string, err: unknown): Promise<
  * Missing heartbeats are initialized (bootstrap) instead of alerted, so a
  * fresh deploy starts the clock rather than paging immediately.
  */
-export async function checkCronHeartbeats(): Promise<{ stale: string[] }> {
+export async function checkCronHeartbeats(opts?: {
+  /** Whether to also run the events:accrual backlog-growth check below.
+   *  Defaults to true (cron-aggregate, hourly).
+   *
+   *  cron-refresh-cache passes false, deliberately. That check compares this
+   *  reading of the queue against the previous one, which only means "the cron
+   *  is not keeping up" when the gap between readings spans several
+   *  cron-accrue runs. cron-accrue runs every 15 minutes, so on the hourly
+   *  cadence a rise really is a backlog; sampled every 10 minutes it would
+   *  routinely catch the normal sawtooth (events pile up between runs, then
+   *  drain) and page ops about a healthy system. Staleness detection has no
+   *  such dependency on the interval, so the 10-minute caller takes that half
+   *  and leaves the baseline to the hourly one. */
+  includeQueueDepth?: boolean;
+}): Promise<{ stale: string[] }> {
+  const includeQueueDepth = opts?.includeQueueDepth ?? true;
   if (!isRedisConfigured()) return { stale: [] };
   const redis = getRedis();
   const names = Object.keys(CRON_STALENESS_MINUTES);
@@ -175,7 +195,7 @@ export async function checkCronHeartbeats(): Promise<{ stale: string[] }> {
   // never alerts on its own — only two consecutive checks that both show
   // growth, past a floor that rules out ordinary traffic variance.
   const accrueStale = stale.some((s) => s.name === 'cron-accrue');
-  const depth = await redis.llen(EVENT_QUEUE_ACCRUAL).catch(() => null);
+  const depth = includeQueueDepth ? await redis.llen(EVENT_QUEUE_ACCRUAL).catch(() => null) : null;
   if (typeof depth === 'number') {
     const prev: number | null = await redis
       .get<number | string>(QUEUE_DEPTH_PREV_ACCRUAL_KEY)

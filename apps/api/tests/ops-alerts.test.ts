@@ -171,4 +171,35 @@ describe('checkCronHeartbeats — accrual queue depth', () => {
     await checkCronHeartbeats();
     expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(false);
   });
+
+  describe('includeQueueDepth: false (the 10-minute caller)', () => {
+    // cron-refresh-cache calls the watchdog every 10 minutes for staleness, but
+    // must not touch the growth check: comparing readings 10 minutes apart would
+    // flag the ordinary pile-up between 15-minute cron-accrue runs as a backlog.
+    it('skips the growth check entirely, even on clear sustained growth', async () => {
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 800);
+      await checkCronHeartbeats({ includeQueueDepth: false });
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
+      await checkCronHeartbeats({ includeQueueDepth: false });
+      expect(sentAlerts()).toHaveLength(0);
+    });
+
+    it('does not touch the baseline the hourly caller depends on', async () => {
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 800);
+      await checkCronHeartbeats(); // hourly caller records the 800 baseline
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
+      await checkCronHeartbeats({ includeQueueDepth: false }); // must not overwrite it
+      setQueueDepth(EVENT_QUEUE_ACCRUAL, 1600);
+      await checkCronHeartbeats(); // still 1600 > the 800 baseline: real growth
+      expect(sentAlerts().some((a) => a.subject.includes('Innheimtu-biðröð'))).toBe(true);
+    });
+
+    it('still reports stale crons', async () => {
+      const staleTs = Date.now() - (CRON_STALENESS_MINUTES['cron-aggregate']! + 5) * MIN;
+      mockStore.set('heartbeat:cron-aggregate', staleTs);
+      const res = await checkCronHeartbeats({ includeQueueDepth: false });
+      expect(res.stale).toContain('cron-aggregate');
+      expect(sentAlerts().some((a) => a.subject.includes('cron-aggregate'))).toBe(true);
+    });
+  });
 });

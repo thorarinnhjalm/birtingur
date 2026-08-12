@@ -4,6 +4,7 @@ import { db } from '../lib/firebase.js';
 import { getRedis } from '../lib/redis.js';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { DocumentData, DocumentReference, SetOptions } from 'firebase-admin/firestore';
+import { alertOps, alreadyAlerted } from './ops-alerts.js';
 
 export interface QueuedEvent {
   type: 'impression' | 'click' | 'pageview' | 'slot_load';
@@ -130,9 +131,41 @@ function chunkedBatch() {
         if (ops > 0) commits.push(current.commit());
         ops = 0;
       }
-      await Promise.all(commits);
+      // Settle every chunk before deciding what to throw. `Promise.all` would
+      // reject on the first failure while later chunks were still in flight,
+      // which tells the caller nothing about how much landed — and whether
+      // anything landed is exactly what decides if the drained events can
+      // safely go back on the queue (see AggregationError below).
+      const results = await Promise.allSettled(commits);
+      const failed = results.filter((r) => r.status === 'rejected');
+      if (failed.length > 0) {
+        throw new AggregationError(
+          `${failed.length} of ${results.length} stats batch commits failed`,
+          { anyCommitted: failed.length < results.length, cause: failed[0]?.reason },
+        );
+      }
     },
   };
+}
+
+/**
+ * Thrown when the write phase fails, carrying the one fact the drain needs:
+ * whether ANY chunk of this batch reached Firestore.
+ *
+ * `anyCommitted === false` means every increment failed together, so the events
+ * are safe to re-queue and retry. `true` means the batch landed in part, and
+ * re-queueing would apply the committed chunks' increments a second time —
+ * those events have to be dropped and reported instead. There is no third
+ * option without per-event dedup, which stats deliberately do not carry.
+ */
+export class AggregationError extends Error {
+  readonly anyCommitted: boolean;
+
+  constructor(message: string, opts: { anyCommitted: boolean; cause?: unknown }) {
+    super(message, { cause: opts.cause });
+    this.name = 'AggregationError';
+    this.anyCommitted = opts.anyCommitted;
+  }
 }
 
 export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
@@ -476,14 +509,28 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
   // compares the two to catch events that were emitted but never made it into a stats
   // doc. One event, one increment, bucketed by the event's own ts; a single pipeline
   // round trip for the whole batch.
-  const redis = getRedis();
-  const pipeline = redis.pipeline();
-  for (const ev of events) {
-    const key = recordedCounterKey(ev.ts);
-    pipeline.incr(key);
-    pipeline.expire(key, RECORDED_COUNTER_TTL_SECONDS);
+  //
+  // Deliberately swallowed rather than thrown: this runs AFTER the write phase, so an
+  // error escaping here would reach the drain as a plain (non-AggregationError) failure
+  // and be treated as "nothing committed" — putting already-written events back on the
+  // queue to be counted twice. A missing recorded counter only makes the reconciliation
+  // cron report drift it cannot explain; double-counted stats are wrong numbers nobody
+  // can detect. Keep this the last step in the function, and keep it non-throwing.
+  try {
+    const redis = getRedis();
+    const pipeline = redis.pipeline();
+    for (const ev of events) {
+      const key = recordedCounterKey(ev.ts);
+      pipeline.incr(key);
+      pipeline.expire(key, RECORDED_COUNTER_TTL_SECONDS);
+    }
+    await pipeline.exec();
+  } catch (err) {
+    console.error(
+      `[cron-aggregate] recorded:{hour} counters failed for ${events.length} already-committed events — reconciliation may report drift:`,
+      err,
+    );
   }
-  await pipeline.exec();
 }
 
 /**
@@ -531,41 +578,149 @@ function toEventList(raw: unknown): { events: QueuedEvent[]; rawCount: number } 
   return { events, rawCount: items.length };
 }
 
-export async function drainAndAggregate(batchSize = 1000): Promise<number> {
-  const redis = getRedis();
+/**
+ * Push events back onto the stats queue one at a time, tolerating a failed
+ * individual `lpush` instead of throwing and taking the rest of the batch with
+ * it. Everything goes back to `EVENT_QUEUE_STATS` even if it came off the
+ * legacy list: both are drained here and nothing writes to the legacy list any
+ * more, so all that matters is that the event lands somewhere this cron reads
+ * again. A push that fails means the event is genuinely unrecoverable (Redis
+ * refused the write), so it is logged in full as the forensic record of last
+ * resort. Returns how many made it back.
+ */
+async function safeRequeue(
+  redis: ReturnType<typeof getRedis>,
+  events: QueuedEvent[],
+  context: string,
+): Promise<number> {
+  let pushed = 0;
+  for (const ev of events) {
+    try {
+      await redis.lpush(EVENT_QUEUE_STATS, JSON.stringify(ev));
+      pushed++;
+    } catch (err) {
+      console.error(
+        `[cron-aggregate] failed to re-queue an event during ${context} — event LOST, forensic record follows:`,
+        JSON.stringify(ev),
+        err,
+      );
+    }
+  }
+  return pushed;
+}
+
+interface DrainBatchResult {
+  /** Events that reached a stats doc. */
+  aggregated: number;
+  /** Events popped, then pushed back for the next run to retry. */
+  requeued: number;
+  /** Events popped that can be neither counted nor retried — see below. */
+  lost: number;
+}
+
+/**
+ * Pop up to `batchSize` events and aggregate them, putting them back when that
+ * is safe.
+ *
+ * `rpop` removes events from Redis before anything is written to Firestore, so
+ * before this a failed write simply dropped a whole batch: the cron 500'd (which
+ * alerts, so the failure was visible) but up to `batchSize` events were gone for
+ * good and the hour they belonged to stayed permanently short.
+ *
+ * Re-queueing them is only safe when nothing landed. `aggregateEvents` commits
+ * in chunks of `BATCH_COMMIT_AT` operations, so a large batch is NOT one atomic
+ * write — that is what `AggregationError.anyCommitted` reports. When it is
+ * false, every chunk failed together and a retry cannot double-count. When it
+ * is true, part of the batch is already in Firestore and re-queueing would
+ * apply those increments twice, so those events are counted as `lost` and
+ * reported rather than silently retried. A pop-phase failure is unconditionally
+ * safe to re-queue: no write has been attempted at that point.
+ */
+async function drainStatsBatch(
+  batchSize: number,
+  aggregate: (events: QueuedEvent[]) => Promise<void>,
+): Promise<DrainBatchResult> {
+  let redis;
+  try {
+    redis = getRedis();
+  } catch {
+    // Redis not configured (e.g. offline testing) — nothing to drain.
+    return { aggregated: 0, requeued: 0, lost: 0 };
+  }
+
   const events: QueuedEvent[] = [];
   // Drain the stats queue, then the legacy shared queue (so events enqueued before the
   // stats/accrual split aren't lost). Accrual no longer touches the legacy queue, so there
   // is no contention here.
-  for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
-    while (events.length < batchSize) {
-      const want = Math.min(RPOP_CHUNK, batchSize - events.length);
-      const { events: popped, rawCount } = toEventList(await redis.rpop<unknown>(queue, want));
-      // Both of these test the RAW count on purpose. Testing the parsed count
-      // instead conflates "the queue is empty" with "this chunk contained
-      // something that failed to parse": one malformed entry among 400 good
-      // ones ended the drain after a single chunk and stranded the rest, and a
-      // chunk of nothing but garbage made the whole run look like an empty
-      // queue — the unbounded-backlog failure this fix exists to prevent.
-      if (rawCount === 0) break;
-      events.push(...popped);
-      // A short read means the queue is drained; asking again just costs a
-      // round trip to be told the same thing.
-      if (rawCount < want) break;
+  try {
+    for (const queue of [EVENT_QUEUE_STATS, EVENT_QUEUE_LEGACY]) {
+      while (events.length < batchSize) {
+        const want = Math.min(RPOP_CHUNK, batchSize - events.length);
+        const { events: popped, rawCount } = toEventList(await redis.rpop<unknown>(queue, want));
+        // Both of these test the RAW count on purpose. Testing the parsed count
+        // instead conflates "the queue is empty" with "this chunk contained
+        // something that failed to parse": one malformed entry among 400 good
+        // ones ended the drain after a single chunk and stranded the rest, and a
+        // chunk of nothing but garbage made the whole run look like an empty
+        // queue — the unbounded-backlog failure this fix exists to prevent.
+        if (rawCount === 0) break;
+        events.push(...popped);
+        // A short read means the queue is drained; asking again just costs a
+        // round trip to be told the same thing.
+        if (rawCount < want) break;
+      }
     }
+  } catch (popErr) {
+    console.error(
+      `[cron-aggregate] rpop failed after popping ${events.length} events this batch — re-queueing them:`,
+      popErr,
+    );
+    const pushedBack = await safeRequeue(redis, events, 'rpop failure mid-batch');
+    return { aggregated: 0, requeued: pushedBack, lost: events.length - pushedBack };
   }
-  await aggregateEvents(events);
-  return events.length;
+
+  if (events.length === 0) return { aggregated: 0, requeued: 0, lost: 0 };
+
+  try {
+    await aggregate(events);
+    return { aggregated: events.length, requeued: 0, lost: 0 };
+  } catch (err) {
+    if (err instanceof AggregationError && err.anyCommitted) {
+      console.error(
+        `[cron-aggregate] write phase partially committed for ${events.length} events — NOT re-queueing them, a retry would double-count the chunks that landed:`,
+        err,
+      );
+      return { aggregated: 0, requeued: 0, lost: events.length };
+    }
+    console.error(
+      `[cron-aggregate] aggregation failed for ${events.length} events with nothing committed — re-queueing them:`,
+      err,
+    );
+    const pushedBack = await safeRequeue(redis, events, 'aggregation failure');
+    return { aggregated: 0, requeued: pushedBack, lost: events.length - pushedBack };
+  }
 }
 
 export interface AggregateRunResult {
   aggregated: number;
   batches: number;
+  /** Events pushed back for the next run — popped, but not counted yet. */
+  requeued: number;
+  /** Events that could be neither counted nor retried (see drainStatsBatch). */
+  lost: number;
   /** True when the wall-clock budget, not an empty queue, ended the run. */
   timedOut: boolean;
   /** True when the batch cap, not an empty queue, ended the run. */
   capped: boolean;
 }
+
+/** Dedupe keys (see ops-alerts.ts `alreadyAlerted`) for the three states a
+ *  heartbeat cannot see: a run that counted nothing, a run that stopped with
+ *  work left, and events that could not be retried. Each pages ops once per 6h
+ *  window rather than every hourly tick. */
+const STATS_ZERO_PROGRESS_ALERT_KEY = 'aggregate-zero-progress';
+const STATS_TRUNCATED_ALERT_KEY = 'aggregate-truncated';
+const STATS_LOST_EVENTS_ALERT_KEY = 'aggregate-lost-events';
 
 /**
  * Drain the stats queues until they run dry, the batch cap is hit, or the
@@ -576,16 +731,39 @@ export interface AggregateRunResult {
  * instead of being killed mid-flight by the platform. A killed run records no
  * heartbeat, and the heartbeat watchdog lives inside this very cron — so a
  * 504 here also silenced the alerting for every other cron.
+ *
+ * With the deadline in place, the batch cap is a runaway-loop backstop rather
+ * than the real bound on a run, which is why it is 20 batches and not 5: at
+ * five 1000-event batches an hour the ceiling was 5000 events, and any hour
+ * busier than that grew `events:stats` permanently no matter how fast the
+ * batches ran. The deadline decides when to stop; the cap only catches a loop
+ * that never makes progress.
+ *
+ * Stopping early is not silent. `capped`/`timedOut` mean work is still queued,
+ * a run that counts nothing means the aggregator is failing while its heartbeat
+ * stays green, and `lost` means events were dropped: all three alert ops, since
+ * a Vercel `console.warn` reaches nobody who is not already reading logs.
  */
 export async function drainAndAggregateAll(
-  opts: { batchSize?: number; maxBatches?: number; deadlineMs?: number; now?: () => number } = {},
+  opts: {
+    batchSize?: number;
+    maxBatches?: number;
+    deadlineMs?: number;
+    now?: () => number;
+    /** Test seam: stands in for `aggregateEvents` so the loop's re-queue and
+     *  reporting semantics can be exercised without Firestore. */
+    aggregate?: (events: QueuedEvent[]) => Promise<void>;
+  } = {},
 ): Promise<AggregateRunResult> {
   const batchSize = opts.batchSize ?? 1000;
-  const maxBatches = opts.maxBatches ?? 5;
+  const maxBatches = opts.maxBatches ?? 20;
   const now = opts.now ?? Date.now;
+  const aggregate = opts.aggregate ?? aggregateEvents;
   const deadlineAt = now() + (opts.deadlineMs ?? DEFAULT_AGGREGATE_DEADLINE_MS);
 
   let aggregated = 0;
+  let requeued = 0;
+  let lost = 0;
   let batches = 0;
   let timedOut = false;
   // Only an empty batch proves the queues ran dry. Exiting the loop any other
@@ -599,14 +777,50 @@ export async function drainAndAggregateAll(
       timedOut = true;
       break;
     }
-    const n = await drainAndAggregate(batchSize);
+    const res = await drainStatsBatch(batchSize, aggregate);
     batches++;
-    aggregated += n;
-    if (n === 0) {
+    aggregated += res.aggregated;
+    requeued += res.requeued;
+    lost += res.lost;
+    const popped = res.aggregated + res.requeued + res.lost;
+    if (popped === 0) {
       drained = true;
       break;
     }
+    // A batch that popped events and counted none of them means this run is
+    // failing, not busy. Re-queued events go back to the HEAD of the list while
+    // draining reads the TAIL, so continuing would re-pop the very events that
+    // just failed and burn the whole time budget on them.
+    if (res.aggregated === 0) break;
   }
 
-  return { aggregated, batches, timedOut, capped: !drained && !timedOut };
+  const capped = !drained && !timedOut;
+
+  if (aggregated === 0 && requeued + lost > 0) {
+    if (!(await alreadyAlerted(STATS_ZERO_PROGRESS_ALERT_KEY))) {
+      await alertOps(
+        'Tölfræðisöfnun skilaði engu',
+        `cron-aggregate tók ${requeued + lost} atburði úr events:stats en skráði engan þeirra (${batches} lotur). Cronið keyrði og skráði heartbeat eðlilega, svo ekkert annað kerfi mun benda á þetta. Skoðaðu Vercel logs og /api/cron-diagnostics.`,
+      );
+    }
+  } else if (capped || timedOut) {
+    if (!(await alreadyAlerted(STATS_TRUNCATED_ALERT_KEY))) {
+      const reason = timedOut
+        ? `tímaþakið (${Math.round((opts.deadlineMs ?? DEFAULT_AGGREGATE_DEADLINE_MS) / 1000)}s) rann út`
+        : `hámarksfjölda lotna (${maxBatches}) var náð`;
+      await alertOps(
+        'Tölfræðisöfnun hafði ekki undan',
+        `cron-aggregate stöðvaði áður en events:stats tæmdist: ${reason}. Þessi keyrsla skráði ${aggregated} atburði í ${batches} lotum og biðröðin er enn með óunna atburði, svo tölur í viðmótinu eru á eftir raunveruleikanum. Skoðaðu /api/cron-diagnostics fyrir dýpt biðraðarinnar.`,
+      );
+    }
+  }
+
+  if (lost > 0 && !(await alreadyAlerted(STATS_LOST_EVENTS_ALERT_KEY))) {
+    await alertOps(
+      'Tölfræðiatburðir töpuðust',
+      `${lost} atburðir úr events:stats voru hvorki skráðir né settir aftur í biðröð — skrifin fóru að hluta inn í Firestore, svo endurtilraun myndi telja þau tvisvar. Tölur fyrir þennan klukkutíma verða varanlega of lágar. Skoðaðu Vercel logs fyrir forensic-skráninguna.`,
+    );
+  }
+
+  return { aggregated, batches, requeued, lost, timedOut, capped };
 }
