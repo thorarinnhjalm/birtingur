@@ -6,6 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Birtingur is a self-service display advertising platform for the Icelandic market aimed at **long-tail niche creators** (e.g. food/lifestyle bloggers), not premium publishers. Publishers register a site, declare its content **categories**, and embed ad slots; advertisers buy by **category + budget** ("ads in `matur` for 50.000 kr"), and the platform spreads impressions across all sites in that category. All money is in **ISK** (integer króna, no decimals); VAT is 24%. The product direction and the category-buying design live in `docs/superpowers/specs/2026-06-04-category-network-buying-design.md`.
 
+## Before you start (read this first)
+
+Several agents ship to this repo in parallel through separate PRs, and the owner
+merges them. That makes "the code I am looking at" and "the code on `main`"
+routinely different things, so two checks come before any analysis, audit,
+finding or severity judgement:
+
+```bash
+git fetch origin main && git log --oneline HEAD..origin/main
+gh pr list --state all --limit 15
+```
+
+If `main` has commits you do not have, rebase (or at least read those commits)
+**before** forming conclusions. On 2026-08-12 a session audited `cron-aggregate`
+against a tree 10 commits behind `main`, wrote up a problem three merged PRs had
+already fixed, and had to redo the whole change. That cost more than the fix.
+
+Then: **findings belong in tests, not in prose.** A dated memo under
+`docs/superpowers/` goes stale within days and nothing notices; a test that pins
+"no event is lost when the write fails" stops the next session from rediscovering
+it. Write the test first, and only write the memo for what a test cannot express
+(open decisions, owner judgement calls). The intended shape of each subsystem,
+and which invariants are actually enforced by a test, is
+`docs/superpowers/specs/2026-08-12-blueprint.md` — start there, and update it in
+the same PR that changes what it describes.
+
 ## Commands
 
 This is a **Turborepo + pnpm** monorepo. Run from the repo root unless noted.

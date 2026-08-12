@@ -67,3 +67,24 @@ that skip this step never reach crawlers.
   monthly cap, and above `autoApproveLimitIsk` await human approval.
   Top-ups and refunds are dashboard-only. Describe these guardrails
   accurately — they are a feature, not a limitation to hide.
+
+## Before you touch anything (any agent, any task)
+
+This repo takes parallel PRs from several agents and the owner merges them, so
+your checkout is routinely behind what is live. Before analysing, auditing or
+reporting anything:
+
+```bash
+git fetch origin main && git log --oneline HEAD..origin/main
+gh pr list --state all --limit 15
+```
+
+Rebase or read those commits before forming conclusions. A 2026-08-12 session
+wrote up a `cron-aggregate` problem that three merged PRs had already fixed,
+and had to redo the entire change.
+
+Findings belong in tests, not in dated memo files: a test that pins the
+invariant stops the next agent from rediscovering it, a memo does not. The
+intended shape of each subsystem, and which invariants a test actually
+enforces, lives in `docs/superpowers/specs/2026-08-12-blueprint.md`. Keep it
+current in the same PR that changes what it describes.
