@@ -18,8 +18,13 @@ import { clearFirestoreEmulator } from './helpers/emulator';
 // against a tiny in-memory fake standing in for `getRedis()`.
 
 const mockRedisCounters = new Map<string, number>();
+// Flips the recorded-counter pipeline into failure for the post-commit test below.
+let mockCounterPipelineFails = false;
 
 vi.mock('../src/lib/redis', () => ({
+  // stats-aggregator imports ops-alerts (for the drain loop's alerts), which reads
+  // this — the aggregateEvents paths below never reach it.
+  isRedisConfigured: () => true,
   getRedis: () => ({
     pipeline: () => {
       const ops: Array<() => void> = [];
@@ -30,6 +35,7 @@ vi.mock('../src/lib/redis', () => ({
         },
         expire: () => p,
         exec: async () => {
+          if (mockCounterPipelineFails) throw new Error('redis unavailable');
           for (const op of ops) op();
         },
       };
@@ -69,6 +75,7 @@ describe('aggregateEvents', () => {
   beforeEach(async () => {
     await clearFirestoreEmulator();
     mockRedisCounters.clear();
+    mockCounterPipelineFails = false;
   });
 
   it('groups impressions and clicks into hourly/daily buckets per campaign, publisher, slot and creative', async () => {
@@ -487,6 +494,23 @@ describe('aggregateEvents', () => {
       const doc = await getDoc(`${COLLECTIONS.stats}/campaigns/cmp_1/2026080812`);
       expect(doc!.clicks).toBe(1);
       expect(doc!.impressions ?? 0).toBe(0);
+    });
+  });
+
+  describe('post-commit steps must not throw', () => {
+    // This is what makes the drain loop's re-queue safe (see drainStatsBatch):
+    // "aggregateEvents threw" has to mean "nothing was committed". The
+    // recorded:{hour} counters run AFTER the atomic batch commit, so if a Redis
+    // blip there escaped the function, the caller would push those events back
+    // onto the queue and every increment above would be applied a second time.
+    it('swallows a recorded-counter failure after the stats batch has committed', async () => {
+      mockCounterPipelineFails = true;
+
+      await expect(aggregateEvents([makeEvent()])).resolves.toBeUndefined();
+
+      // The Firestore write still landed — the failure was strictly post-commit.
+      const doc = await getDoc(`${COLLECTIONS.stats}/campaigns/cmp_1/2026080812`);
+      expect(doc!.impressions).toBe(1);
     });
   });
 });
