@@ -7,7 +7,8 @@
     "build": "node esbuild.config.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "size": "wc -c dist/snippet.js"
+    "size": "wc -c dist/snippet.js",
+    "check:host": "node scripts/check-host.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.21.0",
