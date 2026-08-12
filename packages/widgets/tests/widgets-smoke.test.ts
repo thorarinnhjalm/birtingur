@@ -1,0 +1,135 @@
+/** @vitest-environment jsdom */
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+
+// Smoke tests for the embeddable web components — the last package in the
+// monorepo with zero tests, embedded on EXTERNAL pages where a failure is
+// invisible to us (the same day these were written, the production bundle
+// turned out to be calling http://localhost:3001 on every visitor's machine;
+// scripts/check-host.mjs guards the built artifact, these guard the runtime
+// behaviour the artifact is built from).
+//
+// process.env.API_BASE is read at module import time, so it is stubbed before
+// the dynamic import below and every URL assertion pins that the components
+// actually derive their fetch target from it.
+
+const API = 'https://api.test.birtingur.app';
+
+const fetchMock = vi.fn();
+
+function lastFetch(): { url: string; init: RequestInit } {
+  const call = fetchMock.mock.calls.at(-1);
+  if (!call) throw new Error('expected a fetch to have happened');
+  return { url: String(call[0]), init: (call[1] ?? {}) as RequestInit };
+}
+
+/** Waits until the component's async fetch/render cycle settles. */
+async function flush() {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+}
+
+beforeAll(async () => {
+  process.env.API_BASE = API;
+  vi.stubGlobal('fetch', fetchMock);
+  await import('../src/index.js');
+});
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  document.body.innerHTML = '';
+});
+
+describe('component registration', () => {
+  it('defines all three custom elements exactly once', () => {
+    expect(customElements.get('adplatform-stats')).toBeDefined();
+    expect(customElements.get('adplatform-approval-queue')).toBeDefined();
+    expect(customElements.get('adplatform-campaign-stats')).toBeDefined();
+  });
+});
+
+describe('<adplatform-stats>', () => {
+  it('renders an error and fetches nothing when no key is given', async () => {
+    const el = document.createElement('adplatform-stats');
+    document.body.appendChild(el);
+    await flush();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(el.shadowRoot!.innerHTML).toContain('publisher-key');
+  });
+
+  it('fetches publisher stats from API_BASE with the key as a Bearer token', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        impressions: 12345,
+        clicks: 67,
+        spendIsk: 8900,
+        fillRate: 0.9,
+        history: [],
+      }),
+    });
+
+    const el = document.createElement('adplatform-stats');
+    el.setAttribute('publisher-key', 'wk_test_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const { url, init } = lastFetch();
+    expect(url).toBe(`${API}/v1/widgets/publisher/stats?timeframe=30`);
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer wk_test_123');
+    // The rendered numbers come from the response, Icelandic-formatted.
+    expect(el.shadowRoot!.innerHTML).toContain('12.345');
+  });
+
+  it('renders the error state when the API answers non-ok', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 401 });
+
+    const el = document.createElement('adplatform-stats');
+    el.setAttribute('publisher-key', 'wk_revoked');
+    document.body.appendChild(el);
+    await flush();
+
+    expect(el.shadowRoot!.innerHTML).toContain('Ekki tókst að sækja tölfræði');
+  });
+});
+
+describe('<adplatform-approval-queue>', () => {
+  it('fetches pending approvals from API_BASE with the key', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ campaigns: [] }) });
+
+    const el = document.createElement('adplatform-approval-queue');
+    el.setAttribute('publisher-key', 'wk_test_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const { url, init } = lastFetch();
+    expect(url).toBe(`${API}/v1/widgets/publisher/pending-approvals`);
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer wk_test_123');
+  });
+
+  it('renders an error and fetches nothing without a key', async () => {
+    const el = document.createElement('adplatform-approval-queue');
+    document.body.appendChild(el);
+    await flush();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('<adplatform-campaign-stats>', () => {
+  it('fetches campaign stats from API_BASE with the key', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ impressions: 1, clicks: 0, spendIsk: 0, history: [] }),
+    });
+
+    const el = document.createElement('adplatform-campaign-stats');
+    el.setAttribute('campaign-id', 'cmp_1');
+    el.setAttribute('viewer-key', 'wk_view_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const { url, init } = lastFetch();
+    expect(url).toBe(`${API}/v1/widgets/campaign/stats`);
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer wk_view_123');
+  });
+});
