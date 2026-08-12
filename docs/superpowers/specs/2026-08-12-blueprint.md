@@ -76,9 +76,12 @@ evidence, not the same question:
   (confirm copy + `DISBURSE_VAT` + Payday/Blikk invoicing, in one PR, never
   piecemeal) still waits for the accountant's answer per
   `follow-ups-2026-08-09.md`.
-- **`OPS_ALERT_EMAILS` in production: unverified.** The owner is checking the
-  Vercel env vars on `birtingur-api`. Until confirmed, assume alerting may be
-  console-only in prod and treat "no alert arrived" as evidence of nothing.
+- **Alert recipients in production: `ADMIN_EMAILS` is set** (Production and
+  Preview, verified by the owner in the Vercel dashboard 2026-08-12), so the
+  `opsRecipients()` fallback has a real recipient list. Remaining link in the
+  chain: `RESEND_API_KEY` — without it `services/mail.ts` logs the email to
+  console instead of sending it, so delivery is only proven once that key is
+  confirmed in Production too (or an alert is observed arriving).
 
 Not being built, to be deleted from any spec that still implies otherwise:
 the Cloudflare R2 CDN (any `cdn.*` host is fiction), per-category pricing
@@ -214,10 +217,9 @@ report it.
 1. A cheap structural test that asserts both cron entrypoints import and call
    `checkCronHeartbeats` (read the two files, assert the call is present). Ugly,
    but it is the only way this invariant survives someone tidying an entrypoint.
-2. Verify `OPS_ALERT_EMAILS` (or the `ADMIN_EMAILS` fallback) is set in
-   production — the owner is checking the Vercel env vars (see Product
-   direction). Alerting silently degrades to console-only when neither is set,
-   which would make this whole section decorative.
+2. Alert recipients: `ADMIN_EMAILS` confirmed in Production 2026-08-12 (see
+   Product direction). Left to prove delivery end-to-end: `RESEND_API_KEY`
+   in Production, or one observed alert email.
 
 ---
 
@@ -363,8 +365,9 @@ direction. What they unlocked, in work-item form: strip the misleading VSK
 line from campaign confirm, split `/en` into advertiser and publisher tracks
 in the GSC revision, start agent-facing MCP docs, and stop reading serving V2
 into any plan. Still pending externally: the accountant's VSK answer, the
-2026-08-30 bot readout, and the owner's check of `OPS_ALERT_EMAILS` in the
-Vercel prod env.
+2026-08-30 bot readout, and confirming `RESEND_API_KEY` in the Vercel prod
+env (`ADMIN_EMAILS` is confirmed; without the Resend key, alert emails only
+reach the console).
 
 Product work not listed here is not thereby deprioritised; it is simply not what
 this document is for. This is the spine, and the spine should be boring.
