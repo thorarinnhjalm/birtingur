@@ -80,12 +80,13 @@ evidence, not the same question:
   `ADMIN_EMAILS` was already in Production; `RESEND_API_KEY` was NOT — meaning
   no email of any kind (ops alerts, onboarding, agent-purchase notifications)
   had ever left prod before 2026-08-12, everything logged to console. The
-  owner added the key and redeployed the same day. Two things remain before
-  this is fully proven: (1) one observed email actually arriving, and (2)
-  `SENDER_EMAIL` is still the default `onboarding@resend.dev`, which Resend
-  only delivers to the Resend account's own address — verifying the
-  birtingur.app domain in Resend and setting `SENDER_EMAIL` is what makes
-  delivery work for arbitrary recipients.
+  owner added the key and redeployed the same day. The birtingur.app domain
+  is verified in Resend (DKIM/SPF green, eu-west-1, verified 2026-08-12), so
+  any `@birtingur.app` sender address works without a mailbox existing. Two
+  things remain: set `SENDER_EMAIL` (e.g. `ops@birtingur.app`) in Production —
+  all five senders in `services/mail.ts` fall back to `onboarding@resend.dev`,
+  which Resend only delivers to the account's own address — and observe one
+  real email arriving.
 
 Not being built, to be deleted from any spec that still implies otherwise:
 the Cloudflare R2 CDN (any `cdn.*` host is fiction), per-category pricing
@@ -221,10 +222,10 @@ report it.
 1. A cheap structural test that asserts both cron entrypoints import and call
    `checkCronHeartbeats` (read the two files, assert the call is present). Ugly,
    but it is the only way this invariant survives someone tidying an entrypoint.
-2. Alert email: `ADMIN_EMAILS` and `RESEND_API_KEY` both in Production as of
-   2026-08-12 (the key was missing until then — no email had ever left prod).
-   Left to prove delivery end-to-end: verify the birtingur.app domain in
-   Resend, set `SENDER_EMAIL`, and observe one real email arriving.
+2. Alert email: `ADMIN_EMAILS` and `RESEND_API_KEY` both in Production and
+   the birtingur.app domain verified in Resend, all as of 2026-08-12 (the key
+   was missing until then — no email had ever left prod). Left: set
+   `SENDER_EMAIL` in Production and observe one real email arriving.
 
 ---
 
@@ -370,9 +371,9 @@ direction. What they unlocked, in work-item form: strip the misleading VSK
 line from campaign confirm, split `/en` into advertiser and publisher tracks
 in the GSC revision, start agent-facing MCP docs, and stop reading serving V2
 into any plan. Still pending externally: the accountant's VSK answer, the
-2026-08-30 bot readout, and finishing email delivery (key and recipients are
-in prod since 2026-08-12; domain verification in Resend plus `SENDER_EMAIL`,
-then one observed email, close it).
+2026-08-30 bot readout, and finishing email delivery (key, recipients and
+domain verification all landed 2026-08-12; setting `SENDER_EMAIL` in prod
+and one observed email close it).
 
 Product work not listed here is not thereby deprioritised; it is simply not what
 this document is for. This is the spine, and the spine should be boring.
