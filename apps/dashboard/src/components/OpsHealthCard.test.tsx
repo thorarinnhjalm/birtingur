@@ -14,7 +14,7 @@ function data(overrides: Partial<OpsDiagnosticsData> = {}): OpsDiagnosticsData {
       { name: 'cron-accrue', ageMinutes: 5, stalenessThresholdMinutes: 45, stale: false },
       { name: 'cron-aggregate', ageMinutes: 20, stalenessThresholdMinutes: 130, stale: false },
     ],
-    env: { CRON_SECRET: true, REDIS: true, FIREBASE_PRIVATE_KEY: true, SIGNING_SECRET: true },
+    env: { CRON_SECRET: true, REDIS: true, FIREBASE_PRIVATE_KEY: true },
     healthy: true,
     problems: [],
     ...overrides,
@@ -79,12 +79,12 @@ test('surfaces a missing required secret by name', () => {
   render(
     <OpsHealthCard
       data={data({
-        env: { CRON_SECRET: true, REDIS: true, FIREBASE_PRIVATE_KEY: true, SIGNING_SECRET: false },
+        env: { CRON_SECRET: true, REDIS: true, FIREBASE_PRIVATE_KEY: false },
       })}
     />,
   );
 
-  expect(screen.getByText('SIGNING_SECRET')).toBeTruthy();
+  expect(screen.getByText('FIREBASE_PRIVATE_KEY')).toBeTruthy();
 });
 
 test('renders a loading state instead of crashing before data arrives', () => {

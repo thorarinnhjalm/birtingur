@@ -1,4 +1,4 @@
-import { drainAndAggregate } from '../dist/src/services/stats-aggregator.js';
+import { drainAndAggregateAll } from '../dist/src/services/stats-aggregator.js';
 import {
   alertCronFailure,
   recordHeartbeat,
@@ -22,16 +22,24 @@ export async function GET(req) {
   }
 
   try {
-    const total = [];
-    // Drain up to 5 batches per cron run (5000 events max)
-    for (let i = 0; i < 5; i++) {
-      const n = await drainAndAggregate(1000);
-      total.push(n);
-      if (n === 0) break;
+    // The batch loop and its wall-clock budget live in the service so they
+    // are testable; this entrypoint stays a thin caller. Stopping early on
+    // the deadline is what keeps a large backlog from being killed by
+    // Vercel's 60s limit — a killed run records no heartbeat, and the
+    // heartbeat watchdog below runs inside this very cron.
+    const run = await drainAndAggregateAll();
+    if (run.timedOut || run.capped) {
+      // The response body goes nowhere on a Vercel cron, and the run still
+      // records a healthy heartbeat — so without this line a permanently
+      // behind-schedule aggregator is invisible. The ops card's events:stats
+      // depth and oldest-event age are the other half of the same signal.
+      console.warn(
+        `[cron-aggregate] Left work in the queue: aggregated ${run.aggregated} in ${run.batches} batches (timedOut=${run.timedOut}, capped=${run.capped}).`,
+      );
     }
     await recordHeartbeat('cron-aggregate');
     const watchdog = await checkCronHeartbeats();
-    return new Response(JSON.stringify({ batches: total, staleCrons: watchdog.stale }), {
+    return new Response(JSON.stringify({ ...run, staleCrons: watchdog.stale }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {

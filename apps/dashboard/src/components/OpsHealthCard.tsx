@@ -83,7 +83,10 @@ export function OpsHealthCard({ data }: { data?: OpsDiagnosticsData | null }) {
     .filter(
       ([key, present]) =>
         !present &&
-        ['CRON_SECRET', 'REDIS', 'FIREBASE_PRIVATE_KEY', 'SIGNING_SECRET'].includes(key),
+        // Must stay in step with the required list in the API's
+        // ops-diagnostics.ts. SIGNING_SECRET is not here: it belongs to the
+        // serving deploy, which has its own environment.
+        ['CRON_SECRET', 'REDIS', 'FIREBASE_PRIVATE_KEY'].includes(key),
     )
     .map(([key]) => key);
 
