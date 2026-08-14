@@ -664,4 +664,153 @@ describe('runReconciliation', () => {
 
     expect(report.findings.some((f) => f.kind === 'publisher_stale_payout_doc')).toBe(false);
   });
+
+  /**
+   * Check 9: implausible click-through rate.
+   *
+   * Every surface that displays CTR caps it at 100% (16 of them as of
+   * 2026-08-14), which is right — clicks are not viewability-gated and
+   * impressions are, so a small sample can legitimately show more clicks than
+   * impressions and 140% on a dashboard reads as a broken product.
+   *
+   * The cost of that cap is that a genuine click-inflation bug now looks
+   * identical to a normal day on every screen in the system: the number simply
+   * sits at 100%. This check is the counterweight. It reads the raw, uncapped
+   * ratio out of yesterday's settled publisher-day stats and alerts ops, so the
+   * displayed figure can stay sensible without the underlying one going
+   * unwatched.
+   *
+   * It is deliberately not a fraud detector. The threshold is set where no
+   * honest explanation survives, not where behaviour merely looks odd.
+   */
+  const RECONCILE_AT = new Date(Date.UTC(2026, 7, 14, 5, 0, 0)); // 05:00 UTC, the cron's hour
+  const YESTERDAY_KEY = '20260813';
+
+  async function writePublisherDayStats(
+    publisherId: string,
+    dayKey: string,
+    stats: { impressions: number; clicks: number },
+  ): Promise<void> {
+    await db.doc(`${COLLECTIONS.stats}/publishers/${publisherId}/${dayKey}`).set(stats);
+  }
+
+  it('flags a publisher day whose clicks are impossible against its impressions', async () => {
+    // 900 clicks on 400 impressions is a raw CTR of 225%. Display CTR runs near
+    // 0.1%, so this is not an unusually good day — it is three orders of
+    // magnitude away from anything the funnel can produce.
+    await writePublisherDayStats('pub_inflated', YESTERDAY_KEY, {
+      impressions: 400,
+      clicks: 900,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    const finding = report.findings.find((f) => f.kind === 'implausible_click_rate');
+    expect(finding).toBeDefined();
+    expect(finding?.entityId).toBe(`pub_inflated/${YESTERDAY_KEY}`);
+    expect(finding?.expected).toBe(400);
+    expect(finding?.actual).toBe(900);
+    expect(report.counts.publisherStatDaysChecked).toBe(1);
+  });
+
+  it('flags a day with clicks but no recorded impressions at all', async () => {
+    // Not a counting bug but worth the same alert: a slot that never reaches
+    // the viewability threshold records no impressions while still being
+    // clickable, which means the publisher is earning nothing for traffic that
+    // is demonstrably engaging. Zero impressions must not divide-by-zero into
+    // silence.
+    await writePublisherDayStats('pub_no_impressions', YESTERDAY_KEY, {
+      impressions: 0,
+      clicks: 60,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    const finding = report.findings.find((f) => f.kind === 'implausible_click_rate');
+    expect(finding).toBeDefined();
+    expect(finding?.actual).toBe(60);
+    expect(finding?.detail).not.toContain('NaN');
+    expect(finding?.detail).not.toContain('Infinity');
+  });
+
+  it('is quiet for an ordinary day, however good the campaign was', async () => {
+    // 2% CTR would be an exceptional display result and must not alert. The
+    // threshold exists to catch broken arithmetic, not success.
+    await writePublisherDayStats('pub_healthy', YESTERDAY_KEY, {
+      impressions: 50_000,
+      clicks: 1_000,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+    expect(report.counts.publisherStatDaysChecked).toBe(1);
+  });
+
+  it('ignores a tiny sample, where a couple of uncounted impressions decide the ratio', async () => {
+    // 7 clicks on 5 impressions is 140% — exactly the case the display cap was
+    // added for. One visitor clicking an ad that never cleared the viewability
+    // threshold produces this, and alerting ops on it would train them to
+    // ignore the alert.
+    await writePublisherDayStats('pub_tiny', YESTERDAY_KEY, { impressions: 5, clicks: 7 });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+    expect(report.counts.publisherStatDaysChecked).toBe(1);
+  });
+
+  it('reads yesterday, not today — today is still being aggregated', async () => {
+    // The hourly aggregator has not finished today, so today's doc is a partial
+    // count by definition and its ratio means nothing yet.
+    await writePublisherDayStats('pub_today', '20260814', { impressions: 1, clicks: 500 });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+    expect(report.counts.publisherStatDaysChecked).toBe(0);
+  });
+
+  it('reports the finding in clicks and impressions, not in krónur', async () => {
+    // buildAlertMessage renders every finding as "vænt N kr., raun M kr." unless
+    // its kind is handled explicitly. This finding's numbers are event counts,
+    // so the default branch would tell ops that 400 kr. was expected and 900 kr.
+    // arrived — a money alert, about no money at all, for a check whose whole
+    // purpose is to be believed when it fires.
+    const savedAdminEmails = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = 'ops@reconcile.test.is';
+    try {
+      await writePublisherDayStats('pub_units', YESTERDAY_KEY, { impressions: 400, clicks: 900 });
+
+      await runReconciliation(RECONCILE_AT);
+
+      // alertOps writes an admin notification per recipient; that document is
+      // the message ops actually receives.
+      const notes = await db.collection(COLLECTIONS.notifications).get();
+      const message = notes.docs.map((d) => String(d.data().message ?? '')).join('\n');
+      expect(message).toContain('implausible_click_rate');
+      expect(message).toContain('900 smellir');
+      expect(message).toContain('400 birtingar');
+      expect(message).not.toContain('900 kr.');
+      expect(message).not.toContain('400 kr.');
+    } finally {
+      if (savedAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
+      else process.env.ADMIN_EMAILS = savedAdminEmails;
+    }
+  });
+
+  it('checks every publisher that has stats, not just the first', async () => {
+    await writePublisherDayStats('pub_a_ok', YESTERDAY_KEY, { impressions: 10_000, clicks: 12 });
+    await writePublisherDayStats('pub_b_bad', YESTERDAY_KEY, { impressions: 100, clicks: 400 });
+    await writePublisherDayStats('pub_c_bad', YESTERDAY_KEY, { impressions: 50, clicks: 300 });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    const flagged = report.findings
+      .filter((f) => f.kind === 'implausible_click_rate')
+      .map((f) => f.entityId)
+      .sort();
+    expect(flagged).toEqual([`pub_b_bad/${YESTERDAY_KEY}`, `pub_c_bad/${YESTERDAY_KEY}`]);
+    expect(report.counts.publisherStatDaysChecked).toBe(3);
+  });
 });
