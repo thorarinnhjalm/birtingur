@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import type { PublisherStatsBreakdown } from '@ada/shared/types';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, publisherNetIsk } from '@ada/shared';
 
 export interface SiteBreakdown {
   publisherId: string;
@@ -37,6 +37,13 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
   // has the field missing by construction.
   unfilled?: number;
+  // What the publisher actually earns from `spendIsk`, net of the platform fee.
+  //
+  // Returned rather than left to the caller because one caller cannot derive it:
+  // the embeddable stats widget (packages/widgets) has no dependency on
+  // @ada/shared, so it rendered the GROSS figure under "Áætlaðar tekjur" — 25%
+  // high, on a page the publisher embeds on their own site.
+  netEarningsIsk: number;
   // The request count over EXACTLY the days that carry an `unfilled` value, so
   // a caller can compute fill without mixing two windows.
   //
@@ -264,6 +271,7 @@ export async function getPublisherStats(
       clicks: mockTotalClicks,
       spendIsk: mockTotalSpendIsk,
       pageviews: mockTotalPageviews,
+      netEarningsIsk: publisherNetIsk(mockTotalSpendIsk),
       history: mockHistory,
     };
   }
@@ -275,6 +283,7 @@ export async function getPublisherStats(
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
+    netEarningsIsk: publisherNetIsk(totalSpendIsk),
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
@@ -292,6 +301,7 @@ export async function getAggregatedPublisherStats(
       clicks: 0,
       spendIsk: 0,
       pageviews: 0,
+      netEarningsIsk: 0,
       history: [],
     };
   }
@@ -400,6 +410,7 @@ export async function getAggregatedPublisherStats(
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
+    netEarningsIsk: publisherNetIsk(totalSpendIsk),
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,

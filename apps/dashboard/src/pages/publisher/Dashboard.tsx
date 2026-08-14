@@ -1,10 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import {
-  DEFAULT_PLATFORM_FEE_PERCENT,
-  TRAFFIC_MEASUREMENT_START,
-  FILL_MEASUREMENT_START,
-} from '@ada/shared';
+import { TRAFFIC_MEASUREMENT_START, FILL_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -214,7 +210,7 @@ function PublisherHome() {
                 .toFixed(2)
                 .replace('.', ',')}%"`
             : '"0,00%"';
-        const earnings = s.stats ? Math.round(s.stats.spendIsk * 0.8) : 0;
+        const earnings = s.stats ? publisherNetIsk(s.stats.spendIsk) : 0;
 
         csvContent += `${name},${domain},${sizes},${status},${impressions},${pageviews},${fillRate},${clicks},${ctr},${earnings} kr.\n`;
       }
@@ -255,9 +251,7 @@ function PublisherHome() {
   // and the "Tekjur í mánuðinum" stat card — same
   // spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100) formula the
   // pre-redesign page repeated inline in four places.
-  const netRevenueIsk = stats
-    ? Math.round(stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100))
-    : 0;
+  const netRevenueIsk = stats ? publisherNetIsk(stats.spendIsk) : 0;
 
   // "Meðal eCPM" (dashboard.dc.html's third stat card) maps to the
   // pre-redesign page's own "eCPM" quick-stat: net revenue per 1000
@@ -423,9 +417,7 @@ function PublisherHome() {
                 </defs>
                 <Area
                   type="monotone"
-                  dataKey={(h: any) =>
-                    Math.round(h.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100))
-                  }
+                  dataKey={(h: any) => publisherNetIsk(h.spendIsk)}
                   stroke="#2563eb"
                   strokeWidth={2}
                   fillOpacity={1}
@@ -575,9 +567,7 @@ function PublisherHome() {
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {stats.bySite.map((site) => {
-                  const netSiteEarnings = Math.round(
-                    site.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
-                  );
+                  const netSiteEarnings = publisherNetIsk(site.spendIsk);
                   // Fill is filled/requests, NOT impressions/requests: impressions
                   // are viewability-gated, so the old ratio quietly blended "no
                   // advertiser" with "never scrolled into view". Null when the
@@ -859,13 +849,7 @@ function PublisherHome() {
                                 : '0,00%'}
                             </td>
                             <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
-                              {s.stats
-                                ? formatIsk(
-                                    Math.round(
-                                      s.stats.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
-                                    ),
-                                  )
-                                : '0 kr.'}
+                              {s.stats ? formatIsk(publisherNetIsk(s.stats.spendIsk)) : '0 kr.'}
                               <span className="block text-[10px] font-medium text-slate-500">
                                 {s.pricing.mode === 'cpm'
                                   ? `${formatIsk(s.pricing.cpmIsk)} CPM`

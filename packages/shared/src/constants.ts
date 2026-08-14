@@ -1,6 +1,34 @@
 /** Default platform fee percentage taken from publisher earnings */
 export const DEFAULT_PLATFORM_FEE_PERCENT = 20;
 
+/**
+ * What a publisher actually earns from a gross figure, in whole krónur.
+ *
+ * The single definition. This had eight independent derivations across the
+ * product — `Math.round(gross * 0.8)` in some places and
+ * `Math.round(gross * (1 - FEE / 100))` in others — which happen to agree today
+ * and would silently stop agreeing the day the fee moves. Two further surfaces
+ * showed the GROSS figure under the word "tekjur" entirely: the embeddable
+ * publisher stats widget and MCP `check_slot_delivery`, so a publisher reading
+ * the widget on their own site saw 25% more than the dashboard told them.
+ *
+ * Deliberately `gross - round(gross * fee)` rather than `round(gross * (1 -
+ * fee))`: the first is how `services/wallet.ts` splits the same money into a
+ * publisher credit and a platform fee, and the displayed figure must not differ
+ * from the paid one by a króna.
+ *
+ * At the current 20% the two expressions happen to agree for every integer
+ * gross, so this is not fixing a live discrepancy — it is removing the reason
+ * one could appear. They diverge as soon as `gross * fee` can land on a half
+ * króna, which it does at 10% and at 30%: a gross of 5 pays 5 - round(0.5) = 4
+ * one way and round(4.5) = 5 the other. `apps/api/tests/wallet.test.ts` asserts
+ * the agreement against what creditPublisher actually writes to the ledger,
+ * which is the only check that cannot drift with this file.
+ */
+export function publisherNetIsk(grossIsk: number): number {
+  return grossIsk - Math.round(grossIsk * (DEFAULT_PLATFORM_FEE_PERCENT / 100));
+}
+
 /** Minimum payout amount; below this rolls into next month */
 export const MIN_PAYOUT_ISK = 10000;
 

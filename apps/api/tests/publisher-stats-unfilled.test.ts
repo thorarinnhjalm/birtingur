@@ -3,6 +3,7 @@ import { db } from '../src/lib/firebase';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { clearFirestoreEmulator } from './helpers/emulator';
 import { getPublisherStats, getAggregatedPublisherStats } from '../src/services/publisher-stats';
+import { publisherNetIsk } from '@ada/shared';
 
 /**
  * `unfilled` is the ad requests that came back with no advertiser.
@@ -236,5 +237,31 @@ describe('getPublisherStats — unfilled ad requests', () => {
 
     expect(measured).toHaveLength(1);
     expect(measured[0]!.unfilled).toBe(20);
+  });
+
+  /**
+   * The embeddable stats widget cannot import @ada/shared, so it cannot take
+   * the platform fee off `spendIsk` itself — which is why it rendered the gross
+   * figure under "Áætlaðar tekjur", 25% high, on a page the publisher put on
+   * their own site.
+   *
+   * It falls back to `spendIsk` when this field is absent, so the field going
+   * missing would silently restore that overstatement. This is the test that
+   * notices.
+   */
+  it('returns the net figure the publisher is actually paid', async () => {
+    await seedDay('pub_x', 1, {
+      impressions: 10_000,
+      clicks: 20,
+      spendIsk: 5500,
+      pageviews: 12_000,
+    });
+
+    const stats = await getPublisherStats('pub_x', 7);
+
+    expect(stats.spendIsk).toBe(5500);
+    // 20% off, and the same value creditPublisher writes to the ledger.
+    expect(stats.netEarningsIsk).toBe(publisherNetIsk(5500));
+    expect(stats.netEarningsIsk).toBe(4400);
   });
 });

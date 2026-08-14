@@ -158,7 +158,7 @@ import {
   refundCampaign,
   creditPublisher,
 } from '../src/services/wallet';
-import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import { DEFAULT_PLATFORM_FEE_PERCENT, publisherNetIsk } from '@ada/shared';
 
 describe('Wallet Service', () => {
   beforeEach(() => {
@@ -250,6 +250,27 @@ describe('Wallet Service', () => {
 
     it('honors DEFAULT_PLATFORM_FEE_PERCENT', () => {
       expect(DEFAULT_PLATFORM_FEE_PERCENT).toBe(20);
+    });
+
+    /**
+     * `publisherNetIsk` is what every screen and every agent reports as the
+     * publisher's earnings. This is the only test that ties it to the money
+     * actually moved, rather than to a copy of its own arithmetic — a shared
+     * test that re-derives the formula proves determinism and nothing else.
+     *
+     * The values include grosses where the fee lands near a half króna, which
+     * is where `gross - round(gross * fee)` and `round(gross * (1 - fee))` come
+     * apart at other fee rates.
+     */
+    it('is exactly what the ledger credits, across a range of gross amounts', async () => {
+      const { sumByParty } = await import('../src/services/ledger');
+      for (const gross of [1, 3, 5, 7, 550, 1001, 12_345]) {
+        const publisherId = `pub_parity_${gross}`;
+        await creditPublisher(publisherId, 'cmp_parity', gross);
+
+        const credited = await sumByParty({ type: 'publisher', id: publisherId });
+        expect(credited).toBe(publisherNetIsk(gross));
+      }
     });
   });
 });

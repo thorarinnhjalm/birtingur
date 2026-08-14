@@ -7,12 +7,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
-import {
-  AD_CATEGORIES,
-  DEFAULT_PLATFORM_FEE_PERCENT,
-  type Publisher,
-  type Slot,
-} from '@ada/shared';
+import { AD_CATEGORIES, publisherNetIsk, type Publisher, type Slot } from '@ada/shared';
 import { Grid3x3, Plus, FolderPlus } from 'lucide-react';
 
 // Publisher.status → sites.dc.html's siteStatusMeta(). 'active' maps to the
@@ -138,7 +133,7 @@ export default function SlotList() {
             0,
           );
           const totalGrossIsk = siteSlots.reduce((sum, s) => sum + (s.stats?.spendIsk || 0), 0);
-          const totalNetIsk = Math.round(totalGrossIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
+          const totalNetIsk = publisherNetIsk(totalGrossIsk);
 
           // "Skoða kóða" opens the embed snippet for this site — the
           // real snippet/copy affordance is per-slot (SlotDetail.tsx), so

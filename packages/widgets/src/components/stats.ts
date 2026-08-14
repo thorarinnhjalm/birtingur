@@ -230,10 +230,19 @@ export class AdplatformStats extends HTMLElement {
     // same honesty rule as the publisher dashboard
     // (apps/dashboard/src/pages/publisher/Dashboard.tsx).
     pageViewsTrue?: number;
+    // What the publisher actually earns, net of the platform fee. Computed
+    // server-side because this bundle has no dependency on @ada/shared and
+    // therefore no access to the fee — which is why it used to render the gross
+    // `spendIsk` under "Áætlaðar tekjur", 25% high, on a page the publisher
+    // embeds on their own site while the dashboard showed the real figure.
+    netEarningsIsk?: number;
     history: { date: string; impressions: number; clicks: number; spendIsk: number }[];
   }) {
     const isDark = this.getActiveTheme() === 'dark';
-    const eCPM = data.impressions > 0 ? (data.spendIsk / data.impressions) * 1000 : 0;
+    // Fall back to the gross only if the API is older than this bundle; both
+    // figures then at least come from one place rather than two definitions.
+    const netEarnings = data.netEarningsIsk ?? data.spendIsk;
+    const eCPM = data.impressions > 0 ? (netEarnings / data.impressions) * 1000 : 0;
 
     // Sparkline path generation
     const history = data.history || [];
@@ -287,7 +296,7 @@ export class AdplatformStats extends HTMLElement {
           </div>
           <div class="metric-card">
             <div class="metric-label">Áætlaðar tekjur</div>
-            <div class="metric-value">${this.formatIsk(data.spendIsk)}</div>
+            <div class="metric-value">${this.formatIsk(netEarnings)}</div>
           </div>
           <div class="metric-card">
             <div class="metric-label">Meðal eCPM</div>

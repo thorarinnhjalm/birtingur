@@ -12,7 +12,12 @@ import { Badge } from '@/components/ui/Badge';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
 import { Calendar } from 'lucide-react';
-import { DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK, type Payout } from '@ada/shared';
+import {
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  MIN_PAYOUT_ISK,
+  type Payout,
+  publisherNetIsk,
+} from '@ada/shared';
 
 interface StatsResponse {
   impressions: number;
@@ -136,7 +141,7 @@ export default function Earnings() {
   }
 
   const earningsTotal = stats?.spendIsk || 0;
-  const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
+  const netEarningsTotal = publisherNetIsk(earningsTotal);
   const unpaidBasisIsk = balance?.unpaidBasisIsk ?? 0;
   const minPayoutIsk = balance?.minPayoutIsk ?? MIN_PAYOUT_ISK;
   const pendingPayoutIsk = unpaidBasisIsk >= minPayoutIsk ? unpaidBasisIsk : 0;
@@ -222,7 +227,7 @@ export default function Earnings() {
           </Button>
         </div>
 
-        <div className="mt-4 flex max-w-[520px] flex-col gap-2 rounded-card border border-[#dbe4f7] bg-[#f1f5fd] p-6">
+        <div className="mt-4 flex max-w-130 flex-col gap-2 rounded-card border border-[#dbe4f7] bg-[#f1f5fd] p-6">
           <div className="flex justify-between text-sm">
             <span className="text-slate-700">Þitt hlutfall af tekjum</span>
             <span className="font-bold text-primary">{publisherSharePercent}%</span>
@@ -307,25 +312,25 @@ export default function Earnings() {
                       key={p.id}
                       className={`transition-colors hover:bg-slate-50 ${isLast ? '' : 'border-b border-surface-container'}`}
                     >
-                      <td className="py-[22px] pr-4 align-middle text-[15px] font-semibold text-slate-900">
+                      <td className="py-5.5 pr-4 align-middle text-[15px] font-semibold text-slate-900">
                         {new Date(p.periodStart).toLocaleDateString('is-IS', {
                           month: 'short',
                           year: 'numeric',
                         })}
                       </td>
-                      <td className="max-w-[120px] truncate px-4 py-[22px] align-middle font-mono text-[13px] text-slate-400">
+                      <td className="max-w-30 truncate px-4 py-5.5 align-middle font-mono text-[13px] text-slate-400">
                         {p.id}
                       </td>
-                      <td className="px-4 py-[22px] align-middle">
+                      <td className="px-4 py-5.5 align-middle">
                         <Badge variant={statusVariant}>{statusLabel}</Badge>
                       </td>
-                      <td className="px-4 py-[22px] text-right align-middle text-[15px] text-slate-600 tabular-nums">
+                      <td className="px-4 py-5.5 text-right align-middle text-[15px] text-slate-600 tabular-nums">
                         {formatIsk(p.grossIsk)}
                       </td>
-                      <td className="px-4 py-[22px] text-right align-middle text-[15px] text-slate-400 tabular-nums">
+                      <td className="px-4 py-5.5 text-right align-middle text-[15px] text-slate-400 tabular-nums">
                         −{formatIsk(p.platformFeeIsk)}
                       </td>
-                      <td className="py-[22px] pl-4 text-right align-middle text-[15px] font-bold text-slate-900 tabular-nums">
+                      <td className="py-5.5 pl-4 text-right align-middle text-[15px] font-bold text-slate-900 tabular-nums">
                         {formatIsk(p.netIsk)}
                       </td>
                     </tr>

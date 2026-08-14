@@ -7,6 +7,7 @@ import {
   publisherConverter,
 } from '@ada/shared/firestore';
 import type { Campaign, Creative, Publisher, Advertiser, Slot } from '@ada/shared';
+import { publisherNetIsk } from '@ada/shared';
 import { db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
 import { createSlot, updateSlot } from '../src/services/slots';
@@ -280,5 +281,32 @@ describe('diagnoseSlotDelivery', () => {
     const after = (await db.collection(COLLECTIONS.campaigns).doc('cmp_a').get()).data();
 
     expect(after).toEqual(before);
+  });
+
+  /**
+   * `last7Days.earningsIsk` is the number an agent relays to a publisher as
+   * "you earned X". It was `stats.spendIsk` — the GROSS, what the advertiser
+   * pays — under a field literally named earnings, so every agent answer
+   * overstated the publisher's take by 25%.
+   */
+  it('reports last-7-day earnings net of the platform fee, not gross', async () => {
+    const publisher = await writePublisher();
+    const slot = await makeSlot();
+
+    const now = new Date();
+    const dk = now.toISOString().split('T')[0]!.replace(/-/g, '');
+    await db.doc(`${COLLECTIONS.stats}/publisher_slots/${publisher.id}_${slot.id}/${dk}`).set({
+      impressions: 10_000,
+      clicks: 20,
+      spendIsk: 5500,
+      pageviews: 12_000,
+    });
+
+    const d = await diagnoseSlotDelivery(slot, publisher);
+
+    expect(d.last7Days.impressions).toBe(10_000);
+    // 4.400, what the publisher is paid — not the 5.500 the advertiser paid.
+    expect(d.last7Days.earningsIsk).toBe(publisherNetIsk(5500));
+    expect(d.last7Days.earningsIsk).not.toBe(5500);
   });
 });

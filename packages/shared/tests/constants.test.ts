@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AD_CATEGORIES, AD_CATEGORY_SLUGS } from '../src/constants';
+import { AD_CATEGORIES, AD_CATEGORY_SLUGS, publisherNetIsk } from '../src/constants';
 
 describe('AD_CATEGORIES', () => {
   it('exposes food category for the canonical mayo use-case', () => {
@@ -13,5 +13,50 @@ describe('AD_CATEGORIES', () => {
   });
   it('slugs are unique', () => {
     expect(new Set(AD_CATEGORY_SLUGS).size).toBe(AD_CATEGORY_SLUGS.length);
+  });
+});
+
+/**
+ * Publisher net earnings had eight independent derivations across the product —
+ * `Math.round(spendIsk * 0.8)` in some places, `spendIsk * (1 - FEE/100)` in
+ * others — plus two external surfaces that showed the GROSS figure under the
+ * word "tekjur": the embeddable stats widget and MCP `check_slot_delivery`.
+ * A publisher reading their own embedded widget saw 25% more than the dashboard
+ * told them, on a page they had put on their own site.
+ */
+describe('publisherNetIsk', () => {
+  it('takes the platform fee off a gross figure', () => {
+    expect(publisherNetIsk(5500)).toBe(4400);
+  });
+
+  it('and the fee it implies always add back up to the gross', () => {
+    // The property that matters and that this file can actually check on its
+    // own: the split loses nothing. Re-deriving the implementation here and
+    // asserting it matches itself would prove only that it is deterministic.
+    // Agreement with the LEDGER is asserted in apps/api/tests/wallet.test.ts,
+    // against what creditPublisher really writes, because that is the only
+    // check that cannot drift along with this function.
+    for (const gross of [0, 1, 3, 5, 7, 550, 5501, 12_345, 999_999]) {
+      const net = publisherNetIsk(gross);
+      const fee = gross - net;
+      expect(net + fee).toBe(gross);
+      expect(fee).toBeGreaterThanOrEqual(0);
+      expect(net).toBeLessThanOrEqual(gross);
+    }
+  });
+
+  it('never rounds the fee up past the whole gross on a tiny amount', () => {
+    // A 1-króna gross must not become a 0-króna credit and a 1-króna fee.
+    expect(publisherNetIsk(1)).toBe(1);
+    expect(publisherNetIsk(2)).toBe(2);
+  });
+
+  it('returns whole krónur, never a fraction', () => {
+    expect(Number.isInteger(publisherNetIsk(7))).toBe(true);
+    expect(Number.isInteger(publisherNetIsk(1))).toBe(true);
+  });
+
+  it('is zero for zero, not NaN', () => {
+    expect(publisherNetIsk(0)).toBe(0);
   });
 });
