@@ -279,7 +279,10 @@ export default function CampaignCreate() {
   // 1.000-impression publisher in two categories read as 2.000 here, and the
   // oversell warning below stayed silent for campaigns that could never be
   // delivered. The server deduplicates, where the publisher identities exist.
-  const selectedDailyInventory = combinedInventoryQuery.data?.availableDailyImpressions ?? 0;
+  // `undefined` while nothing has been fetched yet, NOT 0: a zero here reads as
+  // "this selection has no inventory", fires the oversell warning below, and
+  // then takes it back a second later. An unknown figure is shown as unknown.
+  const selectedDailyInventory = combinedInventoryQuery.data?.availableDailyImpressions;
 
   // Soft oversell warning: campaign needs more daily impressions than the selected
   // categories have available. Informational only — submission is never blocked.
@@ -288,6 +291,8 @@ export default function CampaignCreate() {
     const startMs = new Date(startDate).getTime();
     const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
     const flightDays = Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
+    // No warning until the inventory is actually known.
+    if (selectedDailyInventory === undefined) return null;
     const neededDaily = Math.round(((totalBudget / FLAT_CPM_ISK) * 1000) / flightDays);
     const availableDaily = selectedDailyInventory;
     if (neededDaily <= availableDaily) return null;
@@ -562,7 +567,9 @@ export default function CampaignCreate() {
                 <div className="mt-4.5 pt-4.5 border-t border-[#dbe4f7] text-sm text-slate-600">
                   Laust pláss í {selectedCategories.length} völdum flokkum:{' '}
                   <strong className="text-slate-900 font-bold tabular-nums">
-                    ~{fmtNum(selectedDailyInventory)}
+                    {selectedDailyInventory === undefined
+                      ? '…'
+                      : `~${fmtNum(selectedDailyInventory)}`}
                   </strong>{' '}
                   birtingar á dag.
                 </div>

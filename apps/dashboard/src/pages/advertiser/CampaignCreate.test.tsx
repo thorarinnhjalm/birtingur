@@ -52,6 +52,21 @@ const CATEGORY_INVENTORY = [
     availableDailyImpressions: 1000,
   },
 ];
+/**
+ * Deliberately NOT the sum of CATEGORY_INVENTORY's rows.
+ *
+ * The per-category figures report a publisher's whole daily volume under every
+ * category it declares, so summing them counts one publisher once per category
+ * — which is what the page used to do. This fixture is the deduplicated answer
+ * the server now gives, and it differs from any sum of the rows above, so a
+ * revert to client-side summing fails rather than coincidentally matching.
+ */
+const COMBINED_INVENTORY = {
+  avgDailyImpressions: 700,
+  committedDailyImpressions: 100,
+  availableDailyImpressions: 600,
+};
+
 const SIZES_RESPONSE = {
   sizes: [{ width: 300, height: 250, slotCount: 3, forecastShare: 0.6 }],
 };
@@ -120,6 +135,7 @@ function setupApiMock(
     const o = (opts ?? {}) as { method?: string; body?: string };
     if (u === '/v1/advertisers/me/wallet') return (overrides?.wallet ?? WALLET) as any;
     if (u === '/v1/categories/inventory') return CATEGORY_INVENTORY as any;
+    if (u.startsWith('/v1/categories/inventory/combined')) return COMBINED_INVENTORY as any;
     if (u.startsWith('/v1/categories/sizes')) return SIZES_RESPONSE as any;
     if (u === '/v1/creatives/generate/copy') return COPY_MANIFEST as any;
     if (u === '/v1/creatives/generate/render') return RENDERED_MANIFEST as any;
@@ -197,6 +213,33 @@ async function completeWizardThroughToStepFour() {
 // size match, so a campaign carrying only a 300x250 creative never fills a
 // 728x90 slot the wizard also just rendered for it. This proves every
 // wizard-produced creative id reaches the create-campaign call.
+/**
+ * The buy flow used to sum the per-category inventory rows to produce this
+ * figure, which counts a publisher once per category it declares. The server
+ * now deduplicates and this page must show that answer, not one it derived
+ * itself — the fixture's combined figure is deliberately not any sum of the
+ * per-category rows, so a revert to client-side summing fails here.
+ */
+test('the available-inventory figure comes from the server, not from summing categories', async () => {
+  setupApiMock();
+  renderWithClient();
+  await fillBasicsAndProceed();
+
+  await screen.findByText('Matur & matreiðsla');
+  fireEvent.click(screen.getByText('Matur & matreiðsla'));
+
+  // 600, the deduplicated figure. The per-category chip beside it still shows
+  // matur's own ~1.000, which is correct and is exactly the number the page
+  // used to add up, so the assertion is scoped to the combined line.
+  // Shown as "…" until the figure arrives — never as 0, which would read as
+  // "this selection has no inventory" and fire the oversell warning.
+  const line = () => (screen.getByText(/Laust pláss í/).textContent ?? '').replace(/\s+/g, ' ');
+  expect(line()).toContain('…');
+
+  await waitFor(() => expect(line()).toContain('~600'));
+  expect(line()).not.toContain('~1.000');
+});
+
 test('B2: submits every wizard-rendered creative id, not just the preview thumbnail', async () => {
   let createdBody: any = null;
   setupApiMock((body) => {

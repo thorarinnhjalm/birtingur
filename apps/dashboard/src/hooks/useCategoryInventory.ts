@@ -39,5 +39,12 @@ export function useCombinedCategoryInventory(categories: string[]) {
         `/v1/categories/inventory/combined?categories=${encodeURIComponent(key)}`,
       ),
     enabled: categories.length > 0,
+    // The key changes on every category the advertiser clicks, so without this
+    // each click drops to `undefined` and the caller reads 0 available — which
+    // renders as "um 0 lausar birtingar á dag" and fires the oversell warning
+    // for as long as the request takes. Keeping the previous answer visible is
+    // stale for a moment; showing zero is wrong.
+    placeholderData: (previous) => previous,
+    staleTime: 60_000,
   });
 }

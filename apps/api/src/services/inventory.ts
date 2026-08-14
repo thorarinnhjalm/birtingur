@@ -44,6 +44,42 @@ function lastNDateKeys(n: number): string[] {
   return keys;
 }
 
+/**
+ * Campaigns whose demand counts against available inventory: live, or awaiting
+ * an approval that can land at any moment and start spending immediately.
+ *
+ * Module-level so the per-category and combined functions cannot drift apart on
+ * it. Both re-check it in their loops as well, redundantly with the Firestore
+ * query, so the logic stays self-contained for unit-test mocks that ignore
+ * `.where()`.
+ */
+const COMMITTED_STATUSES = ['active', 'pending_approval'] as const;
+
+/**
+ * A campaign's daily impression commitment: its remaining budget spread over
+ * the days of flight it has left, converted at the flat CPM.
+ *
+ * The floor is `FLAT_CPM_ISK / 1000`, exact rather than rounded to 1 — that is
+ * the real cost of one impression and it is what serving now charges (see
+ * routes/impression.ts). Shared so the two callers cannot answer the question
+ * differently, which they did: a campaign with nothing left committed 2
+ * impressions a day through one and 1 through the other.
+ */
+function campaignDailyImpressions(cmp: {
+  budget: { remainingIsk: number };
+  schedule: { startsAt: Date; endsAt: Date };
+}): number {
+  const now = Date.now();
+  const flightStartMs = Math.max(now, cmp.schedule.startsAt.getTime());
+  const daysLeft = Math.max(
+    1,
+    Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
+  );
+  const perImpression = FLAT_CPM_ISK / 1000;
+  const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
+  return Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
+}
+
 export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   const pubSnap = await db
     .collection(COLLECTIONS.publishers)
@@ -71,7 +107,6 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   // (approval can land any moment and spend starts immediately), in impressions, per
   // category. Budget is spread over the actual flight window — a future startsAt must not
   // dilute the daily commitment with pre-flight days.
-  const COMMITTED_STATUSES = ['active', 'pending_approval'] as const;
   const cmpSnap = await db
     .collection(COLLECTIONS.campaigns)
     .where('status', 'in', COMMITTED_STATUSES)
@@ -79,7 +114,6 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
     .get();
   const committedByCategory = new Map<string, number>();
   const now = Date.now();
-  const perImpression = Math.round(FLAT_CPM_ISK / 1000);
   for (const doc of cmpSnap.docs) {
     const cmp = doc.data();
     // Redundant with the query filter; kept so the logic is self-contained for
@@ -87,13 +121,7 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
     if (!(COMMITTED_STATUSES as readonly string[]).includes(cmp.status)) continue;
     if (cmp.budget.mode !== 'cpm_capped') continue;
     if (cmp.schedule.endsAt.getTime() <= now) continue;
-    const flightStartMs = Math.max(now, cmp.schedule.startsAt.getTime());
-    const daysLeft = Math.max(
-      1,
-      Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
-    );
-    const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
-    const dailyImpressions = Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
+    const dailyImpressions = campaignDailyImpressions(cmp);
     for (const cat of cmp.targeting.categories) {
       committedByCategory.set(cat, (committedByCategory.get(cat) ?? 0) + dailyImpressions);
     }
@@ -127,7 +155,7 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
  * still exist, so it happens here rather than in the caller. An empty selection
  * returns zeroes, never the whole network.
  */
-export async function getCombinedCategoryInventory(
+async function computeCombinedCategoryInventory(
   categories: string[],
 ): Promise<Omit<CategoryInventory, 'category'>> {
   const wanted = new Set(categories);
@@ -142,6 +170,10 @@ export async function getCombinedCategoryInventory(
     .get();
 
   const dateKeys = lastNDateKeys(7);
+  // Kept, not just summed: a campaign can only consume impressions from
+  // publishers whose categories it actually targets, and capping its committed
+  // demand needs to know which those are (see the campaign loop below).
+  const reachable: Array<{ categories: string[]; avgDaily: number }> = [];
   let gross = 0;
 
   for (const pubDoc of pubSnap.docs) {
@@ -152,32 +184,43 @@ export async function getCombinedCategoryInventory(
       const statDoc = await db.doc(`${COLLECTIONS.stats}/publishers/${pub.id}/${dk}`).get();
       pubTotal += (statDoc.data()?.impressions ?? 0) as number;
     }
+    const avgDaily = Math.round(pubTotal / dateKeys.length);
     // Once per publisher, however many of the selected categories it is in.
-    gross += Math.round(pubTotal / dateKeys.length);
+    reachable.push({ categories: pub.categories, avgDaily });
+    gross += avgDaily;
   }
 
   const cmpSnap = await db
     .collection(COLLECTIONS.campaigns)
-    .where('status', 'in', ['active', 'pending_approval'])
+    .where('status', 'in', [...COMMITTED_STATUSES])
     .withConverter(campaignConverter)
     .get();
 
   let committed = 0;
-  const perImpression = FLAT_CPM_ISK / 1000;
   for (const cmpDoc of cmpSnap.docs) {
     const cmp = cmpDoc.data();
     if (cmp.budget.mode !== 'cpm_capped') continue;
+    // Kept for the unit-test mocks that ignore `.where()`, exactly as the
+    // per-category function above does — without it a paused campaign counts as
+    // live demand in tests while production is protected by the query.
+    if (!COMMITTED_STATUSES.includes(cmp.status as (typeof COMMITTED_STATUSES)[number])) continue;
     if (!cmp.targeting.categories.some((cat: string) => wanted.has(cat))) continue;
     if (cmp.schedule.endsAt.getTime() <= Date.now()) continue;
 
-    const flightStartMs = Math.max(cmp.schedule.startsAt.getTime(), Date.now());
-    const daysLeft = Math.max(
-      1,
-      Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
-    );
-    const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
-    // Once per campaign, for the same reason as the publisher loop above.
-    committed += Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
+    const dailyImpressions = campaignDailyImpressions(cmp);
+
+    // Capped at what this campaign can physically take out of the selection.
+    // Without the cap, one campaign oversubscribed in a thin category drains
+    // the whole combined figure: a publisher doing 5.000/day in `matur` plus a
+    // 50/day publisher in `bilar` with a vastly overcommitted campaign returned
+    // 0 available for both, and the buy flow warned against a campaign that
+    // would have delivered fine. The per-category function never had this
+    // problem because it clamps inside each category.
+    const reach = reachable
+      .filter((p) => p.categories.some((cat) => cmp.targeting.categories.includes(cat)))
+      .reduce((sum, p) => sum + p.avgDaily, 0);
+
+    committed += Math.min(dailyImpressions, reach);
   }
 
   return {
@@ -185,6 +228,49 @@ export async function getCombinedCategoryInventory(
     committedDailyImpressions: committed,
     availableDailyImpressions: Math.max(0, gross - committed),
   };
+}
+
+const COMBINED_INVENTORY_CACHE_TTL_SECONDS = 600;
+
+/**
+ * Read-through Redis cache in front of `computeCombinedCategoryInventory`, for
+ * exactly the reason `getCategorySizeForecast` below has one: this backs a
+ * user-facing buy-flow step and the computation is an N+1 (one Firestore read
+ * per active publisher, plus seven more each for the trailing stats window)
+ * that would otherwise run on every category the advertiser clicks, and twice
+ * per agent call through MCP `list_categories`.
+ *
+ * Same "skip entirely when unconfigured" pattern as the size forecast: this is a
+ * plain cache, not a gate, so an unconfigured Redis just means computing live.
+ */
+export async function getCombinedCategoryInventory(
+  categories: string[],
+): Promise<Omit<CategoryInventory, 'category'>> {
+  const cacheKey = `combined-inventory:${[...categories].sort().join(',')}`;
+
+  if (isRedisConfigured()) {
+    try {
+      const cached = await getRedis().get<Omit<CategoryInventory, 'category'>>(cacheKey);
+      if (cached) return cached;
+    } catch (err) {
+      console.error(
+        'getCombinedCategoryInventory cache read error (falling back to live compute):',
+        err,
+      );
+    }
+  }
+
+  const result = await computeCombinedCategoryInventory(categories);
+
+  if (isRedisConfigured()) {
+    try {
+      await getRedis().set(cacheKey, result, { ex: COMBINED_INVENTORY_CACHE_TTL_SECONDS });
+    } catch (err) {
+      console.error('getCombinedCategoryInventory cache write error (ignored):', err);
+    }
+  }
+
+  return result;
 }
 
 /** Sizes the render endpoint (`/v1/creatives/generate/render`, see

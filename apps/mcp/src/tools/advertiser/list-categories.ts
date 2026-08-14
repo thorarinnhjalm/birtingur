@@ -27,13 +27,33 @@ export function registerListCategories(server: McpServer, apiKey: string) {
       if (!categories || categories.length === 0) {
         return { content: [{ type: 'text' as const, text: JSON.stringify({ perCategory }) }] };
       }
-      const combined = await apiCall<unknown>(
-        `/v1/categories/inventory/combined?categories=${encodeURIComponent(categories.join(','))}`,
-        { apiKey },
-      );
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ perCategory, combined }) }],
-      };
+      // A single unknown slug 400s the combined endpoint. Losing the whole tool
+      // call for that would also lose `perCategory`, which is exactly the list
+      // an agent needs to discover the valid slugs and retry — so the failure
+      // is reported alongside the data rather than instead of it.
+      try {
+        const combined = await apiCall<unknown>(
+          `/v1/categories/inventory/combined?categories=${encodeURIComponent(categories.join(','))}`,
+          { apiKey },
+        );
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify({ perCategory, combined }) }],
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                perCategory,
+                combined: null,
+                combinedError:
+                  err instanceof Error ? err.message : 'combined inventory lookup failed',
+              }),
+            },
+          ],
+        };
+      }
     },
   );
 }

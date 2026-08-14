@@ -300,6 +300,79 @@ describe('Inventory Service', () => {
       expect(combined.availableDailyImpressions).toBe(0);
     });
 
+    it("does not let one category's overcommitment drain another's inventory", async () => {
+      // A campaign can only take impressions from publishers it actually
+      // targets. Without that cap, a hugely oversubscribed campaign in a thin
+      // category zeroed the whole combined figure, and the buy flow warned
+      // against a campaign that would have delivered fine.
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 5000);
+      seedPublisherWithDailyImpressions('pub_cars', ['bilar'], 50);
+      mockCampaigns.push({
+        id: 'cmp_cars_huge',
+        status: 'active',
+        budget: { mode: 'cpm_capped', remainingIsk: 5_500_000 },
+        targeting: { categories: ['bilar'] },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 86_400_000),
+        },
+      });
+
+      const combined = await getCombinedCategoryInventory(['matur', 'bilar']);
+
+      expect(combined.avgDailyImpressions).toBe(5050);
+      // The campaign can consume at most the 50 impressions its own category
+      // produces, not the 10.000.000 its budget would buy.
+      expect(combined.committedDailyImpressions).toBe(50);
+      expect(combined.availableDailyImpressions).toBe(5000);
+    });
+
+    it('does not count paused or already-ended campaigns as demand', async () => {
+      // The Firestore query filters these in production, but the loop re-checks
+      // so the logic holds under a mock that ignores `.where()` — the same
+      // reason the per-category function keeps its own check.
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
+      mockCampaigns.push({
+        id: 'cmp_paused',
+        status: 'paused',
+        budget: { mode: 'cpm_capped', remainingIsk: 5500 },
+        targeting: { categories: ['matur'] },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 10 * 86_400_000),
+        },
+      });
+
+      const combined = await getCombinedCategoryInventory(['matur']);
+
+      expect(combined.committedDailyImpressions).toBe(0);
+      expect(combined.availableDailyImpressions).toBe(1000);
+    });
+
+    it('agrees with the per-category figure for a single-category selection', async () => {
+      // The two functions answer the same question when there is nothing to
+      // deduplicate, and any divergence there is a second source of truth
+      // rather than a design choice.
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
+      mockCampaigns.push({
+        id: 'cmp_food',
+        status: 'active',
+        budget: { mode: 'cpm_capped', remainingIsk: 1100 },
+        targeting: { categories: ['matur'] },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 2 * 86_400_000),
+        },
+      });
+
+      const perCategory = (await getCategoryInventory()).find((r) => r.category === 'matur')!;
+      const combined = await getCombinedCategoryInventory(['matur']);
+
+      expect(combined.avgDailyImpressions).toBe(perCategory.avgDailyImpressions);
+      expect(combined.committedDailyImpressions).toBe(perCategory.committedDailyImpressions);
+      expect(combined.availableDailyImpressions).toBe(perCategory.availableDailyImpressions);
+    });
+
     it('returns zeroes for an empty selection rather than the whole network', async () => {
       seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
 
