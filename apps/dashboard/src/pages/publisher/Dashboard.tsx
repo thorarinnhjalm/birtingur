@@ -185,13 +185,20 @@ function PublisherHome() {
         const status = s.status === 'active' ? 'Virk' : 'Óvirk';
         const impressions = s.stats ? s.stats.impressions : 0;
         const pageviews = s.stats ? s.stats.pageviews : 0;
-        // Same definition as the on-screen table: filled requests over all
-        // requests. A CSV that disagrees with the dashboard under the same
-        // column heading is the confusion this change exists to remove.
+        // Same definition as the on-screen table: filled over requests, both
+        // taken from the days that measured `unfilled`. A CSV that disagrees
+        // with the dashboard under the same column heading is the confusion
+        // this change exists to remove — and `pageviews` here covers the whole
+        // window, so using it would put 30 days of requests under a few days of
+        // unfilled and report ~98% for a site filling half of them.
         const unfilled = s.stats && typeof s.stats.unfilled === 'number' ? s.stats.unfilled : null;
+        const fillDenominator =
+          s.stats && typeof s.stats.requestsWithFillData === 'number'
+            ? s.stats.requestsWithFillData
+            : null;
         const fillRate =
-          unfilled !== null && pageviews > 0
-            ? `${Math.round(((pageviews - unfilled) / pageviews) * 100)}%`
+          unfilled !== null && fillDenominator !== null && fillDenominator > 0
+            ? `${Math.round(((fillDenominator - unfilled) / fillDenominator) * 100)}%`
             : 'ekki mælt';
         const clicks = s.stats ? s.stats.clicks : 0;
         // Clamped, like every other surface that shows CTR — see the on-screen

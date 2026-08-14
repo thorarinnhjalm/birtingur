@@ -37,8 +37,17 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
   // has the field missing by construction.
   unfilled?: number;
-  // The request count over EXACTLY the days that measured `unfilled`, so a
-  // caller can compute fill without mixing two windows. `pageviews` above spans
+  // The request count over EXACTLY the days that carry an `unfilled` value, so
+  // a caller can compute fill without mixing two windows.
+  //
+  // Caveat worth knowing: the aggregator writes the field only when the count is
+  // non-zero (`if (b.unfilled)` in stats-aggregator.ts), so a day on which every
+  // single request found an advertiser is indistinguishable from a day before
+  // the counter existed, and is excluded here. That biases the reported fill
+  // rate DOWN, never up, and `impressionsWithFillData` is excluded with it so
+  // the chain stays internally consistent. Fixing it means writing an explicit
+  // zero for measured days, which the absent-not-zero contract currently
+  // forbids — a separate change with its own test. `pageviews` above spans
   // the whole window while `unfilled` spans only the measured part of it, and
   // dividing one by the other is how a site with a real 50% fill rate came to
   // report 98%. Absent whenever `unfilled` is.

@@ -117,9 +117,39 @@ test('measures the view rate against the same days as the fill rate', () => {
     impressions: 12_000,
   });
 
-  expect(screen.getByText('80% sáust')).toBeDefined();
+  // "(sömu dagar)" because the fill figures cover fewer days than the chain's
+  // outer boxes — the reader is told, rather than left to reconcile 400 against
+  // a Birtingar box showing 12.000.
+  expect(screen.getByText('80% sáust (sömu dagar)')).toBeDefined();
   expect(screen.getByText(/100 auglýsingar/)).toBeDefined();
   expect(document.body.textContent).not.toContain('-11.500');
+});
+
+test('says plainly that the split covers fewer days than the boxes around it', () => {
+  chain({
+    requests: 30_000,
+    unfilled: 500,
+    requestsWithFillData: 1000,
+    impressionsWithFillData: 400,
+    impressions: 12_000,
+  });
+
+  expect(screen.getByText(/mælist frá 14. ágúst 2026/)).toBeDefined();
+});
+
+test('treats a missing paired impression count as unmeasured, not as a clean sheet', () => {
+  // With the whole-window impressions used here instead, the view rate clamps to
+  // "100% sáust" and the never-seen gap disappears — a false all-clear.
+  chain({
+    requests: 30_000,
+    unfilled: 500,
+    requestsWithFillData: 1000,
+    impressionsWithFillData: undefined,
+    impressions: 12_000,
+  });
+
+  expect(screen.getByText('ekki mælt')).toBeDefined();
+  expect(document.body.textContent).not.toContain('100% sáust');
 });
 
 test('requests per page view uses the days that measured page views', () => {

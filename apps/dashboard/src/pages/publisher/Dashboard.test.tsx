@@ -116,9 +116,13 @@ const BY_SITE_STATS = {
   pageviews: 3100,
   pageViewsTrue: 1800,
   unfilled: 600,
-  requestsWithFillData: 3100,
-  impressionsWithFillData: 1900,
-  requestsWithTrafficData: 3100,
+  // All three deliberately smaller than the whole-window figures they pair with
+  // (pageviews 3.100, impressions 1.900) — the measured window is shorter than
+  // the selected one, which is the real state of the data and the only fixture
+  // shape in which reverting a denominator actually fails.
+  requestsWithFillData: 1300,
+  impressionsWithFillData: 600,
+  requestsWithTrafficData: 900,
   history: [],
   bySite: [
     {
@@ -130,7 +134,10 @@ const BY_SITE_STATS = {
       pageviews: 2000,
       pageViewsTrue: 1800,
       unfilled: 400,
-      requestsWithFillData: 2000,
+      // Deliberately NOT equal to this site's 2.000 pageviews: with the two the
+      // same, reverting the column to `site.pageviews` passed. Fill here is
+      // (800 - 400) / 800 = 50%, against 80% on the whole-window figure.
+      requestsWithFillData: 800,
       spendIsk: 550,
     },
     {
@@ -141,7 +148,8 @@ const BY_SITE_STATS = {
       clicks: 45,
       pageviews: 1100,
       unfilled: 200,
-      requestsWithFillData: 1100,
+      // Same reasoning: (500 - 200) / 500 = 60%, not 82%.
+      requestsWithFillData: 500,
       spendIsk: 1000,
     },
     {
@@ -227,20 +235,24 @@ test('clicking a site row narrows the filter', async () => {
 // wrong field, a swapped numerator or a dropped platform-fee factor would show
 // a plausible-looking wrong number to a publisher and nothing would catch it.
 
-test('fill is filled requests over all requests, not impressions over anything', async () => {
-  // Three candidate denominators sit on the same object and only one is right.
-  // Vefur A: 2000 requests, 400 of them unfilled, 1000 impressions, 1800 real
-  // page views. 80% is (2000-400)/2000. 50% would be impressions/requests — the
-  // ratio this used to compute, which blended "no advertiser bought your
-  // categories" with "the ad loaded but nobody scrolled to it", two problems
-  // with opposite owners. 56% would be impressions/pageViewsTrue.
+test('fill is filled over the days that measured it, not over the whole window', async () => {
+  // Four candidate denominators sit on the same object and only one is right.
+  // Vefur A: 2.000 requests in the window, but only 800 of them on days that
+  // measured `unfilled`, of which 400 found no advertiser.
+  //
+  //   50% = (800-400)/800        — correct: same days on both sides
+  //   80% = (2000-400)/2000      — the window mismatch this change removes
+  //   50% = impressions/requests — the older ratio, right here by coincidence,
+  //                                which is why Vefur B carries the real check
+  //   56% = impressions/pageViewsTrue
   setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
-  expect(within(siteRow('Vefur A')).getByText('80%')).toBeDefined();
-  // 900/1100 is 81,8 — pins Math.round rather than Math.floor.
-  expect(within(siteRow('Vefur B')).getByText('82%')).toBeDefined();
+  expect(within(siteRow('Vefur A')).getByText('50%')).toBeDefined();
+  // Vefur B: (500-200)/500 = 60%. The whole-window figure would be 82%, and
+  // impressions/requests would be 82% too — so this row separates all three.
+  expect(within(siteRow('Vefur B')).getByText('60%')).toBeDefined();
 });
 
 test('fill reads as unmeasured, not 0%, when the split was never counted', async () => {
@@ -498,7 +510,18 @@ const CSV_SLOTS = [
     pricing: { mode: 'cpm', cpmIsk: 550 },
     // 7 clicks on 5 impressions — the same click-outruns-impression case as the
     // per-site table test above.
-    stats: { impressions: 5, clicks: 7, pageviews: 100, unfilled: 20, spendIsk: 1000 },
+    // requestsWithFillData is deliberately NOT pageviews: the measured window is
+    // shorter than the selected one, which is the real shape of this data and
+    // the only one in which reverting the denominator fails. Fill is
+    // (40-20)/40 = 50%, where the whole-window figure would read 80%.
+    stats: {
+      impressions: 5,
+      clicks: 7,
+      pageviews: 100,
+      unfilled: 20,
+      requestsWithFillData: 40,
+      spendIsk: 1000,
+    },
   },
   {
     id: 'slot_normal',
@@ -514,7 +537,15 @@ const CSV_SLOTS = [
     // own clicks, impressions and revenue. With both rows sharing a figure, a
     // whole-line assertion could still pass on a build that rendered one slot's
     // numbers on the other slot's row.
-    stats: { impressions: 100, clicks: 5, pageviews: 200, unfilled: 50, spendIsk: 2000 },
+    // (80-50)/80 = 38%, where the whole-window figure would read 75%.
+    stats: {
+      impressions: 100,
+      clicks: 5,
+      pageviews: 200,
+      unfilled: 50,
+      requestsWithFillData: 80,
+      spendIsk: 2000,
+    },
   },
 ];
 
@@ -545,10 +576,10 @@ test('the CSV export clamps CTR at 100% too, so it agrees with the screen', asyn
       '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur',
     );
     expect(lines[1]).toBe(
-      '"Efst á forsíðu",vefur-a.is,"300x250",Virk,5,100,80%,7,"100,00%",800 kr.',
+      '"Efst á forsíðu",vefur-a.is,"300x250",Virk,5,100,50%,7,"100,00%",800 kr.',
     );
     expect(lines[2]).toBe(
-      '"Í miðri grein",vefur-a.is,"728x90",Virk,100,200,75%,5,"5,00%",1600 kr.',
+      '"Í miðri grein",vefur-a.is,"728x90",Virk,100,200,38%,5,"5,00%",1600 kr.',
     );
     // Unclamped this row would read 140,00%, and its quotes would be missing.
     expect(csvDownload.read()).not.toContain('140,00%');

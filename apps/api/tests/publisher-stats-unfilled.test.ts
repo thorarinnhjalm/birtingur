@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/lib/firebase';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { clearFirestoreEmulator } from './helpers/emulator';
-import { getPublisherStats } from '../src/services/publisher-stats';
+import { getPublisherStats, getAggregatedPublisherStats } from '../src/services/publisher-stats';
 
 /**
  * `unfilled` is the ad requests that came back with no advertiser.
@@ -136,6 +136,50 @@ describe('getPublisherStats — unfilled ad requests', () => {
     expect(stats.unfilled).toBeUndefined();
     expect(stats.requestsWithFillData).toBeUndefined();
     expect(stats.impressionsWithFillData).toBeUndefined();
+  });
+
+  it('sums the per-site paired figures when aggregating, not the whole window', async () => {
+    // getAggregatedPublisherStats re-sums per-site results. Re-deriving the
+    // denominators from each site's whole-window `pageviews` there would undo
+    // the pairing for every multi-site owner while the single-site path stayed
+    // correct — the same endpoint returning a right answer and a wrong one
+    // depending on how many sites you own.
+    await seedDay('pub_a', 3, { impressions: 40, clicks: 0, spendIsk: 0, pageviews: 500 });
+    await seedDay('pub_a', 1, {
+      impressions: 30,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 100,
+      unfilled: 40,
+    });
+    await seedDay('pub_b', 3, { impressions: 60, clicks: 0, spendIsk: 0, pageviews: 700 });
+    await seedDay('pub_b', 1, {
+      impressions: 50,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 200,
+      unfilled: 60,
+    });
+
+    const stats = await getAggregatedPublisherStats(
+      [
+        { id: 'pub_a', displayName: 'A', domain: 'a.is' },
+        { id: 'pub_b', displayName: 'B', domain: 'b.is' },
+      ],
+      7,
+    );
+
+    // 1.500 requests across the whole window, but only 300 on measured days.
+    expect(stats.pageviews).toBe(1500);
+    expect(stats.requestsWithFillData).toBe(300);
+    expect(stats.impressionsWithFillData).toBe(80);
+    expect(stats.unfilled).toBe(100);
+    // Fill is (300-100)/300 = 67%. Against the window it would read 93%.
+    expect(
+      Math.round(
+        ((stats.requestsWithFillData! - stats.unfilled!) / stats.requestsWithFillData!) * 100,
+      ),
+    ).toBe(67);
   });
 
   it('does the same for real page views, which started on a different day', async () => {

@@ -122,9 +122,16 @@ export function TrafficChain({
   // only. Falling back to the whole-window `requests` when the paired count is
   // absent would reintroduce the exact mismatch this pairing exists to remove,
   // so an unpaired `unfilled` is treated as unmeasured.
-  const splitKnown = unfilled !== undefined && requestsWithFillData !== undefined;
+  const splitKnown =
+    unfilled !== undefined &&
+    requestsWithFillData !== undefined &&
+    impressionsWithFillData !== undefined;
   const fillRequests = splitKnown ? requestsWithFillData! : undefined;
-  const fillImpressions = impressionsWithFillData ?? impressions;
+  // No `?? impressions` fallback. The whole-window impression count against a
+  // measured-days filled count clamps the view rate to "100% sáust" and makes
+  // the never-seen gap vanish — a false clean sheet, which is worse than saying
+  // nothing. All three fields arrive together or the split is unmeasured.
+  const fillImpressions = splitKnown ? impressionsWithFillData! : impressions;
   const filled = splitKnown ? Math.max(0, fillRequests! - unfilled!) : undefined;
   // True when the fill figures cover a shorter period than the rest of the
   // chain, which is the normal state until the window is fully measured.
@@ -189,7 +196,15 @@ export function TrafficChain({
                   : 'Auglýsandi fannst'
             }
           />
-          <Link caption={viewPct !== null ? `${viewPct}% sáust` : ''} />
+          <Link
+            caption={
+              viewPct === null
+                ? ''
+                : fillWindowIsShorter
+                  ? `${viewPct}% sáust (sömu dagar)`
+                  : `${viewPct}% sáust`
+            }
+          />
           <Step
             label="Birtingar"
             value={nf(impressions)}
@@ -201,6 +216,14 @@ export function TrafficChain({
 
       {splitKnown ? (
         <div className="flex flex-col gap-2 border-t border-slate-100 pt-4 text-sm text-slate-600">
+          {fillWindowIsShorter && (
+            <p className="m-0">
+              Skiptingin í fylltar og ófylltar beiðnir mælist frá {fillMeasurementStartLabel}, svo
+              tvö hlutföllin hér að ofan og talan{' '}
+              <strong className="font-semibold text-slate-900">Fylltar</strong> ná yfir færri daga
+              en beiðnirnar og birtingarnar sitt hvorum megin við þau.
+            </p>
+          )}
           {unfilled > 0 && (
             <p className="m-0">
               <strong className="font-semibold text-slate-900">{nf(unfilled)} beiðnir</strong> fengu
