@@ -158,3 +158,36 @@ describe('getCampaignStats byCreative', () => {
     expect(stats.byPublisher['pub_a']!.byCreative).toBeUndefined();
   });
 });
+
+/**
+ * The "Kostnaður" tab on the campaign chart plots `hours[].spendIsk`. The
+ * service never returned that field, so the chart drew a flat zero line on a
+ * page whose budget card said "Eytt: 21.600 kr" right above it.
+ */
+describe('getCampaignStats hourly spend', () => {
+  it('returns a derived spendIsk per hour so the cost chart has data', async () => {
+    mockDocs.push({
+      id: currentHourKey(),
+      data: () => ({ impressions: 2000, clicks: 4 }),
+    });
+
+    const stats = await getCampaignStats('cmp_1', 24);
+
+    const hour = stats.hours.find((h) => h.hour === currentHourKey());
+    expect(hour).toBeDefined();
+    // round(2000 / 1000 * 550) = 1100 — derived from the hour's impressions,
+    // same single definition as every other displayed money figure.
+    expect(hour!.spendIsk).toBe(1100);
+  });
+
+  it('reports zero, not undefined, for an hour with no impressions', async () => {
+    mockDocs.push({
+      id: currentHourKey(),
+      data: () => ({ impressions: 0, clicks: 0 }),
+    });
+
+    const stats = await getCampaignStats('cmp_1', 24);
+
+    expect(stats.hours.find((h) => h.hour === currentHourKey())!.spendIsk).toBe(0);
+  });
+});

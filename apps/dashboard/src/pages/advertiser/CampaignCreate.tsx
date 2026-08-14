@@ -253,10 +253,20 @@ export default function CampaignCreate() {
   // same number or it promises money that isn't spendable.
   const walletAvailable = walletQuery.data?.availableIsk ?? walletBalance;
 
-  // Live forecast — math per the buy-flow spec's renderVals(): flat CPM, 30-day
-  // flight. Uses the shared constants instead of the spec's magic numbers.
+  // Live forecast — flat CPM over the REAL flight length. This divided by a
+  // hardcoded 30 regardless of the dates chosen in step 1, while the oversell
+  // warning below used the actual length — a 7-day, 20.000 kr campaign showed
+  // "1.212 birtingar á dag" above a warning saying it needed 5.195. The same
+  // day-count expression as that warning, deliberately: days left of flight,
+  // counted from today when the start date is already past.
   const totalImpressions = Math.round((totalBudget / FLAT_CPM_ISK) * 1000);
-  const perDayImpressions = Math.round(totalImpressions / 30);
+  const flightDays = (() => {
+    if (!startDate) return 30;
+    const startMs = new Date(startDate).getTime();
+    const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
+    return Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
+  })();
+  const perDayImpressions = Math.round(totalImpressions / flightDays);
   // Gate on `totalBudget` — the same figure POST /v1/campaigns debits. The
   // server admits the campaign when available balance >= budget.totalIsk
   // (services/wallet.ts); an earlier over-strict gate on budget + 24% VAT
@@ -288,9 +298,6 @@ export default function CampaignCreate() {
   // categories have available. Informational only — submission is never blocked.
   const deliveryWarning = (() => {
     if (selectedCategories.length === 0 || !startDate) return null;
-    const startMs = new Date(startDate).getTime();
-    const endMs = endDate ? new Date(endDate).getTime() : startMs + 30 * 24 * 3600 * 1000; // mirrors the 30-day default used on submit
-    const flightDays = Math.max(1, Math.ceil((endMs - Math.max(startMs, Date.now())) / 86_400_000));
     // No warning until the inventory is actually known.
     if (selectedDailyInventory === undefined) return null;
     const neededDaily = Math.round(((totalBudget / FLAT_CPM_ISK) * 1000) / flightDays);
@@ -559,7 +566,8 @@ export default function CampaignCreate() {
                 <span className="text-base text-slate-700 font-medium">birtingar á dag</span>
               </div>
               <p className="mt-3.5 text-slate-600 text-sm leading-[1.55]">
-                ≈ {fmtNum(totalImpressions)} birtingar alls yfir ~30 daga, reiknað á föstu{' '}
+                ≈ {fmtNum(totalImpressions)} birtingar alls yfir ~{flightDays}{' '}
+                {flightDays % 10 === 1 && flightDays % 100 !== 11 ? 'dag' : 'daga'}, reiknað á föstu{' '}
                 <strong className="text-primary font-bold">{fmtNum(FLAT_CPM_ISK)} kr. CPM</strong>{' '}
                 verði.
               </p>

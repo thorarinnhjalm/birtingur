@@ -4,7 +4,6 @@ import {
   useCampaignStats,
   useUpdateCampaign,
   useExtendCampaign,
-  useBulkCreativeStats,
 } from '@/hooks/useCampaigns';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -30,7 +29,6 @@ import { useState, useEffect, Fragment } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import {
   AD_CATEGORIES,
-  FLAT_CPM_ISK,
   UNATTRIBUTED_CREATIVE_ID,
   type Creative,
   grossIskForImpressions,
@@ -79,7 +77,6 @@ export default function CampaignDetail() {
     queryKey: ['creatives'],
     queryFn: () => apiFetch<Creative[]>('/v1/creatives'),
   });
-  const { data: bulkStats } = useBulkCreativeStats();
 
   const campaignCreatives =
     advertiserCreatives?.filter((c) => campaign?.creativeIds?.includes(c.id)) || [];
@@ -276,6 +273,23 @@ export default function CampaignDetail() {
     }
   };
 
+  // Campaign- AND range-scoped per-creative figures, summed from the same
+  // stats response the rest of the page follows. The table below used to read
+  // /v1/creatives/stats — keyed by creative id alone over a fixed 7-day window
+  // — so a creative shared by two campaigns showed the sum of both here: more
+  // "Eytt" on one row than this campaign's entire spend, contradicting the
+  // campaign-scoped publisher table on the same screen.
+  const creativeStatsInCampaign = (() => {
+    const agg: Record<string, { impressions: number; clicks: number }> = {};
+    for (const pub of Object.values(stats?.byPublisher ?? {})) {
+      for (const [creativeId, cs] of Object.entries(pub.byCreative ?? {})) {
+        const row = (agg[creativeId] ??= { impressions: 0, clicks: 0 });
+        row.impressions += cs.impressions;
+        row.clicks += cs.clicks;
+      }
+    }
+    return agg;
+  })();
   const spent = campaign.budget.totalIsk - campaign.budget.remainingIsk;
   const pct = Math.min(100, Math.round((spent / campaign.budget.totalIsk) * 100)) || 0;
 
@@ -290,6 +304,9 @@ export default function CampaignDetail() {
         date: `${y}-${m}-${d}T${hr}:00:00Z`,
         impressions: h.impressions,
         clicks: h.clicks,
+        // Without this the "Kostnaður" tab plotted `d.spendIsk || 0` — a flat
+        // zero line under a budget card showing real spend.
+        spendIsk: h.spendIsk,
       };
     }) || [];
 
@@ -639,12 +656,23 @@ export default function CampaignDetail() {
                       Engar auglýsingar tengdar herferðinni.
                     </td>
                   </tr>
+                ) : Object.keys(creativeStatsInCampaign).length === 0 &&
+                  (stats?.impressions ?? 0) > 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
+                      {/* Campaign-scoped per-creative counters only exist for
+                          hours aggregated after the byPublisherCreative field
+                          shipped. Showing zero rows next to a spend card with
+                          real money on it reads as a bug; saying why is not. */}
+                      Sundurliðun eftir auglýsingu er ekki til fyrir valið tímabil — birtingarnar
+                      eru eldri en sundurliðunarmælingin.
+                    </td>
+                  </tr>
                 ) : (
                   campaignCreatives.map((creative) => {
-                    const cStats = bulkStats?.[creative.id] ?? {
+                    const cStats = creativeStatsInCampaign[creative.id] ?? {
                       impressions: 0,
                       clicks: 0,
-                      ctr: 0,
                     };
                     const spendIsk = grossIskForImpressions(cStats.impressions);
                     const ctr =
@@ -688,7 +716,10 @@ export default function CampaignDetail() {
               </div>
             ) : (
               campaignCreatives.map((creative) => {
-                const cStats = bulkStats?.[creative.id] || { impressions: 0, clicks: 0, ctr: 0 };
+                const cStats = creativeStatsInCampaign[creative.id] || {
+                  impressions: 0,
+                  clicks: 0,
+                };
                 return (
                   <div
                     key={creative.id}
@@ -745,8 +776,10 @@ export default function CampaignDetail() {
                             CTR
                           </div>
                           <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                            {cStats.ctr != null
-                              ? `${cStats.ctr.toFixed(2).replace('.', ',')}%`
+                            {cStats.impressions > 0
+                              ? `${Math.min(100, (cStats.clicks / cStats.impressions) * 100)
+                                  .toFixed(2)
+                                  .replace('.', ',')}%`
                               : '0,00%'}
                           </div>
                         </div>

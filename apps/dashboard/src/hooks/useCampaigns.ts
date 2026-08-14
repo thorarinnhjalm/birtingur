@@ -29,7 +29,7 @@ export interface CampaignStatsResponse {
   impressions: number;
   clicks: number;
   spendIsk?: number;
-  hours: Array<{ hour: string; impressions: number; clicks: number }>;
+  hours: Array<{ hour: string; impressions: number; clicks: number; spendIsk: number }>;
   byPublisher?: Record<
     string,
     {

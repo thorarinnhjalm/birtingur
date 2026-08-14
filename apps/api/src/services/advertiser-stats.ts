@@ -42,7 +42,11 @@ async function getSystemImpressionsLast7Days(): Promise<number> {
     for (const snap of snaps) {
       if (snap.exists) {
         const data = snap.data();
-        total += data.pageviews || data.impressions || 0;
+        // Impressions ONLY. On publisher-day docs `pageviews` is the SLOT-LOAD
+        // counter (the fill-rate denominator), and `pageviews ||` here showed a
+        // 40%-fill network at 3,5x its real delivered volume, under a live
+        // "Í gangi" pulse an advertiser reads as network scale.
+        total += data.impressions || 0;
       }
     }
   } catch (err) {
