@@ -103,22 +103,32 @@ impression and click is attributable, signed, and counted exactly once.
 
 **Invariants.**
 
-| Invariant                                                                        | Enforced by                                                                                   |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| One served ad's signature works for BOTH the impression pixel and the click      | `apps/serving/tests/click-after-impression.test.ts`                                           |
-| Serving sets no cookies, on fill and on no-fill alike                            | `apps/serving/tests/ad-route.test.ts`                                                         |
-| Every event reaches `events:stats`; impressions also reach `events:accrual`      | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
-| A replayed signature is rejected per event kind                                  | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                          |
-| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin             | `packages/snippet/tests/render.test.ts`                                                       |
-| A missing or expired `budget:{id}` key stops serving; it never serves free       | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
-| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin  | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
-| A campaign gets no more of a slot for uploading more creative variants           | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                 |
-| CTR steers only which VARIANT of a campaign serves, never which campaign         | `apps/serving/tests/bandit.test.ts`                                                           |
-| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation    | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`          |
-| Bot traffic and house-ad fallbacks never feed the CTR counters                   | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
-| A visitor's daily frequency cap is per CAMPAIGN, not multiplied by variant count | `apps/serving/tests/bandit.test.ts`, `select.test.ts`, `click-impression.test.ts`             |
-| The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                               |
-| One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                           |
+| Invariant                                                                        | Enforced by                                                                                         |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| One served ad's signature works for BOTH the impression pixel and the click      | `apps/serving/tests/click-after-impression.test.ts`                                                 |
+| Serving sets no cookies, on fill and on no-fill alike                            | `apps/serving/tests/ad-route.test.ts`                                                               |
+| Every event reaches `events:stats`; impressions also reach `events:accrual`      | `apps/serving/tests/analytics-fanout.test.ts`                                                       |
+| A replayed signature is rejected per event kind                                  | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                                |
+| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin             | `packages/snippet/tests/render.test.ts`                                                             |
+| A missing or expired `budget:{id}` key stops serving; it never serves free       | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam)       |
+| One impression costs FLAT_CPM_ISK/1000 against both the budget and pace counters | `apps/serving/tests/budget-gate.test.ts`, `click-impression.test.ts`, `legacy-slot-pricing.test.ts` |
+| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin  | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)                   |
+| A campaign gets no more of a slot for uploading more creative variants           | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                       |
+| CTR steers only which VARIANT of a campaign serves, never which campaign         | `apps/serving/tests/bandit.test.ts`                                                                 |
+| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation    | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`                |
+| Bot traffic and house-ad fallbacks never feed the CTR counters                   | `apps/serving/tests/analytics-fanout.test.ts`                                                       |
+| A visitor's daily frequency cap is per CAMPAIGN, not multiplied by variant count | `apps/serving/tests/bandit.test.ts`, `select.test.ts`, `click-impression.test.ts`                   |
+| The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                                     |
+| One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                                 |
+
+**Rolling back the fractional cost counters is not a plain revert.** `budget:{id}`
+and `pace_spent:{id}:{day}` hold decimals since 2026-08-14, and Redis DECRBY /
+INCRBY reject a key whose value is not an integer. `budget:{id}` heals itself
+(push-cache SETs it every 10 minutes and after every accrual), but `pace_spent`
+is only ever incremented and expired, so a revert leaves it erroring for the rest
+of the UTC day with daily pacing effectively off. A revert must therefore be
+paired with `DEL pace_spent:*`. The counter calls are `.catch()`ed so this
+degrades rather than crashing the function.
 
 **Now.** V1 on Vercel at `serving.birtingur.app`, 15 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.
@@ -217,6 +227,7 @@ way into a stats document.
 | `events:stats` depth over time is watched, not just readable on demand            | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
 | An ad request with no advertiser is counted apart from one that was never seen    | `apps/api/tests/stats-aggregator.test.ts` (`unfilled`), `apps/api/tests/publisher-stats-unfilled.test.ts`                                                                    |
 | `unfilled` stays absent, never 0, for windows that predate the counter            | same two files, plus `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                                                         |
+| A rate is never computed from a numerator and denominator covering different days | `apps/api/tests/publisher-stats-unfilled.test.ts`, `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                           |
 
 **Now.** PR #32 (merged 2026-08-12) raised the batch cap to 20 behind the 30s
 deadline, added the re-queue and the `AggregationError.anyCommitted` distinction,
@@ -231,6 +242,16 @@ between them therefore blended two failures with opposite owners: nobody bought
 the publisher's categories, which is ours to fix, and the ad loaded but was
 never scrolled into view, which the publisher fixes by moving the slot. A single
 "fill rate" told neither party anything actionable.
+
+A counter that starts partway through a window needs its denominator to start
+there too. `unfilled` and `pageViewsTrue` are both absent before their switch
+dates while `pageviews` covers the whole window, so dividing one by the other
+compared two periods: a 30-day window put 30 days of requests under one day of
+unfilled and a site with a real 50% fill rate reported 98%. The API therefore
+returns `requestsWithFillData`, `impressionsWithFillData` and
+`requestsWithTrafficData` — each summed over exactly the days that measured its
+partner, each absent whenever its partner is — and the UI treats an unpaired
+counter as unmeasured rather than falling back to the whole-window figure.
 
 `unfilled` closes that: a slot load whose creative was a house ad, a transparent
 placeholder or a cold-cache response had no advertiser behind it
@@ -270,6 +291,8 @@ not billed, and any drift is reported the next morning without anyone looking.
 | A campaign that repeatedly fails to charge is paused rather than serving unbilled forever             | `apps/api/tests/accrual.test.ts`                                           |
 | Ledger, `budget.remainingIsk` and Redis `budget:{id}` are cross-checked daily and drift alerts        | `apps/api/tests/reconciliation.test.ts`                                    |
 | Emitted vs recorded event counts are cross-checked per hour                                           | `apps/api/tests/reconciliation.test.ts`                                    |
+| A publisher-day whose clicks cannot be explained by its impressions alerts ops                        | `apps/api/tests/reconciliation.test.ts`                                    |
+| A platform-wide click rate 3x its own trailing week alerts ops                                        | `apps/api/tests/reconciliation.test.ts`                                    |
 | An `ak_` key can never approve its own pending purchase                                               | `apps/api/tests/agent-purchase.test.ts`                                    |
 | Money crons never run on a preview deploy                                                             | `apps/api/tests/preview-guard.test.ts`, `admin-preview-guard.test.ts`      |
 | **A payout marked complete corresponds to a bank transfer that happened**                             | **UNENFORCED** — and unenforceable in code; the manual step is the control |
@@ -316,6 +339,17 @@ falls back to `spendIsk` when that field is absent, which is why
 all. Agreement with the ledger is pinned in `apps/api/tests/wallet.test.ts`,
 against what `creditPublisher` actually writes; a shared-package test can only
 re-derive the formula and prove it is deterministic.
+
+**Category inventory is not additive.** Each row of `/v1/categories/inventory`
+reports a publisher's whole daily volume under every category it declares,
+because each row answers "what could I get if I bought this category alone".
+Summing rows for a multi-category selection therefore counts a publisher once
+per category it is in. The buy flow did exactly that, so one 1.000-impression
+publisher in two categories read as 2.000 and the oversell warning stayed silent
+for campaigns that could never be delivered. Any combined figure comes from
+`/v1/categories/inventory/combined`, which deduplicates publishers and competing
+campaigns server-side where their identities still exist
+(`getCombinedCategoryInventory`, pinned by `apps/api/tests/inventory.test.ts`).
 
 ## 4. Ops visibility (heartbeats, alerts, diagnostics)
 
@@ -433,10 +467,33 @@ clickable the moment it renders, so clicks legitimately outrun impressions and
 CTR can exceed 100%. Serving's own limits are asymmetric the same way (30
 impressions/hr against 3 clicks/hr per campaign+IP) and an impression pixel
 expires after 1h where a click stays valid for 24h, so the two can land in
-different days. Sixteen places render CTR and all of them now clamp. **Nothing
-monitors the raw ratio**, so a genuine click-inflation bug would now be
-invisible everywhere it is displayed; if that matters, the counter belongs in
-`services/reconciliation.ts`, which currently never reads `clicks`.
+different days. Sixteen places render CTR and all of them clamp.
+
+The clamp is only safe because the raw ratio is watched somewhere else. Nothing
+in the UI can show it, so `services/reconciliation.ts` does, in two checks with
+deliberately different reach:
+
+- **Per publisher-day** (`checkPublisherClickRates`) — at least 20 clicks at
+  over 20% CTR. That ceiling is two hundred times the ~0.1% display norm, so an
+  exceptional 2% campaign never trips it, and a day with clicks and zero
+  impressions trips it too (a slot being clicked while recording nothing earns
+  the publisher nothing). It catches the local and the extreme. It does NOT
+  catch a small multiplier, and on a blog earning five clicks a day it never
+  reaches the minimum sample at all.
+- **Platform-wide** (`checkPlatformClickRateSpike`) — yesterday's pooled click
+  rate against the previous 7 days, alerting at 3x the expected count. This is
+  the one that catches a counting bug, which is systemic by nature and therefore
+  visible in the total long before it distorts any single publisher enough to
+  trip the per-publisher ceiling. Pooling is also what makes the comparison
+  valid: one small blog's daily rate swings by multiples on its own, so a
+  per-publisher version of this would alert constantly. Volume floors (50k
+  baseline impressions, 50 baseline clicks, 20 clicks yesterday) keep it out of
+  the range where variance produces multiples; below them it says nothing rather
+  than guessing, and absent history reads as "cannot compare", never as a
+  baseline of zero.
+
+Still uncovered: a systemic multiplier under 3x, and a per-publisher anomaly on
+a site too small to reach 20 clicks in a day.
 
 **Bridge.**
 

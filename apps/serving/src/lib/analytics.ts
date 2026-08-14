@@ -140,11 +140,25 @@ function ctrCounterField(ev: AdEvent): 'imp' | 'clk' | null {
 /**
  * Decrement campaign budget counter in Redis after an impression that earns CPM.
  * Returns the new remaining budget (in ISK).
+ *
+ * INCRBYFLOAT, not DECRBY: one impression costs FLAT_CPM_ISK / 1000 = 0,55 kr,
+ * and an integer counter cannot express that. Rounding it to 1 made every
+ * impression cost 82% more against this gate than accrual actually books, so the
+ * campaign stopped serving well before its budget was spent — see the same
+ * reasoning on incrementPaceSpent below, where the error does not self-heal.
+ *
+ * The counter stays denominated in ISK, so `budget:{id}` remains directly
+ * comparable to `campaign.budget.remainingIsk` (reconciliation check 4 depends
+ * on that) and the fail-closed missing-key behaviour in getRemainingBudgets is
+ * unchanged.
+ *
+ * The return value is discarded by the only caller; Number() is here so the
+ * declared type is honest about INCRBYFLOAT returning a string.
  */
 export async function decrementBudget(campaignId: string, costIsk: number): Promise<number> {
   const key = `budget:${campaignId}`;
-  const newVal = await getRedis().decrby(key, costIsk);
-  return newVal;
+  const newVal = await getRedis().incrbyfloat(key, -costIsk);
+  return Number(newVal);
 }
 
 export async function getRemainingBudgets(campaignIds: string[]): Promise<Record<string, number>> {
@@ -161,11 +175,21 @@ export async function getRemainingBudgets(campaignIds: string[]): Promise<Record
   return out;
 }
 
+/**
+ * INCRBYFLOAT for the same reason as decrementBudget, but this is the one where
+ * it mattered most. `pace_limit:{id}` is seeded in real ISK by push-cache
+ * (remainingIsk / daysLeft), and this counter was ticking a rounded 1 kr per
+ * impression against it — so each day's allowance was exhausted after roughly
+ * 55% of the impressions it was meant to buy. Unlike the budget gate, which the
+ * 10-minute cache refresh reseeds from Firestore, nothing corrected this within
+ * the day: the undelivered share simply piled up on the end of the flight,
+ * where daysLeft is small and a long-tail network cannot absorb it.
+ */
 export async function incrementPaceSpent(campaignId: string, costIsk: number): Promise<void> {
   const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD (UTC = Iceland)
   const key = `pace_spent:${campaignId}:${dayKey}`;
   const redis = getRedis();
-  await redis.incrby(key, costIsk);
+  await redis.incrbyfloat(key, costIsk);
   await redis.expire(key, 2 * 86400);
 }
 
@@ -183,7 +207,18 @@ export async function getPaceState(
     ...campaignIds.map((id) => `pace_spent:${id}:${dayKey}`),
   );
   campaignIds.forEach((id, i) => {
-    out[id] = { limit: limits[i] ?? Number.POSITIVE_INFINITY, spent: spents[i] ?? 0 };
+    // Number(), not the raw mget value. INCRBYFLOAT stores a decimal string and
+    // @upstash/redis returns the raw string whenever it does not round-trip
+    // through JSON.parse — which a value like 945.00000000000045 never does. The
+    // declared type says number, `ad.ts` coerces it in a `<` comparison so
+    // nothing is broken today, and the first piece of arithmetic anyone does on
+    // it would concatenate instead of add.
+    const limit = limits[i];
+    const spent = spents[i];
+    out[id] = {
+      limit: limit != null ? Number(limit) : Number.POSITIVE_INFINITY,
+      spent: spent != null ? Number(spent) : 0,
+    };
   });
   return out;
 }

@@ -34,7 +34,9 @@ export type ReconciliationFindingKind =
   | 'event_pipeline_loss'
   | 'publisher_negative_balance'
   | 'publisher_stuck_payable'
-  | 'publisher_stale_payout_doc';
+  | 'publisher_stale_payout_doc'
+  | 'implausible_click_rate'
+  | 'platform_click_rate_spike';
 
 export interface ReconciliationFinding {
   kind: ReconciliationFindingKind;
@@ -51,6 +53,7 @@ export interface ReconciliationReport {
     advertisersChecked: number;
     redisBudgetsChecked: number;
     eventPipelineHoursChecked: number;
+    publisherStatDaysChecked: number;
   };
   generatedAt: string;
 }
@@ -335,6 +338,216 @@ async function checkEventPipeline(findings: ReconciliationFinding[], now: Date):
   return checked;
 }
 
+/**
+ * Check 9: a publisher-day whose click count cannot be explained by its
+ * impression count.
+ *
+ * Every surface that displays CTR caps it at 100%, and that is correct — clicks
+ * are not viewability-gated and impressions are (the pixel fires only once the
+ * ad has been at least half visible for a continuous second, while the ad is
+ * clickable the moment it renders), so a small sample can honestly show more
+ * clicks than impressions and 140% on a publisher's dashboard reads as a broken
+ * product rather than as the edge case it is.
+ *
+ * The price of that cap is that a click-inflation bug would now look identical
+ * to a healthy day everywhere in the product: the number would simply sit at
+ * 100% and nobody would ever see it move. This check is what makes the cap safe
+ * — it reads the raw, uncapped ratio once a day and alerts ops, so the
+ * displayed figure can stay sensible without the real one going unwatched.
+ *
+ * Two guards keep it from crying wolf, which would be worse than not having it:
+ *
+ * - `CLICK_RATE_MIN_CLICKS` — below this, the ratio is decided by a handful of
+ *   uncounted impressions rather than by anything systemic. Seven clicks on
+ *   five impressions is one visitor and an awkwardly placed slot.
+ * - `CLICK_RATE_MAX_PLAUSIBLE` — display advertising runs near 0.1% CTR. A day
+ *   at 20% is two hundred times the norm; an exceptional campaign at 2% is
+ *   nowhere near it. The threshold is set where no honest explanation survives,
+ *   deliberately not where behaviour merely looks unusual.
+ *
+ * A day with clicks and zero recorded impressions trips it too, and should: it
+ * means a slot is being clicked while recording nothing, so the publisher earns
+ * nothing for traffic that demonstrably converts.
+ *
+ * Read-only, like the rest of this service — it reads the settled stats docs the
+ * hourly aggregator already wrote and never touches them.
+ */
+const CLICK_RATE_MIN_CLICKS = 20;
+const CLICK_RATE_MAX_PLAUSIBLE = 0.2;
+const CLICK_RATE_READ_CHUNK = 300;
+
+// Check 10's window and volume floors. The floors exist so the comparison is
+// only made where ordinary day-to-day variance cannot produce a multiple: below
+// them the check says nothing rather than guessing.
+const PLATFORM_BASELINE_DAYS = 7;
+const PLATFORM_BASELINE_MIN_IMPRESSIONS = 50_000;
+const PLATFORM_BASELINE_MIN_CLICKS = 50;
+const PLATFORM_SPIKE_MIN_CLICKS = 20;
+const PLATFORM_SPIKE_FACTOR = 3;
+
+/** `YYYYMMDD` in UTC — the same key `dayKey()` in stats-aggregator.ts writes. */
+function dayKeyUTC(d: Date): string {
+  return (
+    d.getUTCFullYear().toString() +
+    String(d.getUTCMonth() + 1).padStart(2, '0') +
+    String(d.getUTCDate()).padStart(2, '0')
+  );
+}
+
+async function checkPublisherClickRates(
+  findings: ReconciliationFinding[],
+  now: Date,
+): Promise<number> {
+  // Yesterday, never today: the aggregator runs hourly, so today's document is
+  // a partial count by definition and its ratio means nothing until the day
+  // closes. The cron runs at 05:00 UTC, well after yesterday's last hour has
+  // been drained.
+  const dk = dayKeyUTC(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+  const baselineKeys = Array.from({ length: PLATFORM_BASELINE_DAYS }, (_, i) =>
+    dayKeyUTC(new Date(now.getTime() - (i + 2) * 24 * 60 * 60 * 1000)),
+  );
+
+  // Publisher-day stats live at `stats/publishers/{publisherId}/{dk}`, so each
+  // publisher is a SUBCOLLECTION of the `stats/publishers` document. There is
+  // no collection-group query for that shape (the collection id varies per
+  // publisher), and listing the subcollections touches only publishers that
+  // actually have stats — better than reading the whole publishers collection
+  // and then missing on most of them.
+  const publisherCollections = await db.doc(`${COLLECTIONS.stats}/publishers`).listCollections();
+
+  // Read in batches, never one get() per publisher in a loop. That sequential
+  // shape is exactly what killed cron-aggregate on 2026-08-11: a per-item round
+  // trip is fine at ten items and blows the 60s function limit at a thousand,
+  // and this list grows with every publisher who ever had a stat.
+  const refs = publisherCollections.flatMap((col) => [
+    col.doc(dk),
+    ...baselineKeys.map((k) => col.doc(k)),
+  ]);
+  const snaps = [];
+  for (let i = 0; i < refs.length; i += CLICK_RATE_READ_CHUNK) {
+    const chunk = refs.slice(i, i + CLICK_RATE_READ_CHUNK);
+    snaps.push(...(await db.getAll(...chunk)));
+  }
+
+  let checked = 0;
+  let dayClicks = 0;
+  let dayImpressions = 0;
+  let baseClicks = 0;
+  let baseImpressions = 0;
+
+  for (const snap of snaps) {
+    if (!snap.exists) continue;
+
+    const publisherId = snap.ref.parent.id;
+    const data = snap.data() ?? {};
+    const impressions = Number(data.impressions ?? 0);
+    const clicks = Number(data.clicks ?? 0);
+    if (!Number.isFinite(impressions) || !Number.isFinite(clicks)) continue;
+
+    if (snap.ref.id !== dk) {
+      baseImpressions += impressions;
+      baseClicks += clicks;
+      continue;
+    }
+
+    checked++;
+    dayImpressions += impressions;
+    dayClicks += clicks;
+
+    if (clicks < CLICK_RATE_MIN_CLICKS) continue;
+    if (clicks <= impressions * CLICK_RATE_MAX_PLAUSIBLE) continue;
+
+    // Formatted rather than divided into the message: impressions can be 0 here
+    // and "Infinity%" in an ops email helps nobody.
+    const rate =
+      impressions > 0 ? `${((clicks / impressions) * 100).toFixed(1)}%` : 'no impressions counted';
+
+    findings.push({
+      kind: 'implausible_click_rate',
+      entityId: `${publisherId}/${dk}`,
+      detail:
+        `Publisher ${publisherId} recorded ${clicks} click(s) against ${impressions} impression(s) ` +
+        `on ${dk} (${rate}) — display CTR runs near 0.1%, so this is either inflated click ` +
+        'counting or a slot that is being clicked while recording no impressions. Every ' +
+        'dashboard caps CTR at 100%, so this will not be visible anywhere in the UI.',
+      expected: impressions,
+      actual: clicks,
+    });
+  }
+
+  checkPlatformClickRateSpike(findings, dk, {
+    dayClicks,
+    dayImpressions,
+    baseClicks,
+    baseImpressions,
+  });
+
+  return checked;
+}
+
+/**
+ * Check 10: the platform's own click rate against its recent past.
+ *
+ * Check 9 only catches the extreme. Its ceiling sits two hundred times above
+ * the display norm, so a bug that merely doubles or triples every click sails
+ * straight through it, and on a long-tail blog earning five clicks a day it
+ * never even reaches the minimum sample. That is the failure this feature was
+ * asked for in the first place: something starts counting each click three
+ * times and every dashboard keeps showing a tidy, capped number.
+ *
+ * A counting bug is systemic, so the platform total is where it shows, and
+ * pooling every publisher is also the only way the comparison means anything —
+ * one small blog's daily rate swings by multiples on its own and a per
+ * -publisher version of this would alert constantly.
+ *
+ * The expectation is a RATE applied to yesterday's impressions, not last week's
+ * click count, so a publisher who doubles their traffic does not read as a
+ * spike. The volume floors below are what keep the ratio out of the range where
+ * ordinary variance produces multiples; with at least 20 clicks expected, a 3x
+ * overshoot is far outside anything Poisson noise reaches.
+ *
+ * Absent history is "cannot compare", never a baseline of zero — otherwise the
+ * first day after any deploy that widened the window would be an infinite
+ * spike.
+ */
+function checkPlatformClickRateSpike(
+  findings: ReconciliationFinding[],
+  dk: string,
+  totals: {
+    dayClicks: number;
+    dayImpressions: number;
+    baseClicks: number;
+    baseImpressions: number;
+  },
+): void {
+  const { dayClicks, dayImpressions, baseClicks, baseImpressions } = totals;
+
+  if (baseImpressions < PLATFORM_BASELINE_MIN_IMPRESSIONS) return;
+  if (baseClicks < PLATFORM_BASELINE_MIN_CLICKS) return;
+  if (dayImpressions <= 0) return;
+  if (dayClicks < PLATFORM_SPIKE_MIN_CLICKS) return;
+
+  const baselineRate = baseClicks / baseImpressions;
+  const expected = Math.round(baselineRate * dayImpressions);
+  if (expected <= 0) return;
+  if (dayClicks < expected * PLATFORM_SPIKE_FACTOR) return;
+
+  const pct = (r: number) => `${(r * 100).toFixed(3)}%`;
+  findings.push({
+    kind: 'platform_click_rate_spike',
+    entityId: dk,
+    detail:
+      `Platform-wide click rate on ${dk} was ${pct(dayClicks / dayImpressions)} ` +
+      `(${dayClicks} clicks on ${dayImpressions} impressions) against ${pct(baselineRate)} ` +
+      `over the previous ${PLATFORM_BASELINE_DAYS} days — at that baseline ~${expected} clicks ` +
+      `were expected, so this is ${(dayClicks / expected).toFixed(1)}x. A rate this far above ` +
+      'its own recent past across every publisher at once points at click counting, not at ' +
+      'advertiser performance. Every dashboard caps CTR at 100%, so this is invisible in the UI.',
+    expected,
+    actual: dayClicks,
+  });
+}
+
 const PAYOUT_LEDGER_TYPES = ['publisher_credit', 'payout'] as const;
 
 // cron-payouts runs "0 6 1 * *" (06:00 UTC on the 1st, apps/api/vercel.json)
@@ -510,6 +723,14 @@ function buildAlertMessage(findings: ReconciliationFinding[]): string {
     if (f.kind === 'event_pipeline_loss') {
       return `- [${f.kind}] ${f.entityId}: vænt ${f.expected} atburðir, raun ${f.actual} atburðir (${f.detail})`;
     }
+    // Not krónur either: these two numbers are event counts, and a money alert
+    // about no money is an alert nobody trusts the second time.
+    if (f.kind === 'implausible_click_rate') {
+      return `- [${f.kind}] ${f.entityId}: ${f.actual} smellir á móti ${f.expected} birtingum (${f.detail})`;
+    }
+    if (f.kind === 'platform_click_rate_spike') {
+      return `- [${f.kind}] ${f.entityId}: ${f.actual} smellir, ${f.expected} væntanlegir (${f.detail})`;
+    }
     return `- [${f.kind}] ${f.entityId}: vænt ${f.expected} kr., raun ${f.actual} kr. (${f.detail})`;
   });
   const more =
@@ -518,7 +739,8 @@ function buildAlertMessage(findings: ReconciliationFinding[]): string {
       : '';
   return (
     `Dagleg afstemming (cron-reconcile) fann ${findings.length} misræmi í peningaflæði og/eða ` +
-    `atburðaflæði (ledger, campaign.budget.remainingIsk, Redis budget-teljari, emitted-vs-recorded). ` +
+    `atburðaflæði (ledger, campaign.budget.remainingIsk, Redis budget-teljari, emitted-vs-recorded, ` +
+    `smellir á móti birtingum). ` +
     `Fyrstu ${shown.length} atriðin:\n` +
     `${lines.join('\n')}${more}\n\n` +
     'Þetta er ekki sjálfkrafa leiðrétt — athugaðu Firestore ledger og /api/cron-diagnostics handvirkt.'
@@ -555,6 +777,19 @@ export async function runReconciliation(now: Date = new Date()): Promise<Reconci
 
   await checkPublisherBalances(findings, now);
 
+  // Wrapped, unlike the money checks above it. Those run before anything is
+  // alerted, so a throw here would take checks 1-8's already-collected findings
+  // down with it: ops would get a generic "cron-reconcile failed" instead of
+  // the drift that was actually detected, and nothing would retry until
+  // tomorrow. Click rates are the least important thing this cron looks at and
+  // must not be able to silence the most important.
+  let publisherStatDaysChecked = 0;
+  try {
+    publisherStatDaysChecked = await checkPublisherClickRates(findings, now);
+  } catch (err) {
+    console.error('[reconciliation] click-rate checks failed, money checks unaffected:', err);
+  }
+
   const report: ReconciliationReport = {
     findings,
     counts: {
@@ -562,6 +797,7 @@ export async function runReconciliation(now: Date = new Date()): Promise<Reconci
       advertisersChecked: advertisersSnap.size,
       redisBudgetsChecked,
       eventPipelineHoursChecked,
+      publisherStatDaysChecked,
     },
     generatedAt: new Date().toISOString(),
   };

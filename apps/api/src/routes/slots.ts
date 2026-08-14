@@ -82,6 +82,15 @@ slotsRouter.get('/', async (c) => {
             clicks: stats.clicks,
             spendIsk: stats.spendIsk,
             pageviews: stats.pageviews,
+            // Both, or neither. The CSV's fill column read `unfilled` and this
+            // object never carried it, so the column printed "ekki mælt" for
+            // every slot forever — while a test asserted percentages against a
+            // fixture this route cannot produce. And `unfilled` alone is worse
+            // than useless: without its paired denominator the consumer falls
+            // back to the whole-window `pageviews` and reports ~98% for a site
+            // filling half its requests.
+            unfilled: stats.unfilled,
+            requestsWithFillData: stats.requestsWithFillData,
           },
         };
       } catch (err) {

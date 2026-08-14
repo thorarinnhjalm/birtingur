@@ -13,6 +13,10 @@ export interface SlotStatsResponse {
   // the aggregator began counting it, so the UI can say "not measured" instead
   // of claiming perfect fill. Written per slot by stats-aggregator.ts.
   unfilled?: number;
+  // Requests over EXACTLY the days that measured `unfilled`. `pageviews` covers
+  // the whole window, so it is the wrong denominator for a fill rate — see the
+  // same field on PublisherStatsResponse.
+  requestsWithFillData?: number;
   history: {
     date: string;
     impressions: number;
@@ -44,6 +48,7 @@ export async function getSlotStats(
   let pageviews = 0;
   let unfilled = 0;
   let anyUnfilled = false;
+  let requestsWithFillData = 0;
   const now = new Date();
   let hasRealData = false;
 
@@ -105,6 +110,7 @@ export async function getSlotStats(
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
       unfilled += res.unfilled;
+      requestsWithFillData += res.pageviews;
     }
 
     for (const [campId, stats] of Object.entries(res.byCampaign)) {
@@ -250,6 +256,7 @@ export async function getSlotStats(
     pageviews,
     // Absent, never 0, for a window with no measured day — see the field's doc.
     unfilled: anyUnfilled ? unfilled : undefined,
+    requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     history,
     byCampaign,
   };

@@ -98,7 +98,10 @@ async function fireImpression() {
   return app.request(`/v1/impression?s=slot_legacy&c=cre_a&t=tok123&ts=${ts}&sig=${sig}`);
 }
 
-const EXPECTED_COST = Math.round(FLAT_CPM_ISK / 1000);
+// Exact, not rounded: 0,55 kr per impression. This mirrored the production
+// expression, so when that expression rounded, this constant rounded with it and
+// the test agreed with the bug instead of catching it.
+const EXPECTED_COST = FLAT_CPM_ISK / 1000;
 
 describe('budget decrement is independent of the slot’s stored pricing', () => {
   beforeEach(() => {

@@ -224,8 +224,11 @@ export default function SlotDetail() {
                   that ratio blended "no advertiser" with "never scrolled to".
                   Leaving the two surfaces disagreeing under one word is the
                   exact confusion the dashboard change set out to remove. */}
-              {slotStats && slotStats.unfilled !== undefined && slotStats.pageviews > 0
-                ? `${Math.round(((slotStats.pageviews - slotStats.unfilled) / slotStats.pageviews) * 100)}%`
+              {slotStats &&
+              slotStats.unfilled !== undefined &&
+              slotStats.requestsWithFillData !== undefined &&
+              slotStats.requestsWithFillData > 0
+                ? `${Math.round(((slotStats.requestsWithFillData - slotStats.unfilled) / slotStats.requestsWithFillData) * 100)}%`
                 : '—'}
             </p>
           </div>
