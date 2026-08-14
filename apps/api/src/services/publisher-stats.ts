@@ -19,6 +19,10 @@ export interface SiteBreakdown {
   // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
   // has the field missing by construction.
   unfilled?: number;
+  // Requests over exactly the days that measured `unfilled` for this site — the
+  // denominator the per-site fill column must use. See the same field on
+  // PublisherStatsResponse for why `pageviews` is the wrong one.
+  requestsWithFillData?: number;
   spendIsk: number;
 }
 
@@ -33,6 +37,30 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
   // has the field missing by construction.
   unfilled?: number;
+  // The request count over EXACTLY the days that carry an `unfilled` value, so
+  // a caller can compute fill without mixing two windows.
+  //
+  // Caveat worth knowing: the aggregator writes the field only when the count is
+  // non-zero (`if (b.unfilled)` in stats-aggregator.ts), so a day on which every
+  // single request found an advertiser is indistinguishable from a day before
+  // the counter existed, and is excluded here. That biases the reported fill
+  // rate DOWN, never up, and `impressionsWithFillData` is excluded with it so
+  // the chain stays internally consistent. Fixing it means writing an explicit
+  // zero for measured days, which the absent-not-zero contract currently
+  // forbids — a separate change with its own test. `pageviews` above spans
+  // the whole window while `unfilled` spans only the measured part of it, and
+  // dividing one by the other is how a site with a real 50% fill rate came to
+  // report 98%. Absent whenever `unfilled` is.
+  requestsWithFillData?: number;
+  // Impressions over the same measured days. The chain's second gap is
+  // `filled - impressions`, and filled already covers only the measured days —
+  // subtracting a whole-window impression count from it produces a negative
+  // gap and a view rate above 100%.
+  impressionsWithFillData?: number;
+  // Same pairing for real page views: requests over exactly the days that
+  // measured `pageViewsTrue`, so "requests per page view" divides two figures
+  // covering the same period.
+  requestsWithTrafficData?: number;
   history: {
     date: string;
     impressions: number;
@@ -72,6 +100,11 @@ export async function getPublisherStats(
   let anyPageViewsTrue = false;
   let totalUnfilled = 0;
   let anyUnfilled = false;
+  // Requests counted only on the days whose partner figure was measured — see
+  // requestsWithFillData / requestsWithTrafficData on the response type.
+  let requestsWithFillData = 0;
+  let impressionsWithFillData = 0;
+  let requestsWithTrafficData = 0;
 
   const now = new Date();
   let hasRealData = false;
@@ -175,10 +208,13 @@ export async function getPublisherStats(
     if (res.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
       totalPageViewsTrue += res.pageViewsTrue;
+      requestsWithTrafficData += res.pageviews;
     }
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += res.unfilled;
+      requestsWithFillData += res.pageviews;
+      impressionsWithFillData += res.impressions;
     }
   }
 
@@ -239,6 +275,9 @@ export async function getPublisherStats(
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
+    requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
+    impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
+    requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
     history,
   };
 }
@@ -268,6 +307,9 @@ export async function getAggregatedPublisherStats(
   let anyPageViewsTrue = false;
   let totalUnfilled = 0;
   let anyUnfilled = false;
+  let requestsWithFillData = 0;
+  let impressionsWithFillData = 0;
+  let requestsWithTrafficData = 0;
 
   // Use a map to aggregate history by date
   const historyMap: Record<
@@ -290,10 +332,16 @@ export async function getAggregatedPublisherStats(
     if (stats.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
       totalPageViewsTrue += stats.pageViewsTrue;
+      // The per-site figure, already narrowed to that site's measured days —
+      // summing `stats.pageviews` here would re-import the whole-window count
+      // this pairing exists to keep out.
+      requestsWithTrafficData += stats.requestsWithTrafficData ?? 0;
     }
     if (stats.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += stats.unfilled;
+      requestsWithFillData += stats.requestsWithFillData ?? 0;
+      impressionsWithFillData += stats.impressionsWithFillData ?? 0;
     }
 
     for (const h of stats.history) {
@@ -339,6 +387,7 @@ export async function getAggregatedPublisherStats(
             pageviews: allStats[i]!.pageviews || 0,
             pageViewsTrue: allStats[i]!.pageViewsTrue,
             unfilled: allStats[i]!.unfilled,
+            requestsWithFillData: allStats[i]!.requestsWithFillData,
             spendIsk: allStats[i]!.spendIsk,
           }))
           .sort((a, b) => b.impressions - a.impressions)
@@ -351,6 +400,9 @@ export async function getAggregatedPublisherStats(
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
+    requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
+    impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
+    requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
     history,
     ...(bySite.length > 0 ? { bySite } : {}),
   };

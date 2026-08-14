@@ -42,6 +42,42 @@ describe('getSlotStats service', () => {
     mockStatsStore.clear();
   });
 
+  /**
+   * `unfilled` is only written from 2026-08-14, but `pageviews` counts every day
+   * in the window, so a fill rate built from the two compared a few days against
+   * thirty. The slot page showed the result of that, same as the dashboard did.
+   */
+  it('pairs the fill denominator with the days that measured unfilled', async () => {
+    const now = new Date();
+    const dk = (daysAgo: number) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - daysAgo);
+      return d.toISOString().split('T')[0]!.replace(/-/g, '');
+    };
+    // An unmeasured day carrying most of the traffic, and one measured day.
+    mockStatsStore.set(`stats/publisher_slots/pub_f_slot_f/${dk(3)}`, {
+      impressions: 700,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 900,
+    });
+    mockStatsStore.set(`stats/publisher_slots/pub_f_slot_f/${dk(1)}`, {
+      impressions: 60,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 100,
+      unfilled: 40,
+    });
+
+    const stats = await getSlotStats('pub_f', 'slot_f', 7);
+
+    expect(stats.pageviews).toBe(1000);
+    expect(stats.unfilled).toBe(40);
+    // 100, not 1000: fill is (100-40)/100 = 60%. Against the window it would
+    // read 96%.
+    expect(stats.requestsWithFillData).toBe(100);
+  });
+
   async function seedSlotStats(publisherId: string, slotId: string) {
     const now = new Date();
 

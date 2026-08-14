@@ -51,9 +51,15 @@ interface StatsResponse {
   // UI must show that absence honestly rather than falling back to 0.
   pageViewsTrue?: number;
   // Ad requests that got no advertiser back. Absent — not zero — for windows
-  // before the aggregator began counting it (2026-08-14). `pageviews - unfilled`
-  // is what was filled, and `impressions` is what was then actually seen.
+  // before the aggregator began counting it (2026-08-14).
   unfilled?: number;
+  // Requests and impressions over EXACTLY the days that measured `unfilled`,
+  // and requests over exactly the days that measured `pageViewsTrue`. `pageviews`
+  // above covers the whole window, so it is the wrong denominator for either —
+  // see the comment on TrafficChainProps.
+  requestsWithFillData?: number;
+  impressionsWithFillData?: number;
+  requestsWithTrafficData?: number;
   history: {
     date: string;
     impressions: number;
@@ -76,6 +82,8 @@ interface StatsResponse {
     // Ad requests that got no advertiser. Absent for windows before the
     // aggregator began counting it (2026-08-14) — never defaulted to 0.
     unfilled?: number;
+    // Requests over exactly the days that measured `unfilled` for this site.
+    requestsWithFillData?: number;
     spendIsk: number;
   }[];
 }
@@ -177,13 +185,20 @@ function PublisherHome() {
         const status = s.status === 'active' ? 'Virk' : 'Óvirk';
         const impressions = s.stats ? s.stats.impressions : 0;
         const pageviews = s.stats ? s.stats.pageviews : 0;
-        // Same definition as the on-screen table: filled requests over all
-        // requests. A CSV that disagrees with the dashboard under the same
-        // column heading is the confusion this change exists to remove.
+        // Same definition as the on-screen table: filled over requests, both
+        // taken from the days that measured `unfilled`. A CSV that disagrees
+        // with the dashboard under the same column heading is the confusion
+        // this change exists to remove — and `pageviews` here covers the whole
+        // window, so using it would put 30 days of requests under a few days of
+        // unfilled and report ~98% for a site filling half of them.
         const unfilled = s.stats && typeof s.stats.unfilled === 'number' ? s.stats.unfilled : null;
+        const fillDenominator =
+          s.stats && typeof s.stats.requestsWithFillData === 'number'
+            ? s.stats.requestsWithFillData
+            : null;
         const fillRate =
-          unfilled !== null && pageviews > 0
-            ? `${Math.round(((pageviews - unfilled) / pageviews) * 100)}%`
+          unfilled !== null && fillDenominator !== null && fillDenominator > 0
+            ? `${Math.round(((fillDenominator - unfilled) / fillDenominator) * 100)}%`
             : 'ekki mælt';
         const clicks = s.stats ? s.stats.clicks : 0;
         // Clamped, like every other surface that shows CTR — see the on-screen
@@ -500,6 +515,9 @@ function PublisherHome() {
         pageViewsTrue={stats?.pageViewsTrue}
         requests={stats?.pageviews ?? 0}
         unfilled={stats?.unfilled}
+        requestsWithFillData={stats?.requestsWithFillData}
+        impressionsWithFillData={stats?.impressionsWithFillData}
+        requestsWithTrafficData={stats?.requestsWithTrafficData}
         impressions={stats?.impressions ?? 0}
         measurementStartLabel={formatDate(TRAFFIC_MEASUREMENT_START)}
         fillMeasurementStartLabel={formatDate(FILL_MEASUREMENT_START)}
@@ -565,9 +583,15 @@ function PublisherHome() {
                   // advertiser" with "never scrolled into view". Null when the
                   // split has not been measured for this window — a dash says
                   // "not measured", where 0% would claim we looked and found none.
+                  // Denominator from the days that measured `unfilled`, never
+                  // the site's whole-window request count — see the comment on
+                  // TrafficChainProps for what that mismatch produced.
+                  const fillDenominator = site.requestsWithFillData;
                   const fillRate =
-                    site.unfilled !== undefined && site.pageviews > 0
-                      ? Math.round(((site.pageviews - site.unfilled) / site.pageviews) * 100)
+                    site.unfilled !== undefined &&
+                    fillDenominator !== undefined &&
+                    fillDenominator > 0
+                      ? Math.round(((fillDenominator - site.unfilled) / fillDenominator) * 100)
                       : null;
                   // Stops at 100. The impression pixel only fires once the ad
                   // has been at least half visible for a continuous second
