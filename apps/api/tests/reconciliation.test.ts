@@ -771,6 +771,42 @@ describe('runReconciliation', () => {
     expect(report.counts.publisherStatDaysChecked).toBe(0);
   });
 
+  // The two thresholds are the whole check. Without a case sitting on each
+  // edge, both could be moved to values that make the check useless — 50
+  // clicks and 100% CTR, say, which is exactly the ratio the display cap hides
+  // — and every test above still passes. These four pin them.
+  it('does not fire one click below the minimum sample', async () => {
+    await writePublisherDayStats('pub_19', YESTERDAY_KEY, { impressions: 0, clicks: 19 });
+    const report = await runReconciliation(RECONCILE_AT);
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+  });
+
+  it('fires exactly at the minimum sample', async () => {
+    await writePublisherDayStats('pub_20', YESTERDAY_KEY, { impressions: 0, clicks: 20 });
+    const report = await runReconciliation(RECONCILE_AT);
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(true);
+  });
+
+  it('does not fire at exactly the plausible-rate ceiling', async () => {
+    // 40 clicks on 200 impressions is 20.0% — the boundary itself is allowed,
+    // only a rate strictly above it is a finding.
+    await writePublisherDayStats('pub_at_ceiling', YESTERDAY_KEY, {
+      impressions: 200,
+      clicks: 40,
+    });
+    const report = await runReconciliation(RECONCILE_AT);
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+  });
+
+  it('fires one click above the plausible-rate ceiling', async () => {
+    await writePublisherDayStats('pub_over_ceiling', YESTERDAY_KEY, {
+      impressions: 200,
+      clicks: 41,
+    });
+    const report = await runReconciliation(RECONCILE_AT);
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(true);
+  });
+
   it('reports the finding in clicks and impressions, not in krónur', async () => {
     // buildAlertMessage renders every finding as "vænt N kr., raun M kr." unless
     // its kind is handled explicitly. This finding's numbers are event counts,
@@ -790,7 +826,7 @@ describe('runReconciliation', () => {
       const message = notes.docs.map((d) => String(d.data().message ?? '')).join('\n');
       expect(message).toContain('implausible_click_rate');
       expect(message).toContain('900 smellir');
-      expect(message).toContain('400 birtingar');
+      expect(message).toContain('400 birtingum');
       expect(message).not.toContain('900 kr.');
       expect(message).not.toContain('400 kr.');
     } finally {
@@ -812,5 +848,163 @@ describe('runReconciliation', () => {
       .sort();
     expect(flagged).toEqual([`pub_b_bad/${YESTERDAY_KEY}`, `pub_c_bad/${YESTERDAY_KEY}`]);
     expect(report.counts.publisherStatDaysChecked).toBe(3);
+  });
+
+  /**
+   * Check 10: a platform-wide jump in click rate against its own recent past.
+   *
+   * Check 9 above only catches the extreme — 20% CTR is two hundred times the
+   * norm, so a bug that merely triples every click sails past it, and on a
+   * long-tail blog with five clicks a day it never even reaches the minimum
+   * sample. That is the failure this whole feature was asked for: something
+   * starts double- or triple-counting clicks and every dashboard keeps showing
+   * a tidy number.
+   *
+   * A counting bug is systemic, so the platform total is where it shows up, and
+   * pooling every publisher is also what makes the comparison statistically
+   * meaningful — one small blog's daily CTR swings by multiples on its own and
+   * would alert constantly.
+   */
+  const PRIOR_DAY_KEYS = [
+    '20260812',
+    '20260811',
+    '20260810',
+    '20260809',
+    '20260808',
+    '20260807',
+    '20260806',
+  ];
+
+  /** Seven quiet baseline days for one publisher, at a normal ~0.1% CTR. */
+  async function seedBaselineWeek(
+    publisherId: string,
+    perDay: { impressions: number; clicks: number },
+  ): Promise<void> {
+    for (const dk of PRIOR_DAY_KEYS) {
+      await writePublisherDayStats(publisherId, dk, perDay);
+    }
+  }
+
+  it('flags a platform-wide click rate that tripled overnight', async () => {
+    // Baseline: 0.1% CTR, the display norm. Yesterday: the same traffic with
+    // three times the clicks. Check 9 sees 0.3% and says nothing, correctly —
+    // this is the check that has to catch it.
+    await seedBaselineWeek('pub_steady', { impressions: 100_000, clicks: 100 });
+    await writePublisherDayStats('pub_steady', YESTERDAY_KEY, {
+      impressions: 100_000,
+      clicks: 300,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'implausible_click_rate')).toBe(false);
+    const spike = report.findings.find((f) => f.kind === 'platform_click_rate_spike');
+    expect(spike).toBeDefined();
+    expect(spike?.actual).toBe(300);
+    expect(spike?.expected).toBe(100); // baseline rate applied to yesterday's traffic
+  });
+
+  it('does not fire just below the spike factor', async () => {
+    // 299 clicks where 100 were expected is 2.99x. The factor is the whole
+    // check; without a case sitting under it, it could be raised to 10 and
+    // every other test here would still pass.
+    await seedBaselineWeek('pub_just_under', { impressions: 100_000, clicks: 100 });
+    await writePublisherDayStats('pub_just_under', YESTERDAY_KEY, {
+      impressions: 100_000,
+      clicks: 299,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'platform_click_rate_spike')).toBe(false);
+  });
+
+  it('reports the spike in clicks, not in krónur', async () => {
+    // Same trap as check 9: buildAlertMessage renders any unhandled kind as
+    // "vænt N kr., raun M kr.", which would turn a click-counting alert into a
+    // money alert about no money.
+    const savedAdminEmails = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_EMAILS = 'ops@reconcile.test.is';
+    try {
+      await seedBaselineWeek('pub_spike_units', { impressions: 100_000, clicks: 100 });
+      await writePublisherDayStats('pub_spike_units', YESTERDAY_KEY, {
+        impressions: 100_000,
+        clicks: 300,
+      });
+
+      await runReconciliation(RECONCILE_AT);
+
+      const notes = await db.collection(COLLECTIONS.notifications).get();
+      const message = notes.docs.map((d) => String(d.data().message ?? '')).join('\n');
+      expect(message).toContain('platform_click_rate_spike');
+      expect(message).toContain('300 smellir');
+      expect(message).toContain('100 væntanlegir');
+      expect(message).not.toContain('300 kr.');
+      expect(message).not.toContain('100 kr.');
+    } finally {
+      if (savedAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
+      else process.env.ADMIN_EMAILS = savedAdminEmails;
+    }
+  });
+
+  it('is quiet when the rate holds steady, even as traffic grows', async () => {
+    // Expectation is a RATE applied to yesterday's impressions, not last week's
+    // click count — a publisher who doubles their traffic must not alert.
+    await seedBaselineWeek('pub_growing', { impressions: 100_000, clicks: 100 });
+    await writePublisherDayStats('pub_growing', YESTERDAY_KEY, {
+      impressions: 200_000,
+      clicks: 205,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'platform_click_rate_spike')).toBe(false);
+  });
+
+  it('stays quiet on a platform too small for the comparison to mean anything', async () => {
+    // Four clicks a week against three yesterday is a tripling in ratio and
+    // pure noise in fact. Alerting here would train ops to ignore the alert.
+    await seedBaselineWeek('pub_quiet', { impressions: 500, clicks: 0 });
+    await writePublisherDayStats('pub_quiet', YESTERDAY_KEY, { impressions: 500, clicks: 3 });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'platform_click_rate_spike')).toBe(false);
+  });
+
+  it('pools every publisher rather than comparing them one by one', async () => {
+    // Two publishers, each individually below the volume the check needs, are
+    // together well above it — and together they show the tripling. A per
+    // -publisher version of this check would miss exactly this.
+    await seedBaselineWeek('pub_half_a', { impressions: 50_000, clicks: 50 });
+    await seedBaselineWeek('pub_half_b', { impressions: 50_000, clicks: 50 });
+    await writePublisherDayStats('pub_half_a', YESTERDAY_KEY, {
+      impressions: 50_000,
+      clicks: 150,
+    });
+    await writePublisherDayStats('pub_half_b', YESTERDAY_KEY, {
+      impressions: 50_000,
+      clicks: 150,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    const spike = report.findings.find((f) => f.kind === 'platform_click_rate_spike');
+    expect(spike).toBeDefined();
+    expect(spike?.actual).toBe(300);
+  });
+
+  it('says nothing at all on a platform with no history yet', async () => {
+    // A fresh deploy has no baseline. Absent history must read as "cannot
+    // compare", never as a baseline of zero, which would make every first day
+    // an infinite spike.
+    await writePublisherDayStats('pub_brand_new', YESTERDAY_KEY, {
+      impressions: 100_000,
+      clicks: 300,
+    });
+
+    const report = await runReconciliation(RECONCILE_AT);
+
+    expect(report.findings.some((f) => f.kind === 'platform_click_rate_spike')).toBe(false);
   });
 });

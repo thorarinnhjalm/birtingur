@@ -271,6 +271,7 @@ not billed, and any drift is reported the next morning without anyone looking.
 | Ledger, `budget.remainingIsk` and Redis `budget:{id}` are cross-checked daily and drift alerts        | `apps/api/tests/reconciliation.test.ts`                                    |
 | Emitted vs recorded event counts are cross-checked per hour                                           | `apps/api/tests/reconciliation.test.ts`                                    |
 | A publisher-day whose clicks cannot be explained by its impressions alerts ops                        | `apps/api/tests/reconciliation.test.ts`                                    |
+| A platform-wide click rate 3x its own trailing week alerts ops                                        | `apps/api/tests/reconciliation.test.ts`                                    |
 | An `ak_` key can never approve its own pending purchase                                               | `apps/api/tests/agent-purchase.test.ts`                                    |
 | Money crons never run on a preview deploy                                                             | `apps/api/tests/preview-guard.test.ts`, `admin-preview-guard.test.ts`      |
 | **A payout marked complete corresponds to a bank transfer that happened**                             | **UNENFORCED** — and unenforceable in code; the manual step is the control |
@@ -418,15 +419,31 @@ impressions/hr against 3 clicks/hr per campaign+IP) and an impression pixel
 expires after 1h where a click stays valid for 24h, so the two can land in
 different days. Sixteen places render CTR and all of them clamp.
 
-The clamp is only safe because the raw ratio is watched somewhere else:
-`checkPublisherClickRates` in `services/reconciliation.ts` reads yesterday's
-settled publisher-day stats and alerts ops when a day carries at least 20 clicks
-at over 20% CTR — two hundred times the ~0.1% display norm, so an exceptional 2%
-campaign never trips it. Without that check a click-inflation bug would look
-identical to a healthy day on every screen in the product: the number would sit
-at 100% and never move. What it does NOT catch is a smaller multiplier (a 10x
-bug lands at 1% CTR and passes); catching that needs a trailing-baseline
-comparison, which is a noisier design and was deliberately not built.
+The clamp is only safe because the raw ratio is watched somewhere else. Nothing
+in the UI can show it, so `services/reconciliation.ts` does, in two checks with
+deliberately different reach:
+
+- **Per publisher-day** (`checkPublisherClickRates`) — at least 20 clicks at
+  over 20% CTR. That ceiling is two hundred times the ~0.1% display norm, so an
+  exceptional 2% campaign never trips it, and a day with clicks and zero
+  impressions trips it too (a slot being clicked while recording nothing earns
+  the publisher nothing). It catches the local and the extreme. It does NOT
+  catch a small multiplier, and on a blog earning five clicks a day it never
+  reaches the minimum sample at all.
+- **Platform-wide** (`checkPlatformClickRateSpike`) — yesterday's pooled click
+  rate against the previous 7 days, alerting at 3x the expected count. This is
+  the one that catches a counting bug, which is systemic by nature and therefore
+  visible in the total long before it distorts any single publisher enough to
+  trip the per-publisher ceiling. Pooling is also what makes the comparison
+  valid: one small blog's daily rate swings by multiples on its own, so a
+  per-publisher version of this would alert constantly. Volume floors (50k
+  baseline impressions, 50 baseline clicks, 20 clicks yesterday) keep it out of
+  the range where variance produces multiples; below them it says nothing rather
+  than guessing, and absent history reads as "cannot compare", never as a
+  baseline of zero.
+
+Still uncovered: a systemic multiplier under 3x, and a per-publisher anomaly on
+a site too small to reach 20 clicks in a day.
 
 **Bridge.**
 
