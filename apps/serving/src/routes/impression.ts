@@ -160,7 +160,9 @@ impressionRoute.get('/', async (c) => {
           }
 
           if (token) {
-            void recordVisitorImpression(token, creativeId);
+            // Counted per CAMPAIGN, matching what selectCreative caps against —
+            // a campaign's variants share one frequency budget.
+            void recordVisitorImpression(token, creative.campaignId);
           }
           // Every impression charges the platform's flat CPM, regardless of
           // what pricing the slot doc carries. Two reasons this is

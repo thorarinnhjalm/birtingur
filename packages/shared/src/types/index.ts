@@ -43,6 +43,18 @@ export interface CachedCreative {
   validFrom: number; // ms epoch
   validTo: number; // ms epoch
   priority: 'slot_purchased' | 'cpm';
+  /**
+   * Cached CTR evidence for the epsilon-greedy rotation between the variants of
+   * ONE campaign (apps/serving/src/lib/select.ts). Baked in by push-cache from
+   * the `ctr:{campaignId}:{creativeId}` counters every cache refresh, so the ad
+   * hot path pays no extra Redis round trip to read it.
+   *
+   * OPTIONAL on purpose, and absence is the fail-safe: cache entries written by
+   * an older push-cache carry no counters, and push-cache omits the field
+   * entirely when Redis is unreachable. Selection reads a missing field as
+   * "no evidence" and falls back to the pre-bandit even rotation.
+   */
+  ctr?: { imp: number; clk: number };
 }
 
 export interface SlotCacheEntry {

@@ -65,6 +65,79 @@ export const EVENT_QUEUE_STATS = 'events:stats';
 export const EVENT_QUEUE_ACCRUAL = 'events:accrual';
 export const EVENT_QUEUE_LEGACY = 'events:queue';
 
+/**
+ * Per-creative CTR counters powering the epsilon-greedy rotation between the
+ * creative variants OF ONE CAMPAIGN (apps/serving/src/lib/select.ts).
+ *
+ * DELIBERATELY not under the `seen:` prefix: that namespace belongs to the
+ * replay guard (`seen:imp:{sig}` / `seen:clk:{sig}` / `seen:pv:{sig}`, see
+ * apps/serving/src/lib/crypto.ts), where a key's existence means "this exact
+ * signature was already claimed". Parking a long-lived counter hash in there
+ * would make that namespace mean two different things.
+ *
+ * Written by apps/serving (logEvent, inside the existing pipeline so the
+ * counters cost no extra round trip), read by apps/api's push-cache when it
+ * rebuilds a slot's cache entry. Both sides MUST use this builder.
+ */
+export function ctrCounterKey(campaignId: string, creativeId: string): string {
+  return `ctr:${campaignId}:${creativeId}`;
+}
+
+/** Sliding window on the CTR counters, refreshed on every event. */
+export const CTR_COUNTER_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
+/**
+ * Share of impressions spent exploring variants other than the current best.
+ * The remaining 1 - BANDIT_EPSILON exploits the highest measured CTR.
+ */
+export const BANDIT_EPSILON = 0.2;
+
+/**
+ * Impressions a variant needs before its CTR is trusted. While ANY variant of a
+ * campaign is below this, that campaign rotates evenly — a variant that got
+ * unlucky in its first few draws would otherwise be buried before it ever had
+ * enough evidence to defend itself.
+ */
+export const BANDIT_COLD_START_IMPRESSIONS = 100;
+
+/**
+ * Clicks a campaign's variants must have accumulated BETWEEN THEM before any of
+ * them is treated as the winner.
+ *
+ * This gate is the difference between a bandit and a coin flip. Display
+ * advertising runs at roughly 0.1% CTR, so BANDIT_COLD_START_IMPRESSIONS alone
+ * clears a variant on ~0.1 clicks of evidence: every variant measures a CTR of
+ * exactly zero, the comparison finds no winner, and the first entry in
+ * `creativeIds` collects 1 - BANDIT_EPSILON of the traffic permanently — which
+ * then makes it likelier to catch the first real click and cements the choice.
+ * Measured before this gate existed, with the SECOND variant genuinely twice as
+ * good: the first variant still took 3918 of 5000 impressions.
+ *
+ * Five clicks is not statistical significance and does not pretend to be. It is
+ * the point below which the ranking is certainly noise. Campaigns quieter than
+ * that simply rotate evenly, which is the honest answer.
+ */
+export const BANDIT_MIN_CLICKS = 5;
+
+/**
+ * Most creative variants of ONE campaign that push-cache will place in a single
+ * slot cache entry.
+ *
+ * Two reasons for a bound. The cache entry is fetched in full on every `/v1/ad`
+ * request, and `creativeIds` has a `.min(1)` but no upper limit — an advertiser
+ * with 200 approved creatives in one campaign would otherwise put 200 objects
+ * into every slot entry in their categories. And the rotation cannot use them:
+ * each arm needs BANDIT_COLD_START_IMPRESSIONS before any comparison starts, so
+ * arms beyond a handful only delay the campaign from ever leaving cold start.
+ *
+ * Exceeding it is logged by push-cache, never silently truncated.
+ *
+ * Three, set by the owner 2026-08-14, and it lines up with what the product
+ * actually produces: the creative wizard writes 1-3 copy variants per campaign
+ * (services/ai-creative/copy.ts), so a normal campaign never hits this bound.
+ */
+export const MAX_CACHED_VARIANTS_PER_CAMPAIGN = 3;
+
 /** Snippet timeout for ad request before failing silent */
 export const AD_REQUEST_TIMEOUT_MS = 2000;
 
