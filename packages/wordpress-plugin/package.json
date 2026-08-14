@@ -1,0 +1,14 @@
+{
+  "name": "@ada/wordpress-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WordPress plugin for Birtingur ad slot injection and traffic measurement",
+  "scripts": {
+    "build": "node build-zip.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "vitest": "^1.6.1"
+  }
+}
