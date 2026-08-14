@@ -1,5 +1,10 @@
 import { getRedis } from './redis.js';
-import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import {
+  EVENT_QUEUE_STATS,
+  EVENT_QUEUE_ACCRUAL,
+  ctrCounterKey,
+  CTR_COUNTER_TTL_SECONDS,
+} from '@ada/shared';
 import type { BotClass } from './bot-class.js';
 
 export interface AdEvent {
@@ -94,7 +99,42 @@ export async function logEvent(ev: AdEvent): Promise<void> {
   }
   p.incr(key);
   p.expire(key, EVENT_COUNTER_TTL_SECONDS);
+
+  const banditField = ctrCounterField(ev);
+  if (banditField) {
+    // Rides the SAME pipeline as everything above, so the creative bandit's
+    // evidence costs zero extra round trips on the hot path. Read back by
+    // apps/api's push-cache when it rebuilds a slot's cache entry.
+    const ctrKey = ctrCounterKey(ev.campaignId, ev.creativeId);
+    p.hincrby(ctrKey, banditField, 1);
+    p.expire(ctrKey, CTR_COUNTER_TTL_SECONDS);
+  }
+
   await p.exec();
+}
+
+/**
+ * Which CTR counter field this event feeds, or null if it feeds none.
+ *
+ * The counters exist for ONE purpose: comparing the creative variants of a real
+ * campaign against each other. Three kinds of event are therefore excluded, and
+ * each exclusion is load-bearing:
+ *
+ *   - 'pageview' is also the wire type for slot loads (see AdEvent.type above),
+ *     which are ads served but not necessarily seen. Counting those as
+ *     impressions would inflate the denominator unevenly across variants.
+ *   - Non-human traffic would otherwise let a crawler pick which ad Icelandic
+ *     readers get shown. Bot events still go to the stats queue above — they are
+ *     excluded from the bandit, not dropped.
+ *   - Fallback house ads / transparent placeholders share the synthetic
+ *     'cmp_fallback' campaign and are not variants of anything.
+ */
+function ctrCounterField(ev: AdEvent): 'imp' | 'clk' | null {
+  if (ev.type !== 'impression' && ev.type !== 'click') return null;
+  if (ev.botClass !== 'human') return null;
+  if (ev.campaignId === 'cmp_fallback' || !ev.campaignId) return null;
+  if (ev.creativeId.startsWith('cre_fallback_') || !ev.creativeId) return null;
+  return ev.type === 'impression' ? 'imp' : 'clk';
 }
 
 /**

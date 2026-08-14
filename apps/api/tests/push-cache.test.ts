@@ -116,14 +116,43 @@ vi.mock('../src/lib/firebase', () => ({
 
 const mockRedisSet = vi.fn();
 const mockRedisDel = vi.fn();
+// Direct (non-pipelined) hgetall. push-cache must never use this: one round trip
+// per creative against Upstash's REST API is the shape that took cron-aggregate
+// down, and this refresh runs over every slot in the network.
+const mockDirectHgetall = vi.fn();
+
+let mockCtrHashes: Record<string, Record<string, unknown> | null> = {};
+let mockCtrReadError: Error | null = null;
+let mockPipelineCalls = 0;
 
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
     set: mockRedisSet,
     del: mockRedisDel,
+    hgetall: mockDirectHgetall,
+    pipeline: () => {
+      mockPipelineCalls += 1;
+      const keys: string[] = [];
+      const p: any = {
+        hgetall: (k: string) => {
+          keys.push(k);
+          return p;
+        },
+        exec: async () => {
+          if (mockCtrReadError) {
+            const err = mockCtrReadError;
+            mockCtrReadError = null;
+            throw err;
+          }
+          return keys.map((k) => mockCtrHashes[k] ?? null);
+        },
+      };
+      return p;
+    },
   }),
 }));
 
+import { ctrCounterKey } from '@ada/shared';
 import { pushSlotCache, pushCacheForCampaign } from '../src/lib/push-cache';
 
 describe('pushSlotCache helper', () => {
@@ -135,6 +164,9 @@ describe('pushSlotCache helper', () => {
     mockState.publishers = [];
     mockState.campaigns = [];
     mockState.creatives = [];
+    mockCtrHashes = {};
+    mockCtrReadError = null;
+    mockPipelineCalls = 0;
   });
 
   it('deletes cache entry when slot does not exist', async () => {
@@ -694,7 +726,18 @@ describe('pushSlotCache helper', () => {
     expect(entry.activeCreatives[0].creativeId).toBe('creative_high');
   });
 
-  it('enforces one creative per advertiser within the same campaign', async () => {
+  // DELIBERATE CHANGE OF AN OLD INVARIANT. This test previously asserted the
+  // opposite ("enforces one creative per advertiser within the same campaign"):
+  // the inner loop broke after the first usable creative, so a campaign could
+  // never contribute more than one variant to a slot. That made the epsilon-
+  // greedy rotation in apps/serving/src/lib/select.ts unreachable — there was
+  // never a second variant of the same campaign to rotate against.
+  //
+  // What has NOT changed is the rule that actually protects advertisers from
+  // each other: one CAMPAIGN per advertiser per slot (asserted just below).
+  // Cross-campaign share is held even by selectCreative's two-stage draw, so
+  // contributing extra variants buys a campaign no extra delivery.
+  it('lets one campaign contribute every usable creative, so variants can be rotated', async () => {
     mockState.slot = {
       id: 'slot_123',
       publisherId: 'pub_123',
@@ -747,9 +790,167 @@ describe('pushSlotCache helper', () => {
 
     const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
     expect(entry).toBeDefined();
-    expect(entry.activeCreatives).toHaveLength(1);
-    expect(entry.activeCreatives[0].campaignId).toBe('camp_multi_creatives');
-    expect(entry.activeCreatives[0].creativeId).toBe('creative_first');
+    expect(entry.activeCreatives.map((c: any) => c.creativeId).sort()).toEqual([
+      'creative_first',
+      'creative_second',
+    ]);
+    expect(entry.activeCreatives.every((c: any) => c.campaignId === 'camp_multi_creatives')).toBe(
+      true,
+    );
+  });
+
+  it('still admits only ONE campaign per advertiser even when both have variants', async () => {
+    mockState.slot = {
+      id: 'slot_123',
+      publisherId: 'pub_123',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 200 },
+    };
+    mockState.publisher = {
+      id: 'pub_123',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+
+    const schedule = {
+      startsAt: new Date(Date.now() - 10000),
+      endsAt: new Date(Date.now() + 10000),
+    };
+    mockState.campaigns = [
+      {
+        id: 'camp_rich',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['cre_a1', 'cre_a2'],
+        budget: { remainingIsk: 9000, mode: 'cpm_capped' },
+        schedule,
+        targeting: { categories: ['taekni'] },
+      },
+      {
+        id: 'camp_poor',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ['cre_b1', 'cre_b2'],
+        budget: { remainingIsk: 1000, mode: 'cpm_capped' },
+        schedule,
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+
+    mockState.creatives = ['cre_a1', 'cre_a2', 'cre_b1', 'cre_b2'].map((id) => ({
+      id,
+      reviewStatus: 'auto_approved',
+      width: 300,
+      height: 250,
+      imageUrl: `https://ex.com/${id}.png`,
+      clickUrl: `https://ex.com/${id}`,
+    }));
+
+    await pushSlotCache('slot_123');
+
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0].startsWith('slot:'))?.[1];
+    const campaignIds = new Set(entry.activeCreatives.map((c: any) => c.campaignId));
+    expect([...campaignIds]).toEqual(['camp_rich']);
+    expect(entry.activeCreatives).toHaveLength(2);
+  });
+
+  describe('CTR counters baked into the cache entry', () => {
+    function seedTwoVariants() {
+      mockState.slot = {
+        id: 'slot_ctr',
+        publisherId: 'pub_ctr',
+        status: 'active',
+        sizes: [{ width: 300, height: 250 }],
+        pricing: { mode: 'cpm', cpmIsk: 550 },
+      };
+      mockState.publisher = {
+        id: 'pub_ctr',
+        status: 'active',
+        categories: ['taekni'],
+        contentPolicy: { blockedCategories: [] },
+      };
+      mockState.campaigns = [
+        {
+          id: 'cmp_ctr',
+          advertiserId: 'adv_1',
+          status: 'active',
+          creativeIds: ['cre_x', 'cre_y'],
+          budget: { remainingIsk: 5000, mode: 'cpm_capped' },
+          schedule: {
+            startsAt: new Date(Date.now() - 10000),
+            endsAt: new Date(Date.now() + 10000),
+          },
+          targeting: { categories: ['taekni'] },
+        },
+      ];
+      mockState.creatives = ['cre_x', 'cre_y'].map((id) => ({
+        id,
+        reviewStatus: 'auto_approved',
+        width: 300,
+        height: 250,
+        imageUrl: `https://ex.com/${id}.png`,
+        clickUrl: `https://ex.com/${id}`,
+      }));
+    }
+
+    it('reads the counters and attaches them to each cached creative', async () => {
+      seedTwoVariants();
+      mockCtrHashes[ctrCounterKey('cmp_ctr', 'cre_x')] = { imp: '420', clk: '21' };
+      mockCtrHashes[ctrCounterKey('cmp_ctr', 'cre_y')] = { imp: '380', clk: '4' };
+
+      await pushSlotCache('slot_ctr');
+
+      const entry = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_ctr')?.[1];
+      const byId = Object.fromEntries(entry.activeCreatives.map((c: any) => [c.creativeId, c.ctr]));
+      expect(byId.cre_x).toEqual({ imp: 420, clk: 21 });
+      expect(byId.cre_y).toEqual({ imp: 380, clk: 4 });
+    });
+
+    it('reads every creative in ONE pipeline rather than a round trip each', async () => {
+      seedTwoVariants();
+      await pushSlotCache('slot_ctr');
+      expect(mockPipelineCalls).toBe(1);
+      expect(mockDirectHgetall).not.toHaveBeenCalled();
+    });
+
+    it('treats a creative with no counter hash as having no evidence yet', async () => {
+      seedTwoVariants();
+      await pushSlotCache('slot_ctr');
+
+      const entry = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_ctr')?.[1];
+      for (const c of entry.activeCreatives) {
+        expect(c.ctr).toEqual({ imp: 0, clk: 0 });
+      }
+    });
+
+    it('still writes the cache entry when the counter read fails, just without ctr', async () => {
+      // Fail-safe: a Redis hiccup on an optimisation input must never cost the
+      // publisher their ads. Selection reads a missing ctr as "no evidence" and
+      // falls back to the even rotation.
+      seedTwoVariants();
+      mockCtrReadError = new Error('redis down');
+
+      await pushSlotCache('slot_ctr');
+
+      const entry = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_ctr')?.[1];
+      expect(entry.activeCreatives).toHaveLength(2);
+      for (const c of entry.activeCreatives) {
+        expect(c.ctr).toBeUndefined();
+      }
+    });
+
+    it('ignores a corrupt counter hash instead of writing NaN into the cache', async () => {
+      seedTwoVariants();
+      mockCtrHashes[ctrCounterKey('cmp_ctr', 'cre_x')] = { imp: 'oops', clk: null };
+
+      await pushSlotCache('slot_ctr');
+
+      const entry = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_ctr')?.[1];
+      const x = entry.activeCreatives.find((c: any) => c.creativeId === 'cre_x');
+      expect(x.ctr).toEqual({ imp: 0, clk: 0 });
+    });
   });
 
   async function seedCategoryFixture() {

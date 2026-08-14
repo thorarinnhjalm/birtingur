@@ -112,9 +112,35 @@ impression and click is attributable, signed, and counted exactly once.
 | Tracking URLs resolve against `SERVE_BASE`, not the publisher origin            | `packages/snippet/tests/render.test.ts`                                                       |
 | A missing or expired `budget:{id}` key stops serving; it never serves free      | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
 | The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
+| A campaign gets no more of a slot for uploading more creative variants          | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                 |
+| CTR steers only which VARIANT of a campaign serves, never which campaign        | `apps/serving/tests/bandit.test.ts`                                                           |
+| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation   | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`          |
+| Bot traffic and house-ad fallbacks never feed the CTR counters                  | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
 
-**Now.** V1 on Vercel at `serving.birtingur.app`, 14 test files. The snippet is
+**Now.** V1 on Vercel at `serving.birtingur.app`, 15 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.
+
+**Creative rotation (added 2026-08-14).** `selectCreative` draws in two stages:
+a CAMPAIGN by weight exactly as before, then one of that campaign's creative
+variants by epsilon-greedy on measured CTR (`BANDIT_EPSILON` 0.2,
+`BANDIT_COLD_START_IMPRESSIONS` 100 — while any variant is short of the
+threshold the campaign rotates evenly). The split is load-bearing: every
+advertiser pays the same flat CPM, so letting CTR move impressions BETWEEN
+campaigns would starve advertisers who paid the same price and break pacing.
+
+Evidence comes from `ctr:{campaignId}:{creativeId}` hashes, written by
+`logEvent` inside its existing pipeline (zero extra hot-path round trips) and
+read back by `push-cache` in one pipelined batch per slot, baked into
+`CachedCreative.ctr`. The hot path therefore does no extra Redis work and
+`selectCreative` stays pure and synchronous; the cost is up to 10 minutes of
+staleness, which is nothing against a 100-impression threshold.
+
+This required removing push-cache's one-creative-per-campaign `break` — until
+then a slot's `activeCreatives` held at most one creative per advertiser, so
+two variants of one campaign never met and the bandit had nothing to compare.
+One CAMPAIGN per advertiser per slot still holds. Note `services/slot-delivery.ts`
+already counted every usable creative, so this also removes a quiet disagreement
+between what that diagnosis reported and what actually got cached.
 
 **Bridge.** Both items done 2026-08-12 (gap items 1 and 2): the budget gate is
 pinned unmocked in `tests/budget-gate.test.ts` (missing key ⇒ fallback,

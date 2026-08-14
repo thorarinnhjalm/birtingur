@@ -247,7 +247,7 @@ describe('GET /v1/impression', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
 
-    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
+    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cmp_a');
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // FLAT_CPM_ISK / 1000, rounded
   });
 
@@ -278,7 +278,7 @@ describe('GET /v1/impression', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
-    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cre_a');
+    expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cmp_a');
     expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1);
   });
 
