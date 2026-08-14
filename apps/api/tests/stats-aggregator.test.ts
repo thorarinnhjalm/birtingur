@@ -277,6 +277,108 @@ describe('aggregateEvents', () => {
     // stats-aggregator.ts for why that's deliberate, not legacy).
     const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
 
+    describe('unfilled — the slot loads that got no advertiser', () => {
+      /**
+       * `pageviews` counts every ad request and `impressions` counts the ones
+       * that became visible, so the gap between them mixes two unrelated
+       * failures: nobody bid on the publisher's categories, versus the ad
+       * loaded but the reader never scrolled to it. Impressions are
+       * viewability-gated (packages/snippet/src/render.ts), so both land in the
+       * same shortfall.
+       *
+       * They call for opposite responses — the first is ours to fix by finding
+       * advertisers, the second is the publisher's by moving the slot up the
+       * page — so a dashboard that shows one number cannot tell anyone what to
+       * do. `unfilled` splits it: a slot load that served a house ad or a
+       * transparent placeholder had no advertiser behind it.
+       *
+       * The counter is written ONLY when non-zero, exactly like pageViewsTrue,
+       * so days that predate it keep the field absent and the dashboard can
+       * show "not measured" instead of a false zero.
+       */
+      const HOUSE = 'cre_fallback_birtingur';
+      const TRANSPARENT = 'cre_fallback_transparent';
+      const NOCACHE = 'cre_nocache';
+
+      it('counts a house-ad slot load as unfilled, and a real one as filled', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: 'cre_real' }),
+          makeEvent({ type: 'pageview', creativeId: HOUSE }),
+          makeEvent({ type: 'pageview', creativeId: HOUSE }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageviews).toBe(3); // every ad request
+        expect(doc.unfilled).toBe(2); // of which two got no advertiser
+      });
+
+      it('counts the transparent placeholder and a cold cache as unfilled too', async () => {
+        // Both mean the same thing to a publisher: the slot loaded and no
+        // advertisement came back. cre_nocache is our own cache miss rather
+        // than an absent advertiser, but it is still a request that earned
+        // nothing, and lumping it in with "filled" would overstate fill.
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRANSPARENT }),
+          makeEvent({ type: 'pageview', creativeId: NOCACHE }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.unfilled).toBe(2);
+      });
+
+      it('tracks unfilled per slot as well, so a single bad placement is findable', async () => {
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: HOUSE, slotId: 'slot_bad' }),
+          makeEvent({ type: 'pageview', creativeId: HOUSE, slotId: 'slot_bad' }),
+          makeEvent({ type: 'pageview', creativeId: 'cre_real', slotId: 'slot_good' }),
+        ]);
+        const bad = (
+          await db.doc(`${COLLECTIONS.stats}/publisher_slots/pub_a_slot_bad/${DAY}`).get()
+        ).data()!;
+        const good = (
+          await db.doc(`${COLLECTIONS.stats}/publisher_slots/pub_a_slot_good/${DAY}`).get()
+        ).data()!;
+        expect(bad.unfilled).toBe(2);
+        expect(good.unfilled).toBeUndefined();
+      });
+
+      it('leaves the field absent for a day where everything filled', async () => {
+        // Absent, never 0 — same contract as pageViewsTrue. A day predating
+        // this counter must be distinguishable from a day with perfect fill.
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: 'cre_real' })]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageviews).toBe(1);
+        expect(Object.keys(doc)).not.toContain('unfilled');
+      });
+
+      it('does not count a true page view as an unfilled request', async () => {
+        // A true page view is not an ad request at all, so it belongs to
+        // neither side of the fill ratio.
+        await aggregateEvents([
+          makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID }),
+        ]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.pageViewsTrue).toBe(1);
+        // `pageviews` is written unconditionally, so it lands as 0 rather than
+        // absent. `unfilled` is not: absent is what distinguishes a day before
+        // this counter existed from a day where everything filled.
+        expect(doc.pageviews).toBe(0);
+        expect(Object.keys(doc)).not.toContain('unfilled');
+      });
+
+      it('increments across batches instead of overwriting', async () => {
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: HOUSE })]);
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: HOUSE })]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(doc.unfilled).toBe(2);
+      });
+
+      it('writes unfilled as a real field, not a dotted key', async () => {
+        await aggregateEvents([makeEvent({ type: 'pageview', creativeId: HOUSE })]);
+        const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+        expect(Object.keys(doc)).toContain('unfilled');
+        expect(Object.keys(doc).some((k) => k.includes('.'))).toBe(false);
+      });
+    });
+
     it('counts slot_load into pageviews and pageview into pageViewsTrue', async () => {
       await aggregateEvents([
         makeEvent({ type: 'slot_load' }),

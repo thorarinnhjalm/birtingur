@@ -13,6 +13,12 @@ export interface SiteBreakdown {
   // Real page views (Task 4). Absent — not zero — for a site whose window
   // has no post-switch day with measured true traffic yet.
   pageViewsTrue?: number;
+  // Ad requests that came back with no advertiser (house ad, transparent
+  // placeholder, or a cold cache). Absent — not zero — for a window with no day
+  // the aggregator measured it, so the UI can say "not measured yet" instead of
+  // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
+  // has the field missing by construction.
+  unfilled?: number;
   spendIsk: number;
 }
 
@@ -21,6 +27,12 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // day in the window has a measured value (all pre-switch, or no data at
   // all): the UI must render "no accurate data yet", never a false zero.
   pageViewsTrue?: number;
+  // Ad requests that came back with no advertiser (house ad, transparent
+  // placeholder, or a cold cache). Absent — not zero — for a window with no day
+  // the aggregator measured it, so the UI can say "not measured yet" instead of
+  // claiming perfect fill. Written from 2026-08-14 forward; every earlier day
+  // has the field missing by construction.
+  unfilled?: number;
   history: {
     date: string;
     impressions: number;
@@ -30,6 +42,7 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
     // Absent for a specific day that has no measured true pageviews (either
     // pre-switch, or a post-switch day the aggregator left unset).
     pageViewsTrue?: number;
+    unfilled?: number;
   }[];
   bySite?: SiteBreakdown[];
 }
@@ -45,6 +58,7 @@ export async function getPublisherStats(
     spendIsk: number;
     pageviews: number;
     pageViewsTrue?: number;
+    unfilled?: number;
   }[] = [];
   let totalImpressions = 0;
   let totalClicks = 0;
@@ -56,6 +70,8 @@ export async function getPublisherStats(
   // whether ANY day in the window measured it so the total can stay
   // undefined rather than silently reporting a false zero.
   let anyPageViewsTrue = false;
+  let totalUnfilled = 0;
+  let anyUnfilled = false;
 
   const now = new Date();
   let hasRealData = false;
@@ -78,6 +94,7 @@ export async function getPublisherStats(
       // never defaulted to 0, so a pre-switch (or otherwise unmeasured) day
       // stays distinguishable from a genuine zero-traffic day.
       let dayPageViewsTrue: number | undefined;
+      let dayUnfilled: number | undefined;
       let dayHasRealData = false;
 
       if (subSnap.exists) {
@@ -90,6 +107,9 @@ export async function getPublisherStats(
           dayPageviews = data.pageviews || 0;
           if (typeof data.pageViewsTrue === 'number') {
             dayPageViewsTrue = data.pageViewsTrue;
+          }
+          if (typeof data.unfilled === 'number') {
+            dayUnfilled = data.unfilled;
           }
         }
       } else {
@@ -112,6 +132,9 @@ export async function getPublisherStats(
             if (typeof pubData.pageViewsTrue === 'number') {
               dayPageViewsTrue = (dayPageViewsTrue ?? 0) + pubData.pageViewsTrue;
             }
+            if (typeof pubData.unfilled === 'number') {
+              dayUnfilled = (dayUnfilled ?? 0) + pubData.unfilled;
+            }
           }
         }
       }
@@ -123,6 +146,7 @@ export async function getPublisherStats(
         spendIsk: daySpendIsk,
         pageviews: dayPageviews,
         pageViewsTrue: dayPageViewsTrue,
+        unfilled: dayUnfilled,
         hasRealData: dayHasRealData,
       };
     });
@@ -141,6 +165,7 @@ export async function getPublisherStats(
       spendIsk: res.spendIsk,
       pageviews: res.pageviews,
       pageViewsTrue: res.pageViewsTrue,
+      unfilled: res.unfilled,
     });
 
     totalImpressions += res.impressions;
@@ -150,6 +175,10 @@ export async function getPublisherStats(
     if (res.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
       totalPageViewsTrue += res.pageViewsTrue;
+    }
+    if (res.unfilled !== undefined) {
+      anyUnfilled = true;
+      totalUnfilled += res.unfilled;
     }
   }
 
@@ -209,6 +238,7 @@ export async function getPublisherStats(
     spendIsk: totalSpendIsk,
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
+    unfilled: anyUnfilled ? totalUnfilled : undefined,
     history,
   };
 }
@@ -236,6 +266,8 @@ export async function getAggregatedPublisherStats(
   let totalPageviews = 0;
   let totalPageViewsTrue = 0;
   let anyPageViewsTrue = false;
+  let totalUnfilled = 0;
+  let anyUnfilled = false;
 
   // Use a map to aggregate history by date
   const historyMap: Record<
@@ -257,6 +289,10 @@ export async function getAggregatedPublisherStats(
     if (stats.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
       totalPageViewsTrue += stats.pageViewsTrue;
+    }
+    if (stats.unfilled !== undefined) {
+      anyUnfilled = true;
+      totalUnfilled += stats.unfilled;
     }
 
     for (const h of stats.history) {
@@ -293,6 +329,7 @@ export async function getAggregatedPublisherStats(
             clicks: allStats[i]!.clicks,
             pageviews: allStats[i]!.pageviews || 0,
             pageViewsTrue: allStats[i]!.pageViewsTrue,
+            unfilled: allStats[i]!.unfilled,
             spendIsk: allStats[i]!.spendIsk,
           }))
           .sort((a, b) => b.impressions - a.impressions)
@@ -304,6 +341,7 @@ export async function getAggregatedPublisherStats(
     spendIsk: totalSpendIsk,
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
+    unfilled: anyUnfilled ? totalUnfilled : undefined,
     history,
     ...(bySite.length > 0 ? { bySite } : {}),
   };

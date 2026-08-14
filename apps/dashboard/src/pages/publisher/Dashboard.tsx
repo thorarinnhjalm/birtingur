@@ -26,6 +26,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from 'recharts';
 import { Card } from '@/components/ui/Card';
+import { TrafficChain } from '@/components/publisher/TrafficChain';
 import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
 import { EditorialH1 } from '@/components/ui/editorial';
 
@@ -45,6 +46,10 @@ interface StatsResponse {
   // selected window has measured it yet (pre-switch or no data at all); the
   // UI must show that absence honestly rather than falling back to 0.
   pageViewsTrue?: number;
+  // Ad requests that got no advertiser back. Absent — not zero — for windows
+  // before the aggregator began counting it (2026-08-14). `pageviews - unfilled`
+  // is what was filled, and `impressions` is what was then actually seen.
+  unfilled?: number;
   history: {
     date: string;
     impressions: number;
@@ -52,6 +57,9 @@ interface StatsResponse {
     spendIsk: number;
     pageviews: number;
     pageViewsTrue?: number;
+    // Ad requests that got no advertiser. Absent for windows before the
+    // aggregator began counting it (2026-08-14) — never defaulted to 0.
+    unfilled?: number;
   }[];
   bySite?: {
     publisherId: string;
@@ -61,6 +69,9 @@ interface StatsResponse {
     clicks: number;
     pageviews: number;
     pageViewsTrue?: number;
+    // Ad requests that got no advertiser. Absent for windows before the
+    // aggregator began counting it (2026-08-14) — never defaulted to 0.
+    unfilled?: number;
     spendIsk: number;
   }[];
 }
@@ -458,63 +469,34 @@ function PublisherHome() {
         <StatCard label="Næsta útgreiðsla" value={`Áætlað ${nextPayoutDateLabel}`} />
       </div>
 
-      {/* Vefumferð / Smellir / CTR / Fyllihlutfall — not in the template's
-          four-card row. Kept because the page already computes them from the
-          same stats query; restyled to the same icon-free StatCard used
-          above instead of the old colored icon-chip cards.
+      {/* ===== TRAFFIC CHAIN =====
+          Replaces the old Vefumferð / Smellir / CTR / Fyllihlutfall row. Those
+          four cards drew on three different counters and could not be
+          reconciled with one another: a site with three slots per page saw
+          "Vefumferð 1.000" beside "Birtingar 2.400", and a fill rate whose
+          denominator appeared nowhere on the page. See TrafficChain for the
+          reasoning and for why the two gaps are kept apart. */}
+      <TrafficChain
+        pageViewsTrue={stats?.pageViewsTrue}
+        requests={stats?.pageviews ?? 0}
+        unfilled={stats?.unfilled}
+        impressions={stats?.impressions ?? 0}
+        measurementStartLabel={formatDate(TRAFFIC_MEASUREMENT_START)}
+      />
 
-          "Vefumferð" (web traffic) is deliberately NOT stats.pageviews —
-          that field counts ad-slot loads (one per slot per page), which
-          overstates traffic by the site's slots-per-page ratio. It renders
-          the real pageViewsTrue figure (Task 4/6), and an em dash plus an
-          explanatory note — never a false 0 — for the pre-switch window
-          where no accurate figure was ever measured. Built as a plain Card
-          rather than <StatCard> because the fallback note doesn't fit that
-          component's value-only shape. */}
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <Card className="flex flex-col justify-between min-h-30">
-          <div>
-            <div
-              className="text-xs font-semibold uppercase tracking-wider text-slate-500"
-              title="Raunverulegar síðuflettingar á vefnum óháð fjölda auglýsingaplássa"
-            >
-              Vefumferð
-            </div>
-            <div className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">
-              {stats && stats.pageViewsTrue !== undefined
-                ? stats.pageViewsTrue >= 1000000
-                  ? `${(stats.pageViewsTrue / 1000000).toFixed(1)}M`
-                  : stats.pageViewsTrue.toLocaleString('is-IS')
-                : '—'}
-            </div>
-          </div>
-          {!stats || stats.pageViewsTrue === undefined ? (
-            <p className="mt-2 text-[11px] font-medium text-slate-400">
-              Nákvæm umferðarmæling hófst {formatDate(TRAFFIC_MEASUREMENT_START)}
-            </p>
-          ) : (
-            <p className="mt-2 text-[11px] font-medium text-slate-400">
-              Raunverulegar síðuflettingar
-            </p>
-          )}
-        </Card>
+      {/* Engagement sits apart from the chain above: clicks and CTR describe how
+          the ADVERTS performed, not how much of the publisher's traffic was
+          monetised, and mixing the two is what made the old row unreadable. */}
+      <div className="grid grid-cols-2 gap-5 sm:max-w-md">
         <StatCard label="Smellir" value={stats ? stats.clicks.toLocaleString('is-IS') : '0'} />
         <StatCard
-          label="CTR"
+          label="Smellihlutfall"
           value={
             stats && stats.impressions > 0
               ? `${Math.min(100, (stats.clicks / stats.impressions) * 100)
                   .toFixed(2)
                   .replace('.', ',')}%`
               : '0,00%'
-          }
-        />
-        <StatCard
-          label="Fyllihlutfall"
-          value={
-            stats && stats.pageviews > 0
-              ? `${Math.round((stats.impressions / stats.pageviews) * 100)}%`
-              : '0%'
           }
         />
       </div>
@@ -544,9 +526,10 @@ function PublisherHome() {
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
                   <th className="py-2.5">Vefur</th>
-                  <th className="py-2.5 text-right">Vefumferð</th>
+                  <th className="py-2.5 text-right">Síðuflettingar</th>
+                  <th className="py-2.5 text-right">Beiðnir</th>
+                  <th className="py-2.5 text-right">Fylling</th>
                   <th className="py-2.5 text-right">Birtingar</th>
-                  <th className="py-2.5 text-right">Fyllihlutfall</th>
                   <th className="py-2.5 text-right">Smellir (CTR)</th>
                   <th className="py-2.5 text-right">Tekjur</th>
                 </tr>
@@ -556,8 +539,15 @@ function PublisherHome() {
                   const netSiteEarnings = Math.round(
                     site.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
                   );
+                  // Fill is filled/requests, NOT impressions/requests: impressions
+                  // are viewability-gated, so the old ratio quietly blended "no
+                  // advertiser" with "never scrolled into view". Null when the
+                  // split has not been measured for this window — a dash says
+                  // "not measured", where 0% would claim we looked and found none.
                   const fillRate =
-                    site.pageviews > 0 ? Math.round((site.impressions / site.pageviews) * 100) : 0;
+                    site.unfilled !== undefined && site.pageviews > 0
+                      ? Math.round(((site.pageviews - site.unfilled) / site.pageviews) * 100)
+                      : null;
                   const siteCtr =
                     site.impressions > 0
                       ? ((site.clicks / site.impressions) * 100).toFixed(2).replace('.', ',')
@@ -587,20 +577,27 @@ function PublisherHome() {
                           : '—'}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        {site.impressions.toLocaleString('is-IS')}
+                        {site.pageviews.toLocaleString('is-IS')}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        <span
-                          className={`inline-block font-semibold ${
-                            fillRate >= 70
-                              ? 'text-emerald-600'
-                              : fillRate >= 30
-                                ? 'text-amber-600'
-                                : 'text-slate-500'
-                          }`}
-                        >
-                          {fillRate}%
-                        </span>
+                        {fillRate === null ? (
+                          <span className="text-slate-400">—</span>
+                        ) : (
+                          <span
+                            className={`inline-block font-semibold ${
+                              fillRate >= 70
+                                ? 'text-emerald-600'
+                                : fillRate >= 30
+                                  ? 'text-amber-600'
+                                  : 'text-slate-500'
+                            }`}
+                          >
+                            {fillRate}%
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        {site.impressions.toLocaleString('is-IS')}
                       </td>
                       <td className="py-3 text-right tabular-nums">
                         <span>{site.clicks.toLocaleString('is-IS')}</span>{' '}
