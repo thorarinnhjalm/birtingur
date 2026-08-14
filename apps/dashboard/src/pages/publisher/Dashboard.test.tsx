@@ -1,5 +1,5 @@
 import { test, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from './Dashboard';
@@ -67,10 +67,26 @@ const BASE_STATS = {
   history: [],
 };
 
+/**
+ * The two sites are deliberately given DIFFERENT figures in every column.
+ *
+ * They used to be proportional (both 50% fill, both 1,00% CTR, both 440 kr
+ * eCPM), which reads fine until you notice such a fixture cannot fail if the
+ * table renders one site's numbers on the other site's row, or if a column is
+ * wired to the wrong field. `pageViewsTrue` is present on one site and absent
+ * on the other for the same reason — both branches of the traffic column get
+ * exercised in one render.
+ *
+ * Derived values the per-site table computes from these (see the assertions
+ * below, and DEFAULT_PLATFORM_FEE_PERCENT = 20 for the net figures):
+ *
+ *   Vefur A  fill 1000/2000 = 50%   CTR 10/1000 = 1,00%   net 440 kr   eCPM 440 kr
+ *   Vefur B  fill  900/1000 = 90%   CTR 45/900  = 5,00%   net 800 kr   eCPM 889 kr
+ */
 const BY_SITE_STATS = {
-  impressions: 1500,
-  clicks: 15,
-  spendIsk: 825,
+  impressions: 1900,
+  clicks: 55,
+  spendIsk: 1550,
   pageviews: 3000,
   history: [],
   bySite: [
@@ -81,19 +97,28 @@ const BY_SITE_STATS = {
       impressions: 1000,
       clicks: 10,
       pageviews: 2000,
+      pageViewsTrue: 1800,
       spendIsk: 550,
     },
     {
       publisherId: 'pub_b',
       displayName: 'Vefur B',
       domain: 'vefur-b.is',
-      impressions: 500,
-      clicks: 5,
+      impressions: 900,
+      clicks: 45,
       pageviews: 1000,
-      spendIsk: 275,
+      spendIsk: 1000,
     },
   ],
 };
+
+/** The `<tr>` a given site's figures live in, so column assertions cannot
+ * accidentally match a number rendered elsewhere on the page. */
+function siteRow(displayName: string) {
+  const row = screen.getByText(displayName).closest('tr');
+  if (!row) throw new Error(`no table row found for ${displayName}`);
+  return row;
+}
 
 function setupApiMock({
   publishers = ONE_SITE,
@@ -151,6 +176,65 @@ test('clicking a site row narrows the filter', async () => {
   await vi.waitFor(() => {
     expect(mockedApiFetch).toHaveBeenCalledWith(expect.stringContaining('publisherId=pub_b'));
   });
+});
+
+// The per-site table's fill rate, CTR and eCPM columns shipped with no test of
+// their own. Each is a small arithmetic expression inside the render, so a
+// wrong field, a swapped numerator or a dropped platform-fee factor would show
+// a plausible-looking wrong number to a publisher and nothing would catch it.
+
+test('fill rate is impressions over SLOT LOADS, not over real page views', async () => {
+  // The distinction is the whole point and the two fields sit next to each
+  // other on the same object. `pageviews` counts ad-slot loads and is the
+  // fill-rate denominator (stats-aggregator.ts says so in as many words);
+  // `pageViewsTrue` counts real page loads and is what "Vefumferð" shows.
+  // Vefur A has 1000 impressions against 2000 slot loads and 1800 true page
+  // views: 50% is right, 56% would mean the wrong field.
+  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  expect(within(siteRow('Vefur A')).getByText('50%')).toBeDefined();
+  expect(within(siteRow('Vefur B')).getByText('90%')).toBeDefined();
+});
+
+test('per-site CTR is clicks over impressions, in Icelandic decimal notation', async () => {
+  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  expect(within(siteRow('Vefur A')).getByText('(1,00%)')).toBeDefined();
+  expect(within(siteRow('Vefur B')).getByText('(5,00%)')).toBeDefined();
+});
+
+test('per-site eCPM is net of the platform fee, matching the revenue beside it', async () => {
+  // Publishers keep 80%. An eCPM computed off gross spend would read 550 and
+  // 1.111 here and would not reconcile with the revenue figure in the same
+  // cell, which is the number they get paid.
+  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  const rowA = within(siteRow('Vefur A'));
+  expect(rowA.getByText('440 kr')).toBeDefined(); // net revenue
+  expect(rowA.getByText('440 kr eCPM')).toBeDefined();
+
+  const rowB = within(siteRow('Vefur B'));
+  expect(rowB.getByText('800 kr')).toBeDefined();
+  expect(rowB.getByText('889 kr eCPM')).toBeDefined();
+});
+
+test('the traffic column shows real page views per site, or a dash when unmeasured', async () => {
+  // Vefur A has pageViewsTrue, Vefur B does not. Showing B's 1000 slot loads as
+  // if they were traffic is the overcount the whole pageViewsTrue split exists
+  // to prevent, so the dash matters as much as the number.
+  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  expect(within(siteRow('Vefur A')).getByText('1.800')).toBeDefined();
+  expect(within(siteRow('Vefur B')).getByText('—')).toBeDefined();
+  expect(within(siteRow('Vefur B')).queryByText('1.000')).toBeNull();
 });
 
 test('Vefumferð shows the true page-view figure when present', async () => {
