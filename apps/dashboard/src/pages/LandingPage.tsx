@@ -310,7 +310,7 @@ export default function LandingPage() {
               paddingRight: 'clamp(24px,5vw,72px)',
             }}
           >
-            <span className="mb-5.5 inline-block text-[13px] font-semibold tracking-[0.16em] text-white/60 uppercase">
+            <span className="mb-5.5 inline-block text-[13px] font-semibold tracking-[0.16em] text-white/80 uppercase">
               Gagnsætt verð
             </span>
             <h2
@@ -326,7 +326,7 @@ export default function LandingPage() {
             </h2>
             <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
               <div>
-                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                <div className="text-[13px] font-semibold tracking-wider text-white/80 uppercase">
                   Fast CPM verð
                 </div>
                 <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
@@ -334,7 +334,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                <div className="text-[13px] font-semibold tracking-wider text-white/80 uppercase">
                   Uppsetningarkostnaður
                 </div>
                 <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
@@ -342,7 +342,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                <div className="text-[13px] font-semibold tracking-wider text-white/80 uppercase">
                   Virkir efnisflokkar
                 </div>
                 <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
@@ -350,7 +350,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div>
-                <div className="text-[13px] font-semibold tracking-wider text-white/60 uppercase">
+                <div className="text-[13px] font-semibold tracking-wider text-white/80 uppercase">
                   Útgreiðslur til útgefenda
                 </div>
                 <div className="mt-2.5 text-3xl font-extrabold tracking-tight text-white tabular-nums">
