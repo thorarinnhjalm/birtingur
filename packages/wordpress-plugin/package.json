@@ -1,0 +1,11 @@
+{
+  "name": "@ada/wordpress-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WordPress plugin for Birtingur ad slot injection",
+  "scripts": {
+    "build": "node build-zip.mjs",
+    "lint": "find . -name '*.php' -not -path './node_modules/*' -print0 | xargs -0 -n1 php -l",
+    "test": "php tests/run-tests.php"
+  }
+}

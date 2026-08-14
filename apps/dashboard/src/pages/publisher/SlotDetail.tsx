@@ -441,6 +441,15 @@ export default function SlotDetail() {
           <pre className="bg-slate-900 text-slate-100 p-4 rounded-lg text-xs font-mono overflow-x-auto leading-relaxed border border-slate-950">
             <code>{snippetCode}</code>
           </pre>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 text-xs text-slate-700">
+            <span className="font-semibold text-slate-900">Notarðu WordPress?</span> Þú getur notað
+            stuttkóðann{' '}
+            <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] text-primary border border-blue-200">
+              [birtingur_slot id="{slot.id}"]
+            </code>{' '}
+            eða valið plássið í sjálfvirkum birtingarstöðum með Birting WordPress viðbótinni.
+          </div>
         </Card>
       </div>
 
