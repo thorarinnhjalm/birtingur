@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { TRAFFIC_MEASUREMENT_START, FILL_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
+import {
+  TRAFFIC_MEASUREMENT_START,
+  FILL_MEASUREMENT_START,
+  publisherNetIsk,
+  MIN_PAYOUT_ISK,
+} from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -89,8 +94,18 @@ function PublisherHome() {
   const { data: publishers, isLoading: isPubsLoading } = usePublishers();
   const { data: slots, isLoading: isSlotsLoading } = usePublisherSlots(
     !!publishers && publishers.length > 0,
+    timeframe,
   );
   const { siteId, setSiteId } = useSiteFilter();
+  // The unpaid ledger basis, same endpoint the Earnings page reads — the hero
+  // payout card must show the number that will actually be paid, not revenue.
+  const { data: balance } = useQuery<{ unpaidBasisIsk: number; minPayoutIsk: number }>({
+    queryKey: ['publisher', 'balance'],
+    queryFn: () =>
+      apiFetch<{ unpaidBasisIsk: number; minPayoutIsk: number }>('/v1/publishers/me/balance'),
+    enabled: !!publishers && publishers.length > 0,
+  });
+
   const { data: stats } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats', timeframe, siteId],
     queryFn: () =>
@@ -112,9 +127,13 @@ function PublisherHome() {
     if (!stats?.history || stats.history.length < 2) {
       return { impressions: null as number | null, revenue: null as number | null };
     }
+    // EQUAL halves — floor(length/2) days each, the middle day of an odd
+    // window belonging to neither. slice(half) put 3 days against 4 on the
+    // 7-day preset, so perfectly flat traffic read "+33,3% frá fyrra
+    // tímabili" on every visit.
     const half = Math.floor(stats.history.length / 2);
-    const older = stats.history.slice(0, half);
-    const recent = stats.history.slice(half);
+    const older = stats.history.slice(-2 * half, -half);
+    const recent = stats.history.slice(-half);
     const sum = (rows: typeof stats.history, key: 'impressions' | 'spendIsk') =>
       rows.reduce((s, h) => s + h[key], 0);
     const olderImp = sum(older, 'impressions');
@@ -260,7 +279,7 @@ function PublisherHome() {
   const avgCpmLabel =
     stats && stats.impressions > 0
       ? formatIsk(Math.round((netRevenueIsk / stats.impressions) * 1000))
-      : '0 kr.';
+      : formatIsk(0);
 
   return (
     <div className="flex flex-col" style={{ gap: 'clamp(36px,4.5vw,60px)' }}>
@@ -385,10 +404,12 @@ function PublisherHome() {
         <div className="relative flex min-h-65 flex-col justify-between overflow-hidden rounded-card border border-slate-200 bg-white p-6 md:col-span-2 md:p-8">
           <div className="relative z-10">
             <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Áætlaðar tekjur í þessum mánuði
+              {/* Named by the real window. "í þessum mánuði" sat over whatever
+                  the 7/30 toggle selected — a week labelled as the month. */}
+              Áætlaðar tekjur síðustu {timeframe} daga
             </p>
             <div className="my-4 text-3xl font-extrabold tracking-[-0.03em] text-primary tabular-nums sm:text-4xl md:text-5xl">
-              {stats ? formatIsk(netRevenueIsk) : '0 kr.'}
+              {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
             </div>
             {pctChanges.revenue !== null && (
               <div
@@ -459,13 +480,21 @@ function PublisherHome() {
         <div className="flex min-h-65 flex-col justify-between rounded-card bg-tertiary p-6 text-on-tertiary md:col-span-1 md:p-8">
           <div>
             <p className="mb-1 text-xs font-semibold tracking-wider text-white/70 uppercase">
-              Næsta útgreiðsla
+              {/* The real unpaid ledger basis — the same number the Earnings
+                  page reports — NOT the rolling-window revenue this card used
+                  to show under the same heading. A new publisher with 4.000 kr
+                  saw "Næsta útgreiðsla: 4.000 kr" here and "Beðið eftir
+                  útgreiðslu: 0 kr" one click away; the figure that promised
+                  money was the wrong one. */}
+              Uppsafnað til útgreiðslu
             </p>
             <div className="text-2xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-3xl">
-              {stats ? formatIsk(netRevenueIsk) : '0 kr.'}
+              {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
             </div>
             <p className="mt-1 text-[10px] font-medium text-white/50">
-              Áætlað {nextPayoutDateLabel}
+              {balance && balance.unpaidBasisIsk > 0 && balance.unpaidBasisIsk < MIN_PAYOUT_ISK
+                ? `Greitt út þegar ${formatIsk(MIN_PAYOUT_ISK)} lágmarki er náð`
+                : `Næsta útgreiðsla áætluð ${nextPayoutDateLabel}`}
             </p>
           </div>
           <Button
@@ -488,7 +517,7 @@ function PublisherHome() {
           delta={trendDelta(pctChanges.impressions)}
         />
         <StatCard
-          label="Tekjur í mánuðinum"
+          label={`Tekjur síðustu ${timeframe} daga`}
           value={formatIsk(netRevenueIsk)}
           delta={trendDelta(pctChanges.revenue)}
         />
@@ -599,7 +628,7 @@ function PublisherHome() {
                           .toFixed(2)
                           .replace('.', ',')
                       : '0,00';
-                  // formatIsk(0), not the literal '0 kr.' used elsewhere on this
+                  // formatIsk(0), not the literal formatIsk(0) used elsewhere on this
                   // page: formatIsk emits "0 kr" with no trailing period, so a
                   // site with no impressions showed "0 kr" revenue next to
                   // "0 kr. eCPM" in the very same cell.
@@ -849,7 +878,9 @@ function PublisherHome() {
                                 : '0,00%'}
                             </td>
                             <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
-                              {s.stats ? formatIsk(publisherNetIsk(s.stats.spendIsk)) : '0 kr.'}
+                              {s.stats
+                                ? formatIsk(publisherNetIsk(s.stats.spendIsk))
+                                : formatIsk(0)}
                               <span className="block text-[10px] font-medium text-slate-500">
                                 {s.pricing.mode === 'cpm'
                                   ? `${formatIsk(s.pricing.cpmIsk)} CPM`

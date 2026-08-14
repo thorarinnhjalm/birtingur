@@ -176,14 +176,17 @@ function setupApiMock({
   publishers = ONE_SITE,
   slots = [],
   stats,
+  balance = { unpaidBasisIsk: 0, minPayoutIsk: 10_000 },
 }: {
   publishers?: unknown[];
   slots?: unknown[];
   stats: unknown;
+  balance?: unknown;
 }) {
   mockedApiFetch.mockImplementation(async (url: unknown) => {
     const u = url as string;
     if (u.startsWith('/v1/publishers/all')) return publishers as any;
+    if (u.startsWith('/v1/publishers/me/balance')) return balance as any;
     if (u.startsWith('/v1/publishers/me/slots')) return slots as any;
     if (u.startsWith('/v1/publishers/stats')) return stats as any;
     // TopBar (rendered by AppShell) polls notifications regardless of which
@@ -611,3 +614,76 @@ function splitCsvLine(line: string): string[] {
   fields.push(field);
   return fields;
 }
+
+/**
+ * The trend badge split history at floor(length / 2), so the 7-day preset
+ * compared the first 3 days against the last 4 — perfectly flat traffic of 100
+ * impressions a day read "+33,3% frá fyrra tímabili", on every visit, on both
+ * the Birtingar and Tekjur cards. Equal halves now (the middle day of an odd
+ * window belongs to neither), so flat traffic reads flat.
+ */
+test('flat traffic shows a flat trend, not +33%', async () => {
+  const flatWeek = Array.from({ length: 7 }, (_, i) => ({
+    date: `2026-08-0${i + 1}`,
+    impressions: 100,
+    clicks: 1,
+    spendIsk: 55,
+    pageviews: 120,
+  }));
+  setupApiMock({
+    publishers: ONE_SITE,
+    slots: [],
+    stats: { ...BASE_STATS, impressions: 700, history: flatWeek },
+  });
+  renderPage();
+  await screen.findAllByText('Birtingar');
+
+  expect(document.body.textContent).not.toContain('+33');
+  expect(document.body.textContent).toContain('+0,0% frá fyrra tímabili');
+});
+
+/**
+ * "Næsta útgreiðsla" on the dashboard used to show the rolling-window revenue
+ * with a payout date under it, while the Earnings page showed the real unpaid
+ * ledger basis — zeroed below the payout minimum. A new publisher with 4.000 kr
+ * saw a promise of money on one page and 0 kr one click away, and the figure
+ * that promised was the wrong one. The hero card now shows the same ledger
+ * basis the Earnings page reports.
+ */
+test('the payout card shows the unpaid ledger basis, not window revenue', async () => {
+  setupApiMock({
+    publishers: ONE_SITE,
+    slots: [],
+    stats: { ...BASE_STATS, spendIsk: 90_000 },
+    balance: { unpaidBasisIsk: 4000, minPayoutIsk: 10_000 },
+  });
+  renderPage();
+
+  const heading = await screen.findByText('Uppsafnað til útgreiðslu');
+  const card = within(heading.closest('div')!.parentElement!);
+  expect(card.getByText('4.000 kr')).toBeDefined();
+  // Below the minimum: the card says what happens instead of naming a date.
+  expect(screen.getByText(/lágmarki er náð/)).toBeDefined();
+  // The old behaviour: net of 90.000 window revenue under a payout heading.
+  expect(document.body.textContent).not.toContain('Næsta útgreiðsla: 72.000');
+});
+
+/**
+ * The 7/30 toggle drove the cards and chart while the slot table and CSV below
+ * stayed on a hardcoded 30 — 7.000 impressions above, 30.000 below, one page.
+ * The slots request now carries the toggle's timeframe.
+ */
+test('switching to 7 days refetches the slot table on the same window', async () => {
+  setupApiMock({ publishers: ONE_SITE, slots: [], stats: BASE_STATS });
+  renderPage();
+  await screen.findAllByText('Birtingar');
+
+  fireEvent.click(screen.getByText('7 dagar'));
+
+  await vi.waitFor(() => {
+    const slotCalls = mockedApiFetch.mock.calls
+      .map((c) => String(c[0]))
+      .filter((u) => u.startsWith('/v1/publishers/me/slots'));
+    expect(slotCalls.some((u) => u.includes('timeframe=7'))).toBe(true);
+  });
+});

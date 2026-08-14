@@ -204,7 +204,7 @@ export default function SlotDetail() {
               Áætlaðar tekjur
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats ? formatIsk(publisherNetIsk(slotStats.spendIsk)) : '0 kr.'}
+              {slotStats ? formatIsk(publisherNetIsk(slotStats.spendIsk)) : formatIsk(0)}
             </p>
           </div>
         </Card>

@@ -4,7 +4,12 @@ import { useCreateSlot, usePublishers } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { IAB_STANDARD_SIZES, FLAT_CPM_ISK } from '@ada/shared';
+import {
+  IAB_STANDARD_SIZES,
+  FLAT_CPM_ISK,
+  publisherNetIsk,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+} from '@ada/shared';
 import { Check } from 'lucide-react';
 
 export default function SlotCreate() {
@@ -158,10 +163,17 @@ export default function SlotCreate() {
             <div>
               <h4 className="font-bold text-slate-900 text-sm">Flöt verðlagning (Flat CPM)</h4>
               <p className="leading-relaxed text-slate-500 mt-1 font-medium">
-                Vefurinn notar samræmt og gagnsætt verðlag upp á{' '}
+                {/* The publisher's own number first. 550 kr alone on this page
+                    read as the publisher's rate — it is the advertiser's price,
+                    and the publisher keeps 80% of it. */}
+                Auglýsendur greiða{' '}
                 <strong className="text-slate-900 font-extrabold">{FLAT_CPM_ISK} kr.</strong> fyrir
-                hverjar 1.000 sýningar. Verðið er óbreytanlegt til að standa vörð um
-                stefnuyfirlýsingu okkar.
+                hverjar 1.000 sýningar og þú færð{' '}
+                <strong className="text-slate-900 font-extrabold">
+                  {publisherNetIsk(FLAT_CPM_ISK)} kr.
+                </strong>{' '}
+                af þeim — {100 - DEFAULT_PLATFORM_FEE_PERCENT}% hlut. Verðið er samræmt og
+                óbreytanlegt fyrir alla.
               </p>
             </div>
           </div>
