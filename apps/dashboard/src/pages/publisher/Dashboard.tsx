@@ -150,7 +150,8 @@ function PublisherHome() {
   const downloadSlotsCsv = () => {
     if (!slots || slots.length === 0 || !publishers) return;
     let csvContent = '﻿'; // Add BOM for Excel UTF-8 compatibility
-    csvContent += 'Pláss,Lén,Stærðir,Staða,Birtingar,Smellir,CTR,Áætlaðar Tekjur\n';
+    csvContent +=
+      'Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur\n';
 
     for (const pub of publishers) {
       const pubSlots = (slots as any[]).filter((s: any) => s.publisherId === pub.id) || [];
@@ -160,6 +161,8 @@ function PublisherHome() {
         const sizes = `"${s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}"`;
         const status = s.status === 'active' ? 'Virk' : 'Óvirk';
         const impressions = s.stats ? s.stats.impressions : 0;
+        const pageviews = s.stats ? s.stats.pageviews : 0;
+        const fillRate = pageviews > 0 ? `${Math.round((impressions / pageviews) * 100)}%` : '0%';
         const clicks = s.stats ? s.stats.clicks : 0;
         const ctr =
           s.stats && s.stats.impressions > 0
@@ -167,7 +170,7 @@ function PublisherHome() {
             : '0,00%';
         const earnings = s.stats ? Math.round(s.stats.spendIsk * 0.8) : 0;
 
-        csvContent += `${name},${domain},${sizes},${status},${impressions},${clicks},${ctr},${earnings} kr.\n`;
+        csvContent += `${name},${domain},${sizes},${status},${impressions},${pageviews},${fillRate},${clicks},${ctr},${earnings} kr.\n`;
       }
     }
 
@@ -304,6 +307,32 @@ function PublisherHome() {
           </button>
         </div>
       )}
+
+      {/* ===== ACTIVE SITE FILTER BANNER ===== */}
+      {siteId &&
+        (() => {
+          const activeSite = publishers?.find((p) => p.id === siteId);
+          return activeSite ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200/80 bg-blue-50/70 px-4 py-2.5 text-xs font-medium text-slate-700 shadow-xs">
+              <div className="flex items-center gap-2">
+                <Globe size={15} className="text-primary shrink-0" />
+                <span>
+                  Sýnir tölur fyrir:{' '}
+                  <strong className="font-bold text-slate-900">{activeSite.displayName}</strong>{' '}
+                  <span className="font-mono text-[11px] text-slate-500">
+                    ({activeSite.domain})
+                  </span>
+                </span>
+              </div>
+              <button
+                onClick={() => setSiteId(null)}
+                className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
+              >
+                Sýna alla vefi ✕
+              </button>
+            </div>
+          ) : null;
+        })()}
 
       {/* ===== EARNINGS + PAYOUT HERO =====
           Not in the template (dashboard.dc.html only has flat stat cards).
@@ -445,7 +474,10 @@ function PublisherHome() {
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
         <Card className="flex flex-col justify-between min-h-[120px]">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <div
+              className="text-xs font-semibold uppercase tracking-wider text-slate-500"
+              title="Raunverulegar síðuflettingar á vefnum óháð fjölda auglýsingaplássa"
+            >
               Vefumferð
             </div>
             <div className="mt-2 text-3xl font-bold text-slate-900 tracking-tight">
@@ -456,9 +488,13 @@ function PublisherHome() {
                 : '—'}
             </div>
           </div>
-          {(!stats || stats.pageViewsTrue === undefined) && (
+          {!stats || stats.pageViewsTrue === undefined ? (
             <p className="mt-2 text-[11px] font-medium text-slate-400">
               Nákvæm umferðarmæling hófst {formatDate(TRAFFIC_MEASUREMENT_START)}
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] font-medium text-slate-400">
+              Raunverulegar síðuflettingar
             </p>
           )}
         </Card>
@@ -497,45 +533,82 @@ function PublisherHome() {
           affordance as picking the site from the dropdown. */}
       {!siteId && stats?.bySite && stats.bySite.length > 1 && (
         <Card>
-          <h2 className="m-0 mb-4 text-[19px] font-bold tracking-[-0.015em]">
-            Yfirlit eftir vefjum
-          </h2>
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Yfirlit eftir vefjum</h2>
+            <span className="text-xs text-slate-400 font-medium">
+              Smelltu á línu til að sía mælaborðið
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-medium border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
                   <th className="py-2.5">Vefur</th>
-                  <th className="py-2.5">Birtingar</th>
-                  <th className="py-2.5">Flettingar</th>
-                  <th className="py-2.5">Smellir</th>
+                  <th className="py-2.5 text-right">Vefumferð</th>
+                  <th className="py-2.5 text-right">Birtingar</th>
+                  <th className="py-2.5 text-right">Fyllihlutfall</th>
+                  <th className="py-2.5 text-right">Smellir (CTR)</th>
                   <th className="py-2.5 text-right">Tekjur</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {stats.bySite.map((site) => (
-                  <tr
-                    key={site.publisherId}
-                    onClick={() => setSiteId(site.publisherId)}
-                    className="hover:bg-slate-50 cursor-pointer"
-                  >
-                    <td className="py-3">
-                      <div className="font-semibold text-slate-900">{site.displayName}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
-                    </td>
-                    <td className="py-3">{site.impressions.toLocaleString('is-IS')}</td>
-                    <td className="py-3">
-                      {site.pageViewsTrue !== undefined
-                        ? site.pageViewsTrue.toLocaleString('is-IS')
-                        : '—'}
-                    </td>
-                    <td className="py-3">{site.clicks.toLocaleString('is-IS')}</td>
-                    <td className="py-3 text-right">
-                      {formatIsk(
-                        Math.round(site.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100)),
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {stats.bySite.map((site) => {
+                  const netSiteEarnings = Math.round(
+                    site.spendIsk * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100),
+                  );
+                  const fillRate =
+                    site.pageviews > 0 ? Math.round((site.impressions / site.pageviews) * 100) : 0;
+                  const siteCtr =
+                    site.impressions > 0
+                      ? ((site.clicks / site.impressions) * 100).toFixed(2).replace('.', ',')
+                      : '0,00';
+                  const siteEcpm =
+                    site.impressions > 0
+                      ? formatIsk(Math.round((netSiteEarnings / site.impressions) * 1000))
+                      : '0 kr.';
+
+                  return (
+                    <tr
+                      key={site.publisherId}
+                      onClick={() => setSiteId(site.publisherId)}
+                      className="hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3">
+                        <div className="font-semibold text-slate-900">{site.displayName}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        {site.pageViewsTrue !== undefined
+                          ? site.pageViewsTrue.toLocaleString('is-IS')
+                          : '—'}
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        {site.impressions.toLocaleString('is-IS')}
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        <span
+                          className={`inline-block font-semibold ${
+                            fillRate >= 70
+                              ? 'text-emerald-600'
+                              : fillRate >= 30
+                                ? 'text-amber-600'
+                                : 'text-slate-500'
+                          }`}
+                        >
+                          {fillRate}%
+                        </span>
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        <span>{site.clicks.toLocaleString('is-IS')}</span>{' '}
+                        <span className="text-[11px] text-slate-400">({siteCtr}%)</span>
+                      </td>
+                      <td className="py-3 text-right tabular-nums">
+                        <div className="font-bold text-slate-900">{formatIsk(netSiteEarnings)}</div>
+                        <div className="text-[10px] text-slate-400">{siteEcpm} eCPM</div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

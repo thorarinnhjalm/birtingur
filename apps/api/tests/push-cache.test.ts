@@ -152,7 +152,7 @@ vi.mock('../src/lib/redis', () => ({
   }),
 }));
 
-import { ctrCounterKey } from '@ada/shared';
+import { ctrCounterKey, MAX_CACHED_VARIANTS_PER_CAMPAIGN } from '@ada/shared';
 import { pushSlotCache, pushCacheForCampaign } from '../src/lib/push-cache';
 
 describe('pushSlotCache helper', () => {
@@ -854,6 +854,57 @@ describe('pushSlotCache helper', () => {
     const campaignIds = new Set(entry.activeCreatives.map((c: any) => c.campaignId));
     expect([...campaignIds]).toEqual(['camp_rich']);
     expect(entry.activeCreatives).toHaveLength(2);
+  });
+
+  it('bounds how many variants one campaign puts in a slot, and says so out loud', async () => {
+    // The entry is fetched whole on every ad request, and creativeIds has no
+    // upper bound, so an advertiser with a large creative library would otherwise
+    // bloat every slot entry in their categories. Truncation must be logged —
+    // a silent cap reads as "everything was cached" when it was not.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mockState.slot = {
+      id: 'slot_many',
+      publisherId: 'pub_many',
+      status: 'active',
+      sizes: [{ width: 300, height: 250 }],
+      pricing: { mode: 'cpm', cpmIsk: 550 },
+    };
+    mockState.publisher = {
+      id: 'pub_many',
+      status: 'active',
+      categories: ['taekni'],
+      contentPolicy: { blockedCategories: [] },
+    };
+    const ids = Array.from({ length: 12 }, (_, i) => `cre_${i}`);
+    mockState.campaigns = [
+      {
+        id: 'cmp_many',
+        advertiserId: 'adv_1',
+        status: 'active',
+        creativeIds: ids,
+        budget: { remainingIsk: 5000, mode: 'cpm_capped' },
+        schedule: {
+          startsAt: new Date(Date.now() - 10000),
+          endsAt: new Date(Date.now() + 10000),
+        },
+        targeting: { categories: ['taekni'] },
+      },
+    ];
+    mockState.creatives = ids.map((id) => ({
+      id,
+      reviewStatus: 'auto_approved',
+      width: 300,
+      height: 250,
+      imageUrl: `https://ex.com/${id}.png`,
+      clickUrl: `https://ex.com/${id}`,
+    }));
+
+    await pushSlotCache('slot_many');
+
+    const entry = mockRedisSet.mock.calls.find((c: any) => c[0] === 'slot:slot_many')?.[1];
+    expect(entry.activeCreatives).toHaveLength(MAX_CACHED_VARIANTS_PER_CAMPAIGN);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('cmp_many'));
+    warn.mockRestore();
   });
 
   describe('CTR counters baked into the cache entry', () => {

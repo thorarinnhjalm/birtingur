@@ -103,30 +103,54 @@ impression and click is attributable, signed, and counted exactly once.
 
 **Invariants.**
 
-| Invariant                                                                       | Enforced by                                                                                   |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| One served ad's signature works for BOTH the impression pixel and the click     | `apps/serving/tests/click-after-impression.test.ts`                                           |
-| Serving sets no cookies, on fill and on no-fill alike                           | `apps/serving/tests/ad-route.test.ts`                                                         |
-| Every event reaches `events:stats`; impressions also reach `events:accrual`     | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
-| A replayed signature is rejected per event kind                                 | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                          |
-| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin            | `packages/snippet/tests/render.test.ts`                                                       |
-| A missing or expired `budget:{id}` key stops serving; it never serves free      | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
-| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
-| A campaign gets no more of a slot for uploading more creative variants          | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                 |
-| CTR steers only which VARIANT of a campaign serves, never which campaign        | `apps/serving/tests/bandit.test.ts`                                                           |
-| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation   | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`          |
-| Bot traffic and house-ad fallbacks never feed the CTR counters                  | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
+| Invariant                                                                        | Enforced by                                                                                   |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| One served ad's signature works for BOTH the impression pixel and the click      | `apps/serving/tests/click-after-impression.test.ts`                                           |
+| Serving sets no cookies, on fill and on no-fill alike                            | `apps/serving/tests/ad-route.test.ts`                                                         |
+| Every event reaches `events:stats`; impressions also reach `events:accrual`      | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
+| A replayed signature is rejected per event kind                                  | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                          |
+| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin             | `packages/snippet/tests/render.test.ts`                                                       |
+| A missing or expired `budget:{id}` key stops serving; it never serves free       | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
+| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin  | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
+| A campaign gets no more of a slot for uploading more creative variants           | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                 |
+| CTR steers only which VARIANT of a campaign serves, never which campaign         | `apps/serving/tests/bandit.test.ts`                                                           |
+| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation    | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`          |
+| Bot traffic and house-ad fallbacks never feed the CTR counters                   | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
+| A visitor's daily frequency cap is per CAMPAIGN, not multiplied by variant count | `apps/serving/tests/bandit.test.ts`, `select.test.ts`, `click-impression.test.ts`             |
+| The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                               |
+| One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                           |
 
 **Now.** V1 on Vercel at `serving.birtingur.app`, 15 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.
 
 **Creative rotation (added 2026-08-14).** `selectCreative` draws in two stages:
 a CAMPAIGN by weight exactly as before, then one of that campaign's creative
-variants by epsilon-greedy on measured CTR (`BANDIT_EPSILON` 0.2,
-`BANDIT_COLD_START_IMPRESSIONS` 100 — while any variant is short of the
-threshold the campaign rotates evenly). The split is load-bearing: every
+variants by epsilon-greedy on measured CTR. The split is load-bearing: every
 advertiser pays the same flat CPM, so letting CTR move impressions BETWEEN
 campaigns would starve advertisers who paid the same price and break pacing.
+
+Three gates decide whether the bandit acts at all, and each exists because
+removing it produced a measured failure:
+
+- `BANDIT_COLD_START_IMPRESSIONS` (100) — while any variant is short of it, the
+  campaign rotates evenly, so an unlucky opening is not fatal.
+- `BANDIT_MIN_CLICKS` (5) — the campaign's variants must have earned this many
+  clicks between them before any is treated as the winner. Display runs at
+  roughly 0.1% CTR, where 100 impressions buys ~0.1 clicks; without this gate
+  every variant measures a CTR of exactly zero, the comparison finds no winner,
+  and `creativeIds[0]` collects 80% of traffic permanently. Measured with the
+  SECOND variant genuinely twice as good: the first still took 3918 of 5000
+  impressions. With the gate, the better variant leads 81% of runs against 60%
+  without.
+- Exact CTR ties are broken at random, never by position in `creativeIds`.
+
+Known limit, measured, accepted: epsilon-greedy locks in. Whichever variant
+leads when exploitation starts collects most of the subsequent evidence, so on
+the 5%-vs-1% acceptance scenario it averages 730/1000 but finishes below the
+70% bar on ~5% of runs. Thompson sampling on a Beta posterior was measured
+against the same scenario (mean 885, 1 run in 300 below 700) and is the upgrade
+path if this ever matters; epsilon-greedy is what ships because it is what was
+specified and it is simple enough to read in the hot path.
 
 Evidence comes from `ctr:{campaignId}:{creativeId}` hashes, written by
 `logEvent` inside its existing pipeline (zero extra hot-path round trips) and
@@ -138,9 +162,31 @@ staleness, which is nothing against a 100-impression threshold.
 This required removing push-cache's one-creative-per-campaign `break` — until
 then a slot's `activeCreatives` held at most one creative per advertiser, so
 two variants of one campaign never met and the bandit had nothing to compare.
-One CAMPAIGN per advertiser per slot still holds. Note `services/slot-delivery.ts`
-already counted every usable creative, so this also removes a quiet disagreement
-between what that diagnosis reported and what actually got cached.
+One CAMPAIGN per advertiser per slot still holds, and a campaign contributes at
+most `MAX_CACHED_VARIANTS_PER_CAMPAIGN` (3) variants to one slot — the entry is
+fetched whole on every ad request and `creativeIds` has no upper bound.
+Truncation is logged, never silent.
+
+Two knock-on changes the same removal forced:
+
+- The visitor frequency cap moved from per-creative to per-CAMPAIGN keys in
+  `vimp:{token}:{day}` (`lib/visitor.ts`, `routes/impression.ts`,
+  `SelectionContext.visitorImpressionsToday`). Per-creative counting was
+  equivalent while a campaign could place only one creative; afterwards a
+  three-variant advertiser would have shown one visitor 9 ads a day against a
+  competitor's 3, at the same price, and taken a growing share of that visitor's
+  later impressions as single-variant rivals capped out first.
+- `services/slot-delivery.ts` already counted every usable creative, so this
+  also removes a quiet disagreement between what that diagnosis reported and
+  what actually got cached.
+
+**Deploy order matters for this change.** `apps/api` and `apps/serving` are
+separate Vercel projects. New push-cache against OLD serving is unsafe: the old
+`selectCreative` drew flat over all creatives, so a three-variant campaign would
+take 75% of a slot, and the old per-creative frequency cap would triple that
+advertiser's daily exposure. Ship the serving half first (it is a no-op while
+push-cache still emits one creative per campaign), confirm it is live, then ship
+the push-cache half.
 
 **Bridge.** Both items done 2026-08-12 (gap items 1 and 2): the budget gate is
 pinned unmocked in `tests/budget-gate.test.ts` (missing key ⇒ fallback,

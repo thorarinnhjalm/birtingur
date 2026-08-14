@@ -15,6 +15,7 @@ import {
   FLAT_CPM_ISK,
   SENSITIVE_AD_CATEGORY_SLUGS,
   ctrCounterKey,
+  MAX_CACHED_VARIANTS_PER_CAMPAIGN,
 } from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative, Publisher, Campaign } from '@ada/shared';
 
@@ -218,10 +219,20 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     // only then a variant within it.
     if (seenAdvertisers.has(campaign.advertiserId)) continue;
 
-    let contributed = false;
+    let contributed = 0;
     const seenCreatives = new Set<string>();
 
     for (const cId of campaign.creativeIds) {
+      if (contributed >= MAX_CACHED_VARIANTS_PER_CAMPAIGN) {
+        // Logged, never silent: a quiet truncation reads as "everything usable
+        // was cached" to anyone comparing this against slot-delivery's counts.
+        console.warn(
+          `Slot ${slot.id}: campaign ${campaign.id} has more usable creatives than ` +
+            `MAX_CACHED_VARIANTS_PER_CAMPAIGN (${MAX_CACHED_VARIANTS_PER_CAMPAIGN}); ` +
+            `the rest are not cached for this slot.`,
+        );
+        break;
+      }
       // A duplicated id in creativeIds would otherwise cache the same variant
       // twice and hand it double the rotation share.
       if (seenCreatives.has(cId)) continue;
@@ -277,14 +288,14 @@ export async function pushSlotCache(slotId: string): Promise<void> {
         priority: campaign.budget.mode === 'slot_purchased' ? 'slot_purchased' : 'cpm',
       });
 
-      contributed = true;
+      contributed++;
     }
 
     // Claim the advertiser's one place only if this campaign actually put a
     // creative in. A campaign whose variants were all filtered out (size, review
     // status, brand safety) must not block the advertiser's other campaigns —
     // that was the behaviour before, and it is preserved.
-    if (contributed) seenAdvertisers.add(campaign.advertiserId);
+    if (contributed > 0) seenAdvertisers.add(campaign.advertiserId);
   }
 
   await attachCtrCounters(redis, activeCreatives);
