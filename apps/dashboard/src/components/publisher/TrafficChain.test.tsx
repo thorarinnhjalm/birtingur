@@ -15,6 +15,7 @@ function chain(props: Partial<Parameters<typeof TrafficChain>[0]> = {}) {
       unfilled={600}
       impressions={2000}
       measurementStartLabel="9. ágúst 2026"
+      fillMeasurementStartLabel="14. ágúst 2026"
       {...props}
     />,
   );
@@ -94,4 +95,21 @@ test('does not report a negative gap when impressions exceed filled requests', (
   // looks like a bug even though the underlying numbers are legitimate.
   expect(screen.getByText('100% sáust')).toBeDefined();
   expect(document.body.textContent).not.toContain('105%');
+});
+
+test('one definition of fill, shared by every surface that shows it', () => {
+  // Three places compute fill from the same publisher's numbers: this chain,
+  // the per-site table (Dashboard.tsx), the slot page (SlotDetail.tsx), and the
+  // CSV export. They disagreed once — the table said 80% while the slot page and
+  // the CSV said 50% for the same site and window, because those two were still
+  // on impressions/requests. Under one word, "Fyllihlutfall", that is the exact
+  // confusion this whole change exists to remove.
+  //
+  // The definition, in one place, is: filled requests over all requests, where
+  // filled is requests minus unfilled. Impressions do not enter into it.
+  chain({ requests: 2000, unfilled: 400, impressions: 1000 });
+
+  expect(screen.getByText('80% seldust')).toBeDefined();
+  // 50% would be impressions/requests, the definition the other surfaces used.
+  expect(document.body.textContent).not.toContain('50% seldust');
 });

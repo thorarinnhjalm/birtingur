@@ -278,6 +278,7 @@ export async function getAggregatedPublisherStats(
       spendIsk: number;
       pageviews: number;
       pageViewsTrue?: number;
+      unfilled?: number;
     }
   > = {};
 
@@ -306,6 +307,14 @@ export async function getAggregatedPublisherStats(
       if (h.pageViewsTrue !== undefined) {
         historyMap[h.date]!.pageViewsTrue =
           (historyMap[h.date]!.pageViewsTrue ?? 0) + h.pageViewsTrue;
+      }
+      // Accumulated here for the same reason as pageViewsTrue above: without
+      // it, a multi-site owner's history came back with the field missing while
+      // a single-site owner's carried it — the same endpoint returning two
+      // shapes, which the next per-day drilldown would get wrong for agencies
+      // only.
+      if (h.unfilled !== undefined) {
+        historyMap[h.date]!.unfilled = (historyMap[h.date]!.unfilled ?? 0) + h.unfilled;
       }
     }
   }

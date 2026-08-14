@@ -1,6 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { DEFAULT_PLATFORM_FEE_PERCENT, TRAFFIC_MEASUREMENT_START } from '@ada/shared';
+import {
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  TRAFFIC_MEASUREMENT_START,
+  FILL_MEASUREMENT_START,
+} from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -173,7 +177,14 @@ function PublisherHome() {
         const status = s.status === 'active' ? 'Virk' : 'Óvirk';
         const impressions = s.stats ? s.stats.impressions : 0;
         const pageviews = s.stats ? s.stats.pageviews : 0;
-        const fillRate = pageviews > 0 ? `${Math.round((impressions / pageviews) * 100)}%` : '0%';
+        // Same definition as the on-screen table: filled requests over all
+        // requests. A CSV that disagrees with the dashboard under the same
+        // column heading is the confusion this change exists to remove.
+        const unfilled = s.stats && typeof s.stats.unfilled === 'number' ? s.stats.unfilled : null;
+        const fillRate =
+          unfilled !== null && pageviews > 0
+            ? `${Math.round(((pageviews - unfilled) / pageviews) * 100)}%`
+            : 'ekki mælt';
         const clicks = s.stats ? s.stats.clicks : 0;
         const ctr =
           s.stats && s.stats.impressions > 0
@@ -482,6 +493,7 @@ function PublisherHome() {
         unfilled={stats?.unfilled}
         impressions={stats?.impressions ?? 0}
         measurementStartLabel={formatDate(TRAFFIC_MEASUREMENT_START)}
+        fillMeasurementStartLabel={formatDate(FILL_MEASUREMENT_START)}
       />
 
       {/* Engagement sits apart from the chain above: clicks and CTR describe how

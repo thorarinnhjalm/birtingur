@@ -217,9 +217,15 @@ export default function SlotDetail() {
               Fyllihlutfall
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats && slotStats.pageviews > 0
-                ? `${Math.round((slotStats.impressions / slotStats.pageviews) * 100)}%`
-                : '0%'}
+              {/* Filled requests over all requests — the SAME definition the
+                  publisher dashboard uses. It was impressions/requests, which
+                  is a different number: impressions are viewability-gated, so
+                  that ratio blended "no advertiser" with "never scrolled to".
+                  Leaving the two surfaces disagreeing under one word is the
+                  exact confusion the dashboard change set out to remove. */}
+              {slotStats && slotStats.unfilled !== undefined && slotStats.pageviews > 0
+                ? `${Math.round(((slotStats.pageviews - slotStats.unfilled) / slotStats.pageviews) * 100)}%`
+                : '—'}
             </p>
           </div>
         </Card>

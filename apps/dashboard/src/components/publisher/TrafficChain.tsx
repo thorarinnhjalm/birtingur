@@ -40,6 +40,8 @@ export interface TrafficChainProps {
   impressions: number;
   /** Shown under the traffic step when no true figure exists yet. */
   measurementStartLabel: string;
+  /** Shown when the filled/unfilled split has not been measured for the window. */
+  fillMeasurementStartLabel: string;
 }
 
 const nf = (n: number) => n.toLocaleString('is-IS');
@@ -56,7 +58,7 @@ function Step({
   emphasis?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="flex flex-col gap-1 lg:flex-1">
       <div className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">{label}</div>
       <div
         className={`text-2xl font-bold tracking-tight tabular-nums sm:text-3xl ${
@@ -72,17 +74,17 @@ function Step({
 
 function Link({ caption }: { caption: string }) {
   return (
-    <div className="flex items-center gap-2 py-1 sm:flex-col sm:justify-center sm:py-0">
+    <div className="flex items-center gap-2 py-1 lg:flex-col lg:justify-center lg:py-0">
       <svg
         viewBox="0 0 40 8"
         preserveAspectRatio="none"
         aria-hidden="true"
-        className="h-2 w-6 shrink-0 rotate-90 text-slate-300 sm:w-full sm:rotate-0"
+        className="h-2 w-6 shrink-0 rotate-90 text-slate-300 lg:w-full lg:rotate-0"
       >
         <path d="M0 4 H33" stroke="currentColor" strokeWidth="1.5" fill="none" />
         <path d="M31 1 L38 4 L31 7 Z" fill="currentColor" />
       </svg>
-      <div className="text-[11px] font-semibold whitespace-nowrap text-slate-500 tabular-nums">
+      <div className="text-center text-[11px] font-semibold text-slate-500 tabular-nums">
         {caption}
       </div>
     </div>
@@ -95,6 +97,7 @@ export function TrafficChain({
   unfilled,
   impressions,
   measurementStartLabel,
+  fillMeasurementStartLabel,
 }: TrafficChainProps) {
   const splitKnown = unfilled !== undefined;
   const filled = splitKnown ? Math.max(0, requests - unfilled) : undefined;
@@ -116,43 +119,52 @@ export function TrafficChain({
 
   return (
     <Card className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] sm:items-stretch">
-        <Step
-          label="Síðuflettingar"
-          value={pageViewsTrue !== undefined ? nf(pageViewsTrue) : '—'}
-          meaning={
-            pageViewsTrue !== undefined
-              ? 'Gestir sem hlóðu síðu'
-              : `Nákvæm mæling hófst ${measurementStartLabel}`
-          }
-        />
-        <Link
-          caption={
-            pageViewsTrue !== undefined && pageViewsTrue > 0
-              ? `${(requests / pageViewsTrue).toFixed(1).replace('.', ',')} beiðnir á flettingu`
-              : 'auglýsingapláss'
-          }
-        />
-        <Step
-          label="Auglýsingabeiðnir"
-          value={nf(requests)}
-          meaning="Pláss sem bað um auglýsingu"
-        />
-        <Link caption={fillPct !== null ? `${fillPct}% seldust` : 'ekki mælt'} />
-        <Step
-          label="Fylltar"
-          value={filled !== undefined ? nf(filled) : '—'}
-          meaning={
-            filled !== undefined ? 'Auglýsandi fannst' : 'Skiptingin mælist frá 14. ágúst 2026'
-          }
-        />
-        <Link caption={viewPct !== null ? `${viewPct}% sáust` : ''} />
-        <Step
-          label="Birtingar"
-          value={nf(impressions)}
-          meaning="Sáust á skjá — greitt fyrir þessar"
-          emphasis
-        />
+      {/* Horizontal only at lg. It was sm, which looked fine in jsdom and broke
+          on every tablet: `min-w-0` on the steps removed their min-content floor
+          while the nowrap captions held their tracks at full width, so between
+          640px and ~900px the figures were drawn straight through the arrows and
+          the card overflowed. Both causes are gone (steps floor at min-content,
+          captions wrap), and overflow-x is the last-resort guard so a long label
+          can never push the page sideways. */}
+      <div className="-mx-1 overflow-x-auto px-1">
+        <div className="grid grid-cols-1 gap-x-3 gap-y-1 lg:grid-cols-[auto_auto_auto_auto_auto_auto_auto] lg:items-stretch">
+          <Step
+            label="Síðuflettingar"
+            value={pageViewsTrue !== undefined ? nf(pageViewsTrue) : '—'}
+            meaning={
+              pageViewsTrue !== undefined
+                ? 'Gestir sem hlóðu síðuna'
+                : `Nákvæm mæling hófst ${measurementStartLabel}`
+            }
+          />
+          <Link
+            caption={
+              pageViewsTrue !== undefined && pageViewsTrue > 0
+                ? `${(requests / pageViewsTrue).toFixed(1).replace('.', ',')} beiðnir á flettingu`
+                : 'auglýsingapláss'
+            }
+          />
+          <Step
+            label="Auglýsingabeiðnir"
+            value={nf(requests)}
+            meaning="Pláss sem báðu um auglýsingu"
+          />
+          <Link caption={fillPct !== null ? `${fillPct}% seldust` : 'ekki mælt'} />
+          <Step
+            label="Fylltar"
+            value={filled !== undefined ? nf(filled) : '—'}
+            meaning={
+              filled !== undefined ? 'Auglýsandi fannst' : `Mælist frá ${fillMeasurementStartLabel}`
+            }
+          />
+          <Link caption={viewPct !== null ? `${viewPct}% sáust` : ''} />
+          <Step
+            label="Birtingar"
+            value={nf(impressions)}
+            meaning="Sáust á skjá — greitt fyrir þessar"
+            emphasis
+          />
+        </div>
       </div>
 
       {splitKnown ? (
@@ -160,8 +172,8 @@ export function TrafficChain({
           {unfilled > 0 && (
             <p className="m-0">
               <strong className="font-semibold text-slate-900">{nf(unfilled)} beiðnir</strong> fengu
-              enga auglýsingu, því engan auglýsanda var að hafa í þínum flokkum. Það er okkar að
-              laga.
+              enga auglýsingu til baka. Það gerist þegar enginn auglýsandi er með virka herferð sem
+              passar við plássið þá stundina. Það er okkar að laga, ekki þitt.
             </p>
           )}
           {filled !== undefined && filled - impressions > 0 && (
@@ -169,7 +181,8 @@ export function TrafficChain({
               <strong className="font-semibold text-slate-900">
                 {nf(filled - impressions)} auglýsingar
               </strong>{' '}
-              hlóðust en sáust aldrei. Þar hjálpar að færa plássið ofar á síðuna.
+              hlóðust en töldust aldrei sýnilegar. Oftast þýðir það að plássið er neðarlega á
+              síðunni og lesandinn skrollar ekki niður að því.
             </p>
           )}
           {unfilled === 0 && filled === impressions && (
@@ -181,8 +194,8 @@ export function TrafficChain({
           {overallPct !== null ? (
             <p className="m-0">
               <strong className="font-semibold text-slate-900">{overallPct}%</strong> af beiðnum
-              urðu að sýnilegri auglýsingu. Frá 14. ágúst 2026 sést hvort það sem upp á vantar sé
-              vegna þess að auglýsanda vantaði eða að plássið sást ekki.
+              urðu að sýnilegri auglýsingu. Frá {fillMeasurementStartLabel} sést hvort það sem upp á
+              vantar stafi af því að engin herferð passaði eða af því að plássið sást ekki.
             </p>
           ) : (
             <p className="m-0">Engar auglýsingabeiðnir á tímabilinu.</p>
