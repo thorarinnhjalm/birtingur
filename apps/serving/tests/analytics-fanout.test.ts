@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EVENT_QUEUE_STATS, EVENT_QUEUE_ACCRUAL } from '@ada/shared';
+import {
+  EVENT_QUEUE_STATS,
+  EVENT_QUEUE_ACCRUAL,
+  ctrCounterKey,
+  CTR_COUNTER_TTL_SECONDS,
+} from '@ada/shared';
 
 type PipelineCommand = [string, ...unknown[]];
 
@@ -21,6 +26,10 @@ function makePipelineFake() {
     },
     incr: (...args: unknown[]) => {
       queued.push(['incr', ...args]);
+      return fake;
+    },
+    hincrby: (...args: unknown[]) => {
+      queued.push(['hincrby', ...args]);
       return fake;
     },
     expire: (...args: unknown[]) => {
@@ -153,5 +162,69 @@ describe('logEvent durability and pipelining', () => {
   it('rejects (does not swallow) when Redis fails, so call sites can log it', async () => {
     failNextPipeline(new Error('redis down'));
     await expect(logEvent(impressionEvent())).rejects.toThrow('redis down');
+  });
+});
+
+describe('CTR counters feeding the creative bandit', () => {
+  function ctrCommands(): PipelineCommand[] {
+    return pipelinedCommands().filter(([cmd]) => cmd === 'hincrby');
+  }
+
+  it('counts an impression against the creative, in the SAME pipeline', async () => {
+    await logEvent(impressionEvent());
+    expect(ctrCommands()).toEqual([['hincrby', ctrCounterKey('cmp_a', 'cre_a'), 'imp', 1]]);
+    // The whole point of riding the existing pipeline: the bandit's counters
+    // must not cost the ad hot path an extra Upstash round trip.
+    expect(pipelineCallCount()).toBe(1);
+    expect(directRoundTrips()).toBe(0);
+  });
+
+  it('counts a click against the creative', async () => {
+    await logEvent({ ...impressionEvent(), type: 'click' });
+    expect(ctrCommands()).toEqual([['hincrby', ctrCounterKey('cmp_a', 'cre_a'), 'clk', 1]]);
+  });
+
+  it('refreshes the 30-day window on every counted event', async () => {
+    await logEvent(impressionEvent());
+    expect(pipelinedCommands()).toEqual(
+      expect.arrayContaining([
+        ['expire', ctrCounterKey('cmp_a', 'cre_a'), CTR_COUNTER_TTL_SECONDS],
+      ]),
+    );
+  });
+
+  it('does not count a slot load — a pageview is not an impression', async () => {
+    // 'pageview' is the wire type for slot loads too (see AdEvent.type). Counting
+    // those as impressions would put the bandit's denominator on ads that were
+    // served but never actually seen, deflating every variant's CTR unevenly.
+    await logEvent({ ...impressionEvent(), type: 'pageview' });
+    expect(ctrCommands()).toEqual([]);
+  });
+
+  it('does not let bot traffic steer the rotation', async () => {
+    for (const botClass of ['known_bot', 'suspected_bot'] as const) {
+      allCommands = [];
+      await logEvent({ ...impressionEvent(), botClass });
+      expect(ctrCommands()).toEqual([]);
+    }
+  });
+
+  it('still queues bot events for stats even though they do not count toward CTR', async () => {
+    // Excluding bots from the bandit must not quietly drop them from the stats
+    // pipeline — traffic measurement needs them.
+    await logEvent({ ...impressionEvent(), botClass: 'known_bot' });
+    const queues = pipelinedCommands()
+      .filter(([cmd]) => cmd === 'lpush')
+      .map(([, key]) => key);
+    expect(queues).toContain(EVENT_QUEUE_STATS);
+  });
+
+  it('does not count house ads and other fallbacks — they are not a variant test', async () => {
+    await logEvent({
+      ...impressionEvent(),
+      campaignId: 'cmp_fallback',
+      creativeId: 'cre_fallback_birtingur',
+    });
+    expect(ctrCommands()).toEqual([]);
   });
 });

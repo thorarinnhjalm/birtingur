@@ -95,11 +95,17 @@ describe('selectCreative', () => {
     expect(got?.creativeId).toBe('slot');
   });
 
+  // Keyed by campaign id, not creative id — a campaign's variants share one
+  // frequency budget. See SelectionContext.visitorImpressionsToday.
   it('respects frequency cap with consent=full', () => {
     const capped = makeCreative({ frequencyCapPerDay: 3 });
     const slot = makeSlot([capped]);
     expect(
-      selectCreative(slot, { country: 'IS', consent: 'full', visitorImpressionsToday: { c1: 3 } }),
+      selectCreative(slot, {
+        country: 'IS',
+        consent: 'full',
+        visitorImpressionsToday: { cmp1: 3 },
+      }),
     ).toBe(null);
   });
 

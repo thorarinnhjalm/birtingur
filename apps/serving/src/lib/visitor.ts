@@ -26,6 +26,17 @@ export function getVisitorToken(clientToken?: string): string {
   return '';
 }
 
+/**
+ * Impressions this visitor has been shown today, keyed by CAMPAIGN id.
+ *
+ * Fields were keyed by creative id until 2026-08-14. That was equivalent while a
+ * campaign could only place one creative in a slot; once a campaign contributes
+ * every variant, a per-creative key multiplies an advertiser's daily exposure by
+ * its variant count (see SelectionContext.visitorImpressionsToday in
+ * lib/select.ts). Both sides of the counter moved together — nothing reads the
+ * old creative-keyed fields, so the worst a leftover hash from before the deploy
+ * can do is let a visitor see a few extra ads for the rest of that one day.
+ */
 export async function getVisitorImpressionsToday(token: string): Promise<Record<string, number>> {
   const key = `vimp:${token}:${todayKey()}`;
   const raw = await getRedis().hgetall<Record<string, string>>(key);
@@ -37,9 +48,9 @@ export async function getVisitorImpressionsToday(token: string): Promise<Record<
   return out;
 }
 
-export async function recordVisitorImpression(token: string, creativeId: string): Promise<void> {
+export async function recordVisitorImpression(token: string, campaignId: string): Promise<void> {
   const key = `vimp:${token}:${todayKey()}`;
-  await getRedis().hincrby(key, creativeId, 1);
+  await getRedis().hincrby(key, campaignId, 1);
   await getRedis().expire(key, 86400 * 2); // expire in 2 days
 }
 
