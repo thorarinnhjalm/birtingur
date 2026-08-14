@@ -5,7 +5,7 @@
   "description": "WordPress plugin for Birtingur ad slot injection",
   "scripts": {
     "build": "node build-zip.mjs",
-    "lint": "find . -name '*.php' -not -path './node_modules/*' -print0 | xargs -0 -n1 php -l",
+    "lint": "find . -name '*.php' -not -path './node_modules/*' -not -path './dist/*' -print0 | xargs -0 -n1 php -l",
     "test": "php tests/run-tests.php"
   }
 }
