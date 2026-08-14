@@ -14,6 +14,8 @@ import {
   BUDGET_COUNTER_TTL_SECONDS,
   FLAT_CPM_ISK,
   SENSITIVE_AD_CATEGORY_SLUGS,
+  ctrCounterKey,
+  MAX_CACHED_VARIANTS_PER_CAMPAIGN,
 } from '@ada/shared';
 import type { SlotCacheEntry, CachedCreative, Creative, Publisher, Campaign } from '@ada/shared';
 
@@ -30,6 +32,44 @@ function blockedSensitiveCategories(publisher: Publisher): string[] {
 function flightDaysLeft(campaign: Campaign): number {
   const flightStartMs = Math.max(Date.now(), campaign.schedule.startsAt.getTime());
   return Math.max(1, Math.ceil((campaign.schedule.endsAt.getTime() - flightStartMs) / 86_400_000));
+}
+
+/** Redis hash fields come back as strings; anything unparseable counts as no evidence. */
+function toCount(v: unknown): number {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+/**
+ * Bake each creative's CTR counters into the cache entry so the ad hot path can
+ * run its epsilon-greedy variant pick without a Redis read of its own.
+ *
+ * ONE pipelined round trip for the whole slot, never one call per creative: this
+ * runs over every slot in the network every 10 minutes, and per-item sequential
+ * requests against Upstash's REST API is exactly the shape that made
+ * cron-aggregate blow its time limit every hour.
+ *
+ * Fail-safe: on any error the creatives keep `ctr` undefined and the entry is
+ * written anyway. A hiccup reading an optimisation input must never cost a
+ * publisher their ads — selection reads a missing `ctr` as "no evidence" and
+ * falls back to an even rotation.
+ */
+async function attachCtrCounters(
+  redis: ReturnType<typeof getRedis>,
+  creatives: CachedCreative[],
+): Promise<void> {
+  if (creatives.length === 0) return;
+  try {
+    const p = redis.pipeline();
+    for (const c of creatives) p.hgetall(ctrCounterKey(c.campaignId, c.creativeId));
+    const results = (await p.exec()) as Array<Record<string, unknown> | null> | null;
+    creatives.forEach((c, i) => {
+      const hash = results?.[i];
+      c.ctr = { imp: toCount(hash?.imp), clk: toCount(hash?.clk) };
+    });
+  } catch (err) {
+    console.error('CTR counter read failed; caching slot without bandit evidence:', err);
+  }
 }
 
 export async function pushSlotCache(slotId: string): Promise<void> {
@@ -170,10 +210,33 @@ export async function pushSlotCache(slotId: string): Promise<void> {
 
   // 6. Map to CachedCreative
   for (const campaign of sortedCampaigns) {
+    // One CAMPAIGN per advertiser per slot. This is the rule that keeps one
+    // advertiser from crowding a slot, and it stays. What used to sit inside the
+    // inner loop as well — one CREATIVE per campaign — is gone: a campaign now
+    // contributes every usable variant so apps/serving can rotate between them
+    // on measured CTR (selectCreative's epsilon-greedy stage). That costs the
+    // campaign no extra delivery, because selection draws a CAMPAIGN first and
+    // only then a variant within it.
     if (seenAdvertisers.has(campaign.advertiserId)) continue;
 
+    let contributed = 0;
+    const seenCreatives = new Set<string>();
+
     for (const cId of campaign.creativeIds) {
-      if (seenAdvertisers.has(campaign.advertiserId)) continue;
+      if (contributed >= MAX_CACHED_VARIANTS_PER_CAMPAIGN) {
+        // Logged, never silent: a quiet truncation reads as "everything usable
+        // was cached" to anyone comparing this against slot-delivery's counts.
+        console.warn(
+          `Slot ${slot.id}: campaign ${campaign.id} has more usable creatives than ` +
+            `MAX_CACHED_VARIANTS_PER_CAMPAIGN (${MAX_CACHED_VARIANTS_PER_CAMPAIGN}); ` +
+            `the rest are not cached for this slot.`,
+        );
+        break;
+      }
+      // A duplicated id in creativeIds would otherwise cache the same variant
+      // twice and hand it double the rotation share.
+      if (seenCreatives.has(cId)) continue;
+      seenCreatives.add(cId);
 
       const creative = creativeMap.get(cId);
       if (!creative) continue;
@@ -225,10 +288,17 @@ export async function pushSlotCache(slotId: string): Promise<void> {
         priority: campaign.budget.mode === 'slot_purchased' ? 'slot_purchased' : 'cpm',
       });
 
-      seenAdvertisers.add(campaign.advertiserId);
-      break; // Only one creative per advertiser
+      contributed++;
     }
+
+    // Claim the advertiser's one place only if this campaign actually put a
+    // creative in. A campaign whose variants were all filtered out (size, review
+    // status, brand safety) must not block the advertiser's other campaigns —
+    // that was the behaviour before, and it is preserved.
+    if (contributed > 0) seenAdvertisers.add(campaign.advertiserId);
   }
+
+  await attachCtrCounters(redis, activeCreatives);
 
   const entry: SlotCacheEntry = {
     slotId: slot.id,
