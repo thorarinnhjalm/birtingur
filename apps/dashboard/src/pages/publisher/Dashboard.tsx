@@ -562,10 +562,14 @@ function PublisherHome() {
                     site.impressions > 0
                       ? ((site.clicks / site.impressions) * 100).toFixed(2).replace('.', ',')
                       : '0,00';
+                  // formatIsk(0), not the literal '0 kr.' used elsewhere on this
+                  // page: formatIsk emits "0 kr" with no trailing period, so a
+                  // site with no impressions showed "0 kr" revenue next to
+                  // "0 kr. eCPM" in the very same cell.
                   const siteEcpm =
                     site.impressions > 0
                       ? formatIsk(Math.round((netSiteEarnings / site.impressions) * 1000))
-                      : '0 kr.';
+                      : formatIsk(0);
 
                   return (
                     <tr

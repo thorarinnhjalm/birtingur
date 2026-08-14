@@ -54,6 +54,10 @@ const TWO_SITES = [
   { id: 'pub_b', displayName: 'Vefur B', domain: 'vefur-b.is' },
 ];
 
+// BY_SITE_STATS carries a third, traffic-less site (see its comment); the
+// publisher list has to match or the table renders rows the owner does not own.
+const THREE_SITES = [...TWO_SITES, { id: 'pub_c', displayName: 'Vefur C', domain: 'vefur-c.is' }];
+
 // Single-site owner, for the Vefumferð stat-card tests below — a single-site
 // owner never gets a `bySite` breakdown, so this exercises the plain
 // stats.pageViewsTrue path without the per-site table getting in the way.
@@ -81,13 +85,30 @@ const BASE_STATS = {
  * below, and DEFAULT_PLATFORM_FEE_PERCENT = 20 for the net figures):
  *
  *   Vefur A  fill 1000/2000 = 50%   CTR 10/1000 = 1,00%   net 440 kr   eCPM 440 kr
- *   Vefur B  fill  900/1000 = 90%   CTR 45/900  = 5,00%   net 800 kr   eCPM 889 kr
+ *   Vefur B  fill  900/1100 = 82%   CTR 45/900  = 5,00%   net 800 kr   eCPM 889 kr
+ *   Vefur C  everything zero — the division guards
+ *
+ * Vefur B's fill rate is deliberately NOT a round number: 900/1100 is 81,8, so
+ * Math.round gives 82 and Math.floor would give 81. With both sites landing on
+ * exact tens the rounding was unpinned and swapping round for floor passed.
+ *
+ * Vefur C exists because every division in the table is guarded and none of
+ * those guards was covered: a brand-new site with no traffic yet would render
+ * NaN%, (NaN%) and NaN kr eCPM to a publisher on their first visit, and the
+ * suite would stay green.
+ *
+ * `pageViewsTrue` sits at the top level too, at the sum of the sites that have
+ * it. publisher-stats.ts sets the top-level figure whenever ANY site measured
+ * one, so a fixture with it per-site but absent at the top is a response the
+ * API cannot produce — and it silently pushed the page's own Vefumferð card
+ * into its "measurement hasn't started" state.
  */
 const BY_SITE_STATS = {
   impressions: 1900,
   clicks: 55,
   spendIsk: 1550,
-  pageviews: 3000,
+  pageviews: 3100,
+  pageViewsTrue: 1800,
   history: [],
   bySite: [
     {
@@ -106,8 +127,17 @@ const BY_SITE_STATS = {
       domain: 'vefur-b.is',
       impressions: 900,
       clicks: 45,
-      pageviews: 1000,
+      pageviews: 1100,
       spendIsk: 1000,
+    },
+    {
+      publisherId: 'pub_c',
+      displayName: 'Vefur C',
+      domain: 'vefur-c.is',
+      impressions: 0,
+      clicks: 0,
+      pageviews: 0,
+      spendIsk: 0,
     },
   ],
 };
@@ -163,14 +193,14 @@ beforeEach(() => {
 });
 
 test('shows the per-site overview table when viewing all sites', async () => {
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   expect(await screen.findByText('Vefur A')).toBeDefined();
   expect(screen.getByText('Vefur B')).toBeDefined();
 });
 
 test('clicking a site row narrows the filter', async () => {
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   fireEvent.click(await screen.findByText('Vefur B'));
   await vi.waitFor(() => {
@@ -190,16 +220,36 @@ test('fill rate is impressions over SLOT LOADS, not over real page views', async
   // `pageViewsTrue` counts real page loads and is what "Vefumferð" shows.
   // Vefur A has 1000 impressions against 2000 slot loads and 1800 true page
   // views: 50% is right, 56% would mean the wrong field.
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
   expect(within(siteRow('Vefur A')).getByText('50%')).toBeDefined();
-  expect(within(siteRow('Vefur B')).getByText('90%')).toBeDefined();
+  // 900/1100 is 81,8 — pins Math.round rather than Math.floor.
+  expect(within(siteRow('Vefur B')).getByText('82%')).toBeDefined();
+});
+
+test('a site with no traffic yet shows zeroes, never NaN', async () => {
+  // Every figure in this table is a division. A publisher who has just added a
+  // site and had no impressions yet is the first person to hit all four guards
+  // at once, and NaN% in their revenue table would be their first impression of
+  // the product.
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  const rowC = siteRow('Vefur C');
+  expect(rowC.textContent).not.toContain('NaN');
+  expect(rowC.textContent).not.toContain('Infinity');
+  expect(within(rowC).getByText('0%')).toBeDefined();
+  expect(within(rowC).getByText('(0,00%)')).toBeDefined();
+  // formatIsk emits "0 kr" with no trailing period; the eCPM fallback used to
+  // hardcode "0 kr." and disagree with the revenue figure beside it.
+  expect(within(rowC).getByText('0 kr eCPM')).toBeDefined();
 });
 
 test('per-site CTR is clicks over impressions, in Icelandic decimal notation', async () => {
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
@@ -211,7 +261,7 @@ test('per-site eCPM is net of the platform fee, matching the revenue beside it',
   // Publishers keep 80%. An eCPM computed off gross spend would read 550 and
   // 1.111 here and would not reconcile with the revenue figure in the same
   // cell, which is the number they get paid.
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
@@ -228,7 +278,7 @@ test('the traffic column shows real page views per site, or a dash when unmeasur
   // Vefur A has pageViewsTrue, Vefur B does not. Showing B's 1000 slot loads as
   // if they were traffic is the overcount the whole pageViewsTrue split exists
   // to prevent, so the dash matters as much as the number.
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: BY_SITE_STATS });
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
