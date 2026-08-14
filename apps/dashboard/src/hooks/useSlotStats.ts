@@ -10,6 +10,9 @@ export interface SlotStats {
   // the aggregator began counting it, so fill renders as unmeasured rather than
   // as 0%. Same field and same meaning as on the publisher stats response.
   unfilled?: number;
+  // Requests over EXACTLY the days that measured `unfilled`. `pageviews` covers
+  // the whole window and is the wrong denominator for a fill rate.
+  requestsWithFillData?: number;
   history: {
     date: string;
     impressions: number;

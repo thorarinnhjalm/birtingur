@@ -116,6 +116,9 @@ const BY_SITE_STATS = {
   pageviews: 3100,
   pageViewsTrue: 1800,
   unfilled: 600,
+  requestsWithFillData: 3100,
+  impressionsWithFillData: 1900,
+  requestsWithTrafficData: 3100,
   history: [],
   bySite: [
     {
@@ -127,6 +130,7 @@ const BY_SITE_STATS = {
       pageviews: 2000,
       pageViewsTrue: 1800,
       unfilled: 400,
+      requestsWithFillData: 2000,
       spendIsk: 550,
     },
     {
@@ -137,6 +141,7 @@ const BY_SITE_STATS = {
       clicks: 45,
       pageviews: 1100,
       unfilled: 200,
+      requestsWithFillData: 1100,
       spendIsk: 1000,
     },
     {

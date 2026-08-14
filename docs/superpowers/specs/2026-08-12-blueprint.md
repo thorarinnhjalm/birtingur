@@ -217,6 +217,7 @@ way into a stats document.
 | `events:stats` depth over time is watched, not just readable on demand            | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
 | An ad request with no advertiser is counted apart from one that was never seen    | `apps/api/tests/stats-aggregator.test.ts` (`unfilled`), `apps/api/tests/publisher-stats-unfilled.test.ts`                                                                    |
 | `unfilled` stays absent, never 0, for windows that predate the counter            | same two files, plus `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                                                         |
+| A rate is never computed from a numerator and denominator covering different days | `apps/api/tests/publisher-stats-unfilled.test.ts`, `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                           |
 
 **Now.** PR #32 (merged 2026-08-12) raised the batch cap to 20 behind the 30s
 deadline, added the re-queue and the `AggregationError.anyCommitted` distinction,
@@ -231,6 +232,16 @@ between them therefore blended two failures with opposite owners: nobody bought
 the publisher's categories, which is ours to fix, and the ad loaded but was
 never scrolled into view, which the publisher fixes by moving the slot. A single
 "fill rate" told neither party anything actionable.
+
+A counter that starts partway through a window needs its denominator to start
+there too. `unfilled` and `pageViewsTrue` are both absent before their switch
+dates while `pageviews` covers the whole window, so dividing one by the other
+compared two periods: a 30-day window put 30 days of requests under one day of
+unfilled and a site with a real 50% fill rate reported 98%. The API therefore
+returns `requestsWithFillData`, `impressionsWithFillData` and
+`requestsWithTrafficData` — each summed over exactly the days that measured its
+partner, each absent whenever its partner is — and the UI treats an unpaired
+counter as unmeasured rather than falling back to the whole-window figure.
 
 `unfilled` closes that: a slot load whose creative was a house ad, a transparent
 placeholder or a cold-cache response had no advertiser behind it

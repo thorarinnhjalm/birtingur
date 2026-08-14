@@ -93,6 +93,72 @@ describe('getPublisherStats — unfilled ad requests', () => {
     expect(stats.unfilled).toBe(10);
   });
 
+  /**
+   * `unfilled` covers only the days that measured it, but `pageviews` covers the
+   * whole window — so dividing one by the other compares two different periods.
+   * With the counter having started on 2026-08-14, a 30-day window put 30 days
+   * of requests under 1 day of unfilled and a site with a real 50% fill rate
+   * read 98%, in green. The chain then blamed the publisher's slot placement
+   * for inventory we had failed to sell.
+   *
+   * The denominator now travels with the numerator: `requestsWithFillData` is
+   * the request count over exactly the days that measured `unfilled`, and is
+   * absent whenever `unfilled` is.
+   */
+  it('reports the request count for the days that measured unfilled', async () => {
+    await seedDay('pub_x', 3, { impressions: 80, clicks: 0, spendIsk: 0, pageviews: 100 });
+    await seedDay('pub_x', 1, {
+      impressions: 90,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 100,
+      unfilled: 50,
+    });
+
+    const stats = await getPublisherStats('pub_x', 7);
+
+    // The window still reports all 200 requests — that figure is not wrong.
+    expect(stats.pageviews).toBe(200);
+    // But fill is 50 unfilled out of the 100 requests on the day that measured
+    // it, which is 50%. Against all 200 it would read 75%.
+    expect(stats.requestsWithFillData).toBe(100);
+    expect(stats.unfilled).toBe(50);
+    // And the impressions from the same days, so the second gap in the chain
+    // (filled minus impressions) subtracts two figures covering one period.
+    expect(stats.impressionsWithFillData).toBe(90);
+  });
+
+  it('leaves the fill denominator absent when nothing measured it', async () => {
+    await seedDay('pub_x', 1, { impressions: 80, clicks: 2, spendIsk: 44, pageviews: 100 });
+
+    const stats = await getPublisherStats('pub_x', 7);
+
+    expect(stats.unfilled).toBeUndefined();
+    expect(stats.requestsWithFillData).toBeUndefined();
+    expect(stats.impressionsWithFillData).toBeUndefined();
+  });
+
+  it('does the same for real page views, which started on a different day', async () => {
+    // Same defect, different pair: requests-per-page-view divided a full window
+    // of requests by six days of measured traffic and read about 5x too high.
+    await seedDay('pub_x', 3, { impressions: 80, clicks: 0, spendIsk: 0, pageviews: 300 });
+    await seedDay('pub_x', 1, {
+      impressions: 90,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 300,
+      pageViewsTrue: 100,
+    });
+
+    const stats = await getPublisherStats('pub_x', 7);
+
+    expect(stats.pageviews).toBe(600);
+    expect(stats.pageViewsTrue).toBe(100);
+    // 300 requests against 100 page views is 3,0 per page view. Against all 600
+    // it would read 6,0 and imply twice as many slots as the site has.
+    expect(stats.requestsWithTrafficData).toBe(300);
+  });
+
   it('keeps a measured zero as zero, distinct from unmeasured', async () => {
     // The aggregator omits the field rather than writing 0, so a doc carrying
     // an explicit 0 can only come from somewhere else — but if it ever does,

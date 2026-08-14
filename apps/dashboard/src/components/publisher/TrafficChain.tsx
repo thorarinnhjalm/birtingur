@@ -36,6 +36,22 @@ export interface TrafficChainProps {
   requests: number;
   /** Ad requests that came back with no advertiser. Absent when unmeasured. */
   unfilled?: number;
+  /**
+   * Requests and impressions over EXACTLY the days that measured `unfilled`.
+   *
+   * `requests` above spans the whole selected window while `unfilled` spans only
+   * the measured part of it, so dividing one by the other compares two different
+   * periods. With the counter having started on 2026-08-14, a 30-day window put
+   * 30 days of requests under 1 day of unfilled: a site with a real 50% fill
+   * rate rendered 98%, in green, and the copy below then blamed the publisher's
+   * slot placement for inventory we had failed to sell.
+   *
+   * Absent whenever `unfilled` is.
+   */
+  requestsWithFillData?: number;
+  impressionsWithFillData?: number;
+  /** Requests over exactly the days that measured `pageViewsTrue`. */
+  requestsWithTrafficData?: number;
   /** Ads that became visible. The figure the publisher is paid for. */
   impressions: number;
   /** Shown under the traffic step when no true figure exists yet. */
@@ -95,12 +111,24 @@ export function TrafficChain({
   pageViewsTrue,
   requests,
   unfilled,
+  requestsWithFillData,
+  impressionsWithFillData,
+  requestsWithTrafficData,
   impressions,
   measurementStartLabel,
   fillMeasurementStartLabel,
 }: TrafficChainProps) {
-  const splitKnown = unfilled !== undefined;
-  const filled = splitKnown ? Math.max(0, requests - unfilled) : undefined;
+  // Every figure in the fill half of the chain comes from the measured days
+  // only. Falling back to the whole-window `requests` when the paired count is
+  // absent would reintroduce the exact mismatch this pairing exists to remove,
+  // so an unpaired `unfilled` is treated as unmeasured.
+  const splitKnown = unfilled !== undefined && requestsWithFillData !== undefined;
+  const fillRequests = splitKnown ? requestsWithFillData! : undefined;
+  const fillImpressions = impressionsWithFillData ?? impressions;
+  const filled = splitKnown ? Math.max(0, fillRequests! - unfilled!) : undefined;
+  // True when the fill figures cover a shorter period than the rest of the
+  // chain, which is the normal state until the window is fully measured.
+  const fillWindowIsShorter = fillRequests !== undefined && fillRequests < requests;
 
   // Clamped at 100, matching how CTR is presented elsewhere on this page. An
   // impression pixel can fire in a later window than the request that produced
@@ -110,8 +138,8 @@ export function TrafficChain({
   const pct = (part: number, whole: number) =>
     whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : null;
 
-  const fillPct = filled !== undefined ? pct(filled, requests) : null;
-  const viewPct = filled !== undefined ? pct(impressions, filled) : null;
+  const fillPct = filled !== undefined ? pct(filled, fillRequests!) : null;
+  const viewPct = filled !== undefined ? pct(fillImpressions, filled) : null;
   // The one ratio that survives without the split: requests that ended up as a
   // visible ad. Labelled for what it is rather than called a fill rate, which
   // it is not.
@@ -140,7 +168,7 @@ export function TrafficChain({
           <Link
             caption={
               pageViewsTrue !== undefined && pageViewsTrue > 0
-                ? `${(requests / pageViewsTrue).toFixed(1).replace('.', ',')} beiðnir á flettingu`
+                ? `${((requestsWithTrafficData ?? requests) / pageViewsTrue).toFixed(1).replace('.', ',')} beiðnir á flettingu`
                 : 'auglýsingapláss'
             }
           />
@@ -154,7 +182,11 @@ export function TrafficChain({
             label="Fylltar"
             value={filled !== undefined ? nf(filled) : '—'}
             meaning={
-              filled !== undefined ? 'Auglýsandi fannst' : `Mælist frá ${fillMeasurementStartLabel}`
+              filled === undefined
+                ? `Mælist frá ${fillMeasurementStartLabel}`
+                : fillWindowIsShorter
+                  ? `Auglýsandi fannst — af ${nf(fillRequests!)} beiðnum frá ${fillMeasurementStartLabel}`
+                  : 'Auglýsandi fannst'
             }
           />
           <Link caption={viewPct !== null ? `${viewPct}% sáust` : ''} />
@@ -176,16 +208,16 @@ export function TrafficChain({
               passar við plássið þá stundina. Það er okkar að laga, ekki þitt.
             </p>
           )}
-          {filled !== undefined && filled - impressions > 0 && (
+          {filled !== undefined && filled - fillImpressions > 0 && (
             <p className="m-0">
               <strong className="font-semibold text-slate-900">
-                {nf(filled - impressions)} auglýsingar
+                {nf(filled - fillImpressions)} auglýsingar
               </strong>{' '}
               hlóðust en töldust aldrei sýnilegar. Oftast þýðir það að plássið er neðarlega á
               síðunni og lesandinn skrollar ekki niður að því.
             </p>
           )}
-          {unfilled === 0 && filled === impressions && (
+          {unfilled === 0 && filled === fillImpressions && (
             <p className="m-0">Allar beiðnir fengu auglýsingu og allar sáust.</p>
           )}
         </div>
