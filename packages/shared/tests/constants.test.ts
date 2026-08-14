@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { AD_CATEGORIES, AD_CATEGORY_SLUGS, publisherNetIsk } from '../src/constants';
+import {
+  AD_CATEGORIES,
+  AD_CATEGORY_SLUGS,
+  FLAT_CPM_ISK,
+  grossIskForImpressions,
+  publisherNetIsk,
+} from '../src/constants';
 
 describe('AD_CATEGORIES', () => {
   it('exposes food category for the canonical mayo use-case', () => {
@@ -58,5 +64,37 @@ describe('publisherNetIsk', () => {
 
   it('is zero for zero, not NaN', () => {
     expect(publisherNetIsk(0)).toBe(0);
+  });
+});
+
+/**
+ * The single definition of what impressions are worth, rounded ONCE over the
+ * period being reported. The aggregator's per-run rounding of the same
+ * arithmetic booked a whole króna per single-impression hour and overstated the
+ * smallest publishers' dashboards by up to 82%.
+ */
+describe('grossIskForImpressions', () => {
+  it('rounds half-krónur once, not per unit', () => {
+    // 1 impression is 0,55 → 1 when rounded alone; 3 impressions are 1,65 → 2,
+    // not the 3 that per-unit rounding accumulates.
+    expect(grossIskForImpressions(1)).toBe(1);
+    expect(grossIskForImpressions(3)).toBe(2);
+  });
+
+  it('is exact at CPM multiples', () => {
+    expect(grossIskForImpressions(1000)).toBe(FLAT_CPM_ISK);
+    expect(grossIskForImpressions(100_000)).toBe(55_000);
+  });
+
+  it('is zero for zero impressions', () => {
+    expect(grossIskForImpressions(0)).toBe(0);
+  });
+
+  it('never differs from the exact value by more than half a króna', () => {
+    for (const n of [1, 7, 24, 144, 999, 12_345, 720_000]) {
+      expect(Math.abs(grossIskForImpressions(n) - (n * FLAT_CPM_ISK) / 1000)).toBeLessThanOrEqual(
+        0.5,
+      );
+    }
   });
 });

@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK, UNATTRIBUTED_CREATIVE_ID } from '@ada/shared';
+import { UNATTRIBUTED_CREATIVE_ID, grossIskForImpressions } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { getPublisherById } from './publishers.js';
 import { getCreative } from './creatives.js';
@@ -142,10 +142,12 @@ export async function getCampaignStats(
         }
         const pImp = (pubStats as any).impressions || 0;
         const pClk = (pubStats as any).clicks || 0;
-        const pSpend = (pubStats as any).spendIsk || Math.round((pImp / 1000) * FLAT_CPM_ISK);
+        // The STORED per-run spend is ignored on purpose: accumulating it made
+        // the per-publisher table disagree with the campaign's own eCPM card
+        // by ~9% for the same campaign. Derived once from this publisher's
+        // impressions below instead.
         byPublisherAggregate[pubId]!.impressions += pImp;
         byPublisherAggregate[pubId]!.clicks += pClk;
-        byPublisherAggregate[pubId]!.spendIsk += pSpend;
       }
     }
 
@@ -179,7 +181,9 @@ export async function getCampaignStats(
       enrichedByPublisher[pubId] = {
         impressions: agg.impressions,
         clicks: agg.clicks,
-        spendIsk: agg.spendIsk,
+        // Derived from this publisher's impressions so the column sums to the
+        // campaign total shown above it.
+        spendIsk: grossIskForImpressions(agg.impressions),
         displayName: pubInfo?.displayName || 'Óþekktur vefur',
         domain: pubInfo?.domain || 'óþekkt lén',
       };
@@ -230,7 +234,7 @@ export async function getCampaignStats(
     }
   }
 
-  const spendIsk = Math.round((impressions / 1000) * FLAT_CPM_ISK);
+  const spendIsk = grossIskForImpressions(impressions);
 
   return { impressions, clicks, spendIsk, hours: out, byPublisher: enrichedByPublisher };
 }

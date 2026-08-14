@@ -75,9 +75,11 @@ export interface SlotDeliveryDiagnosis {
     availableSizesNotOnSlot: string[];
     startsAt: string | null;
   };
-  /** `earningsIsk` is NET of the platform fee — what the publisher is paid,
-   * which is what an agent relaying "you earned X" has to say. It was the gross
-   * `spendIsk`, 25% high, under a field literally named earnings. */
+  /** `earningsIsk` is NET of the platform fee — the publisher's share of what
+   * this traffic is worth over the window. (What is actually PAID OUT is the
+   * ledger balance on the payouts page; this figure describes the traffic.) It
+   * was the gross `spendIsk`, 25% high, under a field literally named
+   * earnings. */
   last7Days: { impressions: number; clicks: number; earningsIsk: number };
 }
 

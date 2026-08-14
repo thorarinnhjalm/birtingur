@@ -28,7 +28,13 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, Fragment } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
-import { AD_CATEGORIES, FLAT_CPM_ISK, UNATTRIBUTED_CREATIVE_ID, type Creative } from '@ada/shared';
+import {
+  AD_CATEGORIES,
+  FLAT_CPM_ISK,
+  UNATTRIBUTED_CREATIVE_ID,
+  type Creative,
+  grossIskForImpressions,
+} from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
 
@@ -640,7 +646,7 @@ export default function CampaignDetail() {
                       clicks: 0,
                       ctr: 0,
                     };
-                    const spendIsk = Math.round((cStats.impressions / 1000) * FLAT_CPM_ISK);
+                    const spendIsk = grossIskForImpressions(cStats.impressions);
                     const ctr =
                       cStats.impressions > 0
                         ? Math.min(100, (cStats.clicks / cStats.impressions) * 100)

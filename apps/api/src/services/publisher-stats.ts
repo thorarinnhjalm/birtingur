@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import type { PublisherStatsBreakdown } from '@ada/shared/types';
-import { FLAT_CPM_ISK, publisherNetIsk } from '@ada/shared';
+import { publisherNetIsk, grossIskForImpressions } from '@ada/shared';
 
 export interface SiteBreakdown {
   publisherId: string;
@@ -97,7 +97,6 @@ export async function getPublisherStats(
   }[] = [];
   let totalImpressions = 0;
   let totalClicks = 0;
-  let totalSpendIsk = 0;
   let totalPageviews = 0;
   let totalPageViewsTrue = 0;
   // True per-day pageviews are only ever present from the switch date
@@ -128,7 +127,6 @@ export async function getPublisherStats(
     return subRef.get().then(async (subSnap) => {
       let dayImpressions = 0;
       let dayClicks = 0;
-      let daySpendIsk = 0;
       let dayPageviews = 0;
       // Undefined unless a doc for this day actually carries the field \u2014
       // never defaulted to 0, so a pre-switch (or otherwise unmeasured) day
@@ -143,7 +141,6 @@ export async function getPublisherStats(
           dayHasRealData = true;
           dayImpressions = data.impressions || 0;
           dayClicks = data.clicks || 0;
-          daySpendIsk = data.spendIsk || 0;
           dayPageviews = data.pageviews || 0;
           if (typeof data.pageViewsTrue === 'number') {
             dayPageViewsTrue = data.pageViewsTrue;
@@ -167,7 +164,6 @@ export async function getPublisherStats(
             dayHasRealData = true;
             dayImpressions += pubData.impressions || 0;
             dayClicks += pubData.clicks || 0;
-            daySpendIsk += pubData.spendIsk || 0;
             dayPageviews += pubData.pageviews || 0;
             if (typeof pubData.pageViewsTrue === 'number') {
               dayPageViewsTrue = (dayPageViewsTrue ?? 0) + pubData.pageViewsTrue;
@@ -183,7 +179,10 @@ export async function getPublisherStats(
         date: dateStr,
         impressions: dayImpressions,
         clicks: dayClicks,
-        spendIsk: daySpendIsk,
+        // Derived, not the stored per-run sum — see grossIskForImpressions.
+        // A day is still a rounding boundary, but the window total below is
+        // derived from the window's impressions rather than from these.
+        spendIsk: grossIskForImpressions(dayImpressions),
         pageviews: dayPageviews,
         pageViewsTrue: dayPageViewsTrue,
         unfilled: dayUnfilled,
@@ -210,7 +209,9 @@ export async function getPublisherStats(
 
     totalImpressions += res.impressions;
     totalClicks += res.clicks;
-    totalSpendIsk += res.spendIsk;
+    // Deliberately NOT summed: the window's revenue is derived once from the
+    // window's impressions below, so the figure does not inherit a rounding
+    // error per day on top of the one per aggregation run.
     totalPageviews += res.pageviews;
     if (res.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
@@ -232,7 +233,6 @@ export async function getPublisherStats(
     const mockHistory: typeof history = [];
     let mockTotalImpressions = 0;
     let mockTotalClicks = 0;
-    let mockTotalSpendIsk = 0;
     let mockTotalPageviews = 0;
 
     for (let i = timeframeDays - 1; i >= 0; i--) {
@@ -248,7 +248,7 @@ export async function getPublisherStats(
 
       const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
+      const daySpendIsk = grossIskForImpressions(dayImpressions);
       // Mock pageviews should be around 1.8x to 3x of impressions, plus some extra fallback hits
       const dayPageviews = Math.floor(dayImpressions * (1.8 + Math.random() * 1.2)) + 150;
 
@@ -262,16 +262,15 @@ export async function getPublisherStats(
 
       mockTotalImpressions += dayImpressions;
       mockTotalClicks += dayClicks;
-      mockTotalSpendIsk += daySpendIsk;
       mockTotalPageviews += dayPageviews;
     }
 
     return {
       impressions: mockTotalImpressions,
       clicks: mockTotalClicks,
-      spendIsk: mockTotalSpendIsk,
+      spendIsk: grossIskForImpressions(mockTotalImpressions),
       pageviews: mockTotalPageviews,
-      netEarningsIsk: publisherNetIsk(mockTotalSpendIsk),
+      netEarningsIsk: publisherNetIsk(grossIskForImpressions(mockTotalImpressions)),
       history: mockHistory,
     };
   }
@@ -279,11 +278,11 @@ export async function getPublisherStats(
   return {
     impressions: totalImpressions,
     clicks: totalClicks,
-    spendIsk: totalSpendIsk,
+    spendIsk: grossIskForImpressions(totalImpressions),
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
-    netEarningsIsk: publisherNetIsk(totalSpendIsk),
+    netEarningsIsk: publisherNetIsk(grossIskForImpressions(totalImpressions)),
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
@@ -311,7 +310,6 @@ export async function getAggregatedPublisherStats(
 
   let totalImpressions = 0;
   let totalClicks = 0;
-  let totalSpendIsk = 0;
   let totalPageviews = 0;
   let totalPageViewsTrue = 0;
   let anyPageViewsTrue = false;
@@ -337,7 +335,6 @@ export async function getAggregatedPublisherStats(
   for (const stats of allStats) {
     totalImpressions += stats.impressions;
     totalClicks += stats.clicks;
-    totalSpendIsk += stats.spendIsk;
     totalPageviews += stats.pageviews || 0;
     if (stats.pageViewsTrue !== undefined) {
       anyPageViewsTrue = true;
@@ -398,7 +395,10 @@ export async function getAggregatedPublisherStats(
             pageViewsTrue: allStats[i]!.pageViewsTrue,
             unfilled: allStats[i]!.unfilled,
             requestsWithFillData: allStats[i]!.requestsWithFillData,
-            spendIsk: allStats[i]!.spendIsk,
+            // Derived from that site's impressions for the same reason as the
+            // window total — the per-site table shows revenue and an eCPM
+            // computed from it.
+            spendIsk: grossIskForImpressions(allStats[i]!.impressions),
           }))
           .sort((a, b) => b.impressions - a.impressions)
       : [];
@@ -406,11 +406,11 @@ export async function getAggregatedPublisherStats(
   return {
     impressions: totalImpressions,
     clicks: totalClicks,
-    spendIsk: totalSpendIsk,
+    spendIsk: grossIskForImpressions(totalImpressions),
     pageviews: totalPageviews,
     pageViewsTrue: anyPageViewsTrue ? totalPageViewsTrue : undefined,
     unfilled: anyUnfilled ? totalUnfilled : undefined,
-    netEarningsIsk: publisherNetIsk(totalSpendIsk),
+    netEarningsIsk: publisherNetIsk(grossIskForImpressions(totalImpressions)),
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,

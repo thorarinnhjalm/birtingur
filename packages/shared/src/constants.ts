@@ -178,6 +178,26 @@ export const CURRENCY = 'ISK' as const;
 /** Flat CPM rate applied to all ad impressions */
 export const FLAT_CPM_ISK = 550;
 
+/**
+ * What a given number of impressions is worth, gross, at the flat CPM.
+ *
+ * The single definition, and deliberately rounded ONCE over whatever period the
+ * caller is reporting. One impression costs 0,55 kr, and the aggregator used to
+ * accumulate `round(impressions / 1000 * CPM)` per hourly run — so a blog with
+ * one impression an hour was credited a whole króna 720 times a month and its
+ * dashboard read 576 kr net where the traffic was worth 317. The error is
+ * invisible above roughly a hundred impressions an hour and worst on exactly
+ * the smallest sites, which is the audience this product is for.
+ *
+ * Displayed revenue is therefore DERIVED from the impression count at read
+ * time, never summed from stored per-run figures. It answers "what is this
+ * traffic worth"; what the publisher is actually paid is the ledger balance on
+ * the payouts page, which is a different question and is labelled as one.
+ */
+export function grossIskForImpressions(impressions: number): number {
+  return Math.round((impressions / 1000) * FLAT_CPM_ISK);
+}
+
 /** Ad-buying content categories (advertiser picks these; publisher belongs to 1..n). */
 export const AD_CATEGORIES = [
   { slug: 'matur', label: 'Matur & matreiðsla' },

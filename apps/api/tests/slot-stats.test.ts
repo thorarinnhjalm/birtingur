@@ -115,7 +115,12 @@ describe('getSlotStats service', () => {
     const stats = await getSlotStats('pub_1', 'slot_1', 7);
     expect(stats.impressions).toBe(200);
     expect(stats.clicks).toBe(10);
-    expect(stats.spendIsk).toBe(300);
+    // 110, not the 300 these fixtures store: revenue is DERIVED from the
+    // impression count at read time — round(200 / 1000 * 550) — rather than
+    // summed from the per-run figures the aggregator wrote. Those round 0,55 kr
+    // per impression up to a whole króna every run, which overstates a small
+    // slot badly and is exact only at volume.
+    expect(stats.spendIsk).toBe(110);
     expect(stats.pageviews).toBe(240);
     expect(stats.history).toHaveLength(7);
     expect(stats.history.at(-1)!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -129,5 +134,40 @@ describe('getSlotStats service', () => {
     expect(cmp.impressions).toBe(200);
     expect(cmp.clicks).toBe(10);
     expect(cmp.earningsIsk).toBe(Math.round((200 / 1000) * 550 * 0.8));
+  });
+
+  /**
+   * The heading on SlotDetail derives its figure from impressions; the revenue
+   * chart beside it draws the history rows. When the rows still carried the
+   * stored per-run sums, the same screen showed 63 kr in the heading and 114 kr
+   * in the chart for the same slot — the exact overstatement the heading had
+   * just been cured of.
+   */
+  it('history rows carry the derived figure, so the chart matches the heading', async () => {
+    const now = new Date();
+    const dk = (daysAgo: number) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - daysAgo);
+      return d.toISOString().split('T')[0]!.replace(/-/g, '');
+    };
+    // Six days of one impression an hour, stored the way the aggregator wrote
+    // them: 24 hourly runs each rounding 0,55 up to a whole króna.
+    for (let daysAgo = 1; daysAgo <= 6; daysAgo++) {
+      mockStatsStore.set(`stats/publisher_slots/pub_h_slot_h/${dk(daysAgo)}`, {
+        impressions: 24,
+        clicks: 0,
+        spendIsk: 24,
+        pageviews: 30,
+      });
+    }
+
+    const stats = await getSlotStats('pub_h', 'slot_h', 7);
+
+    const historySum = stats.history.reduce((sum, h) => sum + h.spendIsk, 0);
+    // Each day derives round(24 * 0.55) = 13, so the rows sum to 78 — within a
+    // day-boundary rounding of the heading's 79, not the stored 144.
+    expect(historySum).toBe(78);
+    expect(stats.spendIsk).toBe(79);
+    expect(historySum).not.toBe(144);
   });
 });

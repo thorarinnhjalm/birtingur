@@ -322,6 +322,25 @@ the execution plan):
 
 ---
 
+**Displayed money is derived from impressions, never accumulated.**
+`grossIskForImpressions` in `@ada/shared` rounds once, over whatever period the
+caller is reporting. The aggregator writes a per-run `spendIsk` and summing it
+rounds 0,55 kr per impression up to a whole króna on every hourly run: a blog
+with one impression an hour read 576 kr net a month against traffic worth 317.
+The error is invisible above roughly a hundred impressions an hour and worst on
+the smallest sites, which is this product's audience. The same accumulation gave
+an advertiser three different figures for one campaign's spend — the eCPM card,
+the per-publisher table and the dashboard total — differing by about 9%.
+
+**Owner decision (2026-08-14):** the dashboard figure answers _what is my
+traffic worth_; what the publisher will actually be paid is the ledger balance
+on the payouts page, which answers a different question and is labelled as one.
+Deliberately NOT reconciled: making the display predict the payout would make it
+depend on when the accrual runs happened to fire, so the same traffic could show
+two different numbers. The residual difference is accrual's own rounding, which
+runs about +9% in the publisher's favour at the smallest volumes and vanishes at
+scale; changing that moves real money and is a separate decision.
+
 **One definition of what a publisher earns.** `publisherNetIsk` in
 `@ada/shared` is it, and it is deliberately `gross - round(gross * fee)` because
 that is how `services/wallet.ts` splits the same money into a credit and a fee.

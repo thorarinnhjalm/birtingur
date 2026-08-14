@@ -1,6 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK, publisherNetIsk } from '@ada/shared';
+import { publisherNetIsk, grossIskForImpressions } from '@ada/shared';
 import { getCampaign } from './campaigns.js';
 import { getAdvertiserById } from './advertisers.js';
 
@@ -44,7 +44,6 @@ export async function getSlotStats(
   const history: SlotStatsResponse['history'] = [];
   let impressions = 0;
   let clicks = 0;
-  let spendIsk = 0;
   let pageviews = 0;
   let unfilled = 0;
   let anyUnfilled = false;
@@ -100,12 +99,17 @@ export async function getSlotStats(
       date: res.date,
       impressions: res.impressions,
       clicks: res.clicks,
-      spendIsk: res.spendIsk,
+      // Derived, like the heading figure. This row feeds the revenue chart on
+      // SlotDetail, which sits directly beside the heading — returning the
+      // stored per-run sum here kept the exact 81% overstatement the heading
+      // had just been cured of, on the same screen.
+      spendIsk: grossIskForImpressions(res.impressions),
       pageviews: res.pageviews,
     });
     impressions += res.impressions;
     clicks += res.clicks;
-    spendIsk += res.spendIsk;
+    // Not summed: the window figure is derived once from the window's
+    // impressions, so it does not inherit a rounding error per day.
     pageviews += res.pageviews;
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
@@ -129,7 +133,6 @@ export async function getSlotStats(
     const mockHistory: typeof history = [];
     let mockTotalImpressions = 0;
     let mockTotalClicks = 0;
-    let mockTotalSpendIsk = 0;
     let mockTotalPageviews = 0;
 
     for (let i = timeframeDays - 1; i >= 0; i--) {
@@ -145,20 +148,21 @@ export async function getSlotStats(
 
       const ctr = 0.02 + Math.sin(i * 0.5) * 0.005 + Math.random() * 0.008;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
+      const daySpendIsk = grossIskForImpressions(dayImpressions);
       const dayPageviews = Math.floor(dayImpressions * (1.8 + Math.random() * 1.2)) + 50;
 
       mockHistory.push({
         date: dateStr,
         impressions: dayImpressions,
         clicks: dayClicks,
-        spendIsk: daySpendIsk,
+        // Derived from the day's impressions, never the stored per-run sum —
+        // see grossIskForImpressions in @ada/shared.
+        spendIsk: grossIskForImpressions(dayImpressions),
         pageviews: dayPageviews,
       });
 
       mockTotalImpressions += dayImpressions;
       mockTotalClicks += dayClicks;
-      mockTotalSpendIsk += daySpendIsk;
       mockTotalPageviews += dayPageviews;
     }
 
@@ -169,7 +173,7 @@ export async function getSlotStats(
         impressions: Math.round(mockTotalImpressions * 0.6),
         clicks: Math.round(mockTotalClicks * 0.65),
         earningsIsk: publisherNetIsk(
-          Math.round(((mockTotalImpressions * 0.6) / 1000) * FLAT_CPM_ISK),
+          grossIskForImpressions(Math.round(mockTotalImpressions * 0.6)),
         ),
       },
       cmp_origo_tech: {
@@ -178,7 +182,7 @@ export async function getSlotStats(
         impressions: Math.round(mockTotalImpressions * 0.4),
         clicks: Math.round(mockTotalClicks * 0.35),
         earningsIsk: publisherNetIsk(
-          Math.round(((mockTotalImpressions * 0.4) / 1000) * FLAT_CPM_ISK),
+          grossIskForImpressions(Math.round(mockTotalImpressions * 0.4)),
         ),
       },
     };
@@ -186,7 +190,7 @@ export async function getSlotStats(
     return {
       impressions: mockTotalImpressions,
       clicks: mockTotalClicks,
-      spendIsk: mockTotalSpendIsk,
+      spendIsk: grossIskForImpressions(mockTotalImpressions),
       pageviews: mockTotalPageviews,
       history: mockHistory,
       byCampaign: mockByCampaign,
@@ -225,7 +229,7 @@ export async function getSlotStats(
 
         const impressionsVal = campaignAgg[campId]!.impressions;
         const clicksVal = campaignAgg[campId]!.clicks;
-        const earningsIsk = publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK));
+        const earningsIsk = publisherNetIsk(grossIskForImpressions(impressionsVal));
 
         byCampaign[campId] = {
           campaignName,
@@ -243,7 +247,7 @@ export async function getSlotStats(
           advertiserName: 'Óþekktur auglýsandi',
           impressions: impressionsVal,
           clicks: clicksVal,
-          earningsIsk: publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK)),
+          earningsIsk: publisherNetIsk(grossIskForImpressions(impressionsVal)),
         };
       }
     }),
@@ -252,7 +256,7 @@ export async function getSlotStats(
   return {
     impressions,
     clicks,
-    spendIsk,
+    spendIsk: grossIskForImpressions(impressions),
     pageviews,
     // Absent, never 0, for a window with no measured day — see the field's doc.
     unfilled: anyUnfilled ? unfilled : undefined,
