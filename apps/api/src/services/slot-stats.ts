@@ -1,6 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK, publisherNetIsk } from '@ada/shared';
+import { FLAT_CPM_ISK, publisherNetIsk, grossIskForImpressions } from '@ada/shared';
 import { getCampaign } from './campaigns.js';
 import { getAdvertiserById } from './advertisers.js';
 
@@ -44,7 +44,6 @@ export async function getSlotStats(
   const history: SlotStatsResponse['history'] = [];
   let impressions = 0;
   let clicks = 0;
-  let spendIsk = 0;
   let pageviews = 0;
   let unfilled = 0;
   let anyUnfilled = false;
@@ -105,7 +104,8 @@ export async function getSlotStats(
     });
     impressions += res.impressions;
     clicks += res.clicks;
-    spendIsk += res.spendIsk;
+    // Not summed: the window figure is derived once from the window's
+    // impressions, so it does not inherit a rounding error per day.
     pageviews += res.pageviews;
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
@@ -152,7 +152,9 @@ export async function getSlotStats(
         date: dateStr,
         impressions: dayImpressions,
         clicks: dayClicks,
-        spendIsk: daySpendIsk,
+        // Derived from the day's impressions, never the stored per-run sum —
+        // see grossIskForImpressions in @ada/shared.
+        spendIsk: grossIskForImpressions(dayImpressions),
         pageviews: dayPageviews,
       });
 
@@ -225,7 +227,7 @@ export async function getSlotStats(
 
         const impressionsVal = campaignAgg[campId]!.impressions;
         const clicksVal = campaignAgg[campId]!.clicks;
-        const earningsIsk = publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK));
+        const earningsIsk = publisherNetIsk(grossIskForImpressions(impressionsVal));
 
         byCampaign[campId] = {
           campaignName,
@@ -243,7 +245,7 @@ export async function getSlotStats(
           advertiserName: 'Óþekktur auglýsandi',
           impressions: impressionsVal,
           clicks: clicksVal,
-          earningsIsk: publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK)),
+          earningsIsk: publisherNetIsk(grossIskForImpressions(impressionsVal)),
         };
       }
     }),
@@ -252,7 +254,7 @@ export async function getSlotStats(
   return {
     impressions,
     clicks,
-    spendIsk,
+    spendIsk: grossIskForImpressions(impressions),
     pageviews,
     // Absent, never 0, for a window with no measured day — see the field's doc.
     unfilled: anyUnfilled ? unfilled : undefined,

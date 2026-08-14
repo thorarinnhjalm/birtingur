@@ -115,7 +115,12 @@ describe('getSlotStats service', () => {
     const stats = await getSlotStats('pub_1', 'slot_1', 7);
     expect(stats.impressions).toBe(200);
     expect(stats.clicks).toBe(10);
-    expect(stats.spendIsk).toBe(300);
+    // 110, not the 300 these fixtures store: revenue is DERIVED from the
+    // impression count at read time — round(200 / 1000 * 550) — rather than
+    // summed from the per-run figures the aggregator wrote. Those round 0,55 kr
+    // per impression up to a whole króna every run, which overstates a small
+    // slot badly and is exact only at volume.
+    expect(stats.spendIsk).toBe(110);
     expect(stats.pageviews).toBe(240);
     expect(stats.history).toHaveLength(7);
     expect(stats.history.at(-1)!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);

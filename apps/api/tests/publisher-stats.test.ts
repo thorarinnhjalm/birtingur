@@ -123,7 +123,15 @@ describe('Publisher Stats HTTP Route', () => {
     // Total checks
     expect(body.impressions).toBe(2300); // 800 (yesterday) + 1500 (today)
     expect(body.clicks).toBe(115); // 40 + 75
-    expect(body.spendIsk).toBe(1150); // 400 + 750
+    // 1.265, not the 1.150 these fixtures store. Revenue is DERIVED from the
+    // impression count at read time — round(2300 / 1000 * 550) — rather than
+    // summed from the per-run figures the aggregator wrote, which round 0,55 kr
+    // per impression to a whole króna every run and so overstate a small
+    // publisher's month by up to 82%. (These fixtures happen to carry a 500 kr
+    // CPM, which is why the two differ here at all.) The number the publisher
+    // is actually PAID is the ledger balance on the payouts page; this one
+    // answers what the traffic is worth.
+    expect(body.spendIsk).toBe(1265);
 
     // History checks
     expect(body.history).toHaveLength(7);

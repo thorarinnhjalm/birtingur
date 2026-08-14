@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { listCampaignsForAdvertiser } from './campaigns.js';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, grossIskForImpressions } from '@ada/shared';
 
 export interface AdvertiserStatsResponse {
   impressions: number;
@@ -100,7 +100,6 @@ export async function getAdvertiserStats(
 
   let totalImpressions = 0;
   let totalClicks = 0;
-  let totalSpendIsk = 0;
   let hasRealData = false;
 
   const campaignPromises = campaigns.map(async (cmp) => {
@@ -121,12 +120,8 @@ export async function getAdvertiserStats(
         const imp = data.impressions || 0;
         const clk = data.clicks || 0;
 
-        // Estimate campaign spend based on FLAT_CPM_ISK
-        const spend = Math.round((imp / 1000) * FLAT_CPM_ISK);
-
         dayStats.impressions += imp;
         dayStats.clicks += clk;
-        dayStats.spendIsk += spend;
       }
     }
   }
@@ -147,24 +142,21 @@ export async function getAdvertiserStats(
 
       const ctr = 0.022 + Math.sin(d.getDate() * 0.5) * 0.004 + Math.random() * 0.005;
       const dayClicks = Math.floor(dayImpressions * ctr);
-      const daySpendIsk = Math.floor((dayImpressions / 1000) * FLAT_CPM_ISK);
-
       history.push({
         date: dateStr,
         impressions: dayImpressions,
         clicks: dayClicks,
-        spendIsk: daySpendIsk,
+        spendIsk: grossIskForImpressions(dayImpressions),
       });
 
       totalImpressions += dayImpressions;
       totalClicks += dayClicks;
-      totalSpendIsk += daySpendIsk;
     }
 
     return {
       impressions: totalImpressions,
       clicks: totalClicks,
-      spendIsk: totalSpendIsk,
+      spendIsk: grossIskForImpressions(totalImpressions),
       systemImpressions7d,
       history,
     };
@@ -179,17 +171,21 @@ export async function getAdvertiserStats(
       date: dateStr,
       impressions: dayStats.impressions,
       clicks: dayStats.clicks,
-      spendIsk: dayStats.spendIsk,
+      // Derived from the day's impressions rather than accumulated per
+      // campaign-hour document — see grossIskForImpressions in @ada/shared.
+      spendIsk: grossIskForImpressions(dayStats.impressions),
     });
     totalImpressions += dayStats.impressions;
     totalClicks += dayStats.clicks;
-    totalSpendIsk += dayStats.spendIsk;
   }
 
   return {
     impressions: totalImpressions,
     clicks: totalClicks,
-    spendIsk: totalSpendIsk,
+    // Rounded once over the window, not once per campaign-hour document. Three
+    // surfaces reported this advertiser's spend three different ways before
+    // that: this one, the campaign eCPM card, and the per-publisher table.
+    spendIsk: grossIskForImpressions(totalImpressions),
     systemImpressions7d,
     history,
   };
