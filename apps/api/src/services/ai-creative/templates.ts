@@ -490,13 +490,9 @@ function enforceVerticalGap(a: Box, b: Box, minGap: number): void {
 
 function ctaPillSvg(box: Box, text: string, fontSize: number, bg: string, fg: string): string {
   const ry = box.h / 2;
-  const cx = box.x + box.w / 2;
-  const cy = box.y + box.h / 2;
   return `
-    <g class="cta-pill" style="transform-origin: ${cx}px ${cy}px;">
-      <rect class="cta-rect" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${ry}" fill="${bg}" style="transform-origin: ${cx}px ${cy}px;" />
-      <text class="cta-text" x="${cx}" y="${cy + fontSize * 0.35}" font-family="Inter" font-weight="700" font-size="${fontSize}" fill="${fg}" text-anchor="middle">${escapeXml(text)}</text>
-    </g>`;
+    <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="${ry}" fill="${bg}" />
+    <text x="${box.x + box.w / 2}" y="${box.y + box.h / 2 + fontSize * 0.35}" font-family="Inter" font-weight="700" font-size="${fontSize}" fill="${fg}" text-anchor="middle">${escapeXml(text)}</text>`;
 }
 
 /** Fixed-size logo chip geometry (2026-08-08 design): height-driven box, so
@@ -597,7 +593,7 @@ export function renderBannerSvg(input: RenderBannerInput): string {
   if (layout.tier === 'strip') {
     // Single row: vertically centered baseline within the row.
     const baselineY = height / 2 + headlineFontSize * 0.32;
-    headline = `<text class="banner-headline" x="${headlineBox.x}" y="${baselineY}" font-family="Inter" font-weight="800" font-size="${headlineFontSize}" fill="${palette.text}">${escapeXml(layout.headlineLines[0] ?? '')}</text>`;
+    headline = `<text x="${headlineBox.x}" y="${baselineY}" font-family="Inter" font-weight="800" font-size="${headlineFontSize}" fill="${palette.text}">${escapeXml(layout.headlineLines[0] ?? '')}</text>`;
   } else {
     const firstBaselineY = headlineBox.y + headlineFontSize * TEXT_ASCENT;
     const tspans = layout.headlineLines
@@ -606,7 +602,7 @@ export function renderBannerSvg(input: RenderBannerInput): string {
           `<tspan x="${headlineBox.x}" dy="${i === 0 ? 0 : headlineFontSize * HEADLINE_LINE_MULT}">${escapeXml(line)}</tspan>`,
       )
       .join('');
-    headline = `<text class="banner-headline" x="${headlineBox.x}" y="${firstBaselineY}" font-family="Inter" font-weight="800" font-size="${headlineFontSize}" fill="${palette.text}">${tspans}</text>`;
+    headline = `<text x="${headlineBox.x}" y="${firstBaselineY}" font-family="Inter" font-weight="800" font-size="${headlineFontSize}" fill="${palette.text}">${tspans}</text>`;
   }
 
   let subline = '';
@@ -620,7 +616,7 @@ export function renderBannerSvg(input: RenderBannerInput): string {
           `<tspan x="${sublineBox.x}" dy="${i === 0 ? 0 : sublineFontSize * SUBLINE_LINE_MULT}">${escapeXml(line)}</tspan>`,
       )
       .join('');
-    subline = `<text class="banner-subline" x="${sublineBox.x}" y="${firstBaselineY}" font-family="Inter" font-weight="400" font-size="${sublineFontSize}" fill="${palette.sub}">${tspans}</text>`;
+    subline = `<text x="${sublineBox.x}" y="${firstBaselineY}" font-family="Inter" font-weight="400" font-size="${sublineFontSize}" fill="${palette.sub}">${tspans}</text>`;
   }
 
   const ctaBox = layout.boxes.cta!;
@@ -637,24 +633,6 @@ export function renderBannerSvg(input: RenderBannerInput): string {
     : '';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  <defs>
-    <style>
-      @keyframes ctaPulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.025); }
-      }
-      .cta-pill {
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
-        cursor: pointer;
-      }
-      .cta-pill:hover {
-        transform: scale(1.03);
-      }
-      .cta-rect {
-        animation: ctaPulse 3.5s ease-in-out infinite;
-      }
-    </style>
-  </defs>
 ${backgroundLayer}
 ${headline}
 ${subline}

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type * as AnalyticsModule from '../src/lib/analytics';
 
 /**
  * The house ad is the ONE creative surface on this platform where a CSS
@@ -60,7 +61,7 @@ vi.mock('../src/lib/cache', () => ({
 }));
 
 vi.mock('../src/lib/analytics', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../src/lib/analytics')>();
+  const actual = await importOriginal<typeof AnalyticsModule>();
   return { ...actual, logEvent: async () => {} };
 });
 

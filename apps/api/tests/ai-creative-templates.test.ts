@@ -87,19 +87,24 @@ describe('renderBannerSvg', () => {
     expect(light).not.toContain('<image');
   });
 
-  it('embeds CSS micro-animations and @keyframes into the SVG defs block', () => {
-    const svg = renderBannerSvg({
-      width: 300,
-      height: 250,
-      copy: COPY,
-      templateId: 'bold',
-    });
-    expect(svg).toContain('<defs>');
-    expect(svg).toContain('<style>');
-    expect(svg).toContain('@keyframes ctaPulse');
-    expect(svg).toContain('class="cta-pill"');
-    expect(svg).toContain('class="cta-rect"');
-    expect(svg).toContain('class="banner-headline"');
+  it('ships no animation markup, because this SVG is always rasterized away', () => {
+    // These banners exist only as an intermediate: render-variant.ts converts
+    // them to PNG and uploads that, so the SVG string is discarded and no CSS
+    // in it can ever run. An earlier version of this file embedded @keyframes
+    // and hover rules here; the rendered PNG was byte-identical with and
+    // without them, across both templates and every size. The animation now
+    // lives on the house ad (apps/serving/src/routes/ad.ts), which really is
+    // served as SVG.
+    //
+    // Asserted as an absence rather than left to a comment: markup that looks
+    // like it does something, in a string nobody sees, is exactly what took a
+    // reviewer a full pipeline trace to disprove.
+    for (const templateId of ['bold', 'light'] as const) {
+      const svg = renderBannerSvg({ width: 300, height: 250, copy: COPY, templateId });
+      expect(svg).not.toContain('@keyframes');
+      expect(svg).not.toContain('animation:');
+      expect(svg).not.toContain(':hover');
+    }
   });
 });
 
