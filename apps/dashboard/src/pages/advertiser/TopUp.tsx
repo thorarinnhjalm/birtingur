@@ -353,7 +353,7 @@ export default function TopUp() {
     // room than the old max-w-xl gave it; 760px plus the existing
     // overflow-x-auto safety net covers both without going full-bleed.
     <div
-      className="mx-auto max-w-[760px]"
+      className="mx-auto max-w-190"
       style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(32px,4vw,48px)' }}
     >
       {/* ===== PAGE HEADER =====
@@ -629,24 +629,24 @@ export default function TopUp() {
                       key={tx.id}
                       className={`transition-colors hover:bg-slate-50 ${isLast ? '' : 'border-b border-surface-container'}`}
                     >
-                      <td className="py-[22px] pr-4 align-middle text-[15px] text-slate-700">
+                      <td className="py-5.5 pr-4 align-middle text-[15px] text-slate-700">
                         {dateFormatted}
                       </td>
-                      <td className="px-4 py-[22px] align-middle">
+                      <td className="px-4 py-5.5 align-middle">
                         <Badge variant={tx.type === 'topup' ? 'success' : 'pending'}>
                           {tx.type === 'topup' ? 'Innborgun' : 'Endurgreiðsla'}
                         </Badge>
                       </td>
-                      <td className="px-4 py-[22px] text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
+                      <td className="px-4 py-5.5 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
                         {formatIsk(tx.amountIsk)}
                       </td>
-                      <td className="px-4 py-[22px] text-right align-middle text-[15px] text-slate-500 tabular-nums">
+                      <td className="px-4 py-5.5 text-right align-middle text-[15px] text-slate-500 tabular-nums">
                         {rowVat !== null ? `${fmtNum(rowVat)} kr.` : '—'}
                       </td>
-                      <td className="px-4 py-[22px] align-middle">
+                      <td className="px-4 py-5.5 align-middle">
                         <Badge variant="success">Greitt</Badge>
                       </td>
-                      <td className="py-[22px] pl-4 text-right align-middle">
+                      <td className="py-5.5 pl-4 text-right align-middle">
                         <button
                           type="button"
                           onClick={() => printInvoice(tx)}

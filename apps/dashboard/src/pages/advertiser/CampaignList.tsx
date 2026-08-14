@@ -109,7 +109,7 @@ export default function CampaignList() {
             key={tab.key}
             type="button"
             onClick={() => setFilter(tab.key)}
-            className={`cursor-pointer rounded-full px-[18px] py-[9px] text-sm font-semibold transition-colors ${
+            className={`cursor-pointer rounded-full px-4.5 py-2.25 text-sm font-semibold transition-colors ${
               filter === tab.key ? 'bg-primary text-white' : 'text-slate-600'
             }`}
           >
@@ -146,7 +146,7 @@ export default function CampaignList() {
               <th className="border-b border-outline-variant px-4 py-3.5 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
                 Staða
               </th>
-              <th className="w-[180px] border-b border-outline-variant px-4 py-3.5 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+              <th className="w-45 border-b border-outline-variant px-4 py-3.5 text-left text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
                 Framvinda
               </th>
               <th className="border-b border-outline-variant px-4 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
@@ -179,19 +179,19 @@ export default function CampaignList() {
                   onClick={() => navigate(`/advertiser/campaigns/${c.id}`)}
                   className="cursor-pointer transition-colors hover:bg-slate-50"
                 >
-                  <td className="border-b border-surface-container py-[22px] pr-4 align-middle">
+                  <td className="border-b border-surface-container py-5.5 pr-4 align-middle">
                     <div className="text-[15px] font-semibold text-slate-900">
                       {c.name || `Herferð ${c.id.substring(0, 8)}`}
                     </div>
-                    <div className="mt-[3px] text-[13px] text-slate-500">{categoryLabel}</div>
+                    <div className="mt-0.75 text-[13px] text-slate-500">{categoryLabel}</div>
                   </td>
-                  <td className="border-b border-surface-container px-4 py-[22px] align-middle">
+                  <td className="border-b border-surface-container px-4 py-5.5 align-middle">
                     <Badge variant={status.variant}>{status.label}</Badge>
                   </td>
-                  <td className="border-b border-surface-container px-4 py-[22px] align-middle">
+                  <td className="border-b border-surface-container px-4 py-5.5 align-middle">
                     {hasProgress ? (
                       <div>
-                        <div className="h-[5px] overflow-hidden rounded-full bg-surface-container">
+                        <div className="h-1.25 overflow-hidden rounded-full bg-surface-container">
                           <div
                             className="h-full rounded-full bg-primary"
                             style={{ width: `${pct}%` }}
@@ -215,10 +215,10 @@ export default function CampaignList() {
                       the same convention the template itself uses for
                       campaigns with zero impressions (e.g. its own mock 'c4'
                       draft rows). */}
-                  <td className="border-b border-surface-container px-4 py-[22px] text-right align-middle text-[15px] text-slate-400 tabular-nums">
+                  <td className="border-b border-surface-container px-4 py-5.5 text-right align-middle text-[15px] text-slate-400 tabular-nums">
                     —
                   </td>
-                  <td className="border-b border-surface-container py-[22px] pl-4 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
+                  <td className="border-b border-surface-container py-5.5 pl-4 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
                     {spent > 0 ? `${fmtNum(spent)} kr.` : '—'}
                   </td>
                 </tr>
