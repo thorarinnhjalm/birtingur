@@ -429,3 +429,33 @@ test('a server-side INSUFFICIENT_FUNDS rejection surfaces as Icelandic copy, not
   await screen.findByText(/Laus inneign nægir ekki/);
   expect(screen.queryByText(/Insufficient available balance/)).toBeNull();
 });
+
+/**
+ * The headline per-day figure divided by a hardcoded 30 regardless of the
+ * dates chosen in step 1, while the oversell warning right below used the real
+ * flight length — so a 7-day, 20.000 kr campaign showed "1.212 birtingar á
+ * dag" above a warning that said it needed 5.195. Same screen, same budget,
+ * 4,3x apart.
+ */
+test('the per-day forecast uses the real flight length, not a hardcoded month', async () => {
+  setupApiMock();
+  renderWithClient();
+  await screen.findByLabelText('Heiti herferðar *');
+  fireEvent.change(screen.getByLabelText('Heiti herferðar *'), {
+    target: { value: 'Vikuherferð' },
+  });
+  // A 7-day flight, far in the future so "days left" cannot shrink it.
+  fireEvent.change(screen.getByLabelText('Byrjar þann *'), { target: { value: '2027-08-01' } });
+  fireEvent.change(screen.getByLabelText('Endar þann'), { target: { value: '2027-08-08' } });
+  fireEvent.click(screen.getByText('Næsta skref →'));
+
+  await screen.findByText('Matur & matreiðsla');
+  fireEvent.click(screen.getByText('Matur & matreiðsla'));
+
+  // 20.000 kr default budget = 36.364 impressions; over 7 days that is 5.195 a
+  // day, not the 1.212 a fixed month gives.
+  expect(await screen.findByText('5.195')).toBeDefined();
+  expect(screen.queryByText('1.212')).toBeNull();
+  // And the copy names the real length instead of claiming ~30 days.
+  expect(screen.getByText(/yfir ~7 daga/)).toBeDefined();
+});

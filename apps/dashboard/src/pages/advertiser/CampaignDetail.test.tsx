@@ -231,3 +231,52 @@ test('unattributed remainder row renders muted/italic and sorts last regardless 
   expect(legacyRowIndex).toBeGreaterThan(cre1RowIndex);
   expect(legacyRowIndex).toBeGreaterThan(cre2RowIndex);
 });
+
+/**
+ * "Frammistaða eftir auglýsingu" used to read /v1/creatives/stats — keyed by
+ * creative id ALONE, over a fixed 7-day window. A creative shared by two
+ * campaigns showed the sum of both on either campaign's page: 5.000 birtingar
+ * and 2.750 kr "Eytt" on a campaign whose entire spend was 550 kr, while the
+ * campaign-scoped publisher table on the same screen said 1.000 for the same
+ * creative. Two contradictory numbers for one creative on one page.
+ *
+ * The campaign stats response already carries byPublisher[*].byCreative —
+ * campaign-scoped AND following the page's range selector — so the table now
+ * sums that. The bulk fixture below deliberately reports wildly different
+ * numbers so a revert to it fails.
+ */
+test('the creative table is campaign-scoped, not the cross-campaign bulk figures', async () => {
+  const campaign = campaignFixture({ creativeIds: ['cre_1'] });
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    const u = url as string;
+    if (u === '/v1/campaigns/cmp_1') return campaign as any;
+    if (u.startsWith('/v1/campaigns/cmp_1/stats')) return STATS_WITH_CREATIVES as any;
+    if (u === '/v1/campaigns/cmp_1/widget-key') return { key: 'wk_test' } as any;
+    if (u === '/v1/creatives')
+      return [
+        {
+          id: 'cre_1',
+          advertiserId: 'adv_1',
+          width: 300,
+          height: 250,
+          imageUrl: 'https://cdn.example/1.png',
+          clickUrl: 'https://pizzadeig.is/tilbod',
+          reviewStatus: 'approved',
+        },
+      ] as any;
+    // The creative is also in another campaign, so the bulk figures are 50x —
+    // exactly what this table used to show.
+    if (u.startsWith('/v1/creatives/stats'))
+      return { cre_1: { impressions: 5000, clicks: 100, ctr: 2 } } as any;
+    throw new Error(`Unhandled apiFetch call in test: ${u}`);
+  });
+  renderWithClient();
+
+  // cre_1 within THIS campaign: 60 (pub_a) + 20 (pub_b) = 80 impressions,
+  // 8 + 1 = 9 clicks.
+  const heading = await screen.findByText('Frammistaða eftir auglýsingu');
+  const table = within(heading.closest('div')!);
+  expect(await table.findByText('80')).toBeDefined();
+  expect(table.getByText('9')).toBeDefined();
+  expect(table.queryByText('5.000')).toBeNull();
+});

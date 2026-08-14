@@ -473,6 +473,9 @@ claim the product cannot back.
 | Editorial primitives and key components render                    | 14 dashboard test files                                                                                                              |
 | Every route in `sitemap.xml` has a snapshot, and vice versa       | `apps/dashboard/tests/sitemap-snapshot-parity.test.ts`, via the pipeline's own `readRoutes()` so the root-`/` exclusion cannot drift |
 | CTR is capped at 100% on every surface that renders it            | `apps/dashboard/src/pages/publisher/Dashboard.test.tsx`, `packages/widgets/tests/widgets-smoke.test.ts`                              |
+| The campaign page's creative table is campaign- and range-scoped  | `apps/dashboard/src/pages/advertiser/CampaignDetail.test.tsx` (bulk fixture deliberately 50x off)                                    |
+| "Kerfisbirtingar" counts billed impressions, never ad requests    | `apps/api/tests/advertiser-stats.test.ts`                                                                                            |
+| The buy flow's per-day forecast uses the real flight length       | `apps/dashboard/src/pages/advertiser/CampaignCreate.test.tsx`                                                                        |
 | The publisher CSV export has as many fields per row as its header | `apps/dashboard/src/pages/publisher/Dashboard.test.tsx` (whole-line assertions + a field count)                                      |
 
 **Now.** React 19 + Vite SPA, Tailwind 4 with brand tokens, prerender pipeline

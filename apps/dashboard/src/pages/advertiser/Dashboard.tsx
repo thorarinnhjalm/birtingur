@@ -509,11 +509,10 @@ function AdvertiserHome() {
             </span>
           </div>
           <div className="mt-2 font-mono text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-            {liveSystemImpressions
-              ? liveSystemImpressions >= 1000
-                ? `${(liveSystemImpressions / 1000).toFixed(0)}k`
-                : liveSystemImpressions
-              : '—'}
+            {/* Full locale number, not a rounded "Nk": toFixed(0) showed 1.500
+                as "2k" and 999.999 as "1000k". Scale is the card's whole
+                message, so the real figure carries it better than a rounding. */}
+            {liveSystemImpressions ? liveSystemImpressions.toLocaleString('is-IS') : '—'}
           </div>
         </div>
       </div>

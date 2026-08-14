@@ -29,7 +29,12 @@ export interface CampaignStatsResponse {
   impressions: number;
   clicks: number;
   spendIsk: number;
-  hours: Array<{ hour: string; impressions: number; clicks: number }>;
+  // spendIsk is derived per hour from that hour's impressions (see
+  // grossIskForImpressions). The field was simply absent before, so the
+  // "Kostnaður" tab on the campaign chart plotted `h.spendIsk || 0` — a flat
+  // zero line under a budget card saying real money had been spent. An hour is
+  // a rounding boundary, same trade-off as the per-day history rows.
+  hours: Array<{ hour: string; impressions: number; clicks: number; spendIsk: number }>;
   byPublisher: Record<string, PublisherStatsBreakdown>;
 }
 
@@ -133,6 +138,7 @@ export async function getCampaignStats(
       hour: hk,
       impressions: data.impressions,
       clicks: data.clicks,
+      spendIsk: grossIskForImpressions(data.impressions),
     });
 
     if (data.byPublisher) {

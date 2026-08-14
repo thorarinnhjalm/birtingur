@@ -489,7 +489,13 @@ export default function CreativeLibrary() {
                     from the template's card footer. */}
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
                   <Badge variant={statusVariant}>{statusText}</Badge>
-                  <span className="text-[13px] text-slate-500 tabular-nums">CTR {ctrLabel}</span>
+                  {/* Cross-campaign by design — this is the library, not a
+                      campaign page — but the window was invisible and the
+                      figure read as lifetime. */}
+                  <span className="text-[13px] text-slate-500 tabular-nums">
+                    CTR {ctrLabel}
+                    {cs ? <span className="text-slate-400"> (7 daga)</span> : null}
+                  </span>
                 </div>
 
                 {/* Edit/delete actions — not pictured in the template (a
