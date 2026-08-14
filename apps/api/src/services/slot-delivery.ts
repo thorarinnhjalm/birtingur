@@ -6,7 +6,7 @@ import {
   creativeConverter,
   advertiserConverter,
 } from '@ada/shared/firestore';
-import { SENSITIVE_AD_CATEGORY_SLUGS } from '@ada/shared';
+import { SENSITIVE_AD_CATEGORY_SLUGS, publisherNetIsk } from '@ada/shared';
 import type { Slot, Publisher, Campaign, Creative, SlotCacheEntry } from '@ada/shared';
 import { getSlotStats } from './slot-stats.js';
 
@@ -75,6 +75,9 @@ export interface SlotDeliveryDiagnosis {
     availableSizesNotOnSlot: string[];
     startsAt: string | null;
   };
+  /** `earningsIsk` is NET of the platform fee — what the publisher is paid,
+   * which is what an agent relaying "you earned X" has to say. It was the gross
+   * `spendIsk`, 25% high, under a field literally named earnings. */
   last7Days: { impressions: number; clicks: number; earningsIsk: number };
 }
 
@@ -264,7 +267,7 @@ export async function diagnoseSlotDelivery(
     last7Days: {
       impressions: stats.impressions,
       clicks: stats.clicks,
-      earningsIsk: stats.spendIsk,
+      earningsIsk: publisherNetIsk(stats.spendIsk),
     },
   };
 }

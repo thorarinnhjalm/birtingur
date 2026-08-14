@@ -299,6 +299,18 @@ the execution plan):
 
 ---
 
+**One definition of what a publisher earns.** `publisherNetIsk` in
+`@ada/shared` is it, and it is deliberately `gross - round(gross * fee)` because
+that is how `services/wallet.ts` splits the same money into a credit and a fee —
+the displayed figure must not differ from the paid one by a króna. Before it,
+eight call sites derived net independently (`round(gross * 0.8)` in some,
+`round(gross * (1 - FEE/100))` in others: equal today, silently unequal the day
+the fee moves), and two external surfaces showed the GROSS figure under the word
+"tekjur" — the embeddable publisher stats widget and MCP `check_slot_delivery`,
+both 25% high. The widget cannot import `@ada/shared`, so `getPublisherStats`
+returns `netEarningsIsk` for it. Pinned by `packages/shared/tests/constants.test.ts`
+(including agreement with the ledger split) and `packages/widgets/tests/widgets-smoke.test.ts`.
+
 ## 4. Ops visibility (heartbeats, alerts, diagnostics)
 
 **Target.** Any part of the machine going quiet produces a message to a human

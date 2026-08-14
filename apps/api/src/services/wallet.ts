@@ -1,6 +1,6 @@
 import type { Transaction } from 'firebase-admin/firestore';
 import { COLLECTIONS, campaignConverter, ledgerEntryConverter } from '@ada/shared/firestore';
-import { DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import { DEFAULT_PLATFORM_FEE_PERCENT, publisherNetIsk } from '@ada/shared';
 import type { CampaignStatus } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { appendLedger, sumByParty } from './ledger.js';
@@ -298,8 +298,10 @@ export async function creditPublisher(
     throw new AppError(400, 'must be positive', 'BAD_REQUEST');
   }
 
-  const feeIsk = Math.round((grossIsk * DEFAULT_PLATFORM_FEE_PERCENT) / 100);
-  const netIsk = grossIsk - feeIsk;
+  // publisherNetIsk is the single definition of this split (@ada/shared); the
+  // fee is what is left over, so the two can never fail to reconstruct gross.
+  const netIsk = publisherNetIsk(grossIsk);
+  const feeIsk = grossIsk - netIsk;
 
   await appendLedger({
     party: { type: 'publisher', id: publisherId },

@@ -80,6 +80,38 @@ describe('<adplatform-stats>', () => {
     expect(el.shadowRoot!.innerHTML).toContain('12.345');
   });
 
+  /**
+   * This component runs on the PUBLISHER's own site, where we never see what it
+   * shows. It rendered the gross `spendIsk` under "Áætlaðar tekjur" and derived
+   * eCPM from the same gross, so a publisher comparing it to their dashboard
+   * saw two different figures for the same money — 25% apart, with the public
+   * one being the flattering lie.
+   */
+  it('shows net earnings and a net eCPM, not the gross figures', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        impressions: 10_000,
+        clicks: 20,
+        spendIsk: 5500,
+        netEarningsIsk: 4400,
+        history: [],
+      }),
+    });
+
+    const el = document.createElement('adplatform-stats');
+    el.setAttribute('publisher-key', 'wk_test_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const html = el.shadowRoot!.innerHTML;
+    expect(html).toContain('4.400');
+    expect(html).not.toContain('5.500');
+    // eCPM off the net figure: 4.400 / 10.000 * 1000 = 440, not 550.
+    expect(html).toContain('440');
+    expect(html).not.toContain('550');
+  });
+
   it('renders the error state when the API answers non-ok', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401 });
 

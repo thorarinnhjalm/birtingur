@@ -1,3 +1,4 @@
+import { publisherNetIsk } from '@ada/shared';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePublisherSlot } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
@@ -203,7 +204,7 @@ export default function SlotDetail() {
               Áætlaðar tekjur
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats ? formatIsk(Math.round(slotStats.spendIsk * 0.8)) : '0 kr.'}
+              {slotStats ? formatIsk(publisherNetIsk(slotStats.spendIsk)) : '0 kr.'}
             </p>
           </div>
         </Card>
@@ -288,7 +289,7 @@ export default function SlotDetail() {
                       dataKey={
                         isTraffic
                           ? (h: any) => h.pageviews || 0
-                          : (h: any) => Math.round(h.spendIsk * 0.8)
+                          : (h: any) => publisherNetIsk(h.spendIsk)
                       }
                       stroke={lineColor}
                       strokeWidth={2}

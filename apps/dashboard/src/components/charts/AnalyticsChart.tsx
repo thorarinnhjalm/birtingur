@@ -8,7 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-import { TRAFFIC_MEASUREMENT_START } from '@ada/shared';
+import { TRAFFIC_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
 import { formatDate } from '@/lib/format';
 
 interface ChartDataPoint {
@@ -61,7 +61,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
     const ctr = impressions > 0 ? Math.min(100, (clicks / impressions) * 100) : 0;
 
     // Publisher gets 80% (platform fee is 20%), Advertiser pays 100%
-    const money = mode === 'publisher' ? Math.round((d.spendIsk || 0) * 0.8) : d.spendIsk || 0;
+    const money = mode === 'publisher' ? publisherNetIsk(d.spendIsk || 0) : d.spendIsk || 0;
 
     return {
       ...d,
