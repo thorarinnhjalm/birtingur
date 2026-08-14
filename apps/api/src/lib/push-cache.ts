@@ -168,7 +168,12 @@ export async function pushSlotCache(slotId: string): Promise<void> {
     });
     if (campaign.budget.mode === 'cpm_capped') {
       const daysLeft = flightDaysLeft(campaign);
-      const perImpression = Math.round(FLAT_CPM_ISK / 1000);
+      // Exact, matching what serving now charges per impression
+      // (apps/serving/src/routes/impression.ts). Rounded to 1 this floor let a
+      // nearly-exhausted campaign serve two impressions a day instead of one —
+      // harmless, but it is the same expression serving got wrong and the two
+      // must not disagree.
+      const perImpression = FLAT_CPM_ISK / 1000;
       const paceLimit = Math.max(
         perImpression,
         Math.round(campaign.budget.remainingIsk / daysLeft),
@@ -327,7 +332,7 @@ export async function pushCacheForCampaign(campaignId: string): Promise<void> {
   await redis.set(`budget:${cmp.id}`, cmp.budget.remainingIsk, { ex: BUDGET_COUNTER_TTL_SECONDS });
   if (cmp.budget.mode === 'cpm_capped') {
     const daysLeft = flightDaysLeft(cmp);
-    const perImpression = Math.round(FLAT_CPM_ISK / 1000);
+    const perImpression = FLAT_CPM_ISK / 1000; // exact, see the same floor above
     const paceLimit = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
     await redis.set(`pace_limit:${cmp.id}`, paceLimit, {
       ex: BUDGET_COUNTER_TTL_SECONDS,

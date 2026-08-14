@@ -28,10 +28,19 @@ const mockSet = vi.fn(
   },
 );
 
+// Budget and pacing move in fractions of a króna (550 kr CPM is 0,55 per
+// impression), so both counters go through INCRBYFLOAT. `decrby` is kept on the
+// fake purely so a regression back to integer arithmetic fails loudly here
+// rather than as a swallowed rejection — decrementBudget is called with `void`.
+const mockIncrbyfloat = vi.fn(async () => 0);
+const mockDecrby = vi.fn(async () => 0);
+
 vi.mock('../src/lib/redis', () => ({
   getRedis: () => ({
     set: mockSet,
     incrby: mockIncrby,
+    incrbyfloat: mockIncrbyfloat,
+    decrby: mockDecrby,
     incr: mockIncr,
     expire: mockExpire,
   }),
@@ -248,7 +257,7 @@ describe('GET /v1/impression', () => {
     expect(res.headers.get('Content-Type')).toBe('image/gif');
 
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cmp_a');
-    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1); // FLAT_CPM_ISK / 1000, rounded
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 0.55); // FLAT_CPM_ISK / 1000, exact
   });
 
   it('stamps botClass on the impression event from a crawler request', async () => {
@@ -279,7 +288,7 @@ describe('GET /v1/impression', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/gif');
     expect(vi.mocked(recordVisitorImpression)).toHaveBeenCalledWith('tok123', 'cmp_a');
-    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1);
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 0.55);
   });
 
   it('returns pixel even when missing query parameters', async () => {
@@ -315,8 +324,51 @@ describe('GET /v1/impression', () => {
     expect(res.status).toBe(200);
 
     const dayKey = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    expect(mockIncrby).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 1); // 1000 CPM / 1000 = 1 ISK
+    // 550 kr CPM / 1000 = 0,55 kr per impression. This assertion used to read
+    // `1` with the comment "1000 CPM / 1000 = 1 ISK" — a constant this repo has
+    // never had. Rounded to 1, each day's pace allowance (seeded in real ISK by
+    // push-cache) was exhausted after ~55% of the impressions it was meant to
+    // buy, pushing the rest of the flight onto its final days.
+    expect(mockIncrbyfloat).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 0.55);
     expect(mockExpire).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 2 * 86400);
+  });
+
+  it('still returns the pixel when the budget counter itself rejects', async () => {
+    // These two calls are fire-and-forget so the pixel is never delayed, which
+    // means an unhandled rejection takes the process down. There is a real way
+    // to produce one: DECRBY/INCRBY reject a key holding a decimal, so a
+    // rollback to the pre-0,55 code would throw on every impression.
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok_reject', ts);
+    vi.mocked(decrementBudget).mockRejectedValueOnce(
+      new Error('ERR value is not an integer or out of range'),
+    );
+
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_a&t=tok_reject&ts=${ts}&sig=${sig}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('image');
+  });
+
+  it('charges the budget counter the same fraction of a króna', async () => {
+    // Both counters are in ISK and must move together — pace_limit and
+    // budget:{id} are both seeded from remainingIsk by push-cache, so a cost
+    // that is right for one and wrong for the other just moves the error.
+    // Asserted on decrementBudget's argument rather than on Redis, because this
+    // file mocks the analytics module; the INCRBYFLOAT half is pinned in
+    // tests/budget-gate.test.ts, which runs the real implementation.
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok_budget', ts);
+    vi.mocked(decrementBudget).mockClear();
+
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_a&t=tok_budget&ts=${ts}&sig=${sig}`,
+    );
+    expect(res.status).toBe(200);
+
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 0.55);
   });
 
   it('drops logging and budget/pacing increments for impressions exceeding the hourly limit but returns 200 pixel', async () => {

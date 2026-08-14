@@ -103,22 +103,32 @@ impression and click is attributable, signed, and counted exactly once.
 
 **Invariants.**
 
-| Invariant                                                                        | Enforced by                                                                                   |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| One served ad's signature works for BOTH the impression pixel and the click      | `apps/serving/tests/click-after-impression.test.ts`                                           |
-| Serving sets no cookies, on fill and on no-fill alike                            | `apps/serving/tests/ad-route.test.ts`                                                         |
-| Every event reaches `events:stats`; impressions also reach `events:accrual`      | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
-| A replayed signature is rejected per event kind                                  | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                          |
-| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin             | `packages/snippet/tests/render.test.ts`                                                       |
-| A missing or expired `budget:{id}` key stops serving; it never serves free       | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam) |
-| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin  | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)             |
-| A campaign gets no more of a slot for uploading more creative variants           | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                 |
-| CTR steers only which VARIANT of a campaign serves, never which campaign         | `apps/serving/tests/bandit.test.ts`                                                           |
-| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation    | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`          |
-| Bot traffic and house-ad fallbacks never feed the CTR counters                   | `apps/serving/tests/analytics-fanout.test.ts`                                                 |
-| A visitor's daily frequency cap is per CAMPAIGN, not multiplied by variant count | `apps/serving/tests/bandit.test.ts`, `select.test.ts`, `click-impression.test.ts`             |
-| The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                               |
-| One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                           |
+| Invariant                                                                        | Enforced by                                                                                         |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| One served ad's signature works for BOTH the impression pixel and the click      | `apps/serving/tests/click-after-impression.test.ts`                                                 |
+| Serving sets no cookies, on fill and on no-fill alike                            | `apps/serving/tests/ad-route.test.ts`                                                               |
+| Every event reaches `events:stats`; impressions also reach `events:accrual`      | `apps/serving/tests/analytics-fanout.test.ts`                                                       |
+| A replayed signature is rejected per event kind                                  | `apps/serving/tests/fraud.test.ts`, `crypto.test.ts`                                                |
+| Tracking URLs resolve against `SERVE_BASE`, not the publisher origin             | `packages/snippet/tests/render.test.ts`                                                             |
+| A missing or expired `budget:{id}` key stops serving; it never serves free       | `apps/serving/tests/budget-gate.test.ts` (real `getRemainingBudgets` via the `setRedis` seam)       |
+| One impression costs FLAT_CPM_ISK/1000 against both the budget and pace counters | `apps/serving/tests/budget-gate.test.ts`, `click-impression.test.ts`, `legacy-slot-pricing.test.ts` |
+| The snippet's baked-in `SERVE_BASE` resolves in DNS and carries no stray origin  | `packages/snippet/scripts/check-host.mjs`, run in CI after every build (`ci.yml`)                   |
+| A campaign gets no more of a slot for uploading more creative variants           | `apps/serving/tests/bandit.test.ts` (cross-campaign fairness)                                       |
+| CTR steers only which VARIANT of a campaign serves, never which campaign         | `apps/serving/tests/bandit.test.ts`                                                                 |
+| Missing, cold or corrupt CTR counters degrade to the pre-bandit even rotation    | `apps/serving/tests/bandit.test.ts` (fail-safe), `apps/api/tests/push-cache.test.ts`                |
+| Bot traffic and house-ad fallbacks never feed the CTR counters                   | `apps/serving/tests/analytics-fanout.test.ts`                                                       |
+| A visitor's daily frequency cap is per CAMPAIGN, not multiplied by variant count | `apps/serving/tests/bandit.test.ts`, `select.test.ts`, `click-impression.test.ts`                   |
+| The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                                     |
+| One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                                 |
+
+**Rolling back the fractional cost counters is not a plain revert.** `budget:{id}`
+and `pace_spent:{id}:{day}` hold decimals since 2026-08-14, and Redis DECRBY /
+INCRBY reject a key whose value is not an integer. `budget:{id}` heals itself
+(push-cache SETs it every 10 minutes and after every accrual), but `pace_spent`
+is only ever incremented and expired, so a revert leaves it erroring for the rest
+of the UTC day with daily pacing effectively off. A revert must therefore be
+paired with `DEL pace_spent:*`. The counter calls are `.catch()`ed so this
+degrades rather than crashing the function.
 
 **Now.** V1 on Vercel at `serving.birtingur.app`, 15 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.

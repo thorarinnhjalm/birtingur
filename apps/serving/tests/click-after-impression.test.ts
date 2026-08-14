@@ -122,6 +122,7 @@ describe('one served ad: impression and click both count', () => {
     const pixelRes = await app.request(ad.impressionPixel);
 
     expect(pixelRes.status).toBe(200);
-    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 1);
+    // 0,55 kr, FLAT_CPM_ISK / 1000 exactly — see lib/analytics.ts.
+    expect(vi.mocked(decrementBudget)).toHaveBeenCalledWith('cmp_a', 0.55);
   });
 });
