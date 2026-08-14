@@ -1,6 +1,6 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK } from '@ada/shared';
+import { FLAT_CPM_ISK, publisherNetIsk } from '@ada/shared';
 import { getCampaign } from './campaigns.js';
 import { getAdvertiserById } from './advertisers.js';
 
@@ -162,14 +162,18 @@ export async function getSlotStats(
         advertiserName: 'Matarhorn ehf.',
         impressions: Math.round(mockTotalImpressions * 0.6),
         clicks: Math.round(mockTotalClicks * 0.65),
-        earningsIsk: Math.round(((mockTotalImpressions * 0.6) / 1000) * FLAT_CPM_ISK * 0.8),
+        earningsIsk: publisherNetIsk(
+          Math.round(((mockTotalImpressions * 0.6) / 1000) * FLAT_CPM_ISK),
+        ),
       },
       cmp_origo_tech: {
         campaignName: 'Nýjar fartölvur í skólann',
         advertiserName: 'Origo ehf.',
         impressions: Math.round(mockTotalImpressions * 0.4),
         clicks: Math.round(mockTotalClicks * 0.35),
-        earningsIsk: Math.round(((mockTotalImpressions * 0.4) / 1000) * FLAT_CPM_ISK * 0.8),
+        earningsIsk: publisherNetIsk(
+          Math.round(((mockTotalImpressions * 0.4) / 1000) * FLAT_CPM_ISK),
+        ),
       },
     };
 
@@ -215,7 +219,7 @@ export async function getSlotStats(
 
         const impressionsVal = campaignAgg[campId]!.impressions;
         const clicksVal = campaignAgg[campId]!.clicks;
-        const earningsIsk = Math.round((impressionsVal / 1000) * FLAT_CPM_ISK * 0.8);
+        const earningsIsk = publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK));
 
         byCampaign[campId] = {
           campaignName,
@@ -233,7 +237,7 @@ export async function getSlotStats(
           advertiserName: 'Óþekktur auglýsandi',
           impressions: impressionsVal,
           clicks: clicksVal,
-          earningsIsk: Math.round((impressionsVal / 1000) * FLAT_CPM_ISK * 0.8),
+          earningsIsk: publisherNetIsk(Math.round((impressionsVal / 1000) * FLAT_CPM_ISK)),
         };
       }
     }),

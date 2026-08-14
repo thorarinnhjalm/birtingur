@@ -12,7 +12,12 @@ import { Badge } from '@/components/ui/Badge';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
 import { Calendar } from 'lucide-react';
-import { DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK, type Payout } from '@ada/shared';
+import {
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  MIN_PAYOUT_ISK,
+  type Payout,
+  publisherNetIsk,
+} from '@ada/shared';
 
 interface StatsResponse {
   impressions: number;
@@ -136,7 +141,7 @@ export default function Earnings() {
   }
 
   const earningsTotal = stats?.spendIsk || 0;
-  const netEarningsTotal = Math.round(earningsTotal * (1 - DEFAULT_PLATFORM_FEE_PERCENT / 100));
+  const netEarningsTotal = publisherNetIsk(earningsTotal);
   const unpaidBasisIsk = balance?.unpaidBasisIsk ?? 0;
   const minPayoutIsk = balance?.minPayoutIsk ?? MIN_PAYOUT_ISK;
   const pendingPayoutIsk = unpaidBasisIsk >= minPayoutIsk ? unpaidBasisIsk : 0;

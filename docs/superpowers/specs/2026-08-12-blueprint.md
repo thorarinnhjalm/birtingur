@@ -301,15 +301,21 @@ the execution plan):
 
 **One definition of what a publisher earns.** `publisherNetIsk` in
 `@ada/shared` is it, and it is deliberately `gross - round(gross * fee)` because
-that is how `services/wallet.ts` splits the same money into a credit and a fee —
-the displayed figure must not differ from the paid one by a króna. Before it,
-eight call sites derived net independently (`round(gross * 0.8)` in some,
-`round(gross * (1 - FEE/100))` in others: equal today, silently unequal the day
-the fee moves), and two external surfaces showed the GROSS figure under the word
-"tekjur" — the embeddable publisher stats widget and MCP `check_slot_delivery`,
-both 25% high. The widget cannot import `@ada/shared`, so `getPublisherStats`
-returns `netEarningsIsk` for it. Pinned by `packages/shared/tests/constants.test.ts`
-(including agreement with the ledger split) and `packages/widgets/tests/widgets-smoke.test.ts`.
+that is how `services/wallet.ts` splits the same money into a credit and a fee.
+At the current 20% that expression and `round(gross * (1 - fee))` agree for
+every integer gross, so this fixed no live discrepancy — it removed the reason
+one could appear. They diverge at 10% and at 30%, where `gross * fee` can land
+on a half króna.
+
+Before it, ten call sites derived net independently, and two external surfaces
+showed the GROSS figure under the word "tekjur": the embeddable publisher stats
+widget and MCP `check_slot_delivery`, both 25% high. The widget cannot import
+`@ada/shared`, so `getPublisherStats` returns `netEarningsIsk` for it — and it
+falls back to `spendIsk` when that field is absent, which is why
+`apps/api/tests/publisher-stats-unfilled.test.ts` asserts the field exists at
+all. Agreement with the ledger is pinned in `apps/api/tests/wallet.test.ts`,
+against what `creditPublisher` actually writes; a shared-package test can only
+re-derive the formula and prove it is deterministic.
 
 ## 4. Ops visibility (heartbeats, alerts, diagnostics)
 

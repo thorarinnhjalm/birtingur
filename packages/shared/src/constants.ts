@@ -13,10 +13,17 @@ export const DEFAULT_PLATFORM_FEE_PERCENT = 20;
  * the widget on their own site saw 25% more than the dashboard told them.
  *
  * Deliberately `gross - round(gross * fee)` rather than `round(gross * (1 -
- * fee))`: that is how `services/wallet.ts` splits the same money into a
+ * fee))`: the first is how `services/wallet.ts` splits the same money into a
  * publisher credit and a platform fee, and the displayed figure must not differ
- * from the paid one by a króna. The two expressions diverge at a half-króna
- * boundary.
+ * from the paid one by a króna.
+ *
+ * At the current 20% the two expressions happen to agree for every integer
+ * gross, so this is not fixing a live discrepancy — it is removing the reason
+ * one could appear. They diverge as soon as `gross * fee` can land on a half
+ * króna, which it does at 10% and at 30%: a gross of 5 pays 5 - round(0.5) = 4
+ * one way and round(4.5) = 5 the other. `apps/api/tests/wallet.test.ts` asserts
+ * the agreement against what creditPublisher actually writes to the ledger,
+ * which is the only check that cannot drift with this file.
  */
 export function publisherNetIsk(grossIsk: number): number {
   return grossIsk - Math.round(grossIsk * (DEFAULT_PLATFORM_FEE_PERCENT / 100));

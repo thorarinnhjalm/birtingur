@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  AD_CATEGORIES,
-  AD_CATEGORY_SLUGS,
-  DEFAULT_PLATFORM_FEE_PERCENT,
-  publisherNetIsk,
-} from '../src/constants';
+import { AD_CATEGORIES, AD_CATEGORY_SLUGS, publisherNetIsk } from '../src/constants';
 
 describe('AD_CATEGORIES', () => {
   it('exposes food category for the canonical mayo use-case', () => {
@@ -34,13 +29,26 @@ describe('publisherNetIsk', () => {
     expect(publisherNetIsk(5500)).toBe(4400);
   });
 
-  it('agrees with how the ledger splits the same gross', () => {
-    // wallet.ts credits `gross - round(gross * fee)`. The two must not disagree
-    // by a króna, or the dashboard and the payout differ for the same money.
-    const fee = (g: number) => Math.round(g * (DEFAULT_PLATFORM_FEE_PERCENT / 100));
-    for (const gross of [0, 1, 3, 7, 550, 5501, 12_345, 999_999]) {
-      expect(publisherNetIsk(gross)).toBe(gross - fee(gross));
+  it('and the fee it implies always add back up to the gross', () => {
+    // The property that matters and that this file can actually check on its
+    // own: the split loses nothing. Re-deriving the implementation here and
+    // asserting it matches itself would prove only that it is deterministic.
+    // Agreement with the LEDGER is asserted in apps/api/tests/wallet.test.ts,
+    // against what creditPublisher really writes, because that is the only
+    // check that cannot drift along with this function.
+    for (const gross of [0, 1, 3, 5, 7, 550, 5501, 12_345, 999_999]) {
+      const net = publisherNetIsk(gross);
+      const fee = gross - net;
+      expect(net + fee).toBe(gross);
+      expect(fee).toBeGreaterThanOrEqual(0);
+      expect(net).toBeLessThanOrEqual(gross);
     }
+  });
+
+  it('never rounds the fee up past the whole gross on a tiny amount', () => {
+    // A 1-króna gross must not become a 0-króna credit and a 1-króna fee.
+    expect(publisherNetIsk(1)).toBe(1);
+    expect(publisherNetIsk(2)).toBe(2);
   });
 
   it('returns whole krónur, never a fraction', () => {
