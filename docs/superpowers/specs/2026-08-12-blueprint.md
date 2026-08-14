@@ -395,17 +395,30 @@ claim the product cannot back.
 
 **Invariants.**
 
-| Invariant                                                    | Enforced by                                                                                                                          |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Public copy claims nothing beyond the verified USP list      | `scripts/check-marketing-claims.mjs` (runs in `lint`, pre-push) + `apps/dashboard/tests/marketing-claims.test.ts`                    |
-| Prerender snapshots are never captured against a stale build | `apps/dashboard/tests/prerender-staleness.test.ts` + the capture script's own guard                                                  |
-| Editorial primitives and key components render               | 14 dashboard test files                                                                                                              |
-| Every route in `sitemap.xml` has a snapshot, and vice versa  | `apps/dashboard/tests/sitemap-snapshot-parity.test.ts`, via the pipeline's own `readRoutes()` so the root-`/` exclusion cannot drift |
+| Invariant                                                         | Enforced by                                                                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Public copy claims nothing beyond the verified USP list           | `scripts/check-marketing-claims.mjs` (runs in `lint`, pre-push) + `apps/dashboard/tests/marketing-claims.test.ts`                    |
+| Prerender snapshots are never captured against a stale build      | `apps/dashboard/tests/prerender-staleness.test.ts` + the capture script's own guard                                                  |
+| Editorial primitives and key components render                    | 14 dashboard test files                                                                                                              |
+| Every route in `sitemap.xml` has a snapshot, and vice versa       | `apps/dashboard/tests/sitemap-snapshot-parity.test.ts`, via the pipeline's own `readRoutes()` so the root-`/` exclusion cannot drift |
+| CTR is capped at 100% on every surface that renders it            | `apps/dashboard/src/pages/publisher/Dashboard.test.tsx`, `packages/widgets/tests/widgets-smoke.test.ts`                              |
+| The publisher CSV export has as many fields per row as its header | `apps/dashboard/src/pages/publisher/Dashboard.test.tsx` (whole-line assertions + a field count)                                      |
 
 **Now.** React 19 + Vite SPA, Tailwind 4 with brand tokens, prerender pipeline
 with a committed snapshot cache. `admin/Overview.tsx` is 2895 lines — not a bug,
 just expensive to work in, and the reason to split it is the next time something
 forces us into the file.
+
+Clicks are not viewability-gated and impressions are: the pixel fires only after
+the ad has been at least half visible for a continuous second, while the ad is
+clickable the moment it renders, so clicks legitimately outrun impressions and
+CTR can exceed 100%. Serving's own limits are asymmetric the same way (30
+impressions/hr against 3 clicks/hr per campaign+IP) and an impression pixel
+expires after 1h where a click stays valid for 24h, so the two can land in
+different days. Sixteen places render CTR and all of them now clamp. **Nothing
+monitors the raw ratio**, so a genuine click-inflation bug would now be
+invisible everywhere it is displayed; if that matters, the counter belongs in
+`services/reconciliation.ts`, which currently never reads `clicks`.
 
 **Bridge.**
 

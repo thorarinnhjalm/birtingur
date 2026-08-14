@@ -277,6 +277,67 @@ test('per-site CTR is clicks over impressions, in Icelandic decimal notation', a
   expect(within(siteRow('Vefur B')).getByText('(5,00%)')).toBeDefined();
 });
 
+/**
+ * Clicks are not viewability-gated; impressions are. The impression pixel fires
+ * only once the ad has been at least half visible for a continuous second
+ * (packages/snippet/src/render.ts), while the ad is clickable from the moment
+ * it renders. An ad that never clears that threshold — half below the fold, or
+ * scrolled straight past — can still be clicked with no impression behind it,
+ * and tracking protection blocks the pixel image without blocking the link.
+ * Serving's own rate limits are asymmetric too (30 impressions/hr against 3
+ * clicks/hr per campaign+IP), and a click stays valid for 24h where an
+ * impression pixel expires after 1h, so the two can land in different days.
+ *
+ * Both numbers are legitimate; only the ratio is nonsense to show. Every other
+ * surface in the product already stops it at 100 (this page's own two cards,
+ * SlotDetail, CampaignDetail, AnalyticsChart, and the API's routes/advertisers,
+ * routes/campaigns and services/creative-stats). The per-site table, the CSV
+ * export and the embeddable campaign-stats widget were the three that did not,
+ * so the same publisher could read 140% in one place and 100% in another for
+ * the same site and window.
+ *
+ * 7 clicks on 5 impressions. Vefur B is left ordinary so the clamp cannot be
+ * faked by a component that clamps everything to 100.
+ */
+const CTR_OVERFLOW_STATS = {
+  impressions: 105,
+  clicks: 12,
+  spendIsk: 0,
+  pageviews: 200,
+  history: [],
+  bySite: [
+    {
+      publisherId: 'pub_a',
+      displayName: 'Vefur A',
+      domain: 'vefur-a.is',
+      impressions: 5,
+      clicks: 7,
+      pageviews: 100,
+      spendIsk: 0,
+    },
+    {
+      publisherId: 'pub_b',
+      displayName: 'Vefur B',
+      domain: 'vefur-b.is',
+      impressions: 100,
+      clicks: 5,
+      pageviews: 100,
+      spendIsk: 0,
+    },
+  ],
+};
+
+test('per-site CTR stops at 100%, because a click can outrun its own impression', async () => {
+  setupApiMock({ publishers: TWO_SITES, slots: [], stats: CTR_OVERFLOW_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  expect(within(siteRow('Vefur A')).getByText('(100,00%)')).toBeDefined();
+  expect(siteRow('Vefur A').textContent).not.toContain('140,00%');
+  // Not a blanket clamp: a normal site still shows its real rate.
+  expect(within(siteRow('Vefur B')).getByText('(5,00%)')).toBeDefined();
+});
+
 test('per-site eCPM is net of the platform fee, matching the revenue beside it', async () => {
   // Publishers keep 80%. An eCPM computed off gross spend would read 550 and
   // 1.111 here and would not reconcile with the revenue figure in the same
@@ -358,3 +419,159 @@ test('an empty publishers list still routes to onboarding', async () => {
   await new Promise((r) => setTimeout(r, 0));
   expect(screen.queryByText('Villa kom upp')).toBeNull();
 });
+
+/**
+ * The CSV is the fourth surface that computes these ratios, and it is the one
+ * nobody looks at until a publisher opens it in Excel next to the dashboard.
+ * It disagreed with the on-screen table once already, over the meaning of
+ * "Fyllihlutfall", which is why its numbers are pinned here rather than trusted
+ * to match by inspection.
+ *
+ * The download is captured at the Blob rather than at the anchor: jsdom
+ * implements neither URL.createObjectURL nor real navigation, and the file's
+ * contents are what the assertion is about.
+ */
+function captureCsvDownload(): { read: () => string; restore: () => void } {
+  let captured = '';
+  const RealBlob = window.Blob;
+  const realClick = window.HTMLAnchorElement.prototype.click;
+  const realCreate = window.URL.createObjectURL;
+  const realRevoke = window.URL.revokeObjectURL;
+  const hadClick = Object.hasOwn(window.HTMLAnchorElement.prototype, 'click');
+  const hadCreate = Object.hasOwn(window.URL, 'createObjectURL');
+  const hadRevoke = Object.hasOwn(window.URL, 'revokeObjectURL');
+
+  (window as any).Blob = class extends RealBlob {
+    constructor(...args: ConstructorParameters<typeof RealBlob>) {
+      super(...args);
+      captured = (args[0] ?? []).join('');
+    }
+  };
+  // jsdom implements neither of these, and the handler appends a real <a> and
+  // clicks it — left alone that logs a "navigation not implemented" error.
+  (window.URL as any).createObjectURL = () => 'blob:mock';
+  (window.URL as any).revokeObjectURL = () => {};
+  window.HTMLAnchorElement.prototype.click = () => {};
+
+  // Restored by hand rather than through vi.unstubAllGlobals(): the
+  // ResizeObserver stub at the top of this file is a global stub too, and
+  // unstubbing everything would take it down with these.
+  return {
+    read: () => captured,
+    restore: () => {
+      (window as any).Blob = RealBlob;
+      // jsdom has neither of these and inherits click() from HTMLElement, so
+      // assigning the saved value back would leave a NEW own property behind
+      // holding `undefined`. That breaks `'createObjectURL' in window.URL`
+      // feature detection, and an own click() on the anchor prototype would
+      // shadow any later stub placed on HTMLElement.prototype.
+      restoreOrDelete(window.URL, 'createObjectURL', hadCreate, realCreate);
+      restoreOrDelete(window.URL, 'revokeObjectURL', hadRevoke, realRevoke);
+      restoreOrDelete(window.HTMLAnchorElement.prototype, 'click', hadClick, realClick);
+    },
+  };
+}
+
+function restoreOrDelete(target: object, key: string, wasOwn: boolean, original: unknown): void {
+  if (wasOwn) {
+    (target as Record<string, unknown>)[key] = original;
+  } else {
+    delete (target as Record<string, unknown>)[key];
+  }
+}
+
+const CSV_SLOTS = [
+  {
+    id: 'slot_fast',
+    publisherId: 'pub_a',
+    name: 'Efst á forsíðu',
+    sizes: [{ width: 300, height: 250 }],
+    status: 'active',
+    // Every slot is pinned to the flat CPM on write (createSlot/updateSlot);
+    // the slot table reads pricing.mode unguarded, so a fixture without it
+    // crashes the page rather than failing an assertion.
+    pricing: { mode: 'cpm', cpmIsk: 550 },
+    // 7 clicks on 5 impressions — the same click-outruns-impression case as the
+    // per-site table test above.
+    stats: { impressions: 5, clicks: 7, pageviews: 100, unfilled: 20, spendIsk: 1000 },
+  },
+  {
+    id: 'slot_normal',
+    publisherId: 'pub_a',
+    name: 'Í miðri grein',
+    sizes: [{ width: 728, height: 90 }],
+    status: 'active',
+    // Every slot is pinned to the flat CPM on write (createSlot/updateSlot);
+    // the slot table reads pricing.mode unguarded, so a fixture without it
+    // crashes the page rather than failing an assertion.
+    pricing: { mode: 'cpm', cpmIsk: 550 },
+    // Every column differs from the slot above — fill 75% against 80%, and its
+    // own clicks, impressions and revenue. With both rows sharing a figure, a
+    // whole-line assertion could still pass on a build that rendered one slot's
+    // numbers on the other slot's row.
+    stats: { impressions: 100, clicks: 5, pageviews: 200, unfilled: 50, spendIsk: 2000 },
+  },
+];
+
+test('the CSV export clamps CTR at 100% too, so it agrees with the screen', async () => {
+  let csvDownload: ReturnType<typeof captureCsvDownload> | undefined;
+  try {
+    csvDownload = captureCsvDownload();
+    setupApiMock({ publishers: ONE_SITE, slots: CSV_SLOTS, stats: BASE_STATS });
+    renderPage();
+    await screen.findByTitle('Sækja CSV skýrslu');
+
+    fireEvent.click(screen.getByTitle('Sækja CSV skýrslu'));
+
+    // Asserted as whole lines, not as loose substrings: '100,00%' appearing
+    // somewhere in the file does not prove it appeared in the right slot's row,
+    // and the column order is exactly what a CSV read in a spreadsheet depends
+    // on. The header has ten columns and so must every row — the CTR field is
+    // quoted for that reason, since the Icelandic decimal comma would otherwise
+    // split it in two and push revenue under the CTR heading.
+    // Not .trim()'d: the leading byte-order mark is whitespace to trim(), and
+    // it is what makes Excel read the file as UTF-8 rather than mangling every
+    // Icelandic character in it.
+    const lines = csvDownload
+      .read()
+      .split('\n')
+      .filter((l) => l !== '');
+    expect(lines[0]).toBe(
+      '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur',
+    );
+    expect(lines[1]).toBe(
+      '"Efst á forsíðu",vefur-a.is,"300x250",Virk,5,100,80%,7,"100,00%",800 kr.',
+    );
+    expect(lines[2]).toBe(
+      '"Í miðri grein",vefur-a.is,"728x90",Virk,100,200,75%,5,"5,00%",1600 kr.',
+    );
+    // Unclamped this row would read 140,00%, and its quotes would be missing.
+    expect(csvDownload.read()).not.toContain('140,00%');
+
+    // Every row carries exactly as many fields as the header. A naive split on
+    // commas is the wrong way to parse CSV in general, but it is precisely how
+    // the unquoted decimal comma used to break: eleven fields against ten.
+    const headerFields = splitCsvLine(lines[0]!).length;
+    for (const line of lines.slice(1)) {
+      expect(splitCsvLine(line)).toHaveLength(headerFields);
+    }
+  } finally {
+    csvDownload?.restore();
+  }
+});
+
+/** Fields of one CSV line, honouring double quotes. */
+function splitCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  for (const ch of line) {
+    if (ch === '"') inQuotes = !inQuotes;
+    else if (ch === ',' && !inQuotes) {
+      fields.push(field);
+      field = '';
+    } else field += ch;
+  }
+  fields.push(field);
+  return fields;
+}

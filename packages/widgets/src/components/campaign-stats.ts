@@ -202,7 +202,15 @@ export class AdplatformCampaignStats extends HTMLElement {
     }
 
     const isDark = this.getActiveTheme() === 'dark';
-    const ctr = this.stats.impressions > 0 ? (this.stats.clicks / this.stats.impressions) * 100 : 0;
+    // Clamped, like every other surface that shows CTR — including the API
+    // this component fetches from, which clamps the `ctr` it returns. Clicks
+    // are not viewability-gated and impressions are, so clicks can outrun
+    // impressions; unclamped, this widget would report 140% on the
+    // advertiser's own page while the dashboard showed 100%.
+    const ctr =
+      this.stats.impressions > 0
+        ? Math.min(100, (this.stats.clicks / this.stats.impressions) * 100)
+        : 0;
     const ctrStr = `${ctr.toFixed(2)}%`;
     const formatNum = (n: number) => new Intl.NumberFormat('is-IS').format(n);
 

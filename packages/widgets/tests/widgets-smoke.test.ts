@@ -132,4 +132,50 @@ describe('<adplatform-campaign-stats>', () => {
     expect(url).toBe(`${API}/v1/widgets/campaign/stats`);
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer wk_view_123');
   });
+
+  // This component recomputes CTR from raw clicks and impressions rather than
+  // reading the `ctr` the API already returns, and the API clamps its own at
+  // 100 (routes/campaigns.ts). Left unclamped, the same campaign reads 140%
+  // here and 100% in the dashboard — on a page the advertiser embedded on
+  // their own site, where we never see the discrepancy.
+  //
+  // Clicks legitimately outrun impressions: the impression pixel only fires
+  // after the ad has been at least half visible for a continuous second, while
+  // the ad is clickable from the moment it renders, so an ad that never clears
+  // that threshold can still be clicked (and tracking protection blocks the
+  // pixel image without blocking the link).
+  it('stops CTR at 100%, matching every other surface that shows it', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      // The response is unwrapped as `data.stats` (campaign-stats.ts:75), not
+      // read at the top level — a flat fixture leaves this.stats undefined and
+      // the component renders its "no data" card while the test still passes.
+      json: async () => ({ stats: { impressions: 5, clicks: 7, spendIsk: 0, hours: [] } }),
+    });
+
+    const el = document.createElement('adplatform-campaign-stats');
+    el.setAttribute('campaign-id', 'cmp_1');
+    el.setAttribute('viewer-key', 'wk_view_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const html = el.shadowRoot!.innerHTML;
+    expect(html).toContain('100.00%');
+    expect(html).not.toContain('140.00%');
+  });
+
+  it('still shows a real rate below the clamp', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ stats: { impressions: 200, clicks: 5, spendIsk: 0, hours: [] } }),
+    });
+
+    const el = document.createElement('adplatform-campaign-stats');
+    el.setAttribute('campaign-id', 'cmp_1');
+    el.setAttribute('viewer-key', 'wk_view_123');
+    document.body.appendChild(el);
+    await flush();
+
+    expect(el.shadowRoot!.innerHTML).toContain('2.50%');
+  });
 });
