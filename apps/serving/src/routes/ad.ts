@@ -295,6 +295,39 @@ const HOUSE_AD_ANIMATION_CSS = `
   .replace(/\s+/g, ' ')
   .trim();
 
+/**
+ * Crude advance-width estimate. No font metrics are available here (the SVG is
+ * handed to the browser as a data URI and never measured server-side), so this
+ * is a per-character approximation calibrated for Inter-like system fonts.
+ */
+function estimateTextWidth(text: string, fontSize: number, weight: number): number {
+  return text.length * fontSize * (weight >= 700 ? 0.58 : 0.5);
+}
+
+/**
+ * Longest line from `candidates` that fits `available`, or '' if none do.
+ *
+ * Fitting is judged against 92% of the space so the estimate above has room to
+ * be wrong. Reported from production 2026-08-14: the subtitle was chosen by
+ * HEIGHT (`height >= 80` picked the longest line) while the constraint that
+ * binds is WIDTH, so the 320x100 IAB mobile banner — tall enough to qualify,
+ * half as wide as it needed to be — rendered ~324px of text into ~160px of
+ * space and ran the tail under the button and off the canvas. On someone
+ * else's site, as the platform's own advertisement.
+ */
+function pickFittingText(
+  candidates: string[],
+  fontSize: number,
+  weight: number,
+  available: number,
+): string {
+  const budget = available * 0.92;
+  for (const candidate of candidates) {
+    if (estimateTextWidth(candidate, fontSize, weight) <= budget) return candidate;
+  }
+  return '';
+}
+
 function generateHouseAdSvg(width: number, height: number): string {
   const isHorizontal = width > height * 1.5;
   const isCompact = width < 200 || height < 80;
@@ -359,10 +392,19 @@ function generateHouseAdSvg(width: number, height: number): string {
     const buttonTextSize = Math.max(8, Math.min(buttonH * 0.36, 11));
     const buttonTextY = buttonH / 2 + buttonTextSize * 0.35;
 
-    const pitchText =
-      height >= 80
-        ? 'Sjálfvirkur auglýsingamarkaður • 550 kr. CPM fastaverð'
-        : 'Auglýstu á 550 kr. CPM • Birtingur.app';
+    // Chosen by the width actually left between the logo and the button, not
+    // by height. See pickFittingText.
+    const pitchText = pickFittingText(
+      [
+        'Sjálfvirkur auglýsingamarkaður • 550 kr. CPM fastaverð',
+        'Auglýstu á 550 kr. CPM • Birtingur.app',
+        '550 kr. CPM fastaverð',
+        '550 kr. CPM',
+      ],
+      subSize,
+      500,
+      buttonX - textX - 8,
+    );
 
     const buttonText = buttonW > 100 ? 'Stofna herferð' : 'Auglýsa';
 
@@ -403,10 +445,22 @@ function generateHouseAdSvg(width: number, height: number): string {
     const buttonY = Math.max(sub2Y + 24, height * 0.74);
     const buttonTextY = buttonH / 2 + 4;
 
-    const pitchText1 = width >= 240 ? 'Sjálfvirkur auglýsingamarkaður' : 'Auglýstu á netinu';
-
-    const pitchText2 =
-      width >= 200 ? 'Fastaverð: 550 kr. CPM • Engin lágmörk' : '550 kr. CPM fastaverð';
+    // Centred text, so the budget is the full canvas minus a margin on both
+    // sides. Same reasoning as the horizontal branch: the old width thresholds
+    // were hardcoded and ignored the font size the layout had just computed.
+    const centredBudget = width - width * 0.12;
+    const pitchText1 = pickFittingText(
+      ['Sjálfvirkur auglýsingamarkaður', 'Auglýstu á netinu', 'Auglýstu hér'],
+      sub1Size,
+      700,
+      centredBudget,
+    );
+    const pitchText2 = pickFittingText(
+      ['Fastaverð: 550 kr. CPM • Engin lágmörk', '550 kr. CPM fastaverð', '550 kr. CPM'],
+      sub2Size,
+      500,
+      centredBudget,
+    );
 
     hasCta = true;
     content = `
