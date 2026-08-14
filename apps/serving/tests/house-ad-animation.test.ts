@@ -91,13 +91,29 @@ describe('house ad micro-animation', () => {
     expect(svg).toMatch(/animation:\s*[a-zA-Z]/);
   });
 
-  it('honours prefers-reduced-motion', async () => {
+  it('emits a reduced-motion override targeting the class it animates', async () => {
     // A looping animation a viewer cannot switch off is an accessibility
     // failure, and this one sits on somebody else's blog on every unfilled
     // impression.
+    //
+    // Scope of this test, stated honestly: it cannot see browser behaviour, so
+    // it does not prove the preference is honoured. What it does catch is the
+    // realistic regression — the override drifting off the class that actually
+    // carries the animation, e.g. someone renaming one and not the other.
+    // Whether browsers honour it inside an <img>-embedded SVG was checked by
+    // hand on 2026-08-14 (Chromium and Firefox with a real OS-level preference:
+    // the animation drops to a single frame). Note for anyone retesting:
+    // Playwright's context-level `reducedMotion` emulation does NOT reach the
+    // isolated SVG image document and will make the guard look dead.
     const svg = await houseAdSvg();
-    expect(svg).toContain('prefers-reduced-motion');
+
+    const animated = svg.match(/\.([a-z-]+)\s*\{[^}]*animation:\s*ctaPulse/);
+    expect(animated, 'a class must carry the animation').not.toBeNull();
+    const animatedClass = animated![1];
+
     const reduced = svg.slice(svg.indexOf('prefers-reduced-motion'));
+    expect(svg).toContain('prefers-reduced-motion');
+    expect(reduced).toContain(`.${animatedClass}`);
     expect(reduced).toMatch(/animation:\s*none/);
   });
 
@@ -137,8 +153,17 @@ describe('house ad micro-animation', () => {
     // A CSS transform overrides the `transform` presentation attribute, so
     // scaling the positioned group would snap the button to the origin on the
     // first frame. The pulse has to scale a wrapper.
+    //
+    // Checked structurally, not with a regex over the whole document. The first
+    // version of this test was `not.toMatch(/class="cta-pulse"[^>]*transform=/)`,
+    // which only fires when `class` happens to be written before `transform` —
+    // and SVG is habitually written the other way round. The exact failure this
+    // test names walked straight past it: with the attributes swapped, the
+    // button renders at x=28 instead of x=594 and CI stays green.
     const svg = await houseAdSvg();
-    expect(svg).not.toMatch(/class="cta-pulse"[^>]*transform="translate/);
+    const animatedTags = svg.match(/<g[^>]*cta-pulse[^>]*>/g) ?? [];
+    expect(animatedTags).toHaveLength(1);
+    expect(animatedTags[0]).not.toContain('transform');
   });
 
   it('stays a valid single-root SVG', async () => {
@@ -151,10 +176,14 @@ describe('house ad micro-animation', () => {
 
   it('keeps the no-fill response within its byte budget', async () => {
     // This SVG is inlined, percent-encoded, into the JSON body of EVERY unfilled
-    // ad request — the most frequent response on a quiet publisher's site. The
-    // animation cost 776 bytes written out with indentation and 521 after the
-    // whitespace collapse in HOUSE_AD_ANIMATION_CSS, because encodeURIComponent
-    // turns every space into three characters. Measured 2026-08-14:
+    // ad request — the most frequent response on a quiet publisher's site.
+    //
+    // Measured 2026-08-14, all figures for the ENCODED imageUrl the client
+    // receives, not the raw markup. Total cost of the animation, meaning the
+    // CSS block AND the wrapper <g> together: +776 bytes with the CSS written
+    // out over multiple lines, +521 after the whitespace collapse in
+    // HOUSE_AD_ANIMATION_CSS — encodeURIComponent spends three characters on
+    // every space. Of that 521, the CSS block itself is 427. Absolute sizes:
     // 728x90 8152, 300x250 8397, 120x60 6846 (unchanged, no button to pulse).
     //
     // The ceiling leaves room for copy changes but not for another unbudgeted

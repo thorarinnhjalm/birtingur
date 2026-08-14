@@ -103,6 +103,10 @@ describe('renderBannerSvg', () => {
       const svg = renderBannerSvg({ width: 300, height: 250, copy: COPY, templateId });
       expect(svg).not.toContain('@keyframes');
       expect(svg).not.toContain('animation:');
+      // `transition` too: the reverted version led with a transition rule, which
+      // is just as dead in a rasterized SVG and would have slipped past a check
+      // for keyframes alone.
+      expect(svg).not.toContain('transition:');
       expect(svg).not.toContain(':hover');
     }
   });
