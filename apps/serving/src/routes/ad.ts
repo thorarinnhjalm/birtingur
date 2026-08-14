@@ -251,6 +251,50 @@ adRoute.get('/', async (c) => {
   });
 });
 
+/**
+ * Subtle pulse on the house ad's call-to-action.
+ *
+ * This is the only creative surface on the platform where a CSS animation
+ * actually reaches a viewer. Advertiser creatives are rasterized to PNG by
+ * apps/api's render-variant.ts before upload, so animation in those SVG
+ * templates is flattened away — measured, the PNG is byte-identical with and
+ * without it. The house ad is handed out as a `data:image/svg+xml` URI and the
+ * snippet renders it in an `<img>`, where CSS animations do run.
+ *
+ * Three constraints shape what is safe here:
+ *
+ *  - No `:hover`, no `cursor`. An SVG in an `<img>` receives no pointer events,
+ *    so those rules would be decoration that never fires.
+ *  - The pulse scales a WRAPPER group, never the group that positions the
+ *    button. A CSS `transform` overrides the `transform` presentation
+ *    attribute, so animating the positioned group directly would yank the
+ *    button to the origin on the first frame.
+ *  - prefers-reduced-motion switches it off. This loops forever on somebody
+ *    else's blog on every unfilled impression; a viewer who has asked their
+ *    system for less motion has to be able to get it.
+ */
+const HOUSE_AD_ANIMATION_CSS = `
+  @keyframes ctaPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+  .cta-pulse {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ctaPulse 3.2s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cta-pulse { animation: none; }
+  }`
+  // Collapsed before it goes on the wire. This SVG is percent-encoded into the
+  // JSON body of every unfilled ad request, and encodeURIComponent turns each
+  // space and newline into three characters — so indentation that costs 100
+  // bytes in this file costs 300 on the hot path. Written readable above,
+  // shipped tight. CSS is whitespace-insensitive here (no string literals), so
+  // collapsing runs is safe.
+  .replace(/\s+/g, ' ')
+  .trim();
+
 function generateHouseAdSvg(width: number, height: number): string {
   const isHorizontal = width > height * 1.5;
   const isCompact = width < 200 || height < 80;
@@ -274,6 +318,10 @@ function generateHouseAdSvg(width: number, height: number): string {
   `;
 
   let content: string;
+  // The compact layout (e.g. 120x60) has no call-to-action button, so there is
+  // nothing to pulse and the animation CSS is omitted from it entirely rather
+  // than shipped unused.
+  let hasCta = false;
 
   if (isCompact) {
     // Mini layout (e.g. 120x60)
@@ -318,6 +366,7 @@ function generateHouseAdSvg(width: number, height: number): string {
 
     const buttonText = buttonW > 100 ? 'Stofna herferð' : 'Auglýsa';
 
+    hasCta = true;
     content = `
       <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
         ${logoGroup}
@@ -325,9 +374,11 @@ function generateHouseAdSvg(width: number, height: number): string {
       <text x="${textX}" y="${titleY}" fill="#ffffff" font-size="${titleSize}" font-weight="900" letter-spacing="-0.02em">Birtingur</text>
       <text x="${textX}" y="${subY}" fill="#e0f2fe" font-size="${subSize}" font-weight="500">${pitchText}</text>
       
-      <g transform="translate(${buttonX}, ${buttonY})">
-        <rect width="${buttonW}" height="${buttonH}" rx="${buttonH * 0.2}" fill="#ffffff" filter="url(#shadow)"/>
-        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="${buttonTextSize}" font-weight="800">${buttonText}</text>
+      <g class="cta-pulse">
+        <g transform="translate(${buttonX}, ${buttonY})">
+          <rect width="${buttonW}" height="${buttonH}" rx="${buttonH * 0.2}" fill="#ffffff" filter="url(#shadow)"/>
+          <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="${buttonTextSize}" font-weight="800">${buttonText}</text>
+        </g>
       </g>
     `;
   } else {
@@ -357,6 +408,7 @@ function generateHouseAdSvg(width: number, height: number): string {
     const pitchText2 =
       width >= 200 ? 'Fastaverð: 550 kr. CPM • Engin lágmörk' : '550 kr. CPM fastaverð';
 
+    hasCta = true;
     content = `
       <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
         ${logoGroup}
@@ -365,9 +417,11 @@ function generateHouseAdSvg(width: number, height: number): string {
       <text x="50%" y="${sub1Y}" text-anchor="middle" fill="#e0f2fe" font-size="${sub1Size}" font-weight="700">${pitchText1}</text>
       <text x="50%" y="${sub2Y}" text-anchor="middle" fill="#bae6fd" font-size="${sub2Size}" font-weight="500">${pitchText2}</text>
       
-      <g transform="translate(${buttonX}, ${buttonY})">
-        <rect width="${buttonW}" height="${buttonH}" rx="8" fill="#ffffff" filter="url(#shadow)"/>
-        <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="800">Stofna herferð</text>
+      <g class="cta-pulse">
+        <g transform="translate(${buttonX}, ${buttonY})">
+          <rect width="${buttonW}" height="${buttonH}" rx="8" fill="#ffffff" filter="url(#shadow)"/>
+          <text x="${buttonW / 2}" y="${buttonTextY}" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="800">Stofna herferð</text>
+        </g>
       </g>
     `;
   }
@@ -425,7 +479,7 @@ function generateHouseAdSvg(width: number, height: number): string {
       </filter>
     </defs>
     <style>
-      text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      text { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }${hasCta ? HOUSE_AD_ANIMATION_CSS : ''}
     </style>
     <rect width="100%" height="100%" fill="url(#grad)"/>
     <rect width="100%" height="100%" fill="url(#glow)"/>
