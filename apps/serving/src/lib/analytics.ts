@@ -151,6 +151,9 @@ function ctrCounterField(ev: AdEvent): 'imp' | 'clk' | null {
  * comparable to `campaign.budget.remainingIsk` (reconciliation check 4 depends
  * on that) and the fail-closed missing-key behaviour in getRemainingBudgets is
  * unchanged.
+ *
+ * The return value is discarded by the only caller; Number() is here so the
+ * declared type is honest about INCRBYFLOAT returning a string.
  */
 export async function decrementBudget(campaignId: string, costIsk: number): Promise<number> {
   const key = `budget:${campaignId}`;
@@ -204,7 +207,18 @@ export async function getPaceState(
     ...campaignIds.map((id) => `pace_spent:${id}:${dayKey}`),
   );
   campaignIds.forEach((id, i) => {
-    out[id] = { limit: limits[i] ?? Number.POSITIVE_INFINITY, spent: spents[i] ?? 0 };
+    // Number(), not the raw mget value. INCRBYFLOAT stores a decimal string and
+    // @upstash/redis returns the raw string whenever it does not round-trip
+    // through JSON.parse — which a value like 945.00000000000045 never does. The
+    // declared type says number, `ad.ts` coerces it in a `<` comparison so
+    // nothing is broken today, and the first piece of arithmetic anyone does on
+    // it would concatenate instead of add.
+    const limit = limits[i];
+    const spent = spents[i];
+    out[id] = {
+      limit: limit != null ? Number(limit) : Number.POSITIVE_INFINITY,
+      spent: spent != null ? Number(spent) : 0,
+    };
   });
   return out;
 }

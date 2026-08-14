@@ -182,8 +182,21 @@ impressionRoute.get('/', async (c) => {
           // had. Both counters take it through INCRBYFLOAT (see
           // lib/analytics.ts) so the fraction survives.
           const costIsk = FLAT_CPM_ISK / 1000;
-          void decrementBudget(creative.campaignId, costIsk);
-          void incrementPaceSpent(creative.campaignId, costIsk);
+          // Caught, not bare `void`. These are fire-and-forget so the pixel is
+          // never delayed, but an unhandled rejection here takes the process
+          // down — and there is a real way to produce one: DECRBY/INCRBY reject
+          // a key holding a decimal, so rolling BACK to the pre-0,55 code would
+          // throw on every single impression. `budget:{id}` recovers by itself
+          // (push-cache SETs it every 10 minutes and after every accrual), but
+          // `pace_spent:{id}:{day}` is only ever INCR'd and expired, so it
+          // would stay broken for the rest of the UTC day. See the rollback
+          // note in docs/superpowers/specs/2026-08-12-blueprint.md.
+          void decrementBudget(creative.campaignId, costIsk).catch((err) => {
+            console.error('decrementBudget failed:', err);
+          });
+          void incrementPaceSpent(creative.campaignId, costIsk).catch((err) => {
+            console.error('incrementPaceSpent failed:', err);
+          });
         } else {
           console.warn(
             `Impression rate limit exceeded for campaign ${creative.campaignId} from IP ${ip}`,

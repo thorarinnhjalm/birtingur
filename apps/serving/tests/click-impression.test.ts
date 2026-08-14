@@ -333,6 +333,25 @@ describe('GET /v1/impression', () => {
     expect(mockExpire).toHaveBeenCalledWith(`pace_spent:cmp_a:${dayKey}`, 2 * 86400);
   });
 
+  it('still returns the pixel when the budget counter itself rejects', async () => {
+    // These two calls are fire-and-forget so the pixel is never delayed, which
+    // means an unhandled rejection takes the process down. There is a real way
+    // to produce one: DECRBY/INCRBY reject a key holding a decimal, so a
+    // rollback to the pre-0,55 code would throw on every impression.
+    const ts = Date.now();
+    const sig = createSignature('cre_a', 'slot_a', 'tok_reject', ts);
+    vi.mocked(decrementBudget).mockRejectedValueOnce(
+      new Error('ERR value is not an integer or out of range'),
+    );
+
+    const res = await app.request(
+      `/v1/impression?s=slot_a&c=cre_a&t=tok_reject&ts=${ts}&sig=${sig}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toContain('image');
+  });
+
   it('charges the budget counter the same fraction of a króna', async () => {
     // Both counters are in ISK and must move together — pace_limit and
     // budget:{id} are both seeded from remainingIsk by push-cache, so a cost

@@ -121,6 +121,15 @@ impression and click is attributable, signed, and counted exactly once.
 | The rotation never acts on a CTR lead built from fewer than a handful of clicks  | `apps/serving/tests/bandit.test.ts` ("refuses to act on noise")                                     |
 | One campaign's variants in a slot are bounded, and truncation is logged          | `apps/api/tests/push-cache.test.ts`                                                                 |
 
+**Rolling back the fractional cost counters is not a plain revert.** `budget:{id}`
+and `pace_spent:{id}:{day}` hold decimals since 2026-08-14, and Redis DECRBY /
+INCRBY reject a key whose value is not an integer. `budget:{id}` heals itself
+(push-cache SETs it every 10 minutes and after every accrual), but `pace_spent`
+is only ever incremented and expired, so a revert leaves it erroring for the rest
+of the UTC day with daily pacing effectively off. A revert must therefore be
+paired with `DEL pace_spent:*`. The counter calls are `.catch()`ed so this
+degrades rather than crashing the function.
+
 **Now.** V1 on Vercel at `serving.birtingur.app`, 15 test files. The snippet is
 compiled into the serving app's own `public/widget.js`; there is no separate CDN.
 

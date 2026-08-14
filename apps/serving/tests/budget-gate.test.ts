@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SlotCacheEntry } from '@ada/shared';
 import { setRedis } from '../src/lib/redis.js';
-import { decrementBudget, getRemainingBudgets } from '../src/lib/analytics.js';
+import {
+  decrementBudget,
+  getRemainingBudgets,
+  getPaceState,
+  incrementPaceSpent,
+} from '../src/lib/analytics.js';
 import { FLAT_CPM_ISK } from '@ada/shared';
 
 // The fail-closed budget gate, tested WITHOUT mocking analytics. Every other
@@ -63,19 +68,32 @@ function fakeRedis() {
   const guard = () => {
     if (redisDown) throw new Error('redis unavailable');
   };
+  const requireInteger = (key: string, by: number) => {
+    const stored = store.get(key);
+    if (!Number.isInteger(by) || (stored !== undefined && !Number.isInteger(Number(stored)))) {
+      throw new Error('ERR value is not an integer or out of range');
+    }
+  };
   const client = {
     mget: async (...keys: string[]) => {
       guard();
       return keys.map((k) => store.get(k) ?? null);
     },
+    // DECRBY/INCRBY reject a non-integer argument AND a non-integer stored
+    // value, exactly as real Redis does ("ERR value is not an integer or out of
+    // range"). Without this the fake happily did JS float arithmetic, so the two
+    // fraction tests below passed against the integer implementation they exist
+    // to rule out — they asserted nothing at all.
     decrby: async (key: string, by: number) => {
       guard();
-      const next = Number(store.get(key) ?? 0) - by;
+      requireInteger(key, by);
+      const next = Number(store.get(key)) - by;
       store.set(key, next);
       return next;
     },
     incrby: async (key: string, by: number) => {
       guard();
+      requireInteger(key, by);
       const next = Number(store.get(key) ?? 0) + by;
       store.set(key, next);
       return next;
@@ -86,7 +104,11 @@ function fakeRedis() {
     incrbyfloat: async (key: string, by: number) => {
       guard();
       const next = Number(store.get(key) ?? 0) + by;
-      store.set(key, next);
+      // STORED as a string, which is what real Redis does — and what
+      // @upstash/redis hands straight back from mget when the value does not
+      // round-trip through JSON.parse. Storing a number here would hide the
+      // coercion every reader has to do.
+      store.set(key, String(next));
       return String(next);
     },
     expire: async () => {
@@ -185,6 +207,20 @@ describe('fail-closed budget gate (real getRemainingBudgets)', () => {
     const remaining = await getRemainingBudgets(['cmp_1']);
     expect(typeof remaining.cmp_1).toBe('number');
     expect(remaining.cmp_1).toBeCloseTo(9.45, 5);
+  });
+
+  it('hands the pace gate numbers even though Redis stores strings', async () => {
+    // INCRBYFLOAT stores a decimal string. `ad.ts` compares spent < limit, which
+    // coerces, so nothing is visibly broken — but the declared type says number
+    // and the first arithmetic anyone does on a string spend concatenates.
+    store.set('pace_limit:cmp_1', 500);
+    await incrementPaceSpent('cmp_1', 0.55);
+    await incrementPaceSpent('cmp_1', 0.55);
+
+    const pace = await getPaceState(['cmp_1']);
+    expect(typeof pace.cmp_1!.spent).toBe('number');
+    expect(typeof pace.cmp_1!.limit).toBe('number');
+    expect(pace.cmp_1!.spent).toBeCloseTo(1.1, 5);
   });
 
   it('returns 500 (no ad at all) when Redis itself is unreachable', async () => {
