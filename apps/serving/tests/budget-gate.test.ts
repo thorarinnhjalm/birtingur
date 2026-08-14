@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { SlotCacheEntry } from '@ada/shared';
 import { setRedis } from '../src/lib/redis.js';
+import { decrementBudget, getRemainingBudgets } from '../src/lib/analytics.js';
+import { FLAT_CPM_ISK } from '@ada/shared';
 
 // The fail-closed budget gate, tested WITHOUT mocking analytics. Every other
 // serving suite replaces getRemainingBudgets with a fake, so the one property
@@ -78,6 +80,15 @@ function fakeRedis() {
       store.set(key, next);
       return next;
     },
+    // Real Redis returns INCRBYFLOAT's result as a string, and that is the
+    // whole point of having it here: decrementBudget must convert it back, or
+    // getRemainingBudgets compares a string to a number.
+    incrbyfloat: async (key: string, by: number) => {
+      guard();
+      const next = Number(store.get(key) ?? 0) + by;
+      store.set(key, next);
+      return String(next);
+    },
     expire: async () => {
       guard();
       return 1;
@@ -146,6 +157,34 @@ describe('fail-closed budget gate (real getRemainingBudgets)', () => {
 
     const body = await res.json();
     expect(body.creativeId).toBe('cre_fallback_birtingur');
+  });
+
+  it('spends the budget in fractions of a króna, not whole ones', async () => {
+    // The real decrementBudget, not a mock. One impression costs
+    // FLAT_CPM_ISK / 1000 = 0,55; an integer counter cannot hold that, and
+    // rounding it to 1 emptied the gate after 55% of the impressions the
+    // budget had actually paid for.
+    store.set('budget:cmp_1', 1000);
+
+    for (let i = 0; i < 100; i++) {
+      await decrementBudget('cmp_1', FLAT_CPM_ISK / 1000);
+    }
+
+    const remaining = await getRemainingBudgets(['cmp_1']);
+    // 100 impressions of a 550 kr CPM is 55 kr, so 945 remain — not 900.
+    expect(Math.round(remaining.cmp_1!)).toBe(945);
+  });
+
+  it('reads back a float counter as a number, so the gate still compares', async () => {
+    // INCRBYFLOAT stores a string. If decrementBudget or getRemainingBudgets
+    // leaves it one, `remaining > 0` is a string comparison and the fail-closed
+    // gate stops meaning what it says.
+    store.set('budget:cmp_1', 10);
+    await decrementBudget('cmp_1', 0.55);
+
+    const remaining = await getRemainingBudgets(['cmp_1']);
+    expect(typeof remaining.cmp_1).toBe('number');
+    expect(remaining.cmp_1).toBeCloseTo(9.45, 5);
   });
 
   it('returns 500 (no ad at all) when Redis itself is unreachable', async () => {

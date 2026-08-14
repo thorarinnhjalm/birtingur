@@ -176,7 +176,12 @@ impressionRoute.get('/', async (c) => {
           //    the one place in serving that could overspend.
           // 2. Reading `slot.pricing.cpmIsk` let a legacy slot with some
           //    other cached CPM disagree with what accrual actually books.
-          const costIsk = Math.round(FLAT_CPM_ISK / 1000);
+          // NOT rounded. FLAT_CPM_ISK / 1000 is 0,55 kr per impression, and
+          // Math.round made that 1 — an 82% overcharge against both counters,
+          // from a constant that assumed a 1.000 kr CPM this repo has never
+          // had. Both counters take it through INCRBYFLOAT (see
+          // lib/analytics.ts) so the fraction survives.
+          const costIsk = FLAT_CPM_ISK / 1000;
           void decrementBudget(creative.campaignId, costIsk);
           void incrementPaceSpent(creative.campaignId, costIsk);
         } else {
