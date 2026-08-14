@@ -186,10 +186,19 @@ function PublisherHome() {
             ? `${Math.round(((pageviews - unfilled) / pageviews) * 100)}%`
             : 'ekki mælt';
         const clicks = s.stats ? s.stats.clicks : 0;
+        // Clamped, like every other surface that shows CTR — see the on-screen
+        // table below for why clicks can outrun impressions.
+        //
+        // QUOTED because the Icelandic decimal separator is a comma and this is
+        // a comma-separated file: an unquoted `1,00%` is two fields, so every
+        // row carried one more field than the header and the revenue column
+        // landed under the CTR heading in any parser that read it.
         const ctr =
           s.stats && s.stats.impressions > 0
-            ? `${((s.stats.clicks / s.stats.impressions) * 100).toFixed(2).replace('.', ',')}%`
-            : '0,00%';
+            ? `"${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
+                .toFixed(2)
+                .replace('.', ',')}%"`
+            : '"0,00%"';
         const earnings = s.stats ? Math.round(s.stats.spendIsk * 0.8) : 0;
 
         csvContent += `${name},${domain},${sizes},${status},${impressions},${pageviews},${fillRate},${clicks},${ctr},${earnings} kr.\n`;
@@ -560,9 +569,21 @@ function PublisherHome() {
                     site.unfilled !== undefined && site.pageviews > 0
                       ? Math.round(((site.pageviews - site.unfilled) / site.pageviews) * 100)
                       : null;
+                  // Stops at 100. The impression pixel only fires once the ad
+                  // has been at least half visible for a continuous second
+                  // (IAB), while the ad is clickable from the moment it
+                  // renders — so an ad that never clears that threshold, half
+                  // below the fold or scrolled straight past, can still be
+                  // clicked with no impression behind it. Tracking protection
+                  // does the same, blocking the pixel image but not the link.
+                  // Over a small per-site sample that reads as CTR above 100%,
+                  // which looks like a broken dashboard even though both
+                  // figures are real.
                   const siteCtr =
                     site.impressions > 0
-                      ? ((site.clicks / site.impressions) * 100).toFixed(2).replace('.', ',')
+                      ? Math.min(100, (site.clicks / site.impressions) * 100)
+                          .toFixed(2)
+                          .replace('.', ',')
                       : '0,00';
                   // formatIsk(0), not the literal '0 kr.' used elsewhere on this
                   // page: formatIsk emits "0 kr" with no trailing period, so a
