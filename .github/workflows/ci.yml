@@ -23,6 +23,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # @ada/wordpress-plugin is PHP, and its tests execute the plugin's own
+      # code rather than a reimplementation of it (packages/wordpress-plugin/
+      # tests/run-tests.php). ubuntu-latest ships a PHP CLI; assert it loudly
+      # here so that if it ever stops doing so, CI goes red instead of the
+      # plugin quietly going untested.
+      - name: PHP available (WordPress plugin tests need it)
+        run: php -v
+
       - name: Format check
         run: pnpm format:check
 

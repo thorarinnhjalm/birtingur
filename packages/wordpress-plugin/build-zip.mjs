@@ -14,28 +14,38 @@ if (fs.existsSync(distDir)) {
 }
 fs.mkdirSync(stagingDir, { recursive: true });
 
-// Files and directories to include in release
+// EXPLICIT allow-list, not a directory copy.
+//
+// `includes/` used to be copied wholesale, which ships whatever happens to be
+// sitting in it: an editor backup, a `.orig` left by a merge, or the "filename
+// 2.php" duplicates a file-sync daemon creates on branch switches (a real set
+// of those was found in this working tree on 2026-08-14). A stray
+// "birtingur-ads 2.php" in the plugin root is not cosmetic — WordPress scans
+// plugin files for headers and would list a second plugin with the same name.
+//
+// Listing files by hand also means a missing one is caught here rather than
+// discovered by a publisher with a broken install.
 const filesToCopy = [
   'birtingur-ads.php',
   'readme.txt',
+  'includes/class-birtingur-ads-api.php',
+  'includes/class-birtingur-ads-admin.php',
+  'includes/class-birtingur-ads-frontend.php',
+  'includes/class-birtingur-ads-shortcodes.php',
 ];
 
-const dirsToCopy = [
-  'includes',
-];
-
-for (const file of filesToCopy) {
-  const src = path.join(__dirname, file);
-  if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.join(stagingDir, file));
-  }
+const missing = filesToCopy.filter((file) => !fs.existsSync(path.join(__dirname, file)));
+if (missing.length > 0) {
+  // Previously each copy was wrapped in `if (fs.existsSync(...))`, so a missing
+  // main plugin file produced a valid-looking zip and a success message.
+  console.error(`[WordPress Plugin] Refusing to build, missing:\n  ${missing.join('\n  ')}`);
+  process.exit(1);
 }
 
-for (const dir of dirsToCopy) {
-  const src = path.join(__dirname, dir);
-  if (fs.existsSync(src)) {
-    fs.cpSync(src, path.join(stagingDir, dir), { recursive: true });
-  }
+for (const file of filesToCopy) {
+  const dest = path.join(stagingDir, file);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(path.join(__dirname, file), dest);
 }
 
 // Create ZIP file from staging directory

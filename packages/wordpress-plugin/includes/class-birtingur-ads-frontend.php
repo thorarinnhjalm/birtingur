@@ -9,9 +9,32 @@ if (!defined('ABSPATH')) {
 class BirtingurAdsFrontend {
     public function __construct() {
         add_action('wp_head', array($this, 'inject_serving_script'), 20);
-        add_action('wp_footer', array($this, 'inject_pageview_pixel'), 50);
         add_filter('the_content', array($this, 'filter_content_ads'));
     }
+
+    /*
+     * DELIBERATELY NO PAGEVIEW PIXEL HERE.
+     *
+     * An earlier version of this plugin injected its own
+     * `<img src="{serving}/v1/pageview?pub={publisherId}">` into wp_footer. It
+     * measured nothing. /v1/pageview reads `s` (slot id), `ts` and `sig`, bails
+     * out immediately when `s` is missing, and then verifies an HMAC signature
+     * over (pageview, slotId, token, ts). None of those were sent, so the
+     * endpoint returned a perfectly valid 1x1 gif and recorded zero — no error
+     * in the browser, none in the plugin, none server-side, while the publisher
+     * had ticked a box that said their traffic was being counted.
+     *
+     * It cannot be repaired by adding the missing parameters either: the
+     * signature is minted with SIGNING_SECRET, which is a serving-only secret.
+     * Anything shipped to publishers that could build a valid pixel could also
+     * forge unlimited traffic, which is the exact hole the signed-pixel work
+     * closed.
+     *
+     * None of this is needed anyway. Page views are ALREADY measured: routes/ad.ts
+     * returns a signed `pageviewPixel` with every ad response and widget.js — which
+     * inject_serving_script loads below — fires it. Do not reintroduce a
+     * hand-built pixel here.
+     */
 
     /**
      * Injects the async lightweight serving snippet.
@@ -30,29 +53,6 @@ class BirtingurAdsFrontend {
     }
 
     /**
-     * Injects the cookieless true pageview tracking pixel.
-     */
-    public function inject_pageview_pixel() {
-        $publisher_id = get_option('birtingur_ads_publisher_id', '');
-        $enable_pageview = get_option('birtingur_ads_enable_pageview', true);
-
-        if (empty($publisher_id) || !$enable_pageview) {
-            return;
-        }
-
-        // Avoid tracking admin or feed previews
-        if (is_admin() || is_feed() || is_preview()) {
-            return;
-        }
-
-        $serving_base = get_option('birtingur_ads_serving_base', BIRTINGUR_ADS_DEFAULT_SERVING_BASE);
-        $pixel_url = trailingslashit($serving_base) . 'v1/pageview?pub=' . urlencode($publisher_id);
-
-        echo "\n<!-- Birtingur Traffic Measurement Pixel -->\n";
-        echo '<img src="' . esc_url($pixel_url) . '" width="1" height="1" style="display:none;position:absolute;visibility:hidden;" alt="" aria-hidden="true" />' . "\n";
-    }
-
-    /**
      * Injects configured ad slots into post content.
      *
      * @param string $content
@@ -60,6 +60,14 @@ class BirtingurAdsFrontend {
      */
     public function filter_content_ads($content) {
         if (!is_singular('post') || is_feed() || is_preview()) {
+            return $content;
+        }
+
+        // is_singular() describes the PAGE, not the loop iteration. Without these
+        // two guards a theme that renders other posts' content on a single-post
+        // page (related posts, "you might also like", any secondary WP_Query)
+        // gets ads injected into each of them as well.
+        if (!in_the_loop() || !is_main_query()) {
             return $content;
         }
 
@@ -99,19 +107,23 @@ class BirtingurAdsFrontend {
     public function inject_after_paragraph($content, $slot_id, $paragraph_index) {
         $closing_p = '</p>';
         $paragraphs = explode($closing_p, $content);
-        $count = count($paragraphs);
+        $last_index = count($paragraphs) - 1;
 
-        if ($count <= $paragraph_index) {
+        // Post has fewer paragraphs than the requested position: leave it alone.
+        if ($last_index < (int) $paragraph_index) {
             return $content;
         }
 
         $ad_html = $this->render_slot_container($slot_id, 'birtingur-slot-middle');
 
         $output = '';
-        foreach ($paragraphs as $index => $paragraph) {
-            if (trim($paragraph)) {
-                $output .= $paragraph . $closing_p;
-            }
+        foreach ($paragraphs as $index => $fragment) {
+            // explode() eats the delimiter, so every fragment except the last one
+            // needs its </p> put back. The LAST fragment is whatever trailed the
+            // final </p> — a list, an image, a heading, a shortcode's output —
+            // and giving it a closing tag it never had appended a stray </p> to
+            // every post that did not happen to end on a paragraph.
+            $output .= ($index === $last_index) ? $fragment : $fragment . $closing_p;
 
             // Paragraph index is 1-based for user friendliness
             if ($index + 1 === (int) $paragraph_index) {

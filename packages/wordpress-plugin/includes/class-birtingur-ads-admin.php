@@ -34,10 +34,18 @@ class BirtingurAdsAdmin {
             'default' => '',
         ));
 
-        register_setting('birtingur_ads_group', 'birtingur_ads_enable_pageview', array(
-            'type' => 'boolean',
-            'sanitize_callback' => 'rest_sanitize_boolean',
-            'default' => true,
+        register_setting('birtingur_ads_group', 'birtingur_ads_api_key', array(
+            'type' => 'string',
+            'sanitize_callback' => array($this, 'sanitize_api_key'),
+            'default' => '',
+        ));
+
+        // Read by BirtingurAdsApi. Registered so it is actually changeable — it
+        // was read but never registered, which made it a dead option.
+        register_setting('birtingur_ads_group', 'birtingur_ads_api_base', array(
+            'type' => 'string',
+            'sanitize_callback' => 'esc_url_raw',
+            'default' => BIRTINGUR_ADS_DEFAULT_API_BASE,
         ));
 
         register_setting('birtingur_ads_group', 'birtingur_ads_slot_top', array(
@@ -71,21 +79,92 @@ class BirtingurAdsAdmin {
         ));
     }
 
+    /**
+     * Keeps the stored key when the field is submitted empty, so saving the form
+     * without retyping the (masked) key does not silently wipe it.
+     *
+     * @param string $value
+     * @return string
+     */
+    public function sanitize_api_key($value) {
+        $value = trim(sanitize_text_field($value));
+        if ($value === '') {
+            return (string) get_option('birtingur_ads_api_key', '');
+        }
+        return $value;
+    }
+
     public function handle_refresh_slots() {
         if (!current_user_can('manage_options')) {
-            wp_die(__('Aðgangur bannaður.', 'birtingur-ads'));
+            wp_die(esc_html__('Aðgangur bannaður.', 'birtingur-ads'));
         }
 
         check_admin_referer('birtingur_refresh_slots_nonce');
 
-        $publisher_id = get_option('birtingur_ads_publisher_id', '');
-        if (!empty($publisher_id)) {
-            $this->api->clear_cache($publisher_id);
-            $this->api->get_slots($publisher_id, true);
-        }
+        $api_key = get_option('birtingur_ads_api_key', '');
+        $this->api->clear_cache($api_key);
+        $this->api->get_slots($api_key, true);
 
         wp_redirect(add_query_arg(array('page' => 'birtingur-ads', 'refreshed' => '1'), admin_url('options-general.php')));
         exit;
+    }
+
+    /**
+     * Builds the <option> list for a slot dropdown, fully escaped.
+     *
+     * Extracted from three byte-identical copies in the markup, and hardened:
+     * the old copies read $slot['id'], $slot['name'] and $slot['sizes'] with no
+     * guards. That was invisible only because the API call always failed and the
+     * list was always empty; with real data an unnamed slot or a slot whose
+     * sizes are shaped differently would emit PHP warnings straight into the
+     * settings page.
+     *
+     * @param array  $slots
+     * @param string $selected
+     * @return string
+     */
+    public function render_slot_options($slots, $selected) {
+        $out = '<option value="">' . esc_html__('— Ekkert pláss valið —', 'birtingur-ads') . '</option>';
+
+        if (!is_array($slots)) {
+            return $out;
+        }
+
+        foreach ($slots as $slot) {
+            if (!is_array($slot) || empty($slot['id'])) {
+                continue;
+            }
+            $id = (string) $slot['id'];
+            $out .= '<option value="' . esc_attr($id) . '"' . selected($selected, $id, false) . '>'
+                 . esc_html($this->slot_label($slot))
+                 . '</option>';
+        }
+
+        return $out;
+    }
+
+    /**
+     * Human label for a slot: "Name (728x90, 300x250)", falling back to the id
+     * when the slot has no name and omitting the parentheses when it has no
+     * usable sizes.
+     *
+     * @param array $slot
+     * @return string
+     */
+    public function slot_label($slot) {
+        $name = (isset($slot['name']) && $slot['name'] !== '')
+            ? (string) $slot['name']
+            : (string) $slot['id'];
+
+        $sizes = array();
+        $raw_sizes = (isset($slot['sizes']) && is_array($slot['sizes'])) ? $slot['sizes'] : array();
+        foreach ($raw_sizes as $size) {
+            if (is_array($size) && isset($size['width'], $size['height'])) {
+                $sizes[] = $size['width'] . 'x' . $size['height'];
+            }
+        }
+
+        return empty($sizes) ? $name : $name . ' (' . implode(', ', $sizes) . ')';
     }
 
     public function render_settings_page() {
@@ -94,16 +173,15 @@ class BirtingurAdsAdmin {
         }
 
         $publisher_id = get_option('birtingur_ads_publisher_id', '');
-        $enable_pageview = get_option('birtingur_ads_enable_pageview', true);
+        $api_key = get_option('birtingur_ads_api_key', '');
         $slot_top = get_option('birtingur_ads_slot_top', '');
         $slot_middle = get_option('birtingur_ads_slot_middle', '');
         $middle_paragraph = get_option('birtingur_ads_middle_paragraph', 2);
         $slot_bottom = get_option('birtingur_ads_slot_bottom', '');
 
-        $slots = array();
-        if (!empty($publisher_id)) {
-            $slots = $this->api->get_slots($publisher_id);
-        }
+        $result = $this->api->get_slots($api_key);
+        $slots = $result['slots'];
+        $sync_error = $result['ok'] ? null : $result['error'];
 
         ?>
         <div class="wrap" style="max-width: 840px;">
@@ -117,7 +195,7 @@ class BirtingurAdsAdmin {
                 </a>
             </div>
 
-            <?php if (isset($_GET['refreshed']) && $_GET['refreshed'] === '1') : ?>
+            <?php if (isset($_GET['refreshed']) && sanitize_text_field(wp_unslash($_GET['refreshed'])) === '1') : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
                 <div class="notice notice-success is-dismissible">
                     <p>Auglýsingapláss voru uppfærð úr Birting API.</p>
                 </div>
@@ -139,18 +217,27 @@ class BirtingurAdsAdmin {
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row">Vefumferðarmæling</th>
+                            <th scope="row"><label for="birtingur_ads_api_key">API-lykill</label></th>
                             <td>
-                                <label for="birtingur_ads_enable_pageview">
-                                    <input type="checkbox" id="birtingur_ads_enable_pageview" name="birtingur_ads_enable_pageview" value="1" <?php checked($enable_pageview, true); ?> />
-                                    Virkja nákvæma vefumferðarmælingu (pageview tracking pixel)
-                                </label>
-                                <p class="description">Mælir raunverulegar síðuflettingar án þess að nota vafrakökur til að birta nákvæma tölfræði í mælaborðinu þínu.</p>
+                                <input type="password" id="birtingur_ads_api_key" name="birtingur_ads_api_key" value="" class="regular-text" autocomplete="off" placeholder="<?php echo $api_key ? esc_attr(str_repeat('•', 12) . substr($api_key, -4)) : 'ak_...'; ?>" />
+                                <p class="description">
+                                    Valfrjálst. Þarf aðeins til að sækja auglýsingaplássin þín sjálfkrafa í fellilistana hér að neðan.
+                                    Búðu til útgefandalykil í stillingum á <a href="https://birtingur.app/publisher/settings" target="_blank" rel="noopener noreferrer">birtingur.app</a>.
+                                    <?php if ($api_key) : ?>
+                                        <br /><strong>Lykill er vistaður.</strong> Skildu reitinn eftir auðan til að halda honum óbreyttum.
+                                    <?php endif; ?>
+                                </p>
                             </td>
                         </tr>
                     </table>
 
-                    <?php if (!empty($publisher_id)) : ?>
+                    <?php if ($sync_error && $api_key) : ?>
+                        <div class="notice notice-error inline" style="margin: 15px 0;">
+                            <p><strong>Náði ekki í auglýsingapláss:</strong> <?php echo esc_html($sync_error); ?></p>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($api_key)) : ?>
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
                             <h2 style="font-size: 16px; margin: 0;">2. Sjálfvirkar birtingarstöður í færslum</h2>
                             <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=birtingur_refresh_slots'), 'birtingur_refresh_slots_nonce')); ?>" class="button button-small">
@@ -163,12 +250,10 @@ class BirtingurAdsAdmin {
                                 <th scope="row"><label for="birtingur_ads_slot_top">Fyrir ofan efni</label></th>
                                 <td>
                                     <select id="birtingur_ads_slot_top" name="birtingur_ads_slot_top" class="regular-text">
-                                        <option value="">— Ekkert pláss valið —</option>
-                                        <?php foreach ($slots as $slot) : ?>
-                                            <option value="<?php echo esc_attr($slot['id']); ?>" <?php selected($slot_top, $slot['id']); ?>>
-                                                <?php echo esc_html($slot['name'] . ' (' . implode(', ', array_map(function($s) { return $s['width'].'x'.$s['height']; }, $slot['sizes'] ?? array())) . ')'); ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <?php
+                                        // Escaped inside render_slot_options().
+                                        echo $this->render_slot_options($slots, $slot_top); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                        ?>
                                     </select>
                                     <p class="description">Birtist efst í færslum, beint fyrir ofan meginmál.</p>
                                 </td>
@@ -177,12 +262,10 @@ class BirtingurAdsAdmin {
                                 <th scope="row"><label for="birtingur_ads_slot_middle">Inni í efni</label></th>
                                 <td>
                                     <select id="birtingur_ads_slot_middle" name="birtingur_ads_slot_middle" class="regular-text">
-                                        <option value="">— Ekkert pláss valið —</option>
-                                        <?php foreach ($slots as $slot) : ?>
-                                            <option value="<?php echo esc_attr($slot['id']); ?>" <?php selected($slot_middle, $slot['id']); ?>>
-                                                <?php echo esc_html($slot['name'] . ' (' . implode(', ', array_map(function($s) { return $s['width'].'x'.$s['height']; }, $slot['sizes'] ?? array())) . ')'); ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <?php
+                                        // Escaped inside render_slot_options().
+                                        echo $this->render_slot_options($slots, $slot_middle); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                        ?>
                                     </select>
                                     <div style="margin-top: 8px;">
                                         Setja eftir málsgrein nr.:
@@ -195,12 +278,10 @@ class BirtingurAdsAdmin {
                                 <th scope="row"><label for="birtingur_ads_slot_bottom">Fyrir neðan efni</label></th>
                                 <td>
                                     <select id="birtingur_ads_slot_bottom" name="birtingur_ads_slot_bottom" class="regular-text">
-                                        <option value="">— Ekkert pláss valið —</option>
-                                        <?php foreach ($slots as $slot) : ?>
-                                            <option value="<?php echo esc_attr($slot['id']); ?>" <?php selected($slot_bottom, $slot['id']); ?>>
-                                                <?php echo esc_html($slot['name'] . ' (' . implode(', ', array_map(function($s) { return $s['width'].'x'.$s['height']; }, $slot['sizes'] ?? array())) . ')'); ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <?php
+                                        // Escaped inside render_slot_options().
+                                        echo $this->render_slot_options($slots, $slot_bottom); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                                        ?>
                                     </select>
                                     <p class="description">Birtist neðst í færslum, beint fyrir neðan meginmál.</p>
                                 </td>
@@ -209,7 +290,8 @@ class BirtingurAdsAdmin {
                     <?php else : ?>
                         <div style="margin: 20px 0; padding: 15px; background: #f0f9ff; border-left: 4px solid #0284c7; border-radius: 4px;">
                             <p style="margin: 0; font-size: 13px; color: #0369a1;">
-                                Sláðu inn Publisher ID hér að ofan og vistaðu stillingarnar til að tengja auglýsingaplássin þín sjálfkrafa.
+                                Sláðu inn API-lykil hér að ofan og vistaðu stillingarnar til að velja auglýsingapláss úr fellilista.
+                                Án lykils virka stuttkóðarnir hér að neðan áfram.
                             </p>
                         </div>
                     <?php endif; ?>

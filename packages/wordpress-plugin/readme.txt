@@ -19,10 +19,10 @@ Með þessari viðbót getur þú tengt WordPress vefinn þinn við Birting án 
 = Helstu eiginleikar =
 
 * **Sjálfvirk inndæling á birtingakóða**: Hleður sjálfkrafa inn léttum birtingakóða (`widget.js`) án þess að hægja á vefnum.
-* **Kökulaus vefumferðarmæling**: Mælir raunverulegar síðuflettingar án þess að vista vafrakökur (cookies) eða persónugreinanleg gögn.
+* **Kökulaus birting og mæling**: Birtingakóðinn sér sjálfur um að telja birtingar, smelli og síðuflettingar á síðum með auglýsingaplássi, án þess að vista vafrakökur eða persónugreinanleg gögn.
 * **Sjálfvirkar birtingarstöður**: Settu inn auglýsingar fyrir ofan efni, inni í efni (eftir N-ta málsgrein) eða fyrir neðan efni með einföldum stillingum.
 * **Stuttkóðar (Shortcodes)**: Settu inn auglýsingapláss hvar sem er með `[birtingur_slot id="slot_auðkenni"]`.
-* **Samstilling við Birting API**: Sækir auglýsingaplássin þín sjálfkrafa svo þú getur valið þau úr fellilista.
+* **Samstilling við Birting API**: Með útgefandalykli sækir viðbótin auglýsingaplássin þín svo þú getur valið þau úr fellilista.
 
 == Installation ==
 
@@ -30,7 +30,7 @@ Með þessari viðbót getur þú tengt WordPress vefinn þinn við Birting án 
 2. Hladdu upp `birtingur-ads.zip` skránni og smelltu á **Setja upp núna**.
 3. Virkjaðu viðbótina.
 4. Farðu í **Stillingar > Birtingur** og sláðu inn `Publisher ID` sem þú finnur í mælaborðinu á [birtingur.app](https://birtingur.app).
-5. Veldu sjálfvirkar birtingarstöður eða notaðu stuttkóða í færslum.
+5. Notaðu stuttkóða í færslum, eða bættu við útgefandalykli (API-lykli) til að velja auglýsingapláss úr fellilista og setja þau sjálfkrafa í efnið.
 
 == Frequently Asked Questions ==
 
@@ -49,4 +49,4 @@ Nei, birtingakerfið notar engar vafrakökur frá þriðja aðila.
 * Fyrsta útgáfa af viðbótinni.
 * Stuðningur við sjálfvirkar birtingarstöður í efni.
 * Stuðningur við stuttkóða `[birtingur_slot]`.
-* Kökulaus vefumferðarmæling.
+* Samstilling auglýsingaplássa með útgefandalykli.
