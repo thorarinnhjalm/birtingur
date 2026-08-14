@@ -280,3 +280,49 @@ test('the creative table is campaign-scoped, not the cross-campaign bulk figures
   expect(table.getByText('9')).toBeDefined();
   expect(table.queryByText('5.000')).toBeNull();
 });
+
+test('a campaign whose history predates the per-creative split says so, instead of zero rows', async () => {
+  const campaign = campaignFixture({ creativeIds: ['cre_1'] });
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    const u = url as string;
+    if (u === '/v1/campaigns/cmp_1') return campaign as any;
+    // Real impressions, but no byCreative anywhere — the shape every campaign
+    // had before byPublisherCreative shipped.
+    if (u.startsWith('/v1/campaigns/cmp_1/stats'))
+      return {
+        impressions: 4000,
+        clicks: 12,
+        spendIsk: 2200,
+        hours: [],
+        byPublisher: {
+          pub_a: {
+            impressions: 4000,
+            clicks: 12,
+            spendIsk: 2200,
+            displayName: 'Pizzadeig',
+            domain: 'pizzadeig.is',
+          },
+        },
+      } as any;
+    if (u === '/v1/campaigns/cmp_1/widget-key') return { key: 'wk_test' } as any;
+    if (u === '/v1/creatives')
+      return [
+        {
+          id: 'cre_1',
+          advertiserId: 'adv_1',
+          width: 300,
+          height: 250,
+          imageUrl: 'https://cdn.example/1.png',
+          clickUrl: 'https://pizzadeig.is/tilbod',
+          reviewStatus: 'approved',
+        },
+      ] as any;
+    if (u.startsWith('/v1/creatives/stats')) return {} as any;
+    throw new Error(`Unhandled apiFetch call in test: ${u}`);
+  });
+  renderWithClient();
+
+  // Zero rows beside a spend card showing real money read as a bug; the table
+  // says why instead.
+  expect(await screen.findByText(/eldri en sundurliðunarmælingin/)).toBeDefined();
+});

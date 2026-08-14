@@ -656,6 +656,18 @@ export default function CampaignDetail() {
                       Engar auglýsingar tengdar herferðinni.
                     </td>
                   </tr>
+                ) : Object.keys(creativeStatsInCampaign).length === 0 &&
+                  (stats?.impressions ?? 0) > 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-slate-400">
+                      {/* Campaign-scoped per-creative counters only exist for
+                          hours aggregated after the byPublisherCreative field
+                          shipped. Showing zero rows next to a spend card with
+                          real money on it reads as a bug; saying why is not. */}
+                      Sundurliðun eftir auglýsingu er ekki til fyrir valið tímabil — birtingarnar
+                      eru eldri en sundurliðunarmælingin.
+                    </td>
+                  </tr>
                 ) : (
                   campaignCreatives.map((creative) => {
                     const cStats = creativeStatsInCampaign[creative.id] ?? {
