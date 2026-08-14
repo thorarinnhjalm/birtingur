@@ -86,6 +86,21 @@ describe('renderBannerSvg', () => {
     expect(bold).toContain('<image');
     expect(light).not.toContain('<image');
   });
+
+  it('embeds CSS micro-animations and @keyframes into the SVG defs block', () => {
+    const svg = renderBannerSvg({
+      width: 300,
+      height: 250,
+      copy: COPY,
+      templateId: 'bold',
+    });
+    expect(svg).toContain('<defs>');
+    expect(svg).toContain('<style>');
+    expect(svg).toContain('@keyframes ctaPulse');
+    expect(svg).toContain('class="cta-pill"');
+    expect(svg).toContain('class="cta-rect"');
+    expect(svg).toContain('class="banner-headline"');
+  });
 });
 
 /**
