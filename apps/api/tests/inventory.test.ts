@@ -49,7 +49,7 @@ vi.mock('../src/lib/firebase', () => {
   };
 });
 
-import { getCategoryInventory } from '../src/services/inventory';
+import { getCategoryInventory, getCombinedCategoryInventory } from '../src/services/inventory';
 
 describe('Inventory Service', () => {
   beforeEach(() => {
@@ -199,5 +199,114 @@ describe('Inventory Service', () => {
     const result = await getCategoryInventory();
     const matur = result.find((r) => r.category === 'matur')!;
     expect(matur.committedDailyImpressions).toBe(0);
+  });
+
+  /**
+   * A publisher declares 1..n categories and its whole daily volume is reported
+   * under every one of them, because each category's figure answers "what could
+   * I get if I bought this category". Summing those figures across a selection
+   * therefore counts a publisher once per category it happens to be in.
+   *
+   * CampaignCreate.tsx did exactly that for "Laust pláss í N völdum flokkum",
+   * and so did the oversell warning beside it — so one 1.000-impression
+   * publisher in two categories read as 2.000 and the warning stayed silent for
+   * campaigns that could never be delivered. MCP `list_categories` hands agents
+   * the same figures and tells them to size the budget from them.
+   *
+   * The combined figure has to be computed where the publisher identities still
+   * exist, which is here.
+   */
+  describe('combined inventory across a selection', () => {
+    function seedPublisherWithDailyImpressions(id: string, categories: string[], perDay: number) {
+      mockPublishers.push({ id, status: 'active', categories });
+      const now = new Date();
+      for (let i = 1; i <= 7; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const dk = d.toISOString().split('T')[0]!.replace(/-/g, '');
+        mockStatsDocs[`${COLLECTIONS.stats}/publishers/${id}/${dk}`] = { impressions: perDay };
+      }
+    }
+
+    it('counts a publisher in two selected categories once, not twice', async () => {
+      seedPublisherWithDailyImpressions('pub_both', ['matur', 'ferdalog'], 1000);
+
+      const perCategory = await getCategoryInventory();
+      // Each category still answers its own question, unchanged.
+      expect(perCategory.find((r) => r.category === 'matur')!.avgDailyImpressions).toBe(1000);
+      expect(perCategory.find((r) => r.category === 'ferdalog')!.avgDailyImpressions).toBe(1000);
+
+      const combined = await getCombinedCategoryInventory(['matur', 'ferdalog']);
+      // Summing the two would say 2.000 against a real capacity of 1.000.
+      expect(combined.avgDailyImpressions).toBe(1000);
+      expect(combined.availableDailyImpressions).toBe(1000);
+    });
+
+    it('adds publishers that do not overlap', async () => {
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
+      seedPublisherWithDailyImpressions('pub_life', ['ferdalog'], 400);
+
+      const combined = await getCombinedCategoryInventory(['matur', 'ferdalog']);
+
+      expect(combined.avgDailyImpressions).toBe(1400);
+    });
+
+    it('ignores publishers outside the selection entirely', async () => {
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
+      seedPublisherWithDailyImpressions('pub_tech', ['taekni'], 9000);
+
+      const combined = await getCombinedCategoryInventory(['matur']);
+
+      expect(combined.avgDailyImpressions).toBe(1000);
+    });
+
+    it('counts a campaign targeting two selected categories once as committed', async () => {
+      seedPublisherWithDailyImpressions('pub_both', ['matur', 'ferdalog'], 1000);
+      // 5.500 kr over 10 days is 550 kr/day, which at a 550 kr CPM buys exactly
+      // 1.000 impressions a day. Counted twice it would consume 2.000 and drive
+      // availability to zero.
+      mockCampaigns.push({
+        id: 'cmp_wide',
+        status: 'active',
+        budget: { mode: 'cpm_capped', remainingIsk: 5500 },
+        targeting: { categories: ['matur', 'ferdalog'] },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 10 * 86_400_000),
+        },
+      });
+
+      const combined = await getCombinedCategoryInventory(['matur', 'ferdalog']);
+
+      expect(combined.committedDailyImpressions).toBe(1000);
+      expect(combined.availableDailyImpressions).toBe(0);
+    });
+
+    it('never reports negative availability', async () => {
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 100);
+      mockCampaigns.push({
+        id: 'cmp_huge',
+        status: 'active',
+        budget: { mode: 'cpm_capped', remainingIsk: 5_500_000 },
+        targeting: { categories: ['matur'] },
+        schedule: {
+          startsAt: new Date(Date.now() - 86_400_000),
+          endsAt: new Date(Date.now() + 86_400_000),
+        },
+      });
+
+      const combined = await getCombinedCategoryInventory(['matur']);
+
+      expect(combined.availableDailyImpressions).toBe(0);
+    });
+
+    it('returns zeroes for an empty selection rather than the whole network', async () => {
+      seedPublisherWithDailyImpressions('pub_food', ['matur'], 1000);
+
+      const combined = await getCombinedCategoryInventory([]);
+
+      expect(combined.avgDailyImpressions).toBe(0);
+      expect(combined.availableDailyImpressions).toBe(0);
+    });
   });
 });

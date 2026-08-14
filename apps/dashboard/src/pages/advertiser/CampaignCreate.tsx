@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCreateCampaign } from '@/hooks/useCampaigns';
-import { useCategoryInventory } from '@/hooks/useCategoryInventory';
+import { useCategoryInventory, useCombinedCategoryInventory } from '@/hooks/useCategoryInventory';
 import { useWallet } from '@/hooks/useWallet';
 import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
@@ -98,6 +98,9 @@ export default function CampaignCreate() {
 
   // Step 2 (Kaup): Categories & Region
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // Declared here, not with the other queries above: it takes selectedCategories
+  // as an argument and const is in the temporal dead zone until this line.
+  const combinedInventoryQuery = useCombinedCategoryInventory(selectedCategories);
   const [selectedRegions, setSelectedRegions] = useState<string[]>(['all']);
 
   const toggleRegion = (slug: string) => {
@@ -270,10 +273,13 @@ export default function CampaignCreate() {
   // figures back here piecemeal; see docs/superpowers/follow-ups-2026-08-09.md.
   const walletSufficient = walletAvailable >= totalBudget;
   const topUpNeeded = Math.max(0, totalBudget - walletAvailable);
-  const selectedDailyInventory = selectedCategories.reduce((sum, slug) => {
-    const forecast = categoriesInventoryQuery.data?.find((f) => f.category === slug);
-    return sum + (forecast?.availableDailyImpressions ?? 0);
-  }, 0);
+  // NOT a sum over the per-category figures. Each of those reports a
+  // publisher's whole daily volume under every category it declares, so adding
+  // them counts one publisher once per category it is in — a single
+  // 1.000-impression publisher in two categories read as 2.000 here, and the
+  // oversell warning below stayed silent for campaigns that could never be
+  // delivered. The server deduplicates, where the publisher identities exist.
+  const selectedDailyInventory = combinedInventoryQuery.data?.availableDailyImpressions ?? 0;
 
   // Soft oversell warning: campaign needs more daily impressions than the selected
   // categories have available. Informational only — submission is never blocked.

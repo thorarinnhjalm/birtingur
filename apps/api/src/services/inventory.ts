@@ -111,6 +111,82 @@ export async function getCategoryInventory(): Promise<CategoryInventory[]> {
   });
 }
 
+/**
+ * Availability across a SELECTION of categories, with each publisher and each
+ * competing campaign counted once.
+ *
+ * `getCategoryInventory` above reports a publisher's whole daily volume under
+ * every category it declares, which is right — each row answers "what could I
+ * get if I bought this category". It is not additive. Summing the rows for a
+ * multi-category selection counts one publisher once per category it happens to
+ * be in, so a single 1.000-impression publisher in two categories reads as
+ * 2.000, and an oversell warning built on that number stays silent for a
+ * campaign that can never be delivered.
+ *
+ * The deduplication has to happen where the publisher and campaign identities
+ * still exist, so it happens here rather than in the caller. An empty selection
+ * returns zeroes, never the whole network.
+ */
+export async function getCombinedCategoryInventory(
+  categories: string[],
+): Promise<Omit<CategoryInventory, 'category'>> {
+  const wanted = new Set(categories);
+  if (wanted.size === 0) {
+    return { avgDailyImpressions: 0, committedDailyImpressions: 0, availableDailyImpressions: 0 };
+  }
+
+  const pubSnap = await db
+    .collection(COLLECTIONS.publishers)
+    .where('status', '==', 'active')
+    .withConverter(publisherConverter)
+    .get();
+
+  const dateKeys = lastNDateKeys(7);
+  let gross = 0;
+
+  for (const pubDoc of pubSnap.docs) {
+    const pub = pubDoc.data();
+    if (!pub.categories.some((cat: string) => wanted.has(cat))) continue;
+    let pubTotal = 0;
+    for (const dk of dateKeys) {
+      const statDoc = await db.doc(`${COLLECTIONS.stats}/publishers/${pub.id}/${dk}`).get();
+      pubTotal += (statDoc.data()?.impressions ?? 0) as number;
+    }
+    // Once per publisher, however many of the selected categories it is in.
+    gross += Math.round(pubTotal / dateKeys.length);
+  }
+
+  const cmpSnap = await db
+    .collection(COLLECTIONS.campaigns)
+    .where('status', 'in', ['active', 'pending_approval'])
+    .withConverter(campaignConverter)
+    .get();
+
+  let committed = 0;
+  const perImpression = FLAT_CPM_ISK / 1000;
+  for (const cmpDoc of cmpSnap.docs) {
+    const cmp = cmpDoc.data();
+    if (cmp.budget.mode !== 'cpm_capped') continue;
+    if (!cmp.targeting.categories.some((cat: string) => wanted.has(cat))) continue;
+    if (cmp.schedule.endsAt.getTime() <= Date.now()) continue;
+
+    const flightStartMs = Math.max(cmp.schedule.startsAt.getTime(), Date.now());
+    const daysLeft = Math.max(
+      1,
+      Math.ceil((cmp.schedule.endsAt.getTime() - flightStartMs) / 86_400_000),
+    );
+    const dailyBudgetIsk = Math.max(perImpression, Math.round(cmp.budget.remainingIsk / daysLeft));
+    // Once per campaign, for the same reason as the publisher loop above.
+    committed += Math.round((dailyBudgetIsk / FLAT_CPM_ISK) * 1000);
+  }
+
+  return {
+    avgDailyImpressions: gross,
+    committedDailyImpressions: committed,
+    availableDailyImpressions: Math.max(0, gross - committed),
+  };
+}
+
 /** Sizes the render endpoint (`/v1/creatives/generate/render`, see
  * `services/ai-creative/render-variant.ts`'s `VALID_IAB_SIZE_KEYS`) will
  * actually accept. A publisher's `slots.sizes` is a free-form 1..2000 field

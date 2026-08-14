@@ -299,6 +299,17 @@ the execution plan):
 
 ---
 
+**Category inventory is not additive.** Each row of `/v1/categories/inventory`
+reports a publisher's whole daily volume under every category it declares,
+because each row answers "what could I get if I bought this category alone".
+Summing rows for a multi-category selection therefore counts a publisher once
+per category it is in. The buy flow did exactly that, so one 1.000-impression
+publisher in two categories read as 2.000 and the oversell warning stayed silent
+for campaigns that could never be delivered. Any combined figure comes from
+`/v1/categories/inventory/combined`, which deduplicates publishers and competing
+campaigns server-side where their identities still exist
+(`getCombinedCategoryInventory`, pinned by `apps/api/tests/inventory.test.ts`).
+
 ## 4. Ops visibility (heartbeats, alerts, diagnostics)
 
 **Target.** Any part of the machine going quiet produces a message to a human

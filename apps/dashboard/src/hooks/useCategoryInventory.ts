@@ -14,3 +14,30 @@ export function useCategoryInventory() {
     queryFn: () => apiFetch<CategoryInventory[]>('/v1/categories/inventory'),
   });
 }
+
+export interface CombinedCategoryInventory {
+  avgDailyImpressions: number;
+  committedDailyImpressions: number;
+  availableDailyImpressions: number;
+}
+
+/**
+ * Availability across a SELECTION of categories.
+ *
+ * The per-category figures above are NOT additive: a publisher's whole daily
+ * volume is reported under every category it declares, so summing the rows for
+ * a multi-category selection counts that publisher once per category. This
+ * endpoint deduplicates server-side, where the publisher identities still
+ * exist.
+ */
+export function useCombinedCategoryInventory(categories: string[]) {
+  const key = [...categories].sort().join(',');
+  return useQuery({
+    queryKey: ['categories', 'inventory', 'combined', key],
+    queryFn: () =>
+      apiFetch<CombinedCategoryInventory>(
+        `/v1/categories/inventory/combined?categories=${encodeURIComponent(key)}`,
+      ),
+    enabled: categories.length > 0,
+  });
+}
