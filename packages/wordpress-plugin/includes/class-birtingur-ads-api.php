@@ -40,8 +40,7 @@ class BirtingurAdsApi {
             }
         }
 
-        $api_base = get_option('birtingur_ads_api_base', BIRTINGUR_ADS_DEFAULT_API_BASE);
-        $url = trailingslashit($api_base) . 'v1/publishers/me/slots';
+        $url = trailingslashit(self::api_base()) . 'v1/publishers/me/slots';
 
         $response = wp_remote_get($url, array(
             'timeout' => 8,
@@ -89,6 +88,23 @@ class BirtingurAdsApi {
         set_transient($cache_key, $data, 10 * MINUTE_IN_SECONDS);
 
         return array('ok' => true, 'slots' => $data, 'error' => null);
+    }
+
+    /**
+     * Where the API lives.
+     *
+     * Overridable ONLY from wp-config.php, never from a stored option: this
+     * decides where the publisher's API key is sent, and an option would be
+     * writable through options.php by anyone who reached the admin. Staging
+     * setups define BIRTINGUR_ADS_API_BASE instead.
+     *
+     * @return string
+     */
+    public static function api_base() {
+        if (defined('BIRTINGUR_ADS_API_BASE') && BIRTINGUR_ADS_API_BASE) {
+            return BIRTINGUR_ADS_API_BASE;
+        }
+        return BIRTINGUR_ADS_DEFAULT_API_BASE;
     }
 
     /**

@@ -161,8 +161,12 @@ function wp_unslash($v) { return is_string($v) ? stripslashes($v) : $v; }
 function trailingslashit($str) { return rtrim((string) $str, '/\\') . '/'; }
 function __($text, $domain = '') { return $text; }
 function checked($a, $b = true, $echo = true) { return $a == $b ? ' checked="checked"' : ''; }
+// Quoting matters and is easy to get wrong in a fake: real WordPress's
+// __checked_selected_helper() emits SINGLE quotes ("selected='selected'"). A
+// double-quoted fake makes any test that asserts on the rendered attribute pass
+// against a string that never appears in production.
 function selected($a, $b = true, $echo = true) {
-    $out = ((string) $a === (string) $b) ? ' selected="selected"' : '';
+    $out = ((string) $a === (string) $b) ? " selected='selected'" : '';
     if ($echo) {
         echo $out;
     }
@@ -184,7 +188,25 @@ function wp_die($message) { throw new RuntimeException('wp_die: ' . $message); }
 function check_admin_referer($action) { return true; }
 function wp_nonce_url($url, $action) { return $url . '&_wpnonce=test'; }
 function admin_url($path = '') { return 'https://example.test/wp-admin/' . $path; }
-function wp_redirect($url) { return true; }
+/**
+ * Thrown by the wp_redirect fake so a test can intercept the redirect.
+ *
+ * The handlers call exit() immediately after wp_redirect(). A fake that merely
+ * returned would let that exit() terminate the whole runner mid-suite — with
+ * status 0, so the runner would report success having skipped every remaining
+ * test. Throwing instead keeps control in the test.
+ */
+class BtRedirect extends RuntimeException {
+    public $url;
+    public function __construct($url) {
+        $this->url = $url;
+        parent::__construct('redirect: ' . $url);
+    }
+}
+
+function wp_redirect($url) {
+    throw new BtRedirect($url);
+}
 function add_query_arg($args, $url) { return $url . '?' . http_build_query($args); }
 
 // --- Plugin under test ----------------------------------------------------

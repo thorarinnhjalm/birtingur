@@ -37,11 +37,37 @@ class BirtingurAdsFrontend {
      */
 
     /**
+     * Has the publisher configured this plugin at all?
+     *
+     * This gates widget.js, and it deliberately accepts ANY sign of setup rather
+     * than the Publisher ID alone. Gating on Publisher ID while the slot pickers
+     * were gated on the API key produced ad containers on the page with no
+     * loader behind them: divs, no script, no ads, no error — the exact silent
+     * shape this plugin has already been bitten by twice. The two conditions
+     * must never drift apart again, which is why the check lives in one place.
+     *
+     * @return bool
+     */
+    public static function is_configured() {
+        foreach (array(
+            'birtingur_ads_publisher_id',
+            'birtingur_ads_api_key',
+            'birtingur_ads_slot_top',
+            'birtingur_ads_slot_middle',
+            'birtingur_ads_slot_bottom',
+        ) as $option) {
+            if (!empty(get_option($option, ''))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Injects the async lightweight serving snippet.
      */
     public function inject_serving_script() {
-        $publisher_id = get_option('birtingur_ads_publisher_id', '');
-        if (empty($publisher_id)) {
+        if (!self::is_configured()) {
             return;
         }
 

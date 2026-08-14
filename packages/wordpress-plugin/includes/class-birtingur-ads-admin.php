@@ -15,6 +15,7 @@ class BirtingurAdsAdmin {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_post_birtingur_refresh_slots', array($this, 'handle_refresh_slots'));
+        add_action('admin_post_birtingur_remove_key', array($this, 'handle_remove_key'));
     }
 
     public function add_admin_menu() {
@@ -40,13 +41,11 @@ class BirtingurAdsAdmin {
             'default' => '',
         ));
 
-        // Read by BirtingurAdsApi. Registered so it is actually changeable — it
-        // was read but never registered, which made it a dead option.
-        register_setting('birtingur_ads_group', 'birtingur_ads_api_base', array(
-            'type' => 'string',
-            'sanitize_callback' => 'esc_url_raw',
-            'default' => BIRTINGUR_ADS_DEFAULT_API_BASE,
-        ));
+        // birtingur_ads_api_base is DELIBERATELY not registered. register_setting
+        // is what makes an option writable through options.php, and this option
+        // decides where the publisher's API key gets POSTed — exposing that with
+        // no field in the UI adds an attack surface and buys nothing. Override it
+        // from wp-config.php instead (see BirtingurAdsApi::api_base).
 
         register_setting('birtingur_ads_group', 'birtingur_ads_slot_top', array(
             'type' => 'string',
@@ -103,9 +102,40 @@ class BirtingurAdsAdmin {
 
         $api_key = get_option('birtingur_ads_api_key', '');
         $this->api->clear_cache($api_key);
-        $this->api->get_slots($api_key, true);
+        $result = $this->api->get_slots($api_key, true);
 
-        wp_redirect(add_query_arg(array('page' => 'birtingur-ads', 'refreshed' => '1'), admin_url('options-general.php')));
+        // Report what actually happened. This used to redirect with
+        // refreshed=1 unconditionally, so a failed refresh rendered the green
+        // "slots were updated" notice next to the red error explaining that
+        // they were not.
+        wp_redirect(add_query_arg(
+            array('page' => 'birtingur-ads', 'refreshed' => $result['ok'] ? '1' : '0'),
+            admin_url('options-general.php')
+        ));
+        exit;
+    }
+
+    /**
+     * Removes the stored API key.
+     *
+     * Needed because the key field is a password input that renders empty, and
+     * sanitize_api_key() preserves the stored value on an empty submission — so
+     * without this there was no way to remove a revoked key at all. A revoked
+     * key is not inert: every load of this screen would fire a fresh 8-second
+     * request and render an error the publisher could do nothing about.
+     */
+    public function handle_remove_key() {
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('Aðgangur bannaður.', 'birtingur-ads'));
+        }
+
+        check_admin_referer('birtingur_remove_key_nonce');
+
+        $api_key = get_option('birtingur_ads_api_key', '');
+        $this->api->clear_cache($api_key);
+        update_option('birtingur_ads_api_key', '');
+
+        wp_redirect(add_query_arg(array('page' => 'birtingur-ads', 'key_removed' => '1'), admin_url('options-general.php')));
         exit;
     }
 
@@ -195,9 +225,25 @@ class BirtingurAdsAdmin {
                 </a>
             </div>
 
-            <?php if (isset($_GET['refreshed']) && sanitize_text_field(wp_unslash($_GET['refreshed'])) === '1') : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+            <?php
+            // phpcs:disable WordPress.Security.NonceVerification.Recommended
+            $refreshed = isset($_GET['refreshed']) ? sanitize_text_field(wp_unslash($_GET['refreshed'])) : null;
+            $key_removed = isset($_GET['key_removed']) && sanitize_text_field(wp_unslash($_GET['key_removed'])) === '1';
+            // phpcs:enable WordPress.Security.NonceVerification.Recommended
+            ?>
+            <?php if ($refreshed === '1') : ?>
                 <div class="notice notice-success is-dismissible">
                     <p>Auglýsingapláss voru uppfærð úr Birting API.</p>
+                </div>
+            <?php elseif ($refreshed === '0') : ?>
+                <div class="notice notice-error is-dismissible">
+                    <p>Ekki tókst að uppfæra auglýsingapláss. Sjá skýringu hér að neðan.</p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($key_removed) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p>API-lykillinn var fjarlægður.</p>
                 </div>
             <?php endif; ?>
 
@@ -224,7 +270,8 @@ class BirtingurAdsAdmin {
                                     Valfrjálst. Þarf aðeins til að sækja auglýsingaplássin þín sjálfkrafa í fellilistana hér að neðan.
                                     Búðu til útgefandalykil í stillingum á <a href="https://birtingur.app/publisher/settings" target="_blank" rel="noopener noreferrer">birtingur.app</a>.
                                     <?php if ($api_key) : ?>
-                                        <br /><strong>Lykill er vistaður.</strong> Skildu reitinn eftir auðan til að halda honum óbreyttum.
+                                        <br /><strong>Lykill er vistaður.</strong> Skildu reitinn eftir auðan til að halda honum óbreyttum, eða
+                                        <a href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=birtingur_remove_key'), 'birtingur_remove_key_nonce')); ?>">fjarlægðu lykilinn</a>.
                                     <?php endif; ?>
                                 </p>
                             </td>

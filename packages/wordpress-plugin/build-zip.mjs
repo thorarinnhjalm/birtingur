@@ -4,7 +4,13 @@ import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const distDir = path.join(__dirname, 'dist');
+// Overridable so the test suite can build into a temp directory. Without this
+// the packaging tests wiped the real dist/ — including on the deliberate
+// failure case, which left turbo holding a cached "successful" build whose
+// artifact no longer existed.
+const distDir = process.env.BIRTINGUR_DIST_DIR
+  ? path.resolve(process.env.BIRTINGUR_DIST_DIR)
+  : path.join(__dirname, 'dist');
 const zipFile = path.join(distDir, 'birtingur-ads.zip');
 const stagingDir = path.join(distDir, 'staging', 'birtingur-ads');
 

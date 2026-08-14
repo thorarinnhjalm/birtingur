@@ -29,6 +29,12 @@ class BirtingurAdsShortcodes {
             return '<!-- Birtingur: Vantar id í stuttkóða -->';
         }
 
+        // A container with no widget.js behind it renders nothing and reports
+        // nothing. Say so in the page source rather than leaving a silent hole.
+        if (!BirtingurAdsFrontend::is_configured()) {
+            return '<!-- Birtingur: viðbótin er óstillt (Stillingar > Birtingur), birtingakóðinn hleðst ekki -->';
+        }
+
         $classes = 'birtingur-ad-wrapper birtingur-shortcode ' . sanitize_html_class($atts['class']);
 
         return "\n<div class=\"" . esc_attr(trim($classes)) . "\" style=\"margin: 20px auto; text-align: center;\">\n" .
