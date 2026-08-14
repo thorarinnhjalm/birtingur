@@ -215,12 +215,34 @@ way into a stats document.
 | Dotted field paths are never written (they are dead fields nobody reads)          | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
 | A post-write step cannot be misread as "nothing was committed"                    | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
 | `events:stats` depth over time is watched, not just readable on demand            | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
+| An ad request with no advertiser is counted apart from one that was never seen    | `apps/api/tests/stats-aggregator.test.ts` (`unfilled`), `apps/api/tests/publisher-stats-unfilled.test.ts`                                                                    |
+| `unfilled` stays absent, never 0, for windows that predate the counter            | same two files, plus `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                                                         |
 
 **Now.** PR #32 (merged 2026-08-12) raised the batch cap to 20 behind the 30s
 deadline, added the re-queue and the `AggregationError.anyCommitted` distinction,
 and turned truncation into an ops alert. This subsystem is the one place in the
 repo where the invariants are now fully pinned by tests, which is why it reads
 shorter than the others.
+
+**The shortfall is two problems, and they are now separate (2026-08-14).**
+`pageviews` counts every ad request; `impressions` counts the ones that became
+visible, gated on viewability (`packages/snippet/src/render.ts`). The gap
+between them therefore blended two failures with opposite owners: nobody bought
+the publisher's categories, which is ours to fix, and the ad loaded but was
+never scrolled into view, which the publisher fixes by moving the slot. A single
+"fill rate" told neither party anything actionable.
+
+`unfilled` closes that: a slot load whose creative was a house ad, a transparent
+placeholder or a cold-cache response had no advertiser behind it
+(`UNFILLED_CREATIVE_IDS` in `stats-aggregator.ts`). `pageviews - unfilled` is
+what filled, `impressions` is what was then seen, and the publisher dashboard
+renders the four steps as a chain so every percentage can be checked against a
+number on the same screen.
+
+It carries the same absent-not-zero contract as `pageViewsTrue` and for the same
+reason: written only when non-zero, so a day predating the counter stays
+distinguishable from a day where everything filled. Every window before
+2026-08-14 therefore renders as unmeasured rather than as perfect fill.
 
 **Bridge.** Done 2026-08-12 (gap item 4): the growth check generalized into
 `QUEUE_GROWTH_WATCHES` in `ops-alerts.ts`, watching both drained queues with

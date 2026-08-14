@@ -84,9 +84,15 @@ const BASE_STATS = {
  * Derived values the per-site table computes from these (see the assertions
  * below, and DEFAULT_PLATFORM_FEE_PERCENT = 20 for the net figures):
  *
- *   Vefur A  fill 1000/2000 = 50%   CTR 10/1000 = 1,00%   net 440 kr   eCPM 440 kr
+ *   Vefur A  fill 1600/2000 = 80%   CTR 10/1000 = 1,00%   net 440 kr   eCPM 440 kr
  *   Vefur B  fill  900/1100 = 82%   CTR 45/900  = 5,00%   net 800 kr   eCPM 889 kr
- *   Vefur C  everything zero — the division guards
+ *   Vefur C  everything zero, and no measured split — the guards
+ *
+ * Fill is (requests - unfilled) / requests. It is NOT impressions / requests:
+ * impressions are viewability-gated, so that ratio blended "no advertiser" with
+ * "never scrolled into view". Vefur C carries no `unfilled` at all, which is how
+ * every day before 2026-08-14 looks — its fill must render as unmeasured rather
+ * than as 0%.
  *
  * Vefur B's fill rate is deliberately NOT a round number: 900/1100 is 81,8, so
  * Math.round gives 82 and Math.floor would give 81. With both sites landing on
@@ -109,6 +115,7 @@ const BY_SITE_STATS = {
   spendIsk: 1550,
   pageviews: 3100,
   pageViewsTrue: 1800,
+  unfilled: 600,
   history: [],
   bySite: [
     {
@@ -119,6 +126,7 @@ const BY_SITE_STATS = {
       clicks: 10,
       pageviews: 2000,
       pageViewsTrue: 1800,
+      unfilled: 400,
       spendIsk: 550,
     },
     {
@@ -128,6 +136,7 @@ const BY_SITE_STATS = {
       impressions: 900,
       clicks: 45,
       pageviews: 1100,
+      unfilled: 200,
       spendIsk: 1000,
     },
     {
@@ -213,25 +222,37 @@ test('clicking a site row narrows the filter', async () => {
 // wrong field, a swapped numerator or a dropped platform-fee factor would show
 // a plausible-looking wrong number to a publisher and nothing would catch it.
 
-test('fill rate is impressions over SLOT LOADS, not over real page views', async () => {
-  // The distinction is the whole point and the two fields sit next to each
-  // other on the same object. `pageviews` counts ad-slot loads and is the
-  // fill-rate denominator (stats-aggregator.ts says so in as many words);
-  // `pageViewsTrue` counts real page loads and is what "Vefumferð" shows.
-  // Vefur A has 1000 impressions against 2000 slot loads and 1800 true page
-  // views: 50% is right, 56% would mean the wrong field.
+test('fill is filled requests over all requests, not impressions over anything', async () => {
+  // Three candidate denominators sit on the same object and only one is right.
+  // Vefur A: 2000 requests, 400 of them unfilled, 1000 impressions, 1800 real
+  // page views. 80% is (2000-400)/2000. 50% would be impressions/requests — the
+  // ratio this used to compute, which blended "no advertiser bought your
+  // categories" with "the ad loaded but nobody scrolled to it", two problems
+  // with opposite owners. 56% would be impressions/pageViewsTrue.
   setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
   renderPage();
   await screen.findByText('Vefur A');
 
-  expect(within(siteRow('Vefur A')).getByText('50%')).toBeDefined();
+  expect(within(siteRow('Vefur A')).getByText('80%')).toBeDefined();
   // 900/1100 is 81,8 — pins Math.round rather than Math.floor.
   expect(within(siteRow('Vefur B')).getByText('82%')).toBeDefined();
 });
 
+test('fill reads as unmeasured, not 0%, when the split was never counted', async () => {
+  // Every day before 2026-08-14 looks like Vefur C. Rendering 0% would tell the
+  // publisher we checked every request and found no advertiser for any of them,
+  // when in fact we never counted.
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+  await screen.findByText('Vefur A');
+
+  const fillCell = siteRow('Vefur C').querySelectorAll('td')[3]!;
+  expect(fillCell.textContent).toBe('—');
+});
+
 test('a site with no traffic yet shows zeroes, never NaN', async () => {
   // Every figure in this table is a division. A publisher who has just added a
-  // site and had no impressions yet is the first person to hit all four guards
+  // site and had no impressions yet is the first person to hit all the guards
   // at once, and NaN% in their revenue table would be their first impression of
   // the product.
   setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
@@ -241,7 +262,6 @@ test('a site with no traffic yet shows zeroes, never NaN', async () => {
   const rowC = siteRow('Vefur C');
   expect(rowC.textContent).not.toContain('NaN');
   expect(rowC.textContent).not.toContain('Infinity');
-  expect(within(rowC).getByText('0%')).toBeDefined();
   expect(within(rowC).getByText('(0,00%)')).toBeDefined();
   // formatIsk emits "0 kr" with no trailing period; the eCPM fallback used to
   // hardcode "0 kr." and disagree with the revenue figure beside it.
@@ -283,22 +303,32 @@ test('the traffic column shows real page views per site, or a dash when unmeasur
   await screen.findByText('Vefur A');
 
   expect(within(siteRow('Vefur A')).getByText('1.800')).toBeDefined();
-  expect(within(siteRow('Vefur B')).getByText('—')).toBeDefined();
-  expect(within(siteRow('Vefur B')).queryByText('1.000')).toBeNull();
+  // Scoped per cell: the fill cell also dashes when the split is unmeasured, so
+  // a bare getByText('—') would be ambiguous.
+  const cellsB = siteRow('Vefur B').querySelectorAll('td');
+  expect(cellsB[1]!.textContent).toBe('—'); // traffic: never measured for this site
+  // Its 1.100 ad requests DO appear, in the requests column where they belong.
+  // Conflating the two is the overcount this split exists to prevent, so the
+  // point is that the number is present and correctly labelled, not absent.
+  expect(cellsB[2]!.textContent).toBe('1.100');
 });
 
-test('Vefumferð shows the true page-view figure when present', async () => {
+test('the traffic chain shows real page views, never the ad-request count', async () => {
+  // The chain's first step is page loads. Showing 9.000 ad requests there is the
+  // overcount the pageViewsTrue split exists to prevent — a site with three ad
+  // slots would look like it had three times its real traffic.
   setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000, pageViewsTrue: 3000 } });
   renderPage();
   expect(await screen.findByText('3.000')).toBeDefined();
-  expect(screen.queryByText('9.000')).toBeNull(); // slot loads are NOT the traffic figure
+  expect(screen.getByText('Síðuflettingar')).toBeDefined();
 });
 
-test('Vefumferð shows an em dash and an explanation for pre-switch history', async () => {
+test('the traffic chain says when accurate measurement had not started yet', async () => {
   setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000 } }); // no pageViewsTrue
   renderPage();
-  expect(await screen.findByText('—')).toBeDefined();
-  expect(screen.getByText(/Nákvæm umferðarmæling hófst/)).toBeDefined();
+  expect(await screen.findByText(/Nákvæm mæling hófst/)).toBeDefined();
+  // 9.000 ad requests are still shown — as requests, under their own label.
+  expect(screen.getByText('Auglýsingabeiðnir')).toBeDefined();
 });
 
 // usePublishers() runs with `retry: false`, so one cold function or one

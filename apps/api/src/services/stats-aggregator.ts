@@ -95,6 +95,17 @@ function byBotClassIncrement(
 // analytics.ts) rather than imported across the app boundary.
 const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
 
+// Creative ids apps/serving hands out when it has no advertiser for a slot
+// (routes/ad.ts): the Birtingur house ad, the invisible placeholder a publisher
+// can choose instead, and the cold-cache response. Duplicated here for the same
+// reason as TRUE_PAGEVIEW_CREATIVE_ID — apps/api and apps/serving are separate
+// deploys and must not import across that boundary.
+const UNFILLED_CREATIVE_IDS = new Set([
+  'cre_fallback_birtingur',
+  'cre_fallback_transparent',
+  'cre_nocache',
+]);
+
 /** Max operations per Firestore batched write. */
 const FIRESTORE_BATCH_LIMIT = 500;
 /** Leaves headroom under the cap so a late addition can never straddle it. */
@@ -180,6 +191,19 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     // by `slot_load` and remains the fill-rate denominator. Left undefined (never 0)
     // when a bucket saw no true page views, so the doc field stays absent.
     pageViewsTrue?: number;
+    // Ad requests that came back with no advertiser — a house ad, a transparent
+    // placeholder, or a cold cache. `pageviews - unfilled` is therefore what was
+    // actually filled, and `impressions` (viewability-gated, see
+    // packages/snippet/src/render.ts) is what was then seen.
+    //
+    // Splitting the shortfall matters because its two halves call for opposite
+    // responses: unfilled means nobody bought the publisher's categories, which
+    // is ours to fix, while filled-but-unseen means the slot sits too far down
+    // the page, which is theirs. One combined number tells neither of us
+    // anything. Left undefined (never 0) so days predating the counter stay
+    // distinguishable from days with perfect fill — same contract as
+    // pageViewsTrue above.
+    unfilled?: number;
     byCampaign: Record<string, { impressions: number; clicks: number }>;
     // Billed impressions and real traffic, split by bot class — publisher-day bucket
     // only (see the write-phase note below for why publisher-slot-day is excluded).
@@ -226,10 +250,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
       // which of the two wire shapes fed it.
       const pd = `${ev.publisherId}/${dayKey(ev.ts)}`;
       const psd = `${ev.publisherId}/${ev.slotId}/${dayKey(ev.ts)}`;
+      const wasUnfilled = UNFILLED_CREATIVE_IDS.has(ev.creativeId);
       for (const map of [publisherDay, publisherSlotDay]) {
         const key = map === publisherDay ? pd : psd;
         const b = map.get(key) ?? { impressions: 0, clicks: 0, pageviews: 0, byCampaign: {} };
         b.pageviews++;
+        if (wasUnfilled) b.unfilled = (b.unfilled ?? 0) + 1;
         map.set(key, b);
       }
 
@@ -461,6 +487,11 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     if (b.pageViewsTrue) {
       updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
     }
+    // Same absent-not-zero contract: a day that predates this counter must stay
+    // distinguishable from a day where every request found an advertiser.
+    if (b.unfilled) {
+      updateData.unfilled = FieldValue.increment(b.unfilled);
+    }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};
       for (const [campaignId, campStats] of Object.entries(b.byCampaign)) {
@@ -489,6 +520,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     };
     if (b.pageViewsTrue) {
       updateData.pageViewsTrue = FieldValue.increment(b.pageViewsTrue);
+    }
+    // Per slot as well as per publisher: a site whose fill looks fine overall
+    // can still have one slot nobody ever buys, and that is exactly the thing
+    // the publisher can act on.
+    if (b.unfilled) {
+      updateData.unfilled = FieldValue.increment(b.unfilled);
     }
     if (b.byCampaign && Object.keys(b.byCampaign).length > 0) {
       const byCampaign: Record<string, any> = {};

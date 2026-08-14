@@ -9,6 +9,10 @@ export interface SlotStatsResponse {
   clicks: number;
   spendIsk: number;
   pageviews: number;
+  // Ad requests that got no advertiser. Absent — not zero — for windows before
+  // the aggregator began counting it, so the UI can say "not measured" instead
+  // of claiming perfect fill. Written per slot by stats-aggregator.ts.
+  unfilled?: number;
   history: {
     date: string;
     impressions: number;
@@ -38,6 +42,8 @@ export async function getSlotStats(
   let clicks = 0;
   let spendIsk = 0;
   let pageviews = 0;
+  let unfilled = 0;
+  let anyUnfilled = false;
   const now = new Date();
   let hasRealData = false;
 
@@ -58,6 +64,7 @@ export async function getSlotStats(
           clicks: (data?.clicks as number) || 0,
           spendIsk: (data?.spendIsk as number) || 0,
           pageviews: (data?.pageviews as number) || 0,
+          unfilled: typeof data?.unfilled === 'number' ? (data.unfilled as number) : undefined,
           byCampaign:
             (data?.byCampaign as Record<string, { impressions: number; clicks: number }>) || {},
           exists: true,
@@ -69,6 +76,7 @@ export async function getSlotStats(
         clicks: 0,
         spendIsk: 0,
         pageviews: 0,
+        unfilled: undefined,
         byCampaign: {},
         exists: false,
       };
@@ -94,6 +102,10 @@ export async function getSlotStats(
     clicks += res.clicks;
     spendIsk += res.spendIsk;
     pageviews += res.pageviews;
+    if (res.unfilled !== undefined) {
+      anyUnfilled = true;
+      unfilled += res.unfilled;
+    }
 
     for (const [campId, stats] of Object.entries(res.byCampaign)) {
       if (!campaignAgg[campId]) {
@@ -227,5 +239,14 @@ export async function getSlotStats(
     }),
   );
 
-  return { impressions, clicks, spendIsk, pageviews, history, byCampaign };
+  return {
+    impressions,
+    clicks,
+    spendIsk,
+    pageviews,
+    // Absent, never 0, for a window with no measured day — see the field's doc.
+    unfilled: anyUnfilled ? unfilled : undefined,
+    history,
+    byCampaign,
+  };
 }

@@ -6,6 +6,10 @@ export interface SlotStats {
   clicks: number;
   spendIsk: number;
   pageviews: number;
+  // Ad requests that got no advertiser. Absent — not zero — for windows before
+  // the aggregator began counting it, so fill renders as unmeasured rather than
+  // as 0%. Same field and same meaning as on the publisher stats response.
+  unfilled?: number;
   history: {
     date: string;
     impressions: number;

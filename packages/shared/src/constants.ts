@@ -208,3 +208,11 @@ export const UNATTRIBUTED_CREATIVE_ID = '__unattributed';
  * it cannot be corrected retroactively, so the accurate series starts here
  * (2026-08-09 design). */
 export const TRAFFIC_MEASUREMENT_START = '2026-08-09';
+
+/** The day the aggregator began splitting an ad request that found no
+ * advertiser from one that was filled but never seen (`unfilled` in
+ * services/stats-aggregator.ts). Every window before this renders as unmeasured
+ * rather than as perfect fill — the same contract as TRAFFIC_MEASUREMENT_START
+ * above, and hardcoding the date into UI copy instead of reading it here is how
+ * the two silently drift apart. */
+export const FILL_MEASUREMENT_START = '2026-08-14';
