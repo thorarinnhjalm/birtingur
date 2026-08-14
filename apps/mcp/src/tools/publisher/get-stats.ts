@@ -27,7 +27,7 @@ export function registerGetStats(server: McpServer, apiKey: string) {
     {
       title: 'Sækja tölfræði',
       description:
-        'Sækir samanteknar birtingar, smelli og tekjur útgefanda fyrir valið tímabil (7 eða 30 daga, sjálfgefið 30). Tekjutalan `netEarningsIsk` er það sem útgefandinn fær greitt; `spendIsk` er brúttó, það sem auglýsandinn greiðir.',
+        'Sækir samanteknar birtingar, smelli og tekjur útgefanda fyrir valið tímabil (7 eða 30 daga, sjálfgefið 30). Tekjutalan `netEarningsIsk` er nettóvirði umferðarinnar á tímabilinu (brúttó `spendIsk` að frádreginni þóknun); raunveruleg útborgun fer eftir stöðu í höfuðbók og birtist á greiðslusíðunni.',
       inputSchema: Input.shape,
     },
     async ({ period }) => {

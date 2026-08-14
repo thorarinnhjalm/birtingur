@@ -1,5 +1,5 @@
 import { COLLECTIONS } from '@ada/shared/firestore';
-import { FLAT_CPM_ISK, UNATTRIBUTED_CREATIVE_ID, grossIskForImpressions } from '@ada/shared';
+import { UNATTRIBUTED_CREATIVE_ID, grossIskForImpressions } from '@ada/shared';
 import { db } from '../lib/firebase.js';
 import { getPublisherById } from './publishers.js';
 import { getCreative } from './creatives.js';

@@ -1,7 +1,7 @@
 import { db } from '../lib/firebase.js';
 import { COLLECTIONS } from '@ada/shared/firestore';
 import { listCampaignsForAdvertiser } from './campaigns.js';
-import { FLAT_CPM_ISK, grossIskForImpressions } from '@ada/shared';
+import { grossIskForImpressions } from '@ada/shared';
 
 export interface AdvertiserStatsResponse {
   impressions: number;
