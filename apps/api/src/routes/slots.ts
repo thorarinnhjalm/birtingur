@@ -61,6 +61,11 @@ slotsRouter.post('/', async (c) => {
 
 slotsRouter.get('/', async (c) => {
   const user = c.get('user');
+  // The dashboard's 7/30 toggle drives everything above the slot table; this
+  // route was hardcoded to 30, so "7 dagar" showed a week in the cards and a
+  // month in the table and CSV under them. Default stays 30 for callers that
+  // don't ask (SlotList).
+  const timeframe = c.req.query('timeframe') === '7' ? 7 : 30;
   const publishers = await getPublishersByOwnerEmail(user.email);
   const publisherIds = publishers.map((p) => p.id);
 
@@ -74,7 +79,7 @@ slotsRouter.get('/', async (c) => {
   const enrichedSlots = await Promise.all(
     allSlots.map(async (slot) => {
       try {
-        const stats = await getSlotStats(slot.publisherId, slot.id, 30);
+        const stats = await getSlotStats(slot.publisherId, slot.id, timeframe);
         return {
           ...slot,
           stats: {

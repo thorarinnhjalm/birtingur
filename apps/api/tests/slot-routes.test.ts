@@ -1,7 +1,8 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { app } from '../src/index';
-import { auth } from '../src/lib/firebase';
+import { auth, db } from '../src/lib/firebase';
 import { clearFirestoreEmulator } from './helpers/emulator';
+import { COLLECTIONS } from '@ada/shared/firestore';
 
 import type * as firebaseModule from '../src/lib/firebase';
 
@@ -160,6 +161,56 @@ describe('Slot HTTP Routes', () => {
       expect(body).toHaveLength(2);
       expect(body.map((s: any) => s.name)).toContain('Slot A');
       expect(body.map((s: any) => s.name)).toContain('Slot B');
+    });
+
+    /**
+     * The dashboard's 7/30 toggle drove the cards and chart but this route was
+     * hardcoded to 30 — so selecting "7 dagar" showed a week in the cards and a
+     * month in the slot table and CSV below them: 7.000 impressions above,
+     * 30.000 below, same page.
+     */
+    it('narrows slot stats to the requested timeframe', async () => {
+      await createPublisherProfile();
+      const createRes = await app.request('/v1/publishers/me/slots', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer valid-token',
+        },
+        body: JSON.stringify({
+          name: 'Slot T',
+          sizes: sampleSizes,
+          pricing: samplePricing,
+          placement: samplePlacement,
+        }),
+      });
+      const slot = await createRes.json();
+      const publisherId = slot.publisherId;
+
+      // One day inside the 7-day window, one outside it (but inside 30).
+      const dayKey = (daysAgo: number) => {
+        const d = new Date(Date.now() - daysAgo * 86_400_000);
+        return d.toISOString().split('T')[0]!.replace(/-/g, '');
+      };
+      await db
+        .doc(`${COLLECTIONS.stats}/publisher_slots/${publisherId}_${slot.id}/${dayKey(2)}`)
+        .set({ impressions: 1000, clicks: 5, pageviews: 1200 });
+      await db
+        .doc(`${COLLECTIONS.stats}/publisher_slots/${publisherId}_${slot.id}/${dayKey(20)}`)
+        .set({ impressions: 4000, clicks: 20, pageviews: 4800 });
+
+      const week = await app.request('/v1/publishers/me/slots?timeframe=7', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      const weekBody = await week.json();
+      expect(weekBody[0].stats.impressions).toBe(1000);
+
+      // Default stays 30 — SlotList calls it bare.
+      const month = await app.request('/v1/publishers/me/slots', {
+        headers: { Authorization: 'Bearer valid-token' },
+      });
+      const monthBody = await month.json();
+      expect(monthBody[0].stats.impressions).toBe(5000);
     });
   });
 

@@ -44,10 +44,13 @@ export function useCreatePublisher() {
   });
 }
 
-export function usePublisherSlots(enabled = true) {
+export function usePublisherSlots(enabled = true, timeframe: 7 | 30 = 30) {
   return useQuery({
-    queryKey: ['publisher', 'slots'],
-    queryFn: () => apiFetch<Slot[]>('/v1/publishers/me/slots'),
+    // timeframe is in the key: the slot stats change with it, and a stale
+    // 30-day answer under a 7-day toggle is the exact mismatch this parameter
+    // exists to remove.
+    queryKey: ['publisher', 'slots', timeframe],
+    queryFn: () => apiFetch<Slot[]>(`/v1/publishers/me/slots?timeframe=${timeframe}`),
     enabled,
     retry: false,
   });

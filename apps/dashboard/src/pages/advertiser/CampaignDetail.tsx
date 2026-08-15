@@ -472,7 +472,7 @@ export default function CampaignDetail() {
             <span className="text-sm font-black text-slate-900 mt-0.5 block">
               {stats && stats.clicks > 0
                 ? formatIsk(Math.round((stats.spendIsk || 0) / stats.clicks))
-                : '0 kr.'}
+                : formatIsk(0)}
             </span>
           </div>
           <div className="bg-slate-50 border border-slate-100 px-4 py-2 rounded-lg">
@@ -482,7 +482,7 @@ export default function CampaignDetail() {
             <span className="text-sm font-black text-slate-900 mt-0.5 block">
               {stats && stats.impressions > 0
                 ? formatIsk(Math.round(((stats.spendIsk || 0) / stats.impressions) * 1000))
-                : '0 kr.'}
+                : formatIsk(0)}
             </span>
           </div>
         </div>
@@ -680,7 +680,9 @@ export default function CampaignDetail() {
                         ? Math.min(100, (cStats.clicks / cStats.impressions) * 100)
                         : 0;
                     const ecpc =
-                      cStats.clicks > 0 ? formatIsk(Math.round(spendIsk / cStats.clicks)) : '0 kr.';
+                      cStats.clicks > 0
+                        ? formatIsk(Math.round(spendIsk / cStats.clicks))
+                        : formatIsk(0);
                     return (
                       <tr key={creative.id} className="hover:bg-slate-50/50">
                         <td
@@ -843,7 +845,9 @@ export default function CampaignDetail() {
                           ? Math.min(100, (pub.clicks / pub.impressions) * 100)
                           : 0;
                       const ecpc =
-                        pub.clicks > 0 ? formatIsk(Math.round(pub.spendIsk / pub.clicks)) : '0 kr.';
+                        pub.clicks > 0
+                          ? formatIsk(Math.round(pub.spendIsk / pub.clicks))
+                          : formatIsk(0);
                       const creatives = Object.entries(pub.byCreative ?? {})
                         .map(([id, c]) => ({ id, ...c }))
                         .sort((a, b) =>

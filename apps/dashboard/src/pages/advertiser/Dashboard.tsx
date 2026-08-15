@@ -178,9 +178,11 @@ function AdvertiserHome() {
   const pctChanges = useMemo(() => {
     if (!stats?.history || stats.history.length < 2)
       return { impressions: null, clicks: null, ctr: null, ecpc: null, ecpm: null, spend: null };
+    // Equal halves — see the publisher dashboard's pctChanges for why. The
+    // uneven split also skewed the eCPC/eCPM badges these sums feed.
     const half = Math.floor(stats.history.length / 2);
-    const recent = stats.history.slice(half);
-    const older = stats.history.slice(0, half);
+    const recent = stats.history.slice(-half);
+    const older = stats.history.slice(-2 * half, -half);
     const sumRecent = { imp: 0, clk: 0, spend: 0 };
     const sumOlder = { imp: 0, clk: 0, spend: 0 };
     for (const h of recent) {
@@ -464,8 +466,14 @@ function AdvertiserHome() {
         />
         <StatCard label="Smellir" value={clicks} delta={trendDelta(pctChanges.clicks)} />
         <StatCard label="CTR" value={ctr} delta={trendDelta(pctChanges.ctr)} />
+        {/* Named by the real window: "í mánuðinum" sat over whatever range was
+            selected, including 90 days and custom dates. */}
         <StatCard
-          label="Eytt í mánuðinum"
+          label={
+            activeRange.timeframe
+              ? `Eytt síðustu ${activeRange.timeframe} daga`
+              : 'Eytt á völdu tímabili'
+          }
           value={formatIsk(stats?.spendIsk ?? 0)}
           delta={trendDelta(pctChanges.spend)}
         />

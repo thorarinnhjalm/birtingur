@@ -177,7 +177,7 @@ export default function Earnings() {
 
       {/* ===== STAT CARDS =====
           Labels and order copied verbatim from the template's three
-          StatCards. "Tekjur í mánuðinum" is the trailing-30-day net-revenue
+          StatCards. "Tekjur síðustu 30 daga" is the trailing-30-day net-revenue
           figure (spendIsk minus the platform fee) — a rolling window, not
           a payout basis. "Beðið eftir útgreiðslu" (IMPORTANT-5 fix,
           adversarial review) is DIFFERENT: it comes from
@@ -189,7 +189,7 @@ export default function Earnings() {
           month they're actually about to be paid the carried-forward
           total. */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard label="Tekjur í mánuðinum" value={formatIsk(netEarningsTotal)} />
+        <StatCard label="Tekjur síðustu 30 daga" value={formatIsk(netEarningsTotal)} />
         <StatCard label="Beðið eftir útgreiðslu" value={formatIsk(pendingPayoutIsk)} />
         <StatCard label="Næsta útgreiðsla" value={`Áætlað ${nextPayoutLabel}`} />
       </div>
