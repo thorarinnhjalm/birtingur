@@ -8,7 +8,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-import { TRAFFIC_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
+import { TRAFFIC_MEASUREMENT_START, publisherNetIsk, formatNumberIs } from '@ada/shared';
 import { formatDate } from '@/lib/format';
 
 interface ChartDataPoint {
@@ -87,7 +87,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
           label: 'Smellir',
           dataKey: 'clicks',
           color: '#10b981', // emerald-500
-          formatter: (v: number) => v.toLocaleString('is-IS'),
+          formatter: (v: number) => formatNumberIs(v),
         };
       case 'ctr':
         return {
@@ -101,7 +101,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
           label: mode === 'publisher' ? 'Áætlaðar tekjur' : 'Kostnaður',
           dataKey: 'money',
           color: '#8b5cf6', // purple-500
-          formatter: (v: number) => `${v.toLocaleString('is-IS')} kr.`,
+          formatter: (v: number) => `${formatNumberIs(v)} kr.`,
         };
       case 'pageviews':
         return {
@@ -112,14 +112,14 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
           // false zero for the pre-switch history.
           dataKey: 'pageViewsTrue',
           color: '#0ea5e9', // sky-500
-          formatter: (v: number) => v.toLocaleString('is-IS'),
+          formatter: (v: number) => formatNumberIs(v),
         };
       default:
         return {
           label: 'Birtingar',
           dataKey: 'impressions',
           color: '#2563eb', // blue-600
-          formatter: (v: number) => v.toLocaleString('is-IS'),
+          formatter: (v: number) => formatNumberIs(v),
         };
     }
   };

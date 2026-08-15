@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/Card';
+import { formatNumberIs } from '@ada/shared';
 
 /**
  * The publisher's traffic as the chain it actually is, rather than as four
@@ -60,7 +61,7 @@ export interface TrafficChainProps {
   fillMeasurementStartLabel: string;
 }
 
-const nf = (n: number) => n.toLocaleString('is-IS');
+const nf = (n: number) => formatNumberIs(n);
 
 function Step({
   label,

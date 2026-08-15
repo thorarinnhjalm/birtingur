@@ -6,7 +6,12 @@ import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { apiFetch } from '@/lib/api';
-import { AD_CATEGORIES, DEFAULT_PLATFORM_FEE_PERCENT, MIN_PAYOUT_ISK } from '@ada/shared';
+import {
+  AD_CATEGORIES,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  MIN_PAYOUT_ISK,
+  formatNumberIs,
+} from '@ada/shared';
 import { Eyebrow, EditorialH1, NumberedSection, StepIndicator } from '@/components/ui/editorial';
 import {
   ArrowRight,
@@ -545,7 +550,7 @@ export default function PublisherOnboarding() {
                 <div className="flex justify-between">
                   <span className="text-sm text-slate-700">Lágmarksfjárhæð</span>
                   <span className="text-sm font-bold text-slate-900 tabular-nums">
-                    {MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.
+                    {formatNumberIs(MIN_PAYOUT_ISK)} kr.
                   </span>
                 </div>
               </div>
@@ -579,8 +584,8 @@ export default function PublisherOnboarding() {
                     <p className="text-xs leading-relaxed text-slate-500">
                       Þú getur alveg sleppt því að fylla út bankaupplýsingar núna. Þú þarft þær
                       eingöngu þegar reikningurinn þinn nær lágmarksútborgun (
-                      <strong>{MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.</strong>). Þá geturðu
-                      auðveldlega skráð þær í stillingum.
+                      <strong>{formatNumberIs(MIN_PAYOUT_ISK)} kr.</strong>). Þá geturðu auðveldlega
+                      skráð þær í stillingum.
                     </p>
 
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -617,7 +622,7 @@ export default function PublisherOnboarding() {
                         Lágmarksútborgun
                       </span>
                       <div className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                        {MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr.
+                        {formatNumberIs(MIN_PAYOUT_ISK)} kr.
                       </div>
                       <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
                         Þetta er sameiginlegt lágmark fyrir alla útgefendur og er ekki stillanlegt.

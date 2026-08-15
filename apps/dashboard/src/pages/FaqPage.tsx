@@ -11,12 +11,13 @@ import {
   MIN_PAYOUT_ISK,
   VAT_RATE,
   IAB_STANDARD_SIZES,
+  formatNumberIs,
 } from '@ada/shared';
 
 // Icelandic dot-grouped integer — same local-fmtNum convention as
 // LandingPage.tsx/AdvertiserLanding.tsx/PublisherLanding.tsx.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;

@@ -7,14 +7,14 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { Megaphone, Plus } from 'lucide-react';
-import { AD_CATEGORIES } from '@ada/shared';
+import { AD_CATEGORIES, formatNumberIs } from '@ada/shared';
 
 // Icelandic dot-grouped integer (no currency suffix — "kr." is appended
 // separately, matching campaigns.dc.html's own fmt()). Same pattern as the
 // already-redesigned CampaignCreate.tsx's local fmtNum; kept local here too
 // since neither pre-redesign file shared one.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 // Real campaign statuses per CampaignStatusSchema (@ada/shared): draft,

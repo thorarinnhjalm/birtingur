@@ -1,6 +1,11 @@
-import { FLAT_CPM_ISK, MIN_PAYOUT_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import {
+  FLAT_CPM_ISK,
+  MIN_PAYOUT_ISK,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  formatNumberIs,
+} from '@ada/shared';
 
-const CPM = FLAT_CPM_ISK.toLocaleString('is-IS');
+const CPM = formatNumberIs(FLAT_CPM_ISK);
 const PUBLISHER_SHARE = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
 
 export interface BlogPostData {
@@ -221,7 +226,7 @@ export const BLOG_POSTS: BlogPostData[] = [
       { type: 'h2', text: 'Hvað verður um peninginn?' },
       {
         type: 'p',
-        text: `Af hverjum 1.000 birtingum renna ${PUBLISHER_SHARE}% af nettótekjunum til útgefandans — vefsins sem birtir auglýsinguna — og ${DEFAULT_PLATFORM_FEE_PERCENT}% eru þjónustuþóknun Birtings. Útgefendur fá útborgað mánaðarlega þegar inneign nær ${MIN_PAYOUT_ISK.toLocaleString('is-IS')} kr. lágmarki. Þannig sérðu nákvæmlega hvert auglýsingaféð þitt fer — enginn falinn milliliðakostnaður.`,
+        text: `Af hverjum 1.000 birtingum renna ${PUBLISHER_SHARE}% af nettótekjunum til útgefandans — vefsins sem birtir auglýsinguna — og ${DEFAULT_PLATFORM_FEE_PERCENT}% eru þjónustuþóknun Birtings. Útgefendur fá útborgað mánaðarlega þegar inneign nær ${formatNumberIs(MIN_PAYOUT_ISK)} kr. lágmarki. Þannig sérðu nákvæmlega hvert auglýsingaféð þitt fer — enginn falinn milliliðakostnaður.`,
       },
       { type: 'h2', text: 'Algengar spurningar um birtingar' },
       { type: 'h3', text: 'Er smellur það sama og birting?' },

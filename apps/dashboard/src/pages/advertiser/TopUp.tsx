@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
-import { VAT_RATE, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import { VAT_RATE, DEFAULT_PLATFORM_FEE_PERCENT, formatNumberIs } from '@ada/shared';
 import { AlertCircle, CreditCard, Lock, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 
 const PRESETS = [5000, 20000, 50000, 100000];
@@ -293,14 +293,14 @@ export default function TopUp() {
             <tr>
               <td>${lineDesc}</td>
               <td class="right">1</td>
-              <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
-              <td class="right">${deposit.toLocaleString('is-IS')} kr.</td>
+              <td class="right">${formatNumberIs(deposit)} kr.</td>
+              <td class="right">${formatNumberIs(deposit)} kr.</td>
             </tr>
             <tr>
               <td>${feeDesc}</td>
               <td class="right">1</td>
-              <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
-              <td class="right">${fee.toLocaleString('is-IS')} kr.</td>
+              <td class="right">${formatNumberIs(fee)} kr.</td>
+              <td class="right">${formatNumberIs(fee)} kr.</td>
             </tr>
           </tbody>
         </table>
@@ -308,19 +308,19 @@ export default function TopUp() {
         <div class="summary">
           <div class="summary-row">
             <span>VSK-frjáls velta (Umboðssala ${100 - DEFAULT_PLATFORM_FEE_PERCENT}%):</span>
-            <span>${deposit.toLocaleString('is-IS')} kr.</span>
+            <span>${formatNumberIs(deposit)} kr.</span>
           </div>
           <div class="summary-row">
             <span>Gjaldstofn VSK (Þóknun ${DEFAULT_PLATFORM_FEE_PERCENT}%):</span>
-            <span>${fee.toLocaleString('is-IS')} kr.</span>
+            <span>${formatNumberIs(fee)} kr.</span>
           </div>
           <div class="summary-row">
             <span>Virðisaukaskattur (${vatPct}% af þóknun):</span>
-            <span>${vat.toLocaleString('is-IS')} kr.</span>
+            <span>${formatNumberIs(vat)} kr.</span>
           </div>
           <div class="summary-row total">
             <span>${totalLabel}</span>
-            <span>${txAmount.toLocaleString('is-IS')} kr.</span>
+            <span>${formatNumberIs(txAmount)} kr.</span>
           </div>
         </div>
 
@@ -340,7 +340,7 @@ export default function TopUp() {
   // used only for the per-row VSK figure below where formatIsk's "kr." suffix
   // would be redundant next to the "VSK (24%)" column header.
   function fmtNum(n: number): string {
-    return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+    return formatNumberIs(Math.round(n));
   }
 
   return (

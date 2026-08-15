@@ -6,12 +6,17 @@ import PublicHeader from '@/components/layout/PublicHeader';
 import PublicFooter from '@/components/layout/PublicFooter';
 import { updateSEO } from '@/lib/seo';
 import { Eyebrow, BigFigure } from '@/components/ui/editorial';
-import { AD_CATEGORIES, FLAT_CPM_ISK, DEFAULT_PLATFORM_FEE_PERCENT } from '@ada/shared';
+import {
+  AD_CATEGORIES,
+  FLAT_CPM_ISK,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  formatNumberIs,
+} from '@ada/shared';
 
 // Icelandic dot-grouped integer — same local-fmtNum convention as
 // LandingPage.tsx/CampaignCreate.tsx/TopUp.tsx.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;

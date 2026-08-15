@@ -211,3 +211,34 @@ describe('<adplatform-campaign-stats>', () => {
     expect(el.shadowRoot!.innerHTML).toContain('2.50%');
   });
 });
+
+/**
+ * These components run on publishers' pages in whatever browser their visitors
+ * bring. Intl.NumberFormat('is-IS') silently falls back to the default locale
+ * when the browser's ICU lacks Icelandic — a real production Chrome rendered
+ * "21,860", which in Icelandic convention reads as twenty-one point eight six.
+ * Formatting is pure string manipulation now, so it cannot vary by viewer.
+ */
+describe('locale-independent formatting', () => {
+  it('renders Icelandic dot grouping regardless of the environment ICU', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        impressions: 21_860,
+        clicks: 67,
+        spendIsk: 8900,
+        netEarningsIsk: 7120,
+        history: [],
+      }),
+    });
+
+    const el = document.createElement('adplatform-stats');
+    el.setAttribute('publisher-key', 'wk_test_123');
+    document.body.appendChild(el);
+    await flush();
+
+    const html = el.shadowRoot!.innerHTML;
+    expect(html).toContain('21.860');
+    expect(html).not.toContain('21,860');
+  });
+});

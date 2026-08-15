@@ -1,3 +1,4 @@
+import { formatNumberIs } from '../format.js';
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
 interface QueueItem {
@@ -443,7 +444,7 @@ export class AdplatformApprovalQueue extends HTMLElement {
         if (item.budget.mode === 'cpm_capped') {
           priceStr = 'Birtingarherferð (CPM)';
         } else {
-          priceStr = `Fastakaup pláss (${new Intl.NumberFormat('is-IS').format(item.budget.totalIsk)} kr.)`;
+          priceStr = `Fastakaup pláss (${formatNumberIs(item.budget.totalIsk)} kr.)`;
         }
 
         return `
