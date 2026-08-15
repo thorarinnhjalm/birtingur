@@ -99,7 +99,7 @@ test('shows the real unpaid basis as the pending payout figure, not the 30-day s
 
   await screen.findByText('Beðið eftir útgreiðslu');
   expect(statCardValue('Beðið eftir útgreiðslu')).toBe(formatIsk(12_000));
-  expect(statCardValue('Tekjur í mánuðinum')).toBe(formatIsk(800)); // 1000 * 0.8, unaffected
+  expect(statCardValue('Tekjur síðustu 30 daga')).toBe(formatIsk(800)); // 1000 * 0.8, unaffected
   // No below-minimum warning once the real basis clears the threshold.
   expect(screen.queryByText(/undir því marki/)).toBeNull();
 });
@@ -115,7 +115,7 @@ test('shows the below-minimum warning honestly against the real unpaid basis, no
 
   await screen.findByText(/undir því marki/);
   expect(statCardValue('Beðið eftir útgreiðslu')).toBe(formatIsk(0));
-  expect(statCardValue('Tekjur í mánuðinum')).toBe(formatIsk(16_000)); // 20000 * 0.8, unaffected
+  expect(statCardValue('Tekjur síðustu 30 daga')).toBe(formatIsk(16_000)); // 20000 * 0.8, unaffected
 });
 
 test('shows no below-minimum warning when there is no unpaid basis at all', async () => {

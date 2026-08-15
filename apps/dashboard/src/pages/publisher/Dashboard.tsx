@@ -1,11 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import {
-  TRAFFIC_MEASUREMENT_START,
-  FILL_MEASUREMENT_START,
-  publisherNetIsk,
-  MIN_PAYOUT_ISK,
-} from '@ada/shared';
+import { TRAFFIC_MEASUREMENT_START, FILL_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -127,10 +122,10 @@ function PublisherHome() {
     if (!stats?.history || stats.history.length < 2) {
       return { impressions: null as number | null, revenue: null as number | null };
     }
-    // EQUAL halves — floor(length/2) days each, the middle day of an odd
-    // window belonging to neither. slice(half) put 3 days against 4 on the
-    // 7-day preset, so perfectly flat traffic read "+33,3% frá fyrra
-    // tímabili" on every visit.
+    // EQUAL halves — floor(length/2) days each, adjacent, with the OLDEST day
+    // of an odd window dropped. slice(half) put 3 days against 4 on the 7-day
+    // preset, so perfectly flat traffic read "+33,3% frá fyrra tímabili" on
+    // every visit.
     const half = Math.floor(stats.history.length / 2);
     const older = stats.history.slice(-2 * half, -half);
     const recent = stats.history.slice(-half);
@@ -241,7 +236,10 @@ function PublisherHome() {
     link.setAttribute('href', url);
     link.setAttribute(
       'download',
-      `birtingur_ad_slots_${new Date().toISOString().split('T')[0]}.csv`,
+      // The window is in the name: the same export is 7 or 30 days depending
+      // on the toggle now, and two otherwise-identical files should not be
+      // indistinguishable on disk.
+      `birtingur_ad_slots_${timeframe}d_${new Date().toISOString().split('T')[0]}.csv`,
     );
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -409,7 +407,7 @@ function PublisherHome() {
               Áætlaðar tekjur síðustu {timeframe} daga
             </p>
             <div className="my-4 text-3xl font-extrabold tracking-[-0.03em] text-primary tabular-nums sm:text-4xl md:text-5xl">
-              {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
+              {stats ? formatIsk(netRevenueIsk) : formatIsk(0)}
             </div>
             {pctChanges.revenue !== null && (
               <div
@@ -492,8 +490,12 @@ function PublisherHome() {
               {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
             </div>
             <p className="mt-1 text-[10px] font-medium text-white/50">
-              {balance && balance.unpaidBasisIsk > 0 && balance.unpaidBasisIsk < MIN_PAYOUT_ISK
-                ? `Greitt út þegar ${formatIsk(MIN_PAYOUT_ISK)} lágmarki er náð`
+              {/* The server's own minimum, same as Earnings — the shared
+                  constant would silently disagree if the API's ever moved. */}
+              {balance &&
+              balance.unpaidBasisIsk > 0 &&
+              balance.unpaidBasisIsk < balance.minPayoutIsk
+                ? `Greitt út þegar ${formatIsk(balance.minPayoutIsk)} lágmarki er náð`
                 : `Næsta útgreiðsla áætluð ${nextPayoutDateLabel}`}
             </p>
           </div>
@@ -628,7 +630,7 @@ function PublisherHome() {
                           .toFixed(2)
                           .replace('.', ',')
                       : '0,00';
-                  // formatIsk(0), not the literal formatIsk(0) used elsewhere on this
+                  // formatIsk(0), not a '0 kr.' literal like elsewhere on this
                   // page: formatIsk emits "0 kr" with no trailing period, so a
                   // site with no impressions showed "0 kr" revenue next to
                   // "0 kr. eCPM" in the very same cell.

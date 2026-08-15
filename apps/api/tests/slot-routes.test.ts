@@ -205,7 +205,7 @@ describe('Slot HTTP Routes', () => {
       const weekBody = await week.json();
       expect(weekBody[0].stats.impressions).toBe(1000);
 
-      // Default stays 30 — SlotList and the CSV call it bare.
+      // Default stays 30 — SlotList calls it bare.
       const month = await app.request('/v1/publishers/me/slots', {
         headers: { Authorization: 'Bearer valid-token' },
       });

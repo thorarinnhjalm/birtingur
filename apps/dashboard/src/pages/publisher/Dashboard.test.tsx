@@ -687,3 +687,26 @@ test('switching to 7 days refetches the slot table on the same window', async ()
     expect(slotCalls.some((u) => u.includes('timeframe=7'))).toBe(true);
   });
 });
+
+test('the revenue hero shows window revenue and the payout card the ledger basis — never swapped', async () => {
+  // A replace-all once pointed BOTH cards at the same value: the two old
+  // expressions were textually identical, so converting the payout card
+  // dragged the revenue hero with it and 90.000 kr of window revenue rendered
+  // as 4.000 kr of unpaid basis under a revenue label. Distinct fixtures keep
+  // the two apart.
+  setupApiMock({
+    publishers: ONE_SITE,
+    slots: [],
+    stats: { ...BASE_STATS, spendIsk: 90_000 },
+    balance: { unpaidBasisIsk: 4000, minPayoutIsk: 10_000 },
+  });
+  renderPage();
+
+  const revenueHeading = await screen.findByText(/Áætlaðar tekjur síðustu 30 daga/);
+  const revenueCard = within(revenueHeading.closest('div')!.parentElement!);
+  expect(revenueCard.getByText('72.000 kr')).toBeDefined(); // net of 90.000
+
+  const payoutHeading = screen.getByText('Uppsafnað til útgreiðslu');
+  const payoutCard = within(payoutHeading.closest('div')!.parentElement!);
+  expect(payoutCard.getByText('4.000 kr')).toBeDefined();
+});
