@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { TRAFFIC_MEASUREMENT_START, FILL_MEASUREMENT_START, publisherNetIsk } from '@ada/shared';
+import {
+  TRAFFIC_MEASUREMENT_START,
+  FILL_MEASUREMENT_START,
+  publisherNetIsk,
+  formatNumberIs,
+} from '@ada/shared';
 import {
   AlertTriangle,
   TrendingUp,
@@ -515,7 +520,7 @@ function PublisherHome() {
       <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
         <StatCard
           label="Birtingar"
-          value={stats ? stats.impressions.toLocaleString('is-IS') : '0'}
+          value={stats ? formatNumberIs(stats.impressions) : '0'}
           delta={trendDelta(pctChanges.impressions)}
         />
         <StatCard
@@ -550,7 +555,7 @@ function PublisherHome() {
           the ADVERTS performed, not how much of the publisher's traffic was
           monetised, and mixing the two is what made the old row unreadable. */}
       <div className="grid grid-cols-2 gap-5 sm:max-w-md">
-        <StatCard label="Smellir" value={stats ? stats.clicks.toLocaleString('is-IS') : '0'} />
+        <StatCard label="Smellir" value={stats ? formatNumberIs(stats.clicks) : '0'} />
         <StatCard
           label="Smellihlutfall"
           value={
@@ -651,11 +656,11 @@ function PublisherHome() {
                       </td>
                       <td className="py-3 text-right tabular-nums">
                         {site.pageViewsTrue !== undefined
-                          ? site.pageViewsTrue.toLocaleString('is-IS')
+                          ? formatNumberIs(site.pageViewsTrue)
                           : '—'}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        {site.pageviews.toLocaleString('is-IS')}
+                        {formatNumberIs(site.pageviews)}
                       </td>
                       <td className="py-3 text-right tabular-nums">
                         {fillRate === null ? (
@@ -675,10 +680,10 @@ function PublisherHome() {
                         )}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        {site.impressions.toLocaleString('is-IS')}
+                        {formatNumberIs(site.impressions)}
                       </td>
                       <td className="py-3 text-right tabular-nums">
-                        <span>{site.clicks.toLocaleString('is-IS')}</span>{' '}
+                        <span>{formatNumberIs(site.clicks)}</span>{' '}
                         <span className="text-[11px] text-slate-400">({siteCtr}%)</span>
                       </td>
                       <td className="py-3 text-right tabular-nums">
@@ -867,10 +872,10 @@ function PublisherHome() {
                               </div>
                             </td>
                             <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
-                              {s.stats ? s.stats.impressions.toLocaleString('is-IS') : '0'}
+                              {s.stats ? formatNumberIs(s.stats.impressions) : '0'}
                             </td>
                             <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
-                              {s.stats ? s.stats.clicks.toLocaleString('is-IS') : '0'}
+                              {s.stats ? formatNumberIs(s.stats.clicks) : '0'}
                             </td>
                             <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
                               {s.stats && s.stats.impressions > 0

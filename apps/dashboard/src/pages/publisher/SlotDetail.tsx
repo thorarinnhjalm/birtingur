@@ -1,4 +1,4 @@
-import { publisherNetIsk } from '@ada/shared';
+import { publisherNetIsk, formatNumberIs } from '@ada/shared';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePublisherSlot } from '@/hooks/usePublisher';
 import { Card } from '@/components/ui/Card';
@@ -164,7 +164,7 @@ export default function SlotDetail() {
               Hleðslur pláss
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats ? slotStats.pageviews.toLocaleString('is-IS') : '0'}
+              {slotStats ? formatNumberIs(slotStats.pageviews) : '0'}
             </p>
           </div>
         </Card>
@@ -178,7 +178,7 @@ export default function SlotDetail() {
               Birtingar
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats ? slotStats.impressions.toLocaleString('is-IS') : '0'}
+              {slotStats ? formatNumberIs(slotStats.impressions) : '0'}
             </p>
           </div>
         </Card>
@@ -190,7 +190,7 @@ export default function SlotDetail() {
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Smellir</p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
-              {slotStats ? slotStats.clicks.toLocaleString('is-IS') : '0'}
+              {slotStats ? formatNumberIs(slotStats.clicks) : '0'}
             </p>
           </div>
         </Card>
@@ -321,7 +321,7 @@ export default function SlotDetail() {
                             <div className="bg-slate-950/95 backdrop-blur text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-xl border border-slate-800">
                               <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
                               <p className="text-sm font-bold text-sky-400">
-                                {isTraffic ? val.toLocaleString('is-IS') : formatIsk(val)}
+                                {isTraffic ? formatNumberIs(val) : formatIsk(val)}
                               </p>
                             </div>
                           );
@@ -375,12 +375,8 @@ export default function SlotDetail() {
                         {cStats.advertiserName}
                       </td>
                       <td className="py-3 px-2 text-slate-500">{cStats.campaignName}</td>
-                      <td className="py-3 px-2 text-right">
-                        {cStats.impressions.toLocaleString('is-IS')}
-                      </td>
-                      <td className="py-3 px-2 text-right">
-                        {cStats.clicks.toLocaleString('is-IS')}
-                      </td>
+                      <td className="py-3 px-2 text-right">{formatNumberIs(cStats.impressions)}</td>
+                      <td className="py-3 px-2 text-right">{formatNumberIs(cStats.clicks)}</td>
                       <td className="py-3 px-2 text-right text-amber-600 font-bold">{ctr}</td>
                       <td className="py-3 px-2 text-right font-bold text-emerald-700">
                         {formatIsk(cStats.earningsIsk)}

@@ -1,3 +1,4 @@
+import { formatNumberIs } from '../format.js';
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
 interface HourStat {
@@ -212,7 +213,7 @@ export class AdplatformCampaignStats extends HTMLElement {
         ? Math.min(100, (this.stats.clicks / this.stats.impressions) * 100)
         : 0;
     const ctrStr = `${ctr.toFixed(2)}%`;
-    const formatNum = (n: number) => new Intl.NumberFormat('is-IS').format(n);
+    const formatNum = (n: number) => formatNumberIs(n);
 
     // Sparkline SVG path generation from hourly stats (or aggregate to daily/step points)
     // To make a clean chart, we can select a subset of hours or plot all points if <= 30

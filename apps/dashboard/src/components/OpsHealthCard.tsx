@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/Card';
+import { formatNumberIs } from '@ada/shared';
 
 /**
  * Cron and queue health, in plain Icelandic.

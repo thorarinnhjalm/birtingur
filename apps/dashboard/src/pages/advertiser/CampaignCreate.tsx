@@ -16,7 +16,7 @@ import {
   StepIndicator,
 } from '@/components/ui/editorial';
 import { AlertTriangle, Upload, Check, AlertCircle, Info, Lock } from 'lucide-react';
-import { AD_CATEGORIES, FLAT_CPM_ISK } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK, formatNumberIs } from '@ada/shared';
 import type { Creative } from '@ada/shared';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -45,7 +45,7 @@ const REGION_LABELS: Record<string, string> = {
 // "kr."/"kr" as a separate, differently-styled span next to the numeral).
 // Uses the same Intl grouping @ada/shared's formatIsk relies on internally.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 export default function CampaignCreate() {

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { formatNumberIs } from '@ada/shared';
 import { Routes, Route, Link, useSearchParams } from 'react-router-dom';
 import { Banknote, CheckCircle, XCircle, Calendar, Trash2, Copy, ExternalLink } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
@@ -122,9 +123,7 @@ function BotTrafficBreakdownRows({ breakdown }: { breakdown: BotTrafficBreakdown
             </span>
             <span className="font-bold text-slate-800">
               {pct.toFixed(1).replace('.', ',')}%{' '}
-              <span className="font-semibold text-slate-400">
-                ({count.toLocaleString('is-IS')})
-              </span>
+              <span className="font-semibold text-slate-400">({formatNumberIs(count)})</span>
             </span>
           </div>
         );
@@ -148,7 +147,7 @@ function Home() {
   // '...' while loading and an explicit error line on failure — a silent 0
   // would be indistinguishable from "no signups yet".
   const wl = (n: number | undefined) =>
-    waitlistLoading ? '...' : waitlistError ? '—' : (n ?? 0).toLocaleString('is-IS');
+    waitlistLoading ? '...' : waitlistError ? '—' : formatNumberIs(n ?? 0);
 
   return (
     <div className="space-y-8">
@@ -162,7 +161,7 @@ function Home() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           label="Birtingar (allur tími)"
-          value={isLoading ? '...' : (stats?.totalImpressions.toLocaleString('is-IS') ?? '0')}
+          value={isLoading ? '...' : formatNumberIs(stats?.totalImpressions ?? 0)}
         />
         <StatCard
           label="Velta (allur tími)"
@@ -182,19 +181,19 @@ function Home() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Skráðir útgefendur"
-          value={isLoading ? '...' : (stats?.publishersCount ?? 0).toLocaleString('is-IS')}
+          value={isLoading ? '...' : formatNumberIs(stats?.publishersCount ?? 0)}
         />
         <StatCard
           label="Skráðir auglýsendur"
-          value={isLoading ? '...' : (stats?.advertisersCount ?? 0).toLocaleString('is-IS')}
+          value={isLoading ? '...' : formatNumberIs(stats?.advertisersCount ?? 0)}
         />
         <StatCard
           label="Auglýsingapláss"
-          value={isLoading ? '...' : (stats?.slotsCount ?? 0).toLocaleString('is-IS')}
+          value={isLoading ? '...' : formatNumberIs(stats?.slotsCount ?? 0)}
         />
         <StatCard
           label="Skráðar herferðir"
-          value={isLoading ? '...' : (stats?.campaignsCount ?? 0).toLocaleString('is-IS')}
+          value={isLoading ? '...' : formatNumberIs(stats?.campaignsCount ?? 0)}
         />
       </div>
 
@@ -332,10 +331,10 @@ function Home() {
                       </div>
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
-                      {tc.impressions.toLocaleString('is-IS')}
+                      {formatNumberIs(tc.impressions)}
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
-                      {tc.clicks.toLocaleString('is-IS')}
+                      {formatNumberIs(tc.clicks)}
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
                       {tc.ctr.toFixed(1).replace('.', ',')}%
@@ -379,10 +378,10 @@ function Home() {
                     <td className="py-3 font-semibold text-slate-700">{fs.name}</td>
                     <td className="py-3 font-mono text-[11px] text-slate-500">{fs.creativeId}</td>
                     <td className="py-3 text-right font-bold text-slate-800">
-                      {fs.impressions.toLocaleString('is-IS')}
+                      {formatNumberIs(fs.impressions)}
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
-                      {fs.clicks.toLocaleString('is-IS')}
+                      {formatNumberIs(fs.clicks)}
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800">
                       {fs.ctr.toFixed(2).replace('.', ',')}%

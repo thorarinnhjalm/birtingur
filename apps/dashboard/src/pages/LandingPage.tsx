@@ -6,14 +6,14 @@ import { updateSEO } from '@/lib/seo';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Eyebrow, BigFigure } from '@/components/ui/editorial';
-import { AD_CATEGORIES, FLAT_CPM_ISK } from '@ada/shared';
+import { AD_CATEGORIES, FLAT_CPM_ISK, formatNumberIs } from '@ada/shared';
 
 type TabType = 'home' | 'advertisers' | 'publishers' | 'faq' | 'terms';
 
 // Icelandic dot-grouped integer — same local-fmtNum convention as
 // CampaignCreate.tsx/TopUp.tsx/CampaignList.tsx.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 // Short display labels for the category ticker/pills, derived from the real

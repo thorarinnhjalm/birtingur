@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatNumberIs } from '@ada/shared';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth-context';
@@ -358,7 +359,7 @@ export default function Tryggvi() {
                       Mánaðarlegt herferðarfé:
                     </label>
                     <span className="text-base font-extrabold text-blue-600">
-                      {budget.toLocaleString('is-IS')} kr.
+                      {formatNumberIs(budget)} kr.
                     </span>
                   </div>
                   <input
@@ -408,7 +409,7 @@ export default function Tryggvi() {
                     Áætlaðar flettingar (Views)
                   </span>
                   <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
-                    {impressions.toLocaleString('is-IS')}
+                    {formatNumberIs(impressions)}
                   </div>
                 </div>
                 <div className="pt-3 border-t border-slate-200">
@@ -416,7 +417,7 @@ export default function Tryggvi() {
                     Áætlaðir heimsóknir (Clicks)
                   </span>
                   <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight mt-1">
-                    {clicks.toLocaleString('is-IS')}
+                    {formatNumberIs(clicks)}
                   </div>
                 </div>
                 <div className="text-[10px] text-slate-500 leading-relaxed pt-2">

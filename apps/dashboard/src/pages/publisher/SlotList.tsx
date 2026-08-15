@@ -7,7 +7,13 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { EditorialH1 } from '@/components/ui/editorial';
 import { formatIsk } from '@/lib/format';
-import { AD_CATEGORIES, publisherNetIsk, type Publisher, type Slot } from '@ada/shared';
+import {
+  AD_CATEGORIES,
+  publisherNetIsk,
+  type Publisher,
+  type Slot,
+  formatNumberIs,
+} from '@ada/shared';
 import { Grid3x3, Plus, FolderPlus } from 'lucide-react';
 
 // Publisher.status → sites.dc.html's siteStatusMeta(). 'active' maps to the
@@ -164,7 +170,7 @@ export default function SlotList() {
                       Birtingar
                     </div>
                     <div className="mt-1.5 text-[17px] font-bold tabular-nums text-slate-900">
-                      {totalImpressions > 0 ? totalImpressions.toLocaleString('is-IS') : '—'}
+                      {totalImpressions > 0 ? formatNumberIs(totalImpressions) : '—'}
                     </div>
                   </div>
                   <div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { formatNumberIs } from '@ada/shared';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import {
   Megaphone,
@@ -269,8 +270,8 @@ function AdvertiserHome() {
   }
 
   // Dynamic stats mapping
-  const impressions = stats ? stats.impressions.toLocaleString('is-IS') : '0';
-  const clicks = stats ? stats.clicks.toLocaleString('is-IS') : '0';
+  const impressions = stats ? formatNumberIs(stats.impressions) : '0';
+  const clicks = stats ? formatNumberIs(stats.clicks) : '0';
   const ctr =
     stats && stats.impressions > 0
       ? `${Math.min(100, (stats.clicks / stats.impressions) * 100)
@@ -520,7 +521,7 @@ function AdvertiserHome() {
             {/* Full locale number, not a rounded "Nk": toFixed(0) showed 1.500
                 as "2k" and 999.999 as "1000k". Scale is the card's whole
                 message, so the real figure carries it better than a rounding. */}
-            {liveSystemImpressions ? liveSystemImpressions.toLocaleString('is-IS') : '—'}
+            {liveSystemImpressions ? formatNumberIs(liveSystemImpressions) : '—'}
           </div>
         </div>
       </div>
@@ -652,14 +653,14 @@ function AdvertiserHome() {
                           rowStats ? 'text-slate-700' : 'text-slate-400'
                         }`}
                       >
-                        {rowStats ? rowStats.impressions.toLocaleString('is-IS') : '—'}
+                        {rowStats ? formatNumberIs(rowStats.impressions) : '—'}
                       </td>
                       <td
                         className={`px-4 py-[22px] text-right text-[15px] tabular-nums ${
                           rowStats ? 'text-slate-700' : 'text-slate-400'
                         }`}
                       >
-                        {rowStats ? rowStats.clicks.toLocaleString('is-IS') : '—'}
+                        {rowStats ? formatNumberIs(rowStats.clicks) : '—'}
                       </td>
                       <td
                         className={`px-4 py-[22px] text-right text-[15px] tabular-nums ${

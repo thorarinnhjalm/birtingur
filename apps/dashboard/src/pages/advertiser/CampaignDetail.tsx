@@ -32,6 +32,7 @@ import {
   UNATTRIBUTED_CREATIVE_ID,
   type Creative,
   grossIskForImpressions,
+  formatNumberIs,
 } from '@ada/shared';
 import { Input } from '@/components/ui/Input';
 import { useQuery } from '@tanstack/react-query';
@@ -692,8 +693,8 @@ export default function CampaignDetail() {
                           {creative.clickUrl.replace(/^https?:\/\/([^/]+).*/, '$1')} ·{' '}
                           {creative.width}×{creative.height}
                         </td>
-                        <td className="py-3">{cStats.impressions.toLocaleString('is-IS')}</td>
-                        <td className="py-3">{cStats.clicks.toLocaleString('is-IS')}</td>
+                        <td className="py-3">{formatNumberIs(cStats.impressions)}</td>
+                        <td className="py-3">{formatNumberIs(cStats.clicks)}</td>
                         <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
                         <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
                         <td className="py-3 text-right">{formatIsk(spendIsk)}</td>
@@ -762,7 +763,7 @@ export default function CampaignDetail() {
                             Birtingar
                           </div>
                           <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                            {cStats.impressions?.toLocaleString('is-IS') ?? '0'}
+                            {formatNumberIs(cStats.impressions ?? 0)}
                           </div>
                         </div>
                         <div className="bg-white border border-slate-100 rounded-md p-1.5">
@@ -770,7 +771,7 @@ export default function CampaignDetail() {
                             Smellir
                           </div>
                           <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                            {cStats.clicks?.toLocaleString('is-IS') ?? '0'}
+                            {formatNumberIs(cStats.clicks ?? 0)}
                           </div>
                         </div>
                         <div className="bg-white border border-slate-100 rounded-md p-1.5">
@@ -891,8 +892,8 @@ export default function CampaignDetail() {
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3">{pub.impressions.toLocaleString('is-IS')}</td>
-                            <td className="py-3">{pub.clicks.toLocaleString('is-IS')}</td>
+                            <td className="py-3">{formatNumberIs(pub.impressions)}</td>
+                            <td className="py-3">{formatNumberIs(pub.clicks)}</td>
                             <td className="py-3">{ctr.toFixed(1).replace('.', ',')}%</td>
                             <td className="py-3 text-right text-amber-600 font-bold">{ecpc}</td>
                             <td className="py-3 text-right">{formatIsk(pub.spendIsk)}</td>
@@ -925,10 +926,10 @@ export default function CampaignDetail() {
                                     </div>
                                   </td>
                                   <td className="py-2 text-slate-500">
-                                    {cre.impressions.toLocaleString('is-IS')}
+                                    {formatNumberIs(cre.impressions)}
                                   </td>
                                   <td className="py-2 text-slate-500">
-                                    {cre.clicks.toLocaleString('is-IS')}
+                                    {formatNumberIs(cre.clicks)}
                                   </td>
                                   <td className="py-2 text-slate-500">
                                     {creCtr.toFixed(1).replace('.', ',')}%
@@ -1244,8 +1245,8 @@ export default function CampaignDetail() {
             </div>
 
             <p className="text-sm text-slate-600">
-              Eftirstöðvar upp á {campaign.budget.remainingIsk.toLocaleString('is-IS')} kr. verða
-              frátaknar á ný og birtingar hefjast strax.
+              Eftirstöðvar upp á {formatNumberIs(campaign.budget.remainingIsk)} kr. verða frátaknar
+              á ný og birtingar hefjast strax.
             </p>
 
             <form onSubmit={handleExtend} className="space-y-4">

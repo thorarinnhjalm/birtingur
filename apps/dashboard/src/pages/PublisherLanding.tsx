@@ -11,12 +11,13 @@ import {
   FLAT_CPM_ISK,
   DEFAULT_PLATFORM_FEE_PERCENT,
   MIN_PAYOUT_ISK,
+  formatNumberIs,
 } from '@ada/shared';
 
 // Icelandic dot-grouped integer — same local-fmtNum convention as
 // LandingPage.tsx/AdvertiserLanding.tsx/CampaignCreate.tsx/TopUp.tsx.
 function fmtNum(n: number): string {
-  return Math.round(n).toLocaleString('is-IS', { maximumFractionDigits: 0 });
+  return formatNumberIs(Math.round(n));
 }
 
 const PUBLISHER_SHARE_PERCENT = 100 - DEFAULT_PLATFORM_FEE_PERCENT;
@@ -390,7 +391,7 @@ export default function PublisherLanding() {
                 <label className="mb-2 flex justify-between text-xs font-bold text-slate-700">
                   <span>Mánaðarlegar síðusýningar vefsins</span>
                   <span className="font-extrabold text-primary tabular-nums">
-                    {pageviews.toLocaleString('is-IS')} flettingar
+                    {formatNumberIs(pageviews)} flettingar
                   </span>
                 </label>
                 <input

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatNumberIs } from '@ada/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
@@ -474,8 +475,7 @@ export default function CreativeLibrary() {
 
                 {cs && (
                   <div className="mt-2 text-[13px] text-slate-400 tabular-nums">
-                    {cs.impressions.toLocaleString('is-IS')} birtingar ·{' '}
-                    {cs.clicks.toLocaleString('is-IS')} smellir
+                    {formatNumberIs(cs.impressions)} birtingar · {formatNumberIs(cs.clicks)} smellir
                   </div>
                 )}
 

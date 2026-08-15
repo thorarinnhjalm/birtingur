@@ -1,3 +1,4 @@
+import { formatNumberIs } from '../format.js';
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 
 export class AdplatformStats extends HTMLElement {
@@ -211,7 +212,7 @@ export class AdplatformStats extends HTMLElement {
   }
 
   private formatNum(n: number): string {
-    return new Intl.NumberFormat('is-IS').format(n);
+    return formatNumberIs(n);
   }
 
   private formatIsk(n: number): string {
