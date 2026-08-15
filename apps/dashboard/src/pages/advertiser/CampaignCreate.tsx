@@ -43,7 +43,7 @@ const REGION_LABELS: Record<string, string> = {
 
 // Icelandic dot-grouped integer (no currency suffix — the buy-flow spec renders
 // "kr."/"kr" as a separate, differently-styled span next to the numeral).
-// Uses the same Intl grouping @ada/shared's formatIsk relies on internally.
+// Uses formatNumberIs — the same pure-string grouping formatIsk uses.
 function fmtNum(n: number): string {
   return formatNumberIs(Math.round(n));
 }
