@@ -30,7 +30,6 @@ import { useState, useEffect, Fragment } from 'react';
 import { apiFetch, ApiError } from '@/lib/api';
 import {
   AD_CATEGORIES,
-  FLAT_CPM_ISK,
   UNATTRIBUTED_CREATIVE_ID,
   type Creative,
   grossIskForImpressions,
@@ -658,7 +657,7 @@ export default function CampaignDetail() {
                     return (
                       <tr key={creative.id} className="hover:bg-slate-50/50">
                         <td
-                          className="py-3 font-semibold text-slate-900 max-w-[180px] truncate"
+                          className="py-3 font-semibold text-slate-900 max-w-45 truncate"
                           title={creative.clickUrl}
                         >
                           {creative.clickUrl.replace(/^https?:\/\/([^/]+).*/, '$1')} ·{' '}
@@ -683,7 +682,7 @@ export default function CampaignDetail() {
           <h3 className="text-base font-bold text-slate-900">
             Auglýsingar ({campaignCreatives.length})
           </h3>
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-125 overflow-y-auto pr-1">
             {campaignCreatives.length === 0 ? (
               <div className="text-center py-6 text-xs text-slate-400 font-medium">
                 Engar auglýsingar tengdar.

@@ -113,14 +113,14 @@ function PendingAgentCampaigns() {
             <div className="flex gap-2">
               <Button
                 variant="secondary"
-                className="!px-3 !py-2 text-xs"
+                className="px-3! py-2! text-xs"
                 disabled={reject.isPending || approve.isPending}
                 onClick={() => reject.mutate(c.id)}
               >
                 Hafna
               </Button>
               <Button
-                className="!px-3 !py-2 text-xs"
+                className="px-3! py-2! text-xs"
                 disabled={reject.isPending || approve.isPending}
                 onClick={() => approve.mutate(c.id)}
               >
@@ -411,7 +411,7 @@ function AdvertiserHome() {
           Not in the template. Kept because useWallet() and the "Fylla á"
           top-up handler need to stay reachable; restyled to the editorial
           numeral scale (tabular-nums, tight tracking) instead of removed. */}
-      <div className="relative flex min-h-[168px] flex-col justify-between overflow-hidden rounded-card bg-primary p-8 text-on-primary shadow-xl">
+      <div className="relative flex min-h-42 flex-col justify-between overflow-hidden rounded-card bg-primary p-8 text-on-primary shadow-xl">
         <div className="absolute -top-12 -right-12 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="relative z-10">
           <p className="mb-1 text-[11px] font-bold tracking-wider text-white/75 uppercase">
@@ -637,7 +637,7 @@ function AdvertiserHome() {
                         isLast ? '' : 'border-b border-surface-container'
                       }`}
                     >
-                      <td className="py-[22px] pr-4 align-middle">
+                      <td className="py-5.5 pr-4 align-middle">
                         <div className="text-[15px] font-semibold text-slate-900">
                           {c.name || `Herferð ${c.id.substring(0, 8)}`}
                         </div>
@@ -645,31 +645,31 @@ function AdvertiserHome() {
                           {c.targeting.categories.join(', ') || 'Almennt'}
                         </div>
                       </td>
-                      <td className="px-4 py-[22px] align-middle">
+                      <td className="px-4 py-5.5 align-middle">
                         <Badge variant={status.variant}>{status.label}</Badge>
                       </td>
                       <td
-                        className={`px-4 py-[22px] text-right text-[15px] tabular-nums ${
+                        className={`px-4 py-5.5 text-right text-[15px] tabular-nums ${
                           rowStats ? 'text-slate-700' : 'text-slate-400'
                         }`}
                       >
                         {rowStats ? rowStats.impressions.toLocaleString('is-IS') : '—'}
                       </td>
                       <td
-                        className={`px-4 py-[22px] text-right text-[15px] tabular-nums ${
+                        className={`px-4 py-5.5 text-right text-[15px] tabular-nums ${
                           rowStats ? 'text-slate-700' : 'text-slate-400'
                         }`}
                       >
                         {rowStats ? rowStats.clicks.toLocaleString('is-IS') : '—'}
                       </td>
                       <td
-                        className={`px-4 py-[22px] text-right text-[15px] tabular-nums ${
+                        className={`px-4 py-5.5 text-right text-[15px] tabular-nums ${
                           rowStats ? 'text-slate-700' : 'text-slate-400'
                         }`}
                       >
                         {rowStats ? `${rowStats.ctr.toFixed(1).replace('.', ',')}%` : '—'}
                       </td>
-                      <td className="py-[22px] pl-4 text-right text-[15px] font-semibold tabular-nums text-slate-900">
+                      <td className="py-5.5 pl-4 text-right text-[15px] font-semibold tabular-nums text-slate-900">
                         {formatIsk(spent)}
                       </td>
                     </tr>
