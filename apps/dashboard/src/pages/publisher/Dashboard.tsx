@@ -3,6 +3,9 @@ import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import {
   TRAFFIC_MEASUREMENT_START,
   FILL_MEASUREMENT_START,
+  FLAT_CPM_ISK,
+  DEFAULT_PLATFORM_FEE_PERCENT,
+  MIN_PAYOUT_ISK,
   publisherNetIsk,
   formatNumberIs,
 } from '@ada/shared';
@@ -21,10 +24,10 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { StatCard } from '@/components/ui/StatCard';
 import { Badge } from '@/components/ui/Badge';
 import { usePublishers, usePublisherSlots } from '@/hooks/usePublisher';
 import { useSiteFilter } from '@/hooks/useSiteFilter';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { formatIsk, formatDate } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
@@ -32,7 +35,7 @@ import { ResponsiveContainer, AreaChart, Area, Tooltip as RechartsTooltip } from
 import { Card } from '@/components/ui/Card';
 import { TrafficChain } from '@/components/publisher/TrafficChain';
 import { AnalyticsChart } from '@/components/charts/AnalyticsChart';
-import { EditorialH1 } from '@/components/ui/editorial';
+import { EditorialH1, NumberedSection } from '@/components/ui/editorial';
 
 import SlotCreate from './SlotCreate';
 import SlotList from './SlotList';
@@ -40,6 +43,9 @@ import SlotDetail from './SlotDetail';
 import Earnings from './Earnings';
 import Settings from './Settings';
 import PublisherOnboarding from './Onboarding';
+
+// What the publisher keeps of the flat CPM: 550 kr gross, net of the 20% fee.
+const NET_CPM_ISK = publisherNetIsk(FLAT_CPM_ISK);
 
 interface StatsResponse {
   impressions: number;
@@ -96,6 +102,7 @@ function PublisherHome() {
     timeframe,
   );
   const { siteId, setSiteId } = useSiteFilter();
+  const isMobile = useIsMobile();
   // The unpaid ledger basis, same endpoint the Earnings page reads — the hero
   // payout card must show the number that will actually be paid, not revenue.
   const { data: balance } = useQuery<{ unpaidBasisIsk: number; minPayoutIsk: number }>({
@@ -115,33 +122,55 @@ function PublisherHome() {
   });
   const navigate = useNavigate();
 
-  // Trend deltas for the template-specified Birtingar / Tekjur í mánuðinum
-  // stat cards (dashboard.dc.html's dImp/dRev). Recent-half vs older-half
-  // comparison — the pre-redesign page already ran this exact comparison
-  // inline for the earnings sparkline badge (on raw spendIsk); extended here
-  // to impressions and lifted into a memo so both the hero card and the stat
-  // cards read one number. No new fetch: both sums come from the
-  // already-loaded stats.history.
+  // Recent-half vs older-half trend deltas — EQUAL halves (floor(length/2)
+  // days each, adjacent, oldest day of an odd window dropped): slice(half) put
+  // 3 days against 4 on the 7-day preset, so flat traffic read "+33,3%".
+  // Revenue trends over the whole window; the traffic trend runs over ONLY the
+  // days that measured pageViewsTrue, so the pre-measurement zeros of an old
+  // window can never fake a rocketing trend.
   const pctChanges = useMemo(() => {
-    if (!stats?.history || stats.history.length < 2) {
-      return { impressions: null as number | null, revenue: null as number | null };
-    }
-    // EQUAL halves — floor(length/2) days each, adjacent, with the OLDEST day
-    // of an odd window dropped. slice(half) put 3 days against 4 on the 7-day
-    // preset, so perfectly flat traffic read "+33,3% frá fyrra tímabili" on
-    // every visit.
+    const empty = { revenue: null as number | null, pageViews: null as number | null };
+    if (!stats?.history || stats.history.length < 2) return empty;
     const half = Math.floor(stats.history.length / 2);
-    const older = stats.history.slice(-2 * half, -half);
-    const recent = stats.history.slice(-half);
-    const sum = (rows: typeof stats.history, key: 'impressions' | 'spendIsk') =>
-      rows.reduce((s, h) => s + h[key], 0);
-    const olderImp = sum(older, 'impressions');
-    const recentImp = sum(recent, 'impressions');
-    const olderRev = sum(older, 'spendIsk');
-    const recentRev = sum(recent, 'spendIsk');
+    const sumRev = (rows: typeof stats.history) => rows.reduce((s, h) => s + h.spendIsk, 0);
+    const olderRev = sumRev(stats.history.slice(-2 * half, -half));
+    const recentRev = sumRev(stats.history.slice(-half));
+    const measured = stats.history.filter((h) => h.pageViewsTrue !== undefined);
+    const halfPv = Math.floor(measured.length / 2);
+    const sumPv = (rows: typeof measured) => rows.reduce((s, h) => s + (h.pageViewsTrue ?? 0), 0);
+    const olderPv = halfPv >= 1 ? sumPv(measured.slice(-2 * halfPv, -halfPv)) : 0;
+    const recentPv = halfPv >= 1 ? sumPv(measured.slice(-halfPv)) : 0;
     return {
-      impressions: olderImp > 0 ? ((recentImp - olderImp) / olderImp) * 100 : null,
       revenue: olderRev > 0 ? ((recentRev - olderRev) / olderRev) * 100 : null,
+      pageViews: olderPv > 0 ? ((recentPv - olderPv) / olderPv) * 100 : null,
+    };
+  }, [stats]);
+
+  // "Virði hverra 1.000 lesenda" and its ceiling, paired over EXACTLY the days
+  // that measured pageViewsTrue. stats.spendIsk spans the whole window while
+  // pageViewsTrue spans only the measured part, so dividing those two would
+  // overstate the value — the same class of denominator mismatch
+  // TrafficChainProps documents. history rows carry spendIsk, pageviews
+  // (= ad requests) AND pageViewsTrue per day, so the honest pairing needs no
+  // API change. Null until at least one measured day with traffic exists.
+  const pairedTraffic = useMemo(() => {
+    const rows = (stats?.history ?? []).filter((h) => h.pageViewsTrue !== undefined);
+    const pv = rows.reduce((s, h) => s + (h.pageViewsTrue ?? 0), 0);
+    if (pv === 0) return null;
+    const spend = rows.reduce((s, h) => s + h.spendIsk, 0);
+    const requests = rows.reduce((s, h) => s + h.pageviews, 0);
+    const valuePer1000 = Math.round((publisherNetIsk(spend) / pv) * 1000);
+    // If every one of those requests had sold AND been seen: requests-per-page-
+    // view times the net CPM. What the same traffic would earn fully monetised.
+    const ceilingPer1000 = Math.round((requests / pv) * NET_CPM_ISK);
+    return {
+      pv,
+      valuePer1000,
+      ceilingPer1000,
+      pctOfCeiling:
+        ceilingPer1000 > 0
+          ? Math.min(100, Math.round((valuePer1000 / ceilingPer1000) * 100))
+          : 0,
     };
   }, [stats]);
 
@@ -175,14 +204,6 @@ function PublisherHome() {
     const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     return `${next.getDate()}. ${next.toLocaleDateString('is-IS', { month: 'long' })} ${next.getFullYear()}`;
   }, []);
-
-  const trendDelta = (pct: number | null): { value: string; positive: boolean } | undefined =>
-    pct === null
-      ? undefined
-      : {
-          value: `${pct >= 0 ? '+' : ''}${pct.toFixed(1).replace('.', ',')}% frá fyrra tímabili`,
-          positive: pct >= 0,
-        };
 
   const downloadSlotsCsv = () => {
     if (!slots || slots.length === 0 || !publishers) return;
@@ -274,14 +295,18 @@ function PublisherHome() {
   // pre-redesign page repeated inline in four places.
   const netRevenueIsk = stats ? publisherNetIsk(stats.spendIsk) : 0;
 
-  // "Meðal eCPM" (dashboard.dc.html's third stat card) maps to the
-  // pre-redesign page's own "eCPM" quick-stat: net revenue per 1000
-  // impressions. Same already-computed figure, accurately labeled as
-  // eCPM to reflect the net-of-fee calculation, not the flat platform CPM.
-  const avgCpmLabel =
-    stats && stats.impressions > 0
-      ? formatIsk(Math.round((netRevenueIsk / stats.impressions) * 1000))
-      : formatIsk(0);
+  const measurementStartLabel = formatDate(TRAFFIC_MEASUREMENT_START);
+  const fillMeasurementStartLabel = formatDate(FILL_MEASUREMENT_START);
+  // True when the measured-traffic window is shorter than the selected one —
+  // the normal state until every day of the window postdates 2026-08-09.
+  const trafficWindowIsShorter =
+    stats !== undefined &&
+    stats.requestsWithTrafficData !== undefined &&
+    stats.requestsWithTrafficData < stats.pageviews;
+  const gapLede =
+    stats && stats.pageviews > 0
+      ? `Af ${formatNumberIs(stats.pageviews)} beiðnum urðu ${formatNumberIs(stats.impressions)} að sýnilegri auglýsingu. Hér er hitt — og hjá hverjum það liggur.`
+      : 'Hér sést hvað verður um beiðnir sem enda ekki sem sýnileg auglýsing — og hjá hverjum það liggur.';
 
   return (
     <div className="flex flex-col" style={{ gap: 'clamp(36px,4.5vw,60px)' }}>
@@ -395,517 +420,775 @@ function PublisherHome() {
           ) : null;
         })()}
 
-      {/* ===== EARNINGS + PAYOUT HERO =====
-          Not in the template (dashboard.dc.html only has flat stat cards).
-          Kept — this is the page's most prominent real-money figure — and
-          restyled icon-free and flat (dropped the old chip icons), same
-          treatment the advertiser Dashboard.tsx sibling gave its wallet
-          balance card. The inline Recharts sparkline and its tooltip
-          formatting are untouched. */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:items-stretch">
-        <div className="relative flex min-h-65 flex-col justify-between overflow-hidden rounded-card border border-slate-200 bg-white p-6 md:col-span-2 md:p-8">
-          <div className="relative z-10">
-            <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              {/* Named by the real window. "í þessum mánuði" sat over whatever
-                  the 7/30 toggle selected — a week labelled as the month. */}
-              Áætlaðar tekjur síðustu {timeframe} daga
-            </p>
-            <div className="my-4 text-3xl font-extrabold tracking-[-0.03em] text-primary tabular-nums sm:text-4xl md:text-5xl">
-              {stats ? formatIsk(netRevenueIsk) : formatIsk(0)}
-            </div>
-            {pctChanges.revenue !== null && (
-              <div
-                className={`flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                  pctChanges.revenue >= 0 ? 'bg-green-55 text-green-600' : 'bg-red-55 text-red-600'
-                }`}
-              >
-                {pctChanges.revenue >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                {pctChanges.revenue >= 0 ? '+' : ''}
-                {pctChanges.revenue.toFixed(1).replace('.', ',')}% frá fyrra tímabili
+      {/* ===== NUMBERED SECTIONS (2026-08-20 redesign) =====
+          Five sections per docs/superpowers/specs/2026-08-20-utgefendagogn-
+          templates/publisher-dashboard.dc.html, built with NumberedSection.
+          Traffic leads by the owner's explicit call: the dashboard is meant to
+          build a habit, not just report a payout. The old four-StatCard row is
+          gone — revenue appeared three times on this page, next-payout twice
+          and impressions twice — and "Meðal eCPM" is replaced by the
+          arithmetic itself in section 03. One wrapper div so the page's flex
+          gap applies once; the sections space themselves. */}
+      <div>
+        <NumberedSection
+          n="01"
+          title="Lesendurnir þínir"
+          lede="Umferðin er eignin þín. Hér er hvað hún var á tímabilinu og hvað hver þúsund lesendur eru virði í krónum."
+        >
+          <div className="rounded-card border border-slate-200 bg-white p-6 md:p-8">
+            {stats?.pageViewsTrue !== undefined ? (
+              <>
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+                  <div>
+                    <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                      Síðuflettingar
+                    </p>
+                    <div className="mt-3 text-4xl leading-none font-extrabold tracking-[-0.035em] tabular-nums sm:text-5xl">
+                      {formatNumberIs(stats.pageViewsTrue)}
+                    </div>
+                    {pctChanges.pageViews !== null && (
+                      <div
+                        className={`mt-3 text-[13px] font-semibold ${
+                          pctChanges.pageViews >= 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {pctChanges.pageViews >= 0 ? '↑ +' : '↓ '}
+                        {pctChanges.pageViews.toFixed(1).replace('.', ',')}% frá fyrra tímabili
+                      </div>
+                    )}
+                    {trafficWindowIsShorter && (
+                      <p className="mt-2 mb-0 text-[13px] text-slate-400">
+                        Nákvæm mæling frá {measurementStartLabel}
+                      </p>
+                    )}
+                  </div>
+                  <div className="md:border-l md:border-slate-100 md:pl-8">
+                    <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                      Virði hverra 1.000 lesenda
+                    </p>
+                    <div className="mt-3 text-4xl leading-none font-extrabold tracking-[-0.035em] text-primary tabular-nums">
+                      {pairedTraffic ? formatIsk(pairedTraffic.valuePer1000) : '—'}
+                    </div>
+                    {pairedTraffic && (
+                      <p className="mt-3 mb-0 text-[13px] leading-relaxed text-slate-500">
+                        Þúsund lesendur til viðbótar bæta um{' '}
+                        <strong className="font-semibold text-slate-700">
+                          {formatIsk(pairedTraffic.valuePer1000)}
+                        </strong>{' '}
+                        við tekjurnar eins og staðan er í dag.
+                      </p>
+                    )}
+                  </div>
+                  <div className="md:border-l md:border-slate-100 md:pl-8">
+                    <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                      Þak eins og staðan er
+                    </p>
+                    <div className="mt-3 text-4xl leading-none font-extrabold tracking-[-0.035em] text-slate-400 tabular-nums">
+                      {pairedTraffic ? formatIsk(pairedTraffic.ceilingPer1000) : '—'}
+                    </div>
+                    {pairedTraffic && (
+                      <>
+                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-2 rounded-full bg-primary"
+                            style={{ width: `${pairedTraffic.pctOfCeiling}%` }}
+                          />
+                        </div>
+                        <p className="mt-3 mb-0 text-[13px] leading-relaxed text-slate-500">
+                          Ef hver einasta beiðni seldist og sæist. Þú ert í{' '}
+                          <strong className="font-semibold text-slate-700">
+                            {pairedTraffic.pctOfCeiling}%
+                          </strong>{' '}
+                          af því — bilið er kafli 04.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {stats.history.length > 0 && (
+                  <div className="mt-6 border-t border-slate-100 pt-5">
+                    <div className="h-20">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={stats.history}
+                          margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="trafficGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#1e3a8a" stopOpacity={0.12} />
+                              <stop offset="100%" stopColor="#1e3a8a" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          {/* connectNulls={false}: days before measurement began
+                              carry NO pageViewsTrue — the gap is the honest
+                              rendering, a zero would be a lie. */}
+                          <Area
+                            type="monotone"
+                            dataKey="pageViewsTrue"
+                            connectNulls={false}
+                            stroke="#1e3a8a"
+                            strokeWidth={2}
+                            fillOpacity={1}
+                            fill="url(#trafficGradient)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <p className="mt-3 mb-0 text-[13px] text-slate-500">
+                      Daglegar síðuflettingar yfir tímabilið
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Síðuflettingar
+                </p>
+                <div className="mt-3 text-4xl leading-none font-extrabold text-slate-300">—</div>
+                <p className="mt-3 mb-0 text-sm text-slate-500">
+                  Nákvæm mæling hófst {measurementStartLabel}. Virði lesenda birtist þegar fyrstu
+                  dagarnir hafa mælst.
+                </p>
               </div>
             )}
           </div>
-          {/* Interactive Recharts sparkline — untouched from pre-redesign. */}
-          <div className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={stats?.history || []}
-                margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey={(h: any) => publisherNetIsk(h.spendIsk)}
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#earningsGradient)"
-                />
-                <RechartsTooltip
-                  cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 1 }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const val = payload[0]!.value as number;
-                      const label = payload[0]!.payload.date;
-                      let formattedDate = label;
-                      try {
-                        const parsed = new Date(label);
-                        if (!isNaN(parsed.getTime())) {
-                          formattedDate = parsed.toLocaleDateString('is-IS', {
-                            day: '2-digit',
-                            month: 'short',
-                          });
-                        }
-                      } catch {
-                        /* keep the raw date string when parsing fails */
-                      }
-                      return (
-                        <div className="bg-slate-950/95 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xl border border-slate-800">
-                          <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
-                          <p className="text-xs font-bold text-sky-400">{formatIsk(val)}</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        </NumberedSection>
 
-        <div className="flex min-h-65 flex-col justify-between rounded-card bg-tertiary p-6 text-on-tertiary md:col-span-1 md:p-8">
-          <div>
-            <p className="mb-1 text-xs font-semibold tracking-wider text-white/70 uppercase">
-              {/* The real unpaid ledger basis — the same number the Earnings
-                  page reports — NOT the rolling-window revenue this card used
-                  to show under the same heading. A new publisher with 4.000 kr
-                  saw "Næsta útgreiðsla: 4.000 kr" here and "Beðið eftir
-                  útgreiðslu: 0 kr" one click away; the figure that promised
-                  money was the wrong one. */}
-              Uppsafnað til útgreiðslu
-            </p>
-            <div className="text-2xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-3xl">
-              {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
+        <NumberedSection
+          n="02"
+          title="Tekjurnar þínar"
+          lede="Ein tala fyrir það sem þú þénaðir á tímabilinu og ein fyrir það sem bíður útgreiðslu. Þær eru ekki sami hluturinn."
+        >
+        {/* Hero pair kept verbatim from the pre-restructure page (queries,
+            sparkline and tooltip untouched) — only its position moved, into
+            section 02. */}
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:items-stretch">
+          <div className="relative flex min-h-65 flex-col justify-between overflow-hidden rounded-card border border-slate-200 bg-white p-6 md:col-span-2 md:p-8">
+            <div className="relative z-10">
+              <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                {/* Named by the real window. "í þessum mánuði" sat over whatever
+                    the 7/30 toggle selected — a week labelled as the month. */}
+                Áætlaðar tekjur síðustu {timeframe} daga
+              </p>
+              <div className="my-4 text-3xl font-extrabold tracking-[-0.03em] text-primary tabular-nums sm:text-4xl md:text-5xl">
+                {stats ? formatIsk(netRevenueIsk) : formatIsk(0)}
+              </div>
+              {pctChanges.revenue !== null && (
+                <div
+                  className={`flex w-fit items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    pctChanges.revenue >= 0 ? 'bg-green-55 text-green-600' : 'bg-red-55 text-red-600'
+                  }`}
+                >
+                  {pctChanges.revenue >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  {pctChanges.revenue >= 0 ? '+' : ''}
+                  {pctChanges.revenue.toFixed(1).replace('.', ',')}% frá fyrra tímabili
+                </div>
+              )}
             </div>
-            <p className="mt-1 text-[10px] font-medium text-white/50">
-              {/* The server's own minimum, same as Earnings — the shared
-                  constant would silently disagree if the API's ever moved. */}
-              {balance &&
-              balance.unpaidBasisIsk > 0 &&
-              balance.unpaidBasisIsk < balance.minPayoutIsk
-                ? `Greitt út þegar ${formatIsk(balance.minPayoutIsk)} lágmarki er náð`
-                : `Næsta útgreiðsla áætluð ${nextPayoutDateLabel}`}
-            </p>
+            {/* Interactive Recharts sparkline — untouched from pre-redesign. */}
+            <div className="absolute inset-x-0 bottom-0 z-0 h-24 opacity-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={stats?.history || []}
+                  margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="earningsGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <Area
+                    type="monotone"
+                    dataKey={(h: any) => publisherNetIsk(h.spendIsk)}
+                    stroke="#2563eb"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#earningsGradient)"
+                  />
+                  <RechartsTooltip
+                    cursor={{ stroke: 'rgba(37, 99, 235, 0.1)', strokeWidth: 1 }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const val = payload[0]!.value as number;
+                        const label = payload[0]!.payload.date;
+                        let formattedDate = label;
+                        try {
+                          const parsed = new Date(label);
+                          if (!isNaN(parsed.getTime())) {
+                            formattedDate = parsed.toLocaleDateString('is-IS', {
+                              day: '2-digit',
+                              month: 'short',
+                            });
+                          }
+                        } catch {
+                          /* keep the raw date string when parsing fails */
+                        }
+                        return (
+                          <div className="bg-slate-950/95 backdrop-blur text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xl border border-slate-800">
+                            <p className="text-slate-400 font-medium mb-0.5">{formattedDate}</p>
+                            <p className="text-xs font-bold text-sky-400">{formatIsk(val)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <Button
-            onClick={() => navigate('/publisher/earnings')}
-            className="mt-4 w-full justify-center border-none bg-white/10 py-2 text-xs font-bold text-white shrink-0 hover:bg-white/20"
-          >
-            Skoða færslur
-          </Button>
-        </div>
-      </div>
 
-      {/* ===== STAT CARDS =====
-          Birtingar / Tekjur í mánuðinum / Meðal CPM / Næsta útgreiðsla —
-          labels, order and card shape copied verbatim from
-          publisher-dashboard.dc.html's StatCard row. */}
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
-        <StatCard
-          label="Birtingar"
-          value={stats ? formatNumberIs(stats.impressions) : '0'}
-          delta={trendDelta(pctChanges.impressions)}
-        />
-        <StatCard
-          label={`Tekjur síðustu ${timeframe} daga`}
-          value={formatIsk(netRevenueIsk)}
-          delta={trendDelta(pctChanges.revenue)}
-        />
-        <StatCard label="Meðal eCPM" value={avgCpmLabel} />
-        <StatCard label="Næsta útgreiðsla" value={`Áætlað ${nextPayoutDateLabel}`} />
-      </div>
-
-      {/* ===== TRAFFIC CHAIN =====
-          Replaces the old Vefumferð / Smellir / CTR / Fyllihlutfall row. Those
-          four cards drew on three different counters and could not be
-          reconciled with one another: a site with three slots per page saw
-          "Vefumferð 1.000" beside "Birtingar 2.400", and a fill rate whose
-          denominator appeared nowhere on the page. See TrafficChain for the
-          reasoning and for why the two gaps are kept apart. */}
-      <TrafficChain
-        pageViewsTrue={stats?.pageViewsTrue}
-        requests={stats?.pageviews ?? 0}
-        unfilled={stats?.unfilled}
-        requestsWithFillData={stats?.requestsWithFillData}
-        impressionsWithFillData={stats?.impressionsWithFillData}
-        requestsWithTrafficData={stats?.requestsWithTrafficData}
-        impressions={stats?.impressions ?? 0}
-        measurementStartLabel={formatDate(TRAFFIC_MEASUREMENT_START)}
-        fillMeasurementStartLabel={formatDate(FILL_MEASUREMENT_START)}
-      />
-
-      {/* Engagement sits apart from the chain above: clicks and CTR describe how
-          the ADVERTS performed, not how much of the publisher's traffic was
-          monetised, and mixing the two is what made the old row unreadable. */}
-      <div className="grid grid-cols-2 gap-5 sm:max-w-md">
-        <StatCard label="Smellir" value={stats ? formatNumberIs(stats.clicks) : '0'} />
-        <StatCard
-          label="Smellihlutfall"
-          value={
-            stats && stats.impressions > 0
-              ? `${Math.min(100, (stats.clicks / stats.impressions) * 100)
-                  .toFixed(2)
-                  .replace('.', ',')}%`
-              : '0,00%'
-          }
-        />
-      </div>
-
-      {/* ===== PER-SITE OVERVIEW =====
-          Not in the template — added so a multi-site publisher can see which
-          site drives their numbers before narrowing with the SiteSwitcher.
-          Only shown unfiltered (siteId === null) and for owners with more
-          than one site; a single-site owner never has bySite on the response
-          at all (see the /v1/publishers/stats contract), so this section is
-          simply absent for them — zero UI change. Table classes mirror the
-          advertiser CampaignDetail.tsx "Frammistaða eftir birtingavettvangi"
-          table (text-xs font-medium border-collapse, slate-400 uppercase
-          header row) for visual consistency across the two apps. Clicking a
-          row narrows the SiteSwitcher-backed filter via setSiteId, same
-          affordance as picking the site from the dropdown. */}
-      {!siteId && stats?.bySite && stats.bySite.length > 1 && (
-        <Card>
-          <div className="mb-4 flex items-baseline justify-between">
-            <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Yfirlit eftir vefjum</h2>
-            <span className="text-xs text-slate-400 font-medium">
-              Smelltu á línu til að sía mælaborðið
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-medium border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
-                  <th className="py-2.5">Vefur</th>
-                  <th className="py-2.5 text-right">Síðuflettingar</th>
-                  <th className="py-2.5 text-right">Beiðnir</th>
-                  <th className="py-2.5 text-right">Fylltar</th>
-                  <th className="py-2.5 text-right">Birtingar</th>
-                  <th className="py-2.5 text-right">Smellir (CTR)</th>
-                  <th className="py-2.5 text-right">Tekjur</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {stats.bySite.map((site) => {
-                  const netSiteEarnings = publisherNetIsk(site.spendIsk);
-                  // Fill is filled/requests, NOT impressions/requests: impressions
-                  // are viewability-gated, so the old ratio quietly blended "no
-                  // advertiser" with "never scrolled into view". Null when the
-                  // split has not been measured for this window — a dash says
-                  // "not measured", where 0% would claim we looked and found none.
-                  // Denominator from the days that measured `unfilled`, never
-                  // the site's whole-window request count — see the comment on
-                  // TrafficChainProps for what that mismatch produced.
-                  const fillDenominator = site.requestsWithFillData;
-                  const fillRate =
-                    site.unfilled !== undefined &&
-                    fillDenominator !== undefined &&
-                    fillDenominator > 0
-                      ? Math.round(((fillDenominator - site.unfilled) / fillDenominator) * 100)
-                      : null;
-                  // Stops at 100. The impression pixel only fires once the ad
-                  // has been at least half visible for a continuous second
-                  // (IAB), while the ad is clickable from the moment it
-                  // renders — so an ad that never clears that threshold, half
-                  // below the fold or scrolled straight past, can still be
-                  // clicked with no impression behind it. Tracking protection
-                  // does the same, blocking the pixel image but not the link.
-                  // Over a small per-site sample that reads as CTR above 100%,
-                  // which looks like a broken dashboard even though both
-                  // figures are real.
-                  const siteCtr =
-                    site.impressions > 0
-                      ? Math.min(100, (site.clicks / site.impressions) * 100)
-                          .toFixed(2)
-                          .replace('.', ',')
-                      : '0,00';
-                  // formatIsk(0), not a '0 kr.' literal like elsewhere on this
-                  // page: formatIsk emits "0 kr" with no trailing period, so a
-                  // site with no impressions showed "0 kr" revenue next to
-                  // "0 kr. eCPM" in the very same cell.
-                  const siteEcpm =
-                    site.impressions > 0
-                      ? formatIsk(Math.round((netSiteEarnings / site.impressions) * 1000))
-                      : formatIsk(0);
-
-                  return (
-                    <tr
-                      key={site.publisherId}
-                      onClick={() => setSiteId(site.publisherId)}
-                      className="hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <td className="py-3">
-                        <div className="font-semibold text-slate-900">{site.displayName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {site.pageViewsTrue !== undefined
-                          ? formatNumberIs(site.pageViewsTrue)
-                          : '—'}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumberIs(site.pageviews)}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {fillRate === null ? (
-                          <span className="text-slate-400">—</span>
-                        ) : (
-                          <span
-                            className={`inline-block font-semibold ${
-                              fillRate >= 70
-                                ? 'text-emerald-600'
-                                : fillRate >= 30
-                                  ? 'text-amber-600'
-                                  : 'text-slate-500'
-                            }`}
-                          >
-                            {fillRate}%
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        {formatNumberIs(site.impressions)}
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        <span>{formatNumberIs(site.clicks)}</span>{' '}
-                        <span className="text-[11px] text-slate-400">({siteCtr}%)</span>
-                      </td>
-                      <td className="py-3 text-right tabular-nums">
-                        <div className="font-bold text-slate-900">{formatIsk(netSiteEarnings)}</div>
-                        <div className="text-[10px] text-slate-400">{siteEcpm} eCPM</div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {/* ===== CHART =====
-          Card title/subtitle copied verbatim from publisher-dashboard.dc.html;
-          AnalyticsChart stays wired with mode="publisher" on the real
-          stats.history. Kept the pre-redesign guard that hides the whole
-          card when there's no history yet. */}
-      {stats && stats.history && stats.history.length > 0 && (
-        <Card>
-          <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="flex min-h-65 flex-col justify-between rounded-card bg-tertiary p-6 text-on-tertiary md:col-span-1 md:p-8">
             <div>
-              <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Frammistaða</h2>
-              <p className="m-0 mt-1.5 text-sm text-slate-500">
-                {siteId
-                  ? 'Birtingar og tekjur yfir tímabilið'
-                  : 'Birtingar og tekjur af öllum vefjum yfir tímabilið'}
+              <p className="mb-1 text-xs font-semibold tracking-wider text-white/70 uppercase">
+                {/* The real unpaid ledger basis — the same number the Earnings
+                    page reports — NOT the rolling-window revenue this card used
+                    to show under the same heading. A new publisher with 4.000 kr
+                    saw "Næsta útgreiðsla: 4.000 kr" here and "Beðið eftir
+                    útgreiðslu: 0 kr" one click away; the figure that promised
+                    money was the wrong one. */}
+                Uppsafnað til útgreiðslu
+              </p>
+              <div className="text-2xl font-extrabold tracking-[-0.03em] text-white tabular-nums sm:text-3xl">
+                {balance ? formatIsk(balance.unpaidBasisIsk) : '—'}
+              </div>
+              <p className="mt-1 text-[10px] font-medium text-white/50">
+                {/* The server's own minimum, same as Earnings — the shared
+                    constant would silently disagree if the API's ever moved. */}
+                {balance &&
+                balance.unpaidBasisIsk > 0 &&
+                balance.unpaidBasisIsk < balance.minPayoutIsk
+                  ? `Greitt út þegar ${formatIsk(balance.minPayoutIsk)} lágmarki er náð`
+                  : `Næsta útgreiðsla áætluð ${nextPayoutDateLabel}`}
               </p>
             </div>
-          </div>
-          <div style={{ height: 320, width: '100%' }}>
-            <AnalyticsChart data={stats.history} mode="publisher" />
-          </div>
-        </Card>
-      )}
-
-      {/* ===== AD SLOTS TABLE =====
-          Not in the template — publisher-dashboard.dc.html shows a coarser
-          per-site table (Vefur / Staða / Birtingar / Tekjur). Kept as the
-          richer per-slot table the pre-redesign page had (name, sizes,
-          status, impressions, clicks, CTR, revenue, grouped by publisher
-          domain) since that's strictly more information, not less; restyled
-          to the hairline-divider / tabular-nums table convention from the
-          advertiser CampaignList.tsx sibling, with Badge for status instead
-          of a custom dot. The filter button has no handler in either version
-          (kept inert exactly as before); CSV export and row-click navigation
-          are preserved handlers. */}
-      <section>
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="m-0 text-[22px] font-extrabold tracking-[-0.02em]">
-            Virkar auglýsingastöður
-          </h2>
-          <div className="flex gap-2">
-            <button
-              onClick={downloadSlotsCsv}
-              className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50"
-              title="Sækja CSV skýrslu"
+            <Button
+              onClick={() => navigate('/publisher/earnings')}
+              className="mt-4 w-full justify-center border-none bg-white/10 py-2 text-xs font-bold text-white shrink-0 hover:bg-white/20"
             >
-              <Download size={18} />
-            </button>
+              Skoða færslur
+            </Button>
           </div>
         </div>
+          <p className="mt-4 mb-0 max-w-[80ch] text-[13px] text-slate-500">
+            Tekjur tímabilsins bætast jafnóðum við uppsöfnuðu stöðuna. Greitt er út 1. hvers
+            mánaðar, að því gefnu að staðan nái{' '}
+            {formatIsk(balance?.minPayoutIsk ?? MIN_PAYOUT_ISK)} — annars flyst hún yfir á næsta
+            mánuð.
+          </p>
+        </NumberedSection>
 
-        {!slots || slots.length === 0 ? (
-          <div className="rounded-card border border-slate-200 bg-white p-8">
-            <EmptyState
-              icon={<Globe size={40} />}
-              title="Engin auglýsingapláss"
-              description="Búðu til þitt fyrsta pláss, fáðu HTML kóðann og settu hann á vefinn þinn til að byrja að græða."
-              action={
-                <Button onClick={() => navigate('/publisher/slots/new')}>
-                  Stofna auglýsingapláss
-                </Button>
-              }
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-card border border-slate-200 bg-white">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Heiti pláss
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Stærð
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Staða
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Birtingar
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Smellir
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    CTR
-                  </th>
-                  <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
-                    Tekjur
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {publishers
-                  .filter((p) => !siteId || p.id === siteId)
-                  .map((pub) => {
-                    const pubSlots =
-                      (slots as any[])?.filter((s: any) => s.publisherId === pub.id) || [];
-                    if (pubSlots.length === 0) {
-                      return (
-                        <tr
-                          key={pub.id}
-                          className="border-b border-surface-container bg-slate-50/50"
-                        >
-                          <td
-                            colSpan={7}
-                            className="px-5 py-4 text-xs font-semibold text-slate-400"
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              <Globe size={14} />
-                              {pub.domain} — Engin auglýsingapláss skráð.
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    }
+        <NumberedSection
+          n="03"
+          title="Hvaðan tekjurnar koma"
+          lede="Leiðin frá lesanda á síðunni þinni að krónu í vasann. Hvert skref leiðir af því á undan, svo hlutföllin má sannreyna á tölunum sjálfum."
+        >
+        <TrafficChain
+          pageViewsTrue={stats?.pageViewsTrue}
+          requests={stats?.pageviews ?? 0}
+          unfilled={stats?.unfilled}
+          requestsWithFillData={stats?.requestsWithFillData}
+          impressionsWithFillData={stats?.impressionsWithFillData}
+          requestsWithTrafficData={stats?.requestsWithTrafficData}
+          impressions={stats?.impressions ?? 0}
+          measurementStartLabel={measurementStartLabel}
+          fillMeasurementStartLabel={fillMeasurementStartLabel}
+          footer={
+            stats && (
+              <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
+                {/* The business arithmetic, in place of the old "Meðal eCPM"
+                    jargon card: the chain's final figure times the net CPM is
+                    the revenue figure of section 02. ≈ because per-publisher
+                    gross rounding (services/accrual.ts) can drift a few krónur
+                    from the flat multiplication. Both constants come from
+                    @ada/shared — never hardcoded. */}
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[15px] text-slate-600">
+                  <span className="font-semibold text-slate-900 tabular-nums">
+                    {formatNumberIs(stats.impressions)} birtingar
+                  </span>
+                  <span className="text-slate-400">×</span>
+                  <span className="tabular-nums">
+                    <strong className="font-semibold text-slate-900">{formatIsk(NET_CPM_ISK)}</strong>{' '}
+                    á hverjar 1.000
+                  </span>
+                  <span className="text-slate-400">≈</span>
+                  <span className="font-bold text-primary tabular-nums">
+                    {formatIsk(netRevenueIsk)}
+                  </span>
+                </div>
+                <p className="m-0 text-[13px] text-slate-500">
+                  Auglýsandinn greiðir fast verð, {formatIsk(FLAT_CPM_ISK)} fyrir hverjar 1.000
+                  birtingar. Þú færð {100 - DEFAULT_PLATFORM_FEE_PERCENT}% af því.
+                </p>
+                {/* Clicks demoted from their own stat cards to one sentence: they
+                    describe how the ADVERTS performed, not how much traffic was
+                    monetised — and nothing on the old page said the part that
+                    matters to a publisher: clicks do not change their revenue.
+                    CTR clamped at 100 like every other surface (a click can
+                    outrun its viewability-gated impression). */}
+                <p className="m-0 border-t border-slate-100 pt-3 text-[13px] text-slate-500">
+                  Smellt var á{' '}
+                  <strong className="font-semibold text-slate-700 tabular-nums">
+                    {formatNumberIs(stats.clicks)}
+                  </strong>{' '}
+                  af þessum birtingum (
+                  {stats.impressions > 0
+                    ? Math.min(100, (stats.clicks / stats.impressions) * 100)
+                        .toFixed(2)
+                        .replace('.', ',')
+                    : '0,00'}
+                  %). Smellir hafa ekki áhrif á tekjur þínar — greitt er fyrir birtingar, ekki
+                  smelli.
+                </p>
+              </div>
+            )
+          }
+        />
+        </NumberedSection>
 
-                    return (
-                      <Fragment key={pub.id}>
-                        <tr className="select-none border-y border-outline-variant bg-slate-50/80">
-                          <td
-                            colSpan={7}
-                            className="px-5 py-3 text-xs font-extrabold tracking-wide text-slate-800"
-                          >
-                            <span className="flex items-center gap-1.5 uppercase">
-                              <Globe size={14} className="text-slate-500" />
-                              {pub.displayName} ({pub.domain})
-                            </span>
-                          </td>
-                        </tr>
-                        {pubSlots.map((s: any) => (
+        <NumberedSection n="04" title="Það sem vantar upp á" lede={gapLede}>
+          {stats &&
+          stats.unfilled !== undefined &&
+          stats.requestsWithFillData !== undefined &&
+          stats.impressionsWithFillData !== undefined ? (
+            (() => {
+              const filled = Math.max(0, stats.requestsWithFillData - stats.unfilled);
+              const unseen = Math.max(0, filled - stats.impressionsWithFillData);
+              const unseenValueIsk = publisherNetIsk(Math.round((unseen / 1000) * FLAT_CPM_ISK));
+              // The per-1.000-síðuflettingar cost lines mix the fill window with
+              // the traffic window, so they render ONLY when the whole selected
+              // window is measured on both counters — otherwise omitted rather
+              // than computed across mismatched periods.
+              const fullyMeasured =
+                pairedTraffic !== null &&
+                stats.requestsWithFillData === stats.pageviews &&
+                stats.requestsWithTrafficData === stats.pageviews;
+              const per1000 = (count: number) =>
+                Math.round(
+                  (publisherNetIsk(Math.round((count / 1000) * FLAT_CPM_ISK)) /
+                    pairedTraffic!.pv) *
+                    1000,
+                );
+              return (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="flex flex-col gap-3 rounded-card border border-slate-200 bg-white p-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-3xl font-bold tracking-tight tabular-nums">
+                        {formatNumberIs(stats.unfilled ?? 0)}
+                      </div>
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-primary">
+                        Okkar mál
+                      </span>
+                    </div>
+                    <div className="text-[15px] font-semibold text-slate-900">
+                      beiðnir seldust ekki
+                    </div>
+                    <p className="m-0 text-[13px] leading-relaxed text-slate-500">
+                      Enginn auglýsandi var með virka herferð í þínum efnisflokkum þá stundina. Þú
+                      getur ekkert gert við þessu — það er okkar að laga, ekki þitt.
+                    </p>
+                    {fullyMeasured && (
+                      <div className="border-t border-slate-100 pt-3 text-[13px] text-slate-500">
+                        Kostar þig{' '}
+                        <strong className="font-semibold text-slate-700 tabular-nums">
+                          {formatIsk(per1000(stats.unfilled ?? 0))}
+                        </strong>{' '}
+                        á hverjar 1.000 síðuflettingar
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-3 rounded-card border border-slate-200 bg-white p-6">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-3xl font-bold tracking-tight tabular-nums">
+                        {formatNumberIs(unseen)}
+                      </div>
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                        Þitt mál
+                      </span>
+                    </div>
+                    <div className="text-[15px] font-semibold text-slate-900">
+                      auglýsingar sáust aldrei
+                    </div>
+                    <p className="m-0 text-[13px] leading-relaxed text-slate-500">
+                      Auglýsingin hlóðst en lesandinn skrollaði aldrei niður að henni. Að færa
+                      plássið ofar á síðuna er beinasta leiðin til að hækka tekjurnar — það eru{' '}
+                      <strong className="font-semibold text-slate-700 tabular-nums">
+                        {formatIsk(unseenValueIsk)}
+                      </strong>{' '}
+                      á tímabilinu.
+                    </p>
+                    {fullyMeasured && (
+                      <div className="border-t border-slate-100 pt-3 text-[13px] text-slate-500">
+                        Kostar þig{' '}
+                        <strong className="font-semibold text-slate-700 tabular-nums">
+                          {formatIsk(per1000(unseen))}
+                        </strong>{' '}
+                        á hverjar 1.000 síðuflettingar
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            <p className="m-0 text-sm text-slate-500">
+              Skiptingin í fylltar og ófylltar beiðnir mælist frá {fillMeasurementStartLabel}.
+              Þegar fyrstu dagarnir hafa mælst sést hér hvort það sem upp á vantar stafi af því að
+              engin herferð passaði eða af því að plássið sást ekki.
+            </p>
+          )}
+        </NumberedSection>
+
+        <NumberedSection
+          n="05"
+          title="Sundurliðun"
+          lede="Sömu tölur, brotnar niður eftir vef, degi og plássi."
+        >
+          <div className="flex flex-col gap-5">
+          {!siteId && stats?.bySite && stats.bySite.length > 1 && (
+            <Card>
+              <div className="mb-4 flex items-baseline justify-between">
+                <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Yfirlit eftir vefjum</h2>
+                <span className="text-xs text-slate-400 font-medium">
+                  Smelltu á línu til að sía mælaborðið
+                </span>
+              </div>
+              {/* Same rows as the table, as stacked cards on phones — a
+                  seven-column table at phone width is unreadable, and
+                  publishers check earnings on phones. Same computations, same
+                  click-to-filter affordance. useIsMobile rather than hidden/
+                  md:block so the rows exist once in the DOM. */}
+              {isMobile ? (
+                <div className="flex flex-col gap-3">
+                {stats.bySite.map((site) => {
+                  const netSiteEarnings = publisherNetIsk(site.spendIsk);
+                  const siteFilled =
+                    site.unfilled !== undefined && site.requestsWithFillData !== undefined
+                      ? Math.max(0, site.requestsWithFillData - site.unfilled)
+                      : null;
+                  return (
+                    <button
+                      key={site.publisherId}
+                      type="button"
+                      onClick={() => setSiteId(site.publisherId)}
+                      className="cursor-pointer rounded-card border border-slate-200 bg-white p-4 text-left"
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <div>
+                          <div className="text-[15px] font-bold text-slate-900">{site.displayName}</div>
+                          <div className="font-mono text-[11px] text-slate-400">{site.domain}</div>
+                        </div>
+                        <div className="text-[17px] font-bold text-slate-900 tabular-nums">
+                          {formatIsk(netSiteEarnings)}
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3">
+                        <div>
+                          <div className="text-[10px] font-bold tracking-wide text-slate-400 uppercase">
+                            Beiðnir
+                          </div>
+                          <div className="text-sm font-semibold tabular-nums">
+                            {formatNumberIs(site.pageviews)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold tracking-wide text-slate-400 uppercase">
+                            Fylltar
+                          </div>
+                          <div className="text-sm font-semibold tabular-nums">
+                            {siteFilled === null ? '—' : formatNumberIs(siteFilled)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold tracking-wide text-slate-400 uppercase">
+                            Birtingar
+                          </div>
+                          <div className="text-sm font-semibold tabular-nums">
+                            {formatNumberIs(site.impressions)}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-medium border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase tracking-wider">
+                        <th className="py-2.5">Vefur</th>
+                        <th className="py-2.5 text-right">Síðuflettingar</th>
+                        <th className="py-2.5 text-right">Auglýsingabeiðnir</th>
+                        <th className="py-2.5 text-right">Fylltar</th>
+                        <th className="py-2.5 text-right">Birtingar</th>
+                        <th className="py-2.5 text-right">Smellir (CTR)</th>
+                        <th className="py-2.5 text-right">Tekjur</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {stats.bySite.map((site) => {
+                        const netSiteEarnings = publisherNetIsk(site.spendIsk);
+                        // Fill is filled/requests, NOT impressions/requests: impressions
+                        // are viewability-gated, so the old ratio quietly blended "no
+                        // advertiser" with "never scrolled into view". Null when the
+                        // split has not been measured for this window — a dash says
+                        // "not measured", where 0% would claim we looked and found none.
+                        // Denominator from the days that measured `unfilled`, never
+                        // the site's whole-window request count — see the comment on
+                        // TrafficChainProps for what that mismatch produced.
+                        const fillDenominator = site.requestsWithFillData;
+                        const siteFilled =
+                          site.unfilled !== undefined && fillDenominator !== undefined
+                            ? Math.max(0, fillDenominator - site.unfilled)
+                            : null;
+                        const fillRate =
+                          siteFilled !== null && fillDenominator! > 0
+                            ? Math.round((siteFilled / fillDenominator!) * 100)
+                            : null;
+
+                        return (
                           <tr
-                            key={s.id}
-                            className="cursor-pointer border-b border-surface-container transition-colors hover:bg-slate-50"
-                            onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                            key={site.publisherId}
+                            onClick={() => setSiteId(site.publisherId)}
+                            className="hover:bg-slate-50 cursor-pointer transition-colors"
                           >
-                            <td className="px-5 py-5.5 align-middle">
-                              <div className="flex min-w-0 flex-col">
-                                <span className="max-w-50 truncate text-[15px] font-semibold text-slate-900">
-                                  {s.name}
-                                </span>
-                                <span className="max-w-50 truncate text-[13px] text-slate-500">
-                                  {pub.domain}
-                                  {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
-                                    ? s.placement.pageMatcher
-                                    : ''}
-                                </span>
-                              </div>
+                            <td className="py-3">
+                              <div className="font-semibold text-slate-900">{site.displayName}</div>
+                              <div className="text-[10px] text-slate-400 font-mono">{site.domain}</div>
                             </td>
-                            <td className="px-5 py-5.5 align-middle">
-                              <span className="whitespace-nowrap rounded-md bg-surface-container px-3 py-1 text-xs font-semibold text-slate-600">
-                                {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
-                              </span>
+                            <td className="py-3 text-right tabular-nums">
+                              {site.pageViewsTrue !== undefined
+                                ? formatNumberIs(site.pageViewsTrue)
+                                : '—'}
                             </td>
-                            <td className="px-5 py-5.5 align-middle">
-                              <div className="flex flex-col gap-1">
-                                <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>
-                                  {s.status === 'active' ? 'Virk' : 'Óvirk'}
-                                </Badge>
-                                {s.status === 'active' && (!s.stats || s.stats.pageviews === 0) && (
-                                  <span className="inline-flex w-fit items-center gap-1 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
-                                    <AlertTriangle size={12} />
-                                    Engin virkni greind
+                            <td className="py-3 text-right tabular-nums">
+                              {formatNumberIs(site.pageviews)}
+                            </td>
+                              <td className="py-3 text-right tabular-nums">
+                                {fillRate === null ? (
+                                  <span className="text-slate-400">—</span>
+                                ) : (
+                                  <span className="font-semibold text-slate-900">
+                                    {formatNumberIs(siteFilled!)}{' '}
+                                    <span className="text-[11px] font-medium text-slate-400">({fillRate}%)</span>
                                   </span>
                                 )}
-                              </div>
+                              </td>
+                            <td className="py-3 text-right tabular-nums">
+                              {formatNumberIs(site.impressions)}
                             </td>
-                            <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
-                              {s.stats ? formatNumberIs(s.stats.impressions) : '0'}
+                            <td className="py-3 text-right tabular-nums">
+                              {formatNumberIs(site.clicks)}
                             </td>
-                            <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
-                              {s.stats ? formatNumberIs(s.stats.clicks) : '0'}
-                            </td>
-                            <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
-                              {s.stats && s.stats.impressions > 0
-                                ? `${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
-                                    .toFixed(2)
-                                    .replace('.', ',')}%`
-                                : '0,00%'}
-                            </td>
-                            <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
-                              {s.stats
-                                ? formatIsk(publisherNetIsk(s.stats.spendIsk))
-                                : formatIsk(0)}
-                              <span className="block text-[10px] font-medium text-slate-500">
-                                {s.pricing.mode === 'cpm'
-                                  ? `${formatIsk(s.pricing.cpmIsk)} CPM`
-                                  : `${formatIsk(s.pricing.slotPriceIsk)} / ${s.pricing.slotPeriodDays}d`}
-                              </span>
+                            <td className="py-3 text-right tabular-nums">
+                              <div className="font-bold text-slate-900">{formatIsk(netSiteEarnings)}</div>
                             </td>
                           </tr>
-                        ))}
-                      </Fragment>
-                    );
-                  })}
-              </tbody>
-            </table>
-            <div className="flex justify-center border-t border-outline-variant bg-surface-container-low px-5 py-4">
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          )}
+          {stats && stats.history && stats.history.length > 0 && (
+            <Card>
+              <div className="mb-6 flex items-end justify-between gap-4">
+                <div>
+                  <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">Frammistaða</h2>
+                  <p className="m-0 mt-1.5 text-sm text-slate-500">
+                    {siteId
+                      ? 'Birtingar og tekjur yfir tímabilið'
+                      : 'Birtingar og tekjur af öllum vefjum yfir tímabilið'}
+                  </p>
+                </div>
+              </div>
+              <div style={{ height: 320, width: '100%' }}>
+                <AnalyticsChart data={stats.history} mode="publisher" />
+              </div>
+            </Card>
+          )}
+            <div>
+          <div className="mb-2 flex flex-wrap items-end justify-between gap-4">
+            <h2 className="m-0 text-[19px] font-bold tracking-[-0.015em]">
+              Virkar auglýsingastöður
+            </h2>
+            <div className="flex gap-2">
               <button
-                onClick={() => navigate('/publisher/slots')}
-                className="inline-flex cursor-pointer items-center gap-1 border-none bg-transparent text-sm font-bold text-primary hover:underline"
+                onClick={downloadSlotsCsv}
+                className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50"
+                title="Sækja CSV skýrslu"
               >
-                Sjá öll auglýsingapláss
-                <ChevronRight size={16} />
+                <Download size={18} />
               </button>
             </div>
           </div>
-        )}
-      </section>
+
+          {!slots || slots.length === 0 ? (
+            <div className="rounded-card border border-slate-200 bg-white p-8">
+              <EmptyState
+                icon={<Globe size={40} />}
+                title="Engin auglýsingapláss"
+                description="Búðu til þitt fyrsta pláss, fáðu HTML kóðann og settu hann á vefinn þinn til að byrja að græða."
+                action={
+                  <Button onClick={() => navigate('/publisher/slots/new')}>
+                    Stofna auglýsingapláss
+                  </Button>
+                }
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-card border border-slate-200 bg-white">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Heiti pláss
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Stærð
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Staða
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Birtingar
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Smellir
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      CTR
+                    </th>
+                    <th className="border-b border-outline-variant px-5 py-3.5 text-right text-xs font-semibold tracking-[0.08em] text-slate-500 uppercase">
+                      Tekjur
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {publishers
+                    .filter((p) => !siteId || p.id === siteId)
+                    .map((pub) => {
+                      const pubSlots =
+                        (slots as any[])?.filter((s: any) => s.publisherId === pub.id) || [];
+                      if (pubSlots.length === 0) {
+                        return (
+                          <tr
+                            key={pub.id}
+                            className="border-b border-surface-container bg-slate-50/50"
+                          >
+                            <td
+                              colSpan={7}
+                              className="px-5 py-4 text-xs font-semibold text-slate-400"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <Globe size={14} />
+                                {pub.domain} — Engin auglýsingapláss skráð.
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <Fragment key={pub.id}>
+                          <tr className="select-none border-y border-outline-variant bg-slate-50/80">
+                            <td
+                              colSpan={7}
+                              className="px-5 py-3 text-xs font-extrabold tracking-wide text-slate-800"
+                            >
+                              <span className="flex items-center gap-1.5 uppercase">
+                                <Globe size={14} className="text-slate-500" />
+                                {pub.displayName} ({pub.domain})
+                              </span>
+                            </td>
+                          </tr>
+                          {pubSlots.map((s: any) => (
+                            <tr
+                              key={s.id}
+                              className="cursor-pointer border-b border-surface-container transition-colors hover:bg-slate-50"
+                              onClick={() => navigate(`/publisher/slots/${s.id}`)}
+                            >
+                              <td className="px-5 py-5.5 align-middle">
+                                <div className="flex min-w-0 flex-col">
+                                  <span className="max-w-50 truncate text-[15px] font-semibold text-slate-900">
+                                    {s.name}
+                                  </span>
+                                  <span className="max-w-50 truncate text-[13px] text-slate-500">
+                                    {pub.domain}
+                                    {s.placement?.pageMatcher && s.placement.pageMatcher !== '/*'
+                                      ? s.placement.pageMatcher
+                                      : ''}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-5.5 align-middle">
+                                <span className="whitespace-nowrap rounded-md bg-surface-container px-3 py-1 text-xs font-semibold text-slate-600">
+                                  {s.sizes.map((sz: any) => `${sz.width}x${sz.height}`).join(', ')}
+                                </span>
+                              </td>
+                              <td className="px-5 py-5.5 align-middle">
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant={s.status === 'active' ? 'success' : 'neutral'}>
+                                    {s.status === 'active' ? 'Virk' : 'Óvirk'}
+                                  </Badge>
+                                  {s.status === 'active' && (!s.stats || s.stats.pageviews === 0) && (
+                                    <span className="inline-flex w-fit items-center gap-1 rounded border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-600">
+                                      <AlertTriangle size={12} />
+                                      Engin virkni greind
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-slate-900 tabular-nums">
+                                {s.stats ? formatNumberIs(s.stats.impressions) : '0'}
+                              </td>
+                              <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
+                                {s.stats ? formatNumberIs(s.stats.clicks) : '0'}
+                              </td>
+                              <td className="px-5 py-5.5 text-right align-middle text-[15px] text-slate-700 tabular-nums">
+                                {s.stats && s.stats.impressions > 0
+                                  ? `${Math.min(100, (s.stats.clicks / s.stats.impressions) * 100)
+                                      .toFixed(2)
+                                      .replace('.', ',')}%`
+                                  : '0,00%'}
+                              </td>
+                              <td className="px-5 py-5.5 text-right align-middle text-[15px] font-semibold text-primary tabular-nums">
+                                {s.stats
+                                  ? formatIsk(publisherNetIsk(s.stats.spendIsk))
+                                  : formatIsk(0)}
+                                <span className="block text-[10px] font-medium text-slate-500">
+                                  {s.pricing.mode === 'cpm'
+                                    ? `${formatIsk(s.pricing.cpmIsk)} CPM`
+                                    : `${formatIsk(s.pricing.slotPriceIsk)} / ${s.pricing.slotPeriodDays}d`}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </Fragment>
+                      );
+                    })}
+                </tbody>
+              </table>
+              <div className="flex justify-center border-t border-outline-variant bg-surface-container-low px-5 py-4">
+                <button
+                  onClick={() => navigate('/publisher/slots')}
+                  className="inline-flex cursor-pointer items-center gap-1 border-none bg-transparent text-sm font-bold text-primary hover:underline"
+                >
+                  Sjá öll auglýsingapláss
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+            </div>
+          </div>
+        </NumberedSection>
+      </div>
     </div>
   );
 }

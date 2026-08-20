@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { formatNumberIs } from '@ada/shared';
 
@@ -59,6 +60,9 @@ export interface TrafficChainProps {
   measurementStartLabel: string;
   /** Shown when the filled/unfilled split has not been measured for the window. */
   fillMeasurementStartLabel: string;
+  /** Extra rows rendered at the bottom of the card (e.g. the revenue
+   * arithmetic) — presentation only, the chain's own logic is untouched. */
+  footer?: ReactNode;
 }
 
 const nf = (n: number) => formatNumberIs(n);
@@ -118,6 +122,7 @@ export function TrafficChain({
   impressions,
   measurementStartLabel,
   fillMeasurementStartLabel,
+  footer,
 }: TrafficChainProps) {
   // Every figure in the fill half of the chain comes from the measured days
   // only. Falling back to the whole-window `requests` when the paired count is
@@ -258,6 +263,7 @@ export function TrafficChain({
           )}
         </div>
       )}
+      {footer}
     </Card>
   );
 }
