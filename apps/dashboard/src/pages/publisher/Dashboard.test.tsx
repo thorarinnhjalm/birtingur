@@ -576,7 +576,7 @@ test('the CSV export clamps CTR at 100% too, so it agrees with the screen', asyn
       .split('\n')
       .filter((l) => l !== '');
     expect(lines[0]).toBe(
-      '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur',
+      '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Auglýsingabeiðnir,Fylltar,Smellir,CTR,Áætlaðar Tekjur',
     );
     expect(lines[1]).toBe(
       '"Efst á forsíðu",vefur-a.is,"300x250",Virk,5,100,50%,7,"100,00%",800 kr.',

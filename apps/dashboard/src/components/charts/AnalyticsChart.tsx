@@ -19,7 +19,7 @@ interface ChartDataPoint {
   pageviews?: number;
   // Real page views (Task 4/6). Absent — not zero — for a day with no
   // measured true traffic (pre-switch, or a post-switch day the aggregator
-  // left unset); the "Vefumferð" series below relies on that absence to
+  // left unset); the "Síðuflettingar" series below relies on that absence to
   // leave a gap instead of drawing a false zero.
   pageViewsTrue?: number;
 }
@@ -76,7 +76,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
   // deliberately absent — not zero — for every day before the 2026-08-09 switch date.
   // A window that predates the switch entirely therefore has no plottable point at
   // all, and Recharts just renders an empty area with no indication why. Same
-  // muted explanation as the publisher dashboard's "Vefumferð" stat card
+  // muted explanation as the publisher dashboard's traffic figures
   // (apps/dashboard/src/pages/publisher/Dashboard.tsx) instead of a blank chart.
   const hasTrafficData = formattedData.some((d) => d.pageViewsTrue !== undefined);
 
@@ -105,7 +105,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
         };
       case 'pageviews':
         return {
-          label: 'Vefumferð',
+          label: 'Síðuflettingar',
           // Real page views, NOT the raw `pageviews` field (that one counts
           // ad-slot loads). Left absent rather than defaulted to 0 on days
           // with no measured value, so Recharts draws a gap instead of a
@@ -148,7 +148,7 @@ export function AnalyticsChart({ data, mode }: AnalyticsChartProps) {
                 : key === 'ctr'
                   ? 'CTR (Smellihlutfall)'
                   : key === 'pageviews'
-                    ? 'Vefumferð'
+                    ? 'Síðuflettingar'
                     : mode === 'publisher'
                       ? 'Áætlaðar tekjur'
                       : 'Kostnaður';

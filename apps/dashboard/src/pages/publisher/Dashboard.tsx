@@ -12,7 +12,6 @@ import {
   TrendingDown,
   FolderPlus,
   PlusCircle,
-  Filter,
   Download,
   ChevronRight,
   Globe,
@@ -189,7 +188,7 @@ function PublisherHome() {
     if (!slots || slots.length === 0 || !publishers) return;
     let csvContent = '﻿'; // Add BOM for Excel UTF-8 compatibility
     csvContent +=
-      'Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur\n';
+      'Pláss,Lén,Stærðir,Staða,Birtingar,Auglýsingabeiðnir,Fylltar,Smellir,CTR,Áætlaðar Tekjur\n';
 
     for (const pub of publishers) {
       const pubSlots = (slots as any[]).filter((s: any) => s.publisherId === pub.id) || [];
@@ -422,7 +421,7 @@ function PublisherHome() {
               >
                 {pctChanges.revenue >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                 {pctChanges.revenue >= 0 ? '+' : ''}
-                {pctChanges.revenue.toFixed(0)}%
+                {pctChanges.revenue.toFixed(1).replace('.', ',')}% frá fyrra tímabili
               </div>
             )}
           </div>
@@ -595,7 +594,7 @@ function PublisherHome() {
                   <th className="py-2.5">Vefur</th>
                   <th className="py-2.5 text-right">Síðuflettingar</th>
                   <th className="py-2.5 text-right">Beiðnir</th>
-                  <th className="py-2.5 text-right">Fylling</th>
+                  <th className="py-2.5 text-right">Fylltar</th>
                   <th className="py-2.5 text-right">Birtingar</th>
                   <th className="py-2.5 text-right">Smellir (CTR)</th>
                   <th className="py-2.5 text-right">Tekjur</th>
@@ -739,12 +738,6 @@ function PublisherHome() {
             Virkar auglýsingastöður
           </h2>
           <div className="flex gap-2">
-            <button
-              className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50"
-              title="Sía"
-            >
-              <Filter size={18} />
-            </button>
             <button
               onClick={downloadSlotsCsv}
               className="cursor-pointer rounded-lg border border-slate-200 bg-white p-2 transition-colors hover:bg-slate-50"
