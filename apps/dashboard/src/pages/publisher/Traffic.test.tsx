@@ -88,6 +88,41 @@ test('shows the human/automated split as a floor, never as a billing claim', asy
   expect(document.body.textContent).not.toContain('talan sem þú færð greitt fyrir');
   // The honest statement in its place:
   expect(screen.getByText(/Flokkunin breytir ekki uppgjöri/)).toBeDefined();
+  // No byCountry on this fixture: the country block says when measurement
+  // started instead of fabricating rows.
+  expect(screen.getByText(/Landaskipting mælist frá/)).toBeDefined();
+});
+
+/**
+ * Countries render as Icelandic names with counts against the page-view
+ * total, 'XX' as its own honest "Óþekkt" row (dropping it would make the
+ * listed countries claim to sum to the total when they do not).
+ */
+test('the country split lists Icelandic names and keeps the unknown bucket', async () => {
+  setupApiMock({
+    impressions: 800,
+    clicks: 10,
+    spendIsk: 440,
+    pageviews: 2200,
+    pageViewsTrue: 1000,
+    byCountry: { IS: 850, DK: 100, XX: 50 },
+    history: [
+      {
+        date: '2026-08-21',
+        impressions: 800,
+        clicks: 10,
+        spendIsk: 440,
+        pageviews: 2200,
+        pageViewsTrue: 1000,
+      },
+    ],
+  });
+  renderPage();
+
+  expect(await screen.findByText('Eftir löndum')).toBeDefined();
+  expect(screen.getByText('Ísland')).toBeDefined();
+  expect(screen.getByText('Óþekkt')).toBeDefined();
+  expect(document.body.textContent).not.toContain('Landaskipting mælist frá');
 });
 
 test('an unmeasured window says when measurement started, never a zero', async () => {

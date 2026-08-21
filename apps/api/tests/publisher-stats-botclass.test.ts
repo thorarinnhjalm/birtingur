@@ -152,3 +152,60 @@ describe('getPublisherStats — traffic-paired spend', () => {
     expect(stats.spendIskWithTrafficData).toBeUndefined();
   });
 });
+
+describe('getPublisherStats — country rollup', () => {
+  beforeEach(async () => {
+    await clearFirestoreEmulator();
+  });
+
+  it('sums byCountry across days and stays absent when unmeasured', async () => {
+    await seedDay('pub_x', 1, {
+      impressions: 80,
+      clicks: 2,
+      pageviews: 100,
+      pageViewsTrue: 90,
+      byCountry: { IS: 70, DK: 15, XX: 5 },
+    });
+    await seedDay('pub_x', 2, {
+      impressions: 40,
+      clicks: 1,
+      pageviews: 50,
+      pageViewsTrue: 40,
+      byCountry: { IS: 35, US: 5 },
+    });
+    // A pre-measurement day carries no field and must not zero the rollup.
+    await seedDay('pub_x', 3, { impressions: 10, clicks: 0, pageviews: 20 });
+
+    const stats = await getPublisherStats('pub_x', 7);
+    expect(stats.byCountry).toEqual({ IS: 105, DK: 15, XX: 5, US: 5 });
+
+    const empty = await getPublisherStats('pub_never', 7);
+    expect(empty.byCountry).toBeUndefined();
+  });
+
+  it('aggregates byCountry across sites', async () => {
+    await seedDay('pub_a', 1, {
+      impressions: 80,
+      clicks: 2,
+      pageviews: 100,
+      pageViewsTrue: 90,
+      byCountry: { IS: 80 },
+    });
+    await seedDay('pub_b', 1, {
+      impressions: 40,
+      clicks: 1,
+      pageviews: 50,
+      pageViewsTrue: 40,
+      byCountry: { IS: 30, NO: 10 },
+    });
+
+    const stats = await getAggregatedPublisherStats(
+      [
+        { id: 'pub_a', displayName: 'A', domain: 'a.is' },
+        { id: 'pub_b', displayName: 'B', domain: 'b.is' },
+      ],
+      7,
+    );
+    expect(stats.byCountry).toEqual({ IS: 110, NO: 10 });
+  });
+});

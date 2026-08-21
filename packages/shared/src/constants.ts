@@ -264,3 +264,12 @@ export const TRAFFIC_MEASUREMENT_START = '2026-08-09';
  * above, and hardcoding the date into UI copy instead of reading it here is how
  * the two silently drift apart. */
 export const FILL_MEASUREMENT_START = '2026-08-14';
+
+/**
+ * The aggregator began splitting true page views by reader country (byCountry
+ * on publisher-day docs) on this date — the event carried CF-IPCountry all
+ * along, but was dropped before it. Same absent-not-zero contract as the two
+ * dates above: earlier days simply lack the field, and the UI must present
+ * the split as unmeasured for windows that predate it.
+ */
+export const COUNTRY_MEASUREMENT_START = '2026-08-21';

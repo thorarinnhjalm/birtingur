@@ -43,6 +43,28 @@ function readBotClassPageViews(raw: unknown): BotClassPageViews | undefined {
   return out;
 }
 
+function readByCountry(raw: unknown): Record<string, number> | undefined {
+  if (raw === null || typeof raw !== 'object') return undefined;
+  let out: Record<string, number> | undefined;
+  for (const [cc, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === 'number') {
+      out ??= {};
+      out[cc] = (out[cc] ?? 0) + v;
+    }
+  }
+  return out;
+}
+
+function addByCountry(
+  acc: Record<string, number> | undefined,
+  add: Record<string, number> | undefined,
+): Record<string, number> | undefined {
+  if (!add) return acc;
+  const out: Record<string, number> = { ...(acc ?? {}) };
+  for (const [cc, v] of Object.entries(add)) out[cc] = (out[cc] ?? 0) + v;
+  return out;
+}
+
 function addBotClassPageViews(
   acc: BotClassPageViews | undefined,
   add: BotClassPageViews | undefined,
@@ -136,6 +158,9 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // True page views split by bot class (see BotClassPageViews). Absent — never
   // zeroed — when no day in the window carries the stored byBotClass field.
   botClass?: BotClassPageViews;
+  // True page views split by reader country (ISO code, 'XX' = unknown),
+  // measured from COUNTRY_MEASUREMENT_START. Absent when no day carries it.
+  byCountry?: Record<string, number>;
   history: {
     date: string;
     impressions: number;
@@ -181,6 +206,7 @@ export async function getPublisherStats(
   let requestsWithTrafficData = 0;
   let impressionsWithTrafficData = 0;
   let botClass: BotClassPageViews | undefined;
+  let byCountry: Record<string, number> | undefined;
 
   const now = new Date();
   let hasRealData = false;
@@ -204,6 +230,7 @@ export async function getPublisherStats(
       let dayPageViewsTrue: number | undefined;
       let dayUnfilled: number | undefined;
       let dayBotClass: BotClassPageViews | undefined;
+      let dayByCountry: Record<string, number> | undefined;
       let dayHasRealData = false;
 
       if (subSnap.exists) {
@@ -220,6 +247,7 @@ export async function getPublisherStats(
             dayUnfilled = data.unfilled;
           }
           dayBotClass = readBotClassPageViews(data.byBotClass);
+          dayByCountry = readByCountry(data.byCountry);
         }
       } else {
         // 2. Fallback to top-level stats collection
@@ -247,6 +275,7 @@ export async function getPublisherStats(
               dayBotClass,
               readBotClassPageViews(pubData.byBotClass),
             );
+            dayByCountry = addByCountry(dayByCountry, readByCountry(pubData.byCountry));
           }
         }
       }
@@ -263,6 +292,7 @@ export async function getPublisherStats(
         pageViewsTrue: dayPageViewsTrue,
         unfilled: dayUnfilled,
         botClass: dayBotClass,
+        byCountry: dayByCountry,
         hasRealData: dayHasRealData,
       };
     });
@@ -297,6 +327,7 @@ export async function getPublisherStats(
       impressionsWithTrafficData += res.impressions;
     }
     botClass = addBotClassPageViews(botClass, res.botClass);
+    byCountry = addByCountry(byCountry, res.byCountry);
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += res.unfilled;
@@ -371,6 +402,7 @@ export async function getPublisherStats(
       ? grossIskForImpressions(impressionsWithTrafficData)
       : undefined,
     botClass,
+    byCountry,
     history,
   };
 }
@@ -405,6 +437,7 @@ export async function getAggregatedPublisherStats(
   let requestsWithTrafficData = 0;
   let spendIskWithTrafficData = 0;
   let botClass: BotClassPageViews | undefined;
+  let byCountry: Record<string, number> | undefined;
 
   // Use a map to aggregate history by date
   const historyMap: Record<
@@ -435,6 +468,7 @@ export async function getAggregatedPublisherStats(
       spendIskWithTrafficData += stats.spendIskWithTrafficData ?? 0;
     }
     botClass = addBotClassPageViews(botClass, stats.botClass);
+    byCountry = addByCountry(byCountry, stats.byCountry);
     if (stats.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += stats.unfilled;
@@ -510,6 +544,7 @@ export async function getAggregatedPublisherStats(
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
     spendIskWithTrafficData: anyPageViewsTrue ? spendIskWithTrafficData : undefined,
     botClass,
+    byCountry,
     history,
     ...(bySite.length > 0 ? { bySite } : {}),
   };

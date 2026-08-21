@@ -210,6 +210,12 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     // An event with no botClass (unclassified — see QueuedEvent.botClass) is counted
     // in NO class here, so `total - Σ classes` is the honest unclassified remainder.
     byBotClass?: Record<string, { impressions?: number; pageViewsTrue?: number }>;
+    // True page views split by reader country (CF-IPCountry ISO code, 'XX' =
+    // unknown) — publisher-day only, page views only. The event has carried
+    // `country` since the pageview route shipped; until 2026-08-21 this
+    // aggregator silently dropped it. Cardinality is bounded by the ISO list.
+    // Absent — never an empty object — when the bucket saw no true page view.
+    byCountry?: Record<string, number>;
   }
   interface CampaignBucket {
     impressions: number;
@@ -287,6 +293,16 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
         const cls = (b.byBotClass ??= {});
         const counts = (cls[ev.botClass] ??= {});
         counts.pageViewsTrue = (counts.pageViewsTrue ?? 0) + 1;
+      }
+      // byCountry is publisher-day only and TRUE page views only, like the
+      // botClass page-view counter above — impressions/clicks never touch it
+      // (an ad seen three times is one reader). 'XX' (unknown) is counted as
+      // its own bucket rather than dropped: dropping it would make the listed
+      // countries claim to sum to the total when they do not.
+      if (ev.country) {
+        const b = publisherDay.get(pd)!;
+        const bc = (b.byCountry ??= {});
+        bc[ev.country] = (bc[ev.country] ?? 0) + 1;
       }
     } else if (ev.type === 'impression' || ev.type === 'click') {
       // Explicitly impression/click only — NOT a bare `else`. A bare `else` here
@@ -506,6 +522,15 @@ export async function aggregateEvents(events: QueuedEvent[]): Promise<void> {
     // Nobody reports bot share per slot and the extra cardinality buys nothing.
     if (b.byBotClass) {
       updateData.byBotClass = byBotClassIncrement(b.byBotClass);
+    }
+    // Nested-object increments, same shape discipline as byBotClass — never a
+    // dotted field path (the dead-field bug the aggregator tests pin).
+    if (b.byCountry) {
+      const byCountry: Record<string, any> = {};
+      for (const [cc, n] of Object.entries(b.byCountry)) {
+        byCountry[cc] = FieldValue.increment(n);
+      }
+      updateData.byCountry = byCountry;
     }
     batch.set(ref, updateData, { merge: true });
   }

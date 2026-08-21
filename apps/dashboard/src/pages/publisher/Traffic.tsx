@@ -2,7 +2,12 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, AreaChart, Area, XAxis, CartesianGrid, Tooltip } from 'recharts';
-import { TRAFFIC_MEASUREMENT_START, publisherNetIsk, formatNumberIs } from '@ada/shared';
+import {
+  TRAFFIC_MEASUREMENT_START,
+  COUNTRY_MEASUREMENT_START,
+  publisherNetIsk,
+  formatNumberIs,
+} from '@ada/shared';
 import { apiFetch } from '@/lib/api';
 import { usePublishers } from '@/hooks/usePublisher';
 import { useSiteFilter } from '@/hooks/useSiteFilter';
@@ -51,6 +56,7 @@ interface StatsResponse {
   requestsWithTrafficData?: number;
   spendIskWithTrafficData?: number;
   botClass?: BotClassPageViews;
+  byCountry?: Record<string, number>;
   history: {
     date: string;
     impressions: number;
@@ -70,6 +76,15 @@ interface StatsResponse {
     botClass?: BotClassPageViews;
     spendIsk: number;
   }[];
+}
+
+function countryName(code: string): string {
+  if (code === 'XX') return 'Óþekkt';
+  try {
+    return new Intl.DisplayNames(['is'], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
 }
 
 const pct1 = (part: number, whole: number) =>
@@ -149,6 +164,19 @@ export default function Traffic() {
     const knownBot = stats.botClass.knownBot ?? 0;
     const suspectedBot = stats.botClass.suspectedBot ?? 0;
     return { human, knownBot, suspectedBot, automated: knownBot + suspectedBot };
+  }, [stats]);
+
+  // Top countries by true page views, largest first. Only rendered when the
+  // aggregator has written the split (from 2026-08-21); 'XX' (unknown) is kept
+  // as its own row so the list honestly sums toward the total.
+  const topCountries = useMemo(() => {
+    if (!stats?.byCountry || stats.pageViewsTrue === undefined || stats.pageViewsTrue === 0) {
+      return null;
+    }
+    return Object.entries(stats.byCountry)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([code, count]) => ({ code, count }));
   }, [stats]);
 
   const chartData = useMemo(
@@ -405,6 +433,42 @@ export default function Traffic() {
                     <p className="m-0 text-sm text-slate-500 md:col-span-2">
                       Skipting í mannlega og sjálfvirka umferð hefur ekki mælst fyrir þetta tímabil
                       enn.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-6 border-t border-slate-100 pt-6">
+                  <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    Eftir löndum
+                  </p>
+                  {topCountries ? (
+                    <div className="mt-4 flex flex-col gap-2.5">
+                      {topCountries.map(({ code, count }) => (
+                        <div key={code} className="flex items-center gap-3">
+                          <span className="w-32 shrink-0 truncate text-[13px] font-semibold text-slate-700">
+                            {countryName(code)}
+                          </span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-2 rounded-full bg-primary"
+                              style={{
+                                width: `${Math.min(100, (count / stats.pageViewsTrue!) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="w-24 shrink-0 text-right text-[13px] font-semibold tabular-nums">
+                            {formatNumberIs(count)}{' '}
+                            <span className="font-medium text-slate-400">
+                              {pct1(count, stats.pageViewsTrue!)}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 mb-0 text-[13px] text-slate-500">
+                      Landaskipting mælist frá {formatDate(COUNTRY_MEASUREMENT_START)} — fyrstu
+                      tölurnar birtast hér daginn eftir.
                     </p>
                   )}
                 </div>
