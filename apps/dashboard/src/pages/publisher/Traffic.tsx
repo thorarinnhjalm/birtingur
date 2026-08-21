@@ -78,8 +78,13 @@ interface StatsResponse {
   }[];
 }
 
+// Cloudflare emits pseudo-codes for anonymized routes (T1 = Tor, A1/A2 =
+// anonymizer/satellite) alongside 'XX' for unknown — all fold into one honest
+// unknown bucket rather than rendering as bare codes.
+const UNKNOWN_COUNTRY_CODES = new Set(['XX', 'T1', 'A1', 'A2']);
+
 function countryName(code: string): string {
-  if (code === 'XX') return 'Óþekkt';
+  if (UNKNOWN_COUNTRY_CODES.has(code)) return 'Óþekkt';
   try {
     return new Intl.DisplayNames(['is'], { type: 'region' }).of(code) ?? code;
   } catch {
@@ -166,17 +171,28 @@ export default function Traffic() {
     return { human, knownBot, suspectedBot, automated: knownBot + suspectedBot };
   }, [stats]);
 
-  // Top countries by true page views, largest first. Only rendered when the
-  // aggregator has written the split (from 2026-08-21); 'XX' (unknown) is kept
-  // as its own row so the list honestly sums toward the total.
-  const topCountries = useMemo(() => {
+  // Top countries by true page views, largest first, with everything beyond
+  // the top five grouped into an explicit remainder — five bars that silently
+  // sum below the total would undercut the very honesty the 'XX' bucket
+  // exists for. Percentages divide the COUNTRY-MEASURED total, not the whole
+  // window's page views: a window straddling 2026-08-21 has days with no
+  // country data at all, and those are a measurement gap, not "other
+  // countries". `coverage` lets the UI say so when the two differ.
+  const countrySplit = useMemo(() => {
     if (!stats?.byCountry || stats.pageViewsTrue === undefined || stats.pageViewsTrue === 0) {
       return null;
     }
-    return Object.entries(stats.byCountry)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([code, count]) => ({ code, count }));
+    const grouped: Record<string, number> = {};
+    for (const [code, count] of Object.entries(stats.byCountry)) {
+      const key = UNKNOWN_COUNTRY_CODES.has(code) ? 'XX' : code;
+      grouped[key] = (grouped[key] ?? 0) + count;
+    }
+    const entries = Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((s, [, n]) => s + n, 0);
+    if (total === 0) return null;
+    const top = entries.slice(0, 5).map(([code, count]) => ({ code, count }));
+    const remainder = entries.slice(5).reduce((s, [, n]) => s + n, 0);
+    return { top, remainder, total };
   }, [stats]);
 
   const chartData = useMemo(
@@ -441,29 +457,45 @@ export default function Traffic() {
                   <p className="m-0 text-xs font-semibold tracking-wider text-slate-500 uppercase">
                     Eftir löndum
                   </p>
-                  {topCountries ? (
+                  {countrySplit ? (
                     <div className="mt-4 flex flex-col gap-2.5">
-                      {topCountries.map(({ code, count }) => (
-                        <div key={code} className="flex items-center gap-3">
+                      {[
+                        ...countrySplit.top.map(({ code, count }) => ({
+                          key: code,
+                          label: countryName(code),
+                          count,
+                        })),
+                        ...(countrySplit.remainder > 0
+                          ? [{ key: '__annad', label: 'Annað', count: countrySplit.remainder }]
+                          : []),
+                      ].map(({ key, label, count }) => (
+                        <div key={key} className="flex items-center gap-3">
                           <span className="w-32 shrink-0 truncate text-[13px] font-semibold text-slate-700">
-                            {countryName(code)}
+                            {label}
                           </span>
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
                             <div
                               className="h-2 rounded-full bg-primary"
                               style={{
-                                width: `${Math.min(100, (count / stats.pageViewsTrue!) * 100)}%`,
+                                width: `${Math.min(100, (count / countrySplit.total) * 100)}%`,
                               }}
                             />
                           </div>
                           <span className="w-24 shrink-0 text-right text-[13px] font-semibold tabular-nums">
                             {formatNumberIs(count)}{' '}
                             <span className="font-medium text-slate-400">
-                              {pct1(count, stats.pageViewsTrue!)}
+                              {pct1(count, countrySplit.total)}
                             </span>
                           </span>
                         </div>
                       ))}
+                      {countrySplit.total < stats.pageViewsTrue! && (
+                        <p className="mt-1 mb-0 text-[12px] text-slate-400">
+                          Landaskiptingin nær yfir {formatNumberIs(countrySplit.total)} af{' '}
+                          {formatNumberIs(stats.pageViewsTrue!)} síðuflettingum tímabilsins — mælist
+                          frá {formatDate(COUNTRY_MEASUREMENT_START)}.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <p className="mt-3 mb-0 text-[13px] text-slate-500">

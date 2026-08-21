@@ -808,7 +808,11 @@ function PublisherHome() {
               // shipped with this change): filled − seen per slot, largest
               // gap wins. Only named when a slot has a positive measured gap —
               // otherwise the card stays generic.
+              // Scoped to the active site filter — the aggregate figures in
+              // this section are site-filtered, so naming a slot from another
+              // site under them would frame B's slot as part of A's shortfall.
               const worstUnseenSlot = ((slots as any[]) ?? [])
+                .filter((sl: any) => !siteId || sl.publisherId === siteId)
                 .map((sl: any) => {
                   const st = sl.stats;
                   if (

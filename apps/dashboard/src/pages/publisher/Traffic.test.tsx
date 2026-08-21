@@ -105,7 +105,9 @@ test('the country split lists Icelandic names and keeps the unknown bucket', asy
     spendIsk: 440,
     pageviews: 2200,
     pageViewsTrue: 1000,
-    byCountry: { IS: 850, DK: 100, XX: 50 },
+    // T1 (Tor pseudo-code) folds into the same unknown bucket as XX — a bare
+    // "T1" row would be meaningless to a food blogger.
+    byCountry: { IS: 850, DK: 100, XX: 30, T1: 20 },
     history: [
       {
         date: '2026-08-21',
@@ -122,7 +124,45 @@ test('the country split lists Icelandic names and keeps the unknown bucket', asy
   expect(await screen.findByText('Eftir löndum')).toBeDefined();
   expect(screen.getByText('Ísland')).toBeDefined();
   expect(screen.getByText('Óþekkt')).toBeDefined();
+  expect(document.body.textContent).not.toContain('T1');
+  // Full coverage in this fixture (1000 of 1000): no partial-coverage caption.
+  expect(document.body.textContent).not.toContain('Landaskiptingin nær yfir');
   expect(document.body.textContent).not.toContain('Landaskipting mælist frá');
+});
+
+/**
+ * Percentages divide the COUNTRY-MEASURED total, never the window's page
+ * views: days before 2026-08-21 have no country data, and that gap is a
+ * measurement gap, not "other countries". 600 of 1.000 measured → Ísland is
+ * 500/600 = 83,3%, not 50%, and the coverage caption says what the split
+ * actually covers. Everything beyond the top five groups into "Annað".
+ */
+test('country percentages use the measured total and partial coverage says so', async () => {
+  setupApiMock({
+    impressions: 800,
+    clicks: 10,
+    spendIsk: 440,
+    pageviews: 2200,
+    pageViewsTrue: 1000,
+    byCountry: { IS: 500, DK: 40, NO: 20, SE: 15, GB: 10, US: 8, DE: 7 },
+    history: [
+      {
+        date: '2026-08-21',
+        impressions: 800,
+        clicks: 10,
+        spendIsk: 440,
+        pageviews: 2200,
+        pageViewsTrue: 1000,
+      },
+    ],
+  });
+  renderPage();
+
+  expect(await screen.findByText('Eftir löndum')).toBeDefined();
+  expect(screen.getByText('83,3%')).toBeDefined();
+  expect(document.body.textContent).not.toContain('50,0%');
+  expect(screen.getByText('Annað')).toBeDefined();
+  expect(screen.getByText(/Landaskiptingin nær yfir/)).toBeDefined();
 });
 
 test('an unmeasured window says when measurement started, never a zero', async () => {
