@@ -216,24 +216,34 @@ way into a stats document.
 
 **Invariants.**
 
-| Invariant                                                                         | Enforced by                                                                                                                                                                  |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A failed write does not lose events (whole-batch failure is re-queued)            | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
-| A partially committed batch is never re-queued (no double counting)               | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
-| Falling behind is never silent (truncation, zero progress, lost events all alert) | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
-| An unrecognized event type is skipped, never counted as a click                   | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
-| Dotted field paths are never written (they are dead fields nobody reads)          | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
-| A post-write step cannot be misread as "nothing was committed"                    | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
-| `events:stats` depth over time is watched, not just readable on demand            | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
-| An ad request with no advertiser is counted apart from one that was never seen    | `apps/api/tests/stats-aggregator.test.ts` (`unfilled`), `apps/api/tests/publisher-stats-unfilled.test.ts`                                                                    |
-| `unfilled` stays absent, never 0, for windows that predate the counter            | same two files, plus `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                                                         |
-| A rate is never computed from a numerator and denominator covering different days | `apps/api/tests/publisher-stats-unfilled.test.ts`, `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                           |
+| Invariant                                                                                                          | Enforced by                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A failed write does not lose events (whole-batch failure is re-queued)                                             | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| A partially committed batch is never re-queued (no double counting)                                                | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| Falling behind is never silent (truncation, zero progress, lost events all alert)                                  | `apps/api/tests/stats-drain.test.ts`                                                                                                                                         |
+| An unrecognized event type is skipped, never counted as a click                                                    | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| Dotted field paths are never written (they are dead fields nobody reads)                                           | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| A post-write step cannot be misread as "nothing was committed"                                                     | `apps/api/tests/stats-aggregator.test.ts`                                                                                                                                    |
+| `events:stats` depth over time is watched, not just readable on demand                                             | `ops-alerts.ts` `QUEUE_GROWTH_WATCHES`: consecutive hourly readings both growing past 5000 alert ops, guarded on cron-aggregate's own staleness — `tests/ops-alerts.test.ts` |
+| An ad request with no advertiser is counted apart from one that was never seen                                     | `apps/api/tests/stats-aggregator.test.ts` (`unfilled`), `apps/api/tests/publisher-stats-unfilled.test.ts`                                                                    |
+| `unfilled` stays absent, never 0, for windows that predate the counter                                             | same two files, plus `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                                                         |
+| A rate is never computed from a numerator and denominator covering different days                                  | `apps/api/tests/publisher-stats-unfilled.test.ts`, `apps/dashboard/src/components/publisher/TrafficChain.test.tsx`                                                           |
+| `byBotClass` reads map the stored snake_case object shape (`known_bot.pageViewsTrue`), never a naive camelCase key | `apps/api/tests/publisher-stats-botclass.test.ts`                                                                                                                            |
+| The bot-class split never surfaces as a billing claim (it has no billing effect)                                   | `apps/dashboard/src/pages/publisher/Traffic.test.tsx`                                                                                                                        |
+| "Virði hverra 1.000 lesenda" pairs spend and traffic over the same measured days                                   | `apps/api/tests/publisher-stats-botclass.test.ts` (`spendIskWithTrafficData`), `apps/dashboard/src/pages/publisher/Dashboard.test.tsx`, `Traffic.test.tsx`                   |
 
 **Now.** PR #32 (merged 2026-08-12) raised the batch cap to 20 behind the 30s
 deadline, added the re-queue and the `AggregationError.anyCommitted` distinction,
 and turned truncation into an ops alert. This subsystem is the one place in the
 repo where the invariants are now fully pinned by tests, which is why it reads
 shorter than the others.
+
+**Publisher-facing read surface (2026-08-20).** `/v1/publishers/stats` now also
+rolls up `botClass` (true page views per bot class, mapped out of the stored
+`byBotClass` docs) and `spendIskWithTrafficData`/`requestsWithTrafficData`
+pairs at both the window and per-site level, feeding the traffic-first
+dashboard and the Umferð screen
+(`docs/superpowers/plans/2026-08-20-publisher-data-presentation-implementation.md`).
 
 **The shortfall is two problems, and they are now separate (2026-08-14).**
 `pageviews` counts every ad request; `impressions` counts the ones that became

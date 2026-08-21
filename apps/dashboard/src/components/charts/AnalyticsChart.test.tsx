@@ -38,7 +38,7 @@ const POST_SWITCH_DATA = [
 test('selecting the traffic tab on a pre-switch-only window shows the muted explanation instead of a blank chart', () => {
   render(<AnalyticsChart data={PRE_SWITCH_DATA} mode="publisher" />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Vefumferð' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Síðuflettingar' }));
 
   expect(screen.getByText(/Nákvæm umferðarmæling hófst/)).toBeDefined();
 });
@@ -46,7 +46,7 @@ test('selecting the traffic tab on a pre-switch-only window shows the muted expl
 test('selecting the traffic tab on a window with true pageviews renders the chart, not the note', () => {
   render(<AnalyticsChart data={POST_SWITCH_DATA} mode="publisher" />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Vefumferð' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Síðuflettingar' }));
 
   expect(screen.queryByText(/Nákvæm umferðarmæling hófst/)).toBeNull();
 });

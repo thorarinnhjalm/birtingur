@@ -3,6 +3,58 @@ import { COLLECTIONS } from '@ada/shared/firestore';
 import type { PublisherStatsBreakdown } from '@ada/shared/types';
 import { publisherNetIsk, grossIskForImpressions } from '@ada/shared';
 
+/**
+ * True-page-view counts split by bot class, rolled up for the response.
+ *
+ * Stored shape trap: the aggregator writes `byBotClass` keyed by the RAW event
+ * strings 'human' | 'known_bot' | 'suspected_bot' (apps/serving/src/lib/
+ * bot-class.ts), and each class holds an OBJECT { impressions?, pageViewsTrue? }.
+ * A naive `doc.byBotClass.knownBot` read is permanently undefined and, under
+ * the absent-not-zero contract, renders as "unmeasured" forever with no error —
+ * hence this mapping, pinned by tests. Events with no class are counted in NO
+ * bucket, so `pageViewsTrue - Σ classes` is the honest unclassified remainder.
+ * The known-bot list is deliberately incomplete (a floor, never a total) and
+ * the split has NO billing effect — accrual never reads it.
+ */
+export interface BotClassPageViews {
+  human?: number;
+  knownBot?: number;
+  suspectedBot?: number;
+}
+
+const BOT_CLASS_KEYS: ReadonlyArray<[stored: string, key: keyof BotClassPageViews]> = [
+  ['human', 'human'],
+  ['known_bot', 'knownBot'],
+  ['suspected_bot', 'suspectedBot'],
+];
+
+function readBotClassPageViews(raw: unknown): BotClassPageViews | undefined {
+  if (raw === null || typeof raw !== 'object') return undefined;
+  let out: BotClassPageViews | undefined;
+  for (const [stored, key] of BOT_CLASS_KEYS) {
+    const entry = (raw as Record<string, unknown>)[stored];
+    if (entry === null || typeof entry !== 'object') continue;
+    const v = (entry as Record<string, unknown>).pageViewsTrue;
+    if (typeof v === 'number') {
+      out ??= {};
+      out[key] = (out[key] ?? 0) + v;
+    }
+  }
+  return out;
+}
+
+function addBotClassPageViews(
+  acc: BotClassPageViews | undefined,
+  add: BotClassPageViews | undefined,
+): BotClassPageViews | undefined {
+  if (!add) return acc;
+  const out: BotClassPageViews = { ...(acc ?? {}) };
+  for (const [, key] of BOT_CLASS_KEYS) {
+    if (add[key] !== undefined) out[key] = (out[key] ?? 0) + add[key]!;
+  }
+  return out;
+}
+
 export interface SiteBreakdown {
   publisherId: string;
   displayName: string;
@@ -24,6 +76,16 @@ export interface SiteBreakdown {
   // PublisherStatsResponse for why `pageviews` is the wrong one.
   requestsWithFillData?: number;
   spendIsk: number;
+  // Requests and derived spend over exactly the days that measured
+  // `pageViewsTrue` for this site — the pair a per-site "tekjur á 1.000
+  // síðuflettingar" figure must divide. `spendIsk` above spans the whole
+  // window while `pageViewsTrue` spans only the measured part, so dividing
+  // those two is the same window mismatch requestsWithFillData exists to
+  // prevent. Absent whenever `pageViewsTrue` is.
+  requestsWithTrafficData?: number;
+  spendIskWithTrafficData?: number;
+  // True page views split by bot class, this site's measured days only.
+  botClass?: BotClassPageViews;
 }
 
 export interface PublisherStatsResponse extends PublisherStatsBreakdown {
@@ -68,6 +130,12 @@ export interface PublisherStatsResponse extends PublisherStatsBreakdown {
   // measured `pageViewsTrue`, so "requests per page view" divides two figures
   // covering the same period.
   requestsWithTrafficData?: number;
+  // Derived spend over those same measured days — the numerator for a
+  // "tekjur á 1.000 síðuflettingar" figure whose denominator is pageViewsTrue.
+  spendIskWithTrafficData?: number;
+  // True page views split by bot class (see BotClassPageViews). Absent — never
+  // zeroed — when no day in the window carries the stored byBotClass field.
+  botClass?: BotClassPageViews;
   history: {
     date: string;
     impressions: number;
@@ -111,6 +179,8 @@ export async function getPublisherStats(
   let requestsWithFillData = 0;
   let impressionsWithFillData = 0;
   let requestsWithTrafficData = 0;
+  let impressionsWithTrafficData = 0;
+  let botClass: BotClassPageViews | undefined;
 
   const now = new Date();
   let hasRealData = false;
@@ -133,6 +203,7 @@ export async function getPublisherStats(
       // stays distinguishable from a genuine zero-traffic day.
       let dayPageViewsTrue: number | undefined;
       let dayUnfilled: number | undefined;
+      let dayBotClass: BotClassPageViews | undefined;
       let dayHasRealData = false;
 
       if (subSnap.exists) {
@@ -148,6 +219,7 @@ export async function getPublisherStats(
           if (typeof data.unfilled === 'number') {
             dayUnfilled = data.unfilled;
           }
+          dayBotClass = readBotClassPageViews(data.byBotClass);
         }
       } else {
         // 2. Fallback to top-level stats collection
@@ -171,6 +243,10 @@ export async function getPublisherStats(
             if (typeof pubData.unfilled === 'number') {
               dayUnfilled = (dayUnfilled ?? 0) + pubData.unfilled;
             }
+            dayBotClass = addBotClassPageViews(
+              dayBotClass,
+              readBotClassPageViews(pubData.byBotClass),
+            );
           }
         }
       }
@@ -186,6 +262,7 @@ export async function getPublisherStats(
         pageviews: dayPageviews,
         pageViewsTrue: dayPageViewsTrue,
         unfilled: dayUnfilled,
+        botClass: dayBotClass,
         hasRealData: dayHasRealData,
       };
     });
@@ -217,7 +294,9 @@ export async function getPublisherStats(
       anyPageViewsTrue = true;
       totalPageViewsTrue += res.pageViewsTrue;
       requestsWithTrafficData += res.pageviews;
+      impressionsWithTrafficData += res.impressions;
     }
+    botClass = addBotClassPageViews(botClass, res.botClass);
     if (res.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += res.unfilled;
@@ -286,6 +365,12 @@ export async function getPublisherStats(
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
+    // Derived, like every other spend figure here, so the pair stays consistent
+    // with how spendIsk itself is computed from impressions.
+    spendIskWithTrafficData: anyPageViewsTrue
+      ? grossIskForImpressions(impressionsWithTrafficData)
+      : undefined,
+    botClass,
     history,
   };
 }
@@ -318,6 +403,8 @@ export async function getAggregatedPublisherStats(
   let requestsWithFillData = 0;
   let impressionsWithFillData = 0;
   let requestsWithTrafficData = 0;
+  let spendIskWithTrafficData = 0;
+  let botClass: BotClassPageViews | undefined;
 
   // Use a map to aggregate history by date
   const historyMap: Record<
@@ -343,7 +430,11 @@ export async function getAggregatedPublisherStats(
       // summing `stats.pageviews` here would re-import the whole-window count
       // this pairing exists to keep out.
       requestsWithTrafficData += stats.requestsWithTrafficData ?? 0;
+      // Summed per site (each already derived from that site's measured-day
+      // impressions) — same convention as bySite.spendIsk below.
+      spendIskWithTrafficData += stats.spendIskWithTrafficData ?? 0;
     }
+    botClass = addBotClassPageViews(botClass, stats.botClass);
     if (stats.unfilled !== undefined) {
       anyUnfilled = true;
       totalUnfilled += stats.unfilled;
@@ -395,6 +486,9 @@ export async function getAggregatedPublisherStats(
             pageViewsTrue: allStats[i]!.pageViewsTrue,
             unfilled: allStats[i]!.unfilled,
             requestsWithFillData: allStats[i]!.requestsWithFillData,
+            requestsWithTrafficData: allStats[i]!.requestsWithTrafficData,
+            spendIskWithTrafficData: allStats[i]!.spendIskWithTrafficData,
+            botClass: allStats[i]!.botClass,
             // Derived from that site's impressions for the same reason as the
             // window total — the per-site table shows revenue and an eCPM
             // computed from it.
@@ -414,6 +508,8 @@ export async function getAggregatedPublisherStats(
     requestsWithFillData: anyUnfilled ? requestsWithFillData : undefined,
     impressionsWithFillData: anyUnfilled ? impressionsWithFillData : undefined,
     requestsWithTrafficData: anyPageViewsTrue ? requestsWithTrafficData : undefined,
+    spendIskWithTrafficData: anyPageViewsTrue ? spendIskWithTrafficData : undefined,
+    botClass,
     history,
     ...(bySite.length > 0 ? { bySite } : {}),
   };

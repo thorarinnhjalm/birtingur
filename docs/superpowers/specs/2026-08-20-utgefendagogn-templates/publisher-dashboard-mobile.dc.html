@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f7f9fb; color: #0f172b; }
+    * { box-sizing: border-box; }
+    a { color: #1e3a8a; } a:hover { color: #172f6e; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .secnum { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; color: #1e3a8a; font-variant-numeric: tabular-nums; }
+    .sech2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+    .lede { margin: 10px 0 20px; font-size: 14px; line-height: 1.5; color: #62748e; }
+    .steplabel { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #62748e; }
+    .stepval { font-size: 26px; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+    .stepmean { font-size: 12px; color: #62748e; }
+    .owner { display: inline-block; border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+  </style>
+</helmet>
+
+<div style="padding: 16px; display: flex; flex-direction: column">
+
+  <h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1">Mælaborð</h1>
+  <p style="margin: 10px 0 0; font-size: 14px; color: #62748e">Tímabil&nbsp;&nbsp;<span style="color: #0f172b; font-weight: 600">22. júlí – 20. ágúst 2026</span></p>
+  <div style="margin-top: 14px; display: flex; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px; padding: 3px; width: fit-content">
+    <span style="border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 700; color: #62748e">7 dagar</span>
+    <span style="border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 700; background: #fff; color: #0f172b; box-shadow: 0 1px 2px rgba(0,0,0,0.05)">30 dagar</span>
+  </div>
+
+  <div style="margin-top: 20px; border: 1px solid #fee685; background: #fffbeb; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+    <div style="font-size: 14px; line-height: 1.5; font-weight: 500; color: #45556c">
+      <strong style="color: #0f172b">Bankaupplýsingar vantar.</strong> Þú átt <strong style="color: #0f172b">14.850 kr</strong> uppsafnaðar en getur ekki fengið greitt fyrr en reikningurinn er skráður.
+    </div>
+    <span style="background: #e17100; color: #fff; border-radius: 8px; padding: 14px; font-size: 14px; font-weight: 700; text-align: center">Skrá bankaupplýsingar</span>
+  </div>
+
+    <section style="margin-top: 44px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="secnum">01</span>
+      <h2 class="sech2">Lesendurnir þínir</h2>
+    </div>
+    <p class="lede">Umferðin er eignin þín — og hvað hver þúsund lesendur eru virði.</p>
+
+    <div class="card" style="display: flex; flex-direction: column; gap: 18px">
+      <div>
+        <p style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #62748e">Síðuflettingar</p>
+        <div style="margin-top: 10px; font-size: 44px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums">18.420</div>
+        <div style="margin-top: 10px; font-size: 13px; font-weight: 600; color: #00a63e">↑ +14,2% frá fyrra tímabili</div>
+        <svg viewBox="0 0 320 60" preserveAspectRatio="none" style="width: 100%; height: 60px; margin-top: 14px" aria-hidden="true">
+          <path d="M0 47 L23 43 L46 49 L69 41 L92 45 L115 32 L138 36 L161 41 L184 31 L207 35 L230 25 L253 29 L276 39 L299 27 L320 22 L320 60 L0 60 Z" fill="#1e3a8a" opacity="0.09"/>
+          <path d="M0 47 L23 43 L46 49 L69 41 L92 45 L115 32 L138 36 L161 41 L184 31 L207 35 L230 25 L253 29 L276 39 L299 27 L320 22" stroke="#1e3a8a" stroke-width="2" fill="none"/>
+        </svg>
+        <p style="margin: 10px 0 0; font-size: 13px; color: #62748e">97,6% mannleg umferð — nákvæm mæling frá 9. ágúst</p>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 16px">
+        <p style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #62748e">Virði hverra 1.000 lesenda</p>
+        <div style="margin-top: 10px; font-size: 36px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: #1e3a8a; font-variant-numeric: tabular-nums">505 kr</div>
+        <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #62748e">Þúsund lesendur til viðbótar bæta um <strong style="color: #314158">505 kr</strong> við tekjurnar eins og staðan er í dag.</p>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 16px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+          <span style="font-size: 13px; color: #62748e">Þak eins og staðan er</span>
+          <span style="font-size: 20px; font-weight: 700; color: #90a1b9; font-variant-numeric: tabular-nums">986 kr</span>
+        </div>
+        <div style="margin-top: 12px; height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden">
+          <div style="width: 51%; height: 8px; border-radius: 999px; background: #1e3a8a"></div>
+        </div>
+        <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #62748e">Ef hver einasta beiðni seldist og sæist. Þú ert í <strong style="color: #314158">51%</strong> af því — bilið er kafli 04.</p>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; text-align: center; font-size: 13px; font-weight: 700; color: #1e3a8a">Sjá alla umferð →</div>
+    </div>
+  </section>
+
+  <section style="margin-top: 44px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="secnum">02</span>
+      <h2 class="sech2">Tekjurnar þínar</h2>
+    </div>
+    <p class="lede">Ein tala fyrir tímabilið og ein fyrir það sem bíður útgreiðslu.</p>
+
+    <div class="card" style="overflow: hidden">
+      <p style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #62748e">Áætlaðar tekjur síðustu 30 daga</p>
+      <div style="margin: 12px 0 0; font-size: 40px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums">9.302 kr</div>
+      <div style="margin-top: 10px; font-size: 13px; font-weight: 600; color: #00a63e">↑ +12,0% frá fyrra tímabili</div>
+      <svg viewBox="0 0 320 48" preserveAspectRatio="none" style="width: 100%; height: 48px; margin-top: 14px" aria-hidden="true">
+        <path d="M0 38 L32 35 L64 40 L96 27 L128 30 L160 19 L192 24 L224 14 L256 17 L288 9 L320 12 L320 48 L0 48 Z" fill="#1e3a8a" opacity="0.09"/>
+        <path d="M0 38 L32 35 L64 40 L96 27 L128 30 L160 19 L192 24 L224 14 L256 17 L288 9 L320 12" stroke="#1e3a8a" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+
+    <div style="margin-top: 14px; border-radius: 12px; background: #002e44; padding: 20px">
+      <p style="margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(255,255,255,0.7)">Bíður útgreiðslu</p>
+      <div style="font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: #fff; font-variant-numeric: tabular-nums">14.850 kr</div>
+      <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.45; color: rgba(255,255,255,0.6)">Uppsafnað frá upphafi, að frádregnu því sem þegar hefur verið greitt. Greiðist 1. september.</p>
+      <div style="margin-top: 16px; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 14px; text-align: center; font-size: 13px; font-weight: 700; color: #fff">Skoða færslur</div>
+    </div>
+    <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: #62748e">Tekjur tímabilsins bætast jafnóðum við uppsöfnuðu stöðuna. Greitt er út 1. hvers mánaðar þegar staðan nær 10.000 kr.</p>
+  </section>
+
+<section style="margin-top: 44px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="secnum">03</span>
+      <h2 class="sech2">Hvaðan tekjurnar koma</h2>
+    </div>
+    <p class="lede">Leiðin frá lesanda á síðunni þinni að krónu í vasann.</p>
+
+    <div class="card" style="display: flex; flex-direction: column; gap: 14px">
+      <div>
+        <div class="steplabel">Síðuflettingar</div>
+        <div class="stepval">18.420</div>
+        <div class="stepmean">Gestir sem hlóðu síðuna</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg viewBox="0 0 8 40" preserveAspectRatio="none" style="width: 8px; height: 22px; color: #cad5e2"><path d="M4 0 V33" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M1 31 L4 38 L7 31 Z" fill="currentColor"/></svg>
+        <div style="font-size: 12px; font-weight: 600; color: #62748e">2,2 beiðnir á flettingu</div>
+      </div>
+      <div>
+        <div class="steplabel">Auglýsingabeiðnir</div>
+        <div class="stepval">41.260</div>
+        <div class="stepmean">Pláss sem báðu um auglýsingu</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg viewBox="0 0 8 40" preserveAspectRatio="none" style="width: 8px; height: 22px; color: #cad5e2"><path d="M4 0 V33" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M1 31 L4 38 L7 31 Z" fill="currentColor"/></svg>
+        <div style="font-size: 12px; font-weight: 600; color: #62748e">60% seldust</div>
+      </div>
+      <div>
+        <div class="steplabel">Fylltar</div>
+        <div class="stepval">24.756</div>
+        <div class="stepmean">Auglýsandi fannst</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <svg viewBox="0 0 8 40" preserveAspectRatio="none" style="width: 8px; height: 22px; color: #cad5e2"><path d="M4 0 V33" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M1 31 L4 38 L7 31 Z" fill="currentColor"/></svg>
+        <div style="font-size: 12px; font-weight: 600; color: #62748e">85% sáust</div>
+      </div>
+      <div>
+        <div class="steplabel">Birtingar</div>
+        <div class="stepval" style="color: #1e3a8a">21.140</div>
+        <div class="stepmean">Sáust á skjá — greitt fyrir þessar</div>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; font-size: 14px; line-height: 1.6; color: #45556c">
+        <strong style="color: #0f172b; font-variant-numeric: tabular-nums">21.140 birtingar</strong> × <strong style="color: #0f172b">440 kr</strong> á hverjar 1.000 = <strong style="color: #1e3a8a; font-variant-numeric: tabular-nums">9.302 kr</strong>
+        <div style="margin-top: 8px; font-size: 13px; color: #62748e">Auglýsandinn greiðir fast verð, 550 kr fyrir hverjar 1.000 birtingar. Þú færð 80% af því.</div>
+      </div>
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 14px; font-size: 13px; line-height: 1.5; color: #62748e">
+        Smellt var á <strong style="color: #314158">271</strong> af þessum birtingum (1,28%). Smellir hafa ekki áhrif á tekjur þínar — greitt er fyrir birtingar, ekki smelli.
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top: 44px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="secnum">04</span>
+      <h2 class="sech2">Það sem vantar upp á</h2>
+    </div>
+    <p class="lede">Bilið milli 505 kr og 986 kr á hverjar 1.000 síðuflettingar liggur í tvennu.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums">16.504</div>
+          <span class="owner" style="background: #eff6ff; color: #1e3a8a">Okkar mál</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 600">beiðnir seldust ekki</div>
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #62748e">Enginn auglýsandi var með virka herferð í þínum efnisflokkum. Það er okkar að selja plássið.</p>
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 10px; font-size: 13px; color: #62748e">Kostar þig <strong style="color: #314158">394 kr</strong> á hverjar 1.000 síðuflettingar</div>
+      </div>
+      <div class="card" style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.025em; font-variant-numeric: tabular-nums">3.616</div>
+          <span class="owner" style="background: #fffbeb; color: #bb4d00">Þitt mál</span>
+        </div>
+        <div style="font-size: 15px; font-weight: 600">auglýsingar sáust aldrei</div>
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #62748e">Lesandinn skrollaði aldrei niður að auglýsingunni. Að færa plássið ofar er beinasta leiðin til að hækka tekjurnar — það eru <strong style="color: #314158">1.591 kr</strong> á tímabilinu.</p>
+        <div style="border-top: 1px solid #f1f5f9; padding-top: 10px; font-size: 13px; color: #62748e">Kostar þig <strong style="color: #314158">86 kr</strong> á hverjar 1.000 síðuflettingar</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin-top: 44px">
+    <div style="display: flex; align-items: baseline; gap: 12px">
+      <span class="secnum">05</span>
+      <h2 class="sech2">Sundurliðun</h2>
+    </div>
+    <p class="lede">Töflurnar skruna ekki til hliðar í síma — hver vefur og hvert pláss fær sína línu.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div class="card" style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+          <div>
+            <div style="font-size: 15px; font-weight: 700">Eldhús Höllu</div>
+            <div style="font-size: 11px; color: #90a1b9; font-family: ui-monospace, monospace">eldhushollu.is</div>
+          </div>
+          <div style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">6.609 kr</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 12px">
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Beiðnir</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">29.140</div></div>
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Fylltar</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">17.726</div></div>
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Birtingar</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">15.020</div></div>
+        </div>
+      </div>
+      <div class="card" style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+          <div>
+            <div style="font-size: 15px; font-weight: 700">Sunnudagsbakstur</div>
+            <div style="font-size: 11px; color: #90a1b9; font-family: ui-monospace, monospace">sunnudagsbakstur.is</div>
+          </div>
+          <div style="font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums">2.693 kr</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 12px">
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Beiðnir</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">12.120</div></div>
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Fylltar</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">7.030</div></div>
+          <div><div style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #90a1b9">Birtingar</div><div style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">6.120</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>

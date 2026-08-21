@@ -1,0 +1,176 @@
+import { test, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Traffic from './Traffic';
+import { apiFetch } from '@/lib/api';
+
+// Same mocking rationale as Dashboard.test.tsx: the real module chain pulls in
+// '@/lib/firebase', which hangs in a network-less sandbox.
+vi.mock('@/lib/api', () => {
+  return { apiFetch: vi.fn() };
+});
+
+const mockedApiFetch = vi.mocked(apiFetch);
+
+class MockResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', MockResizeObserver);
+
+const TWO_SITES = [
+  { id: 'pub_a', displayName: 'Vefur A', domain: 'vefur-a.is' },
+  { id: 'pub_b', displayName: 'Vefur B', domain: 'vefur-b.is' },
+];
+
+function setupApiMock(stats: unknown, publishers: unknown[] = TWO_SITES) {
+  mockedApiFetch.mockImplementation(async (url: unknown) => {
+    const u = url as string;
+    if (u.startsWith('/v1/publishers/all')) return publishers as never;
+    if (u.startsWith('/v1/publishers/stats')) return stats as never;
+    throw new Error(`Unhandled apiFetch call in test: ${u}`);
+  });
+}
+
+function renderPage() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={['/publisher/traffic']}>
+        <Traffic />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+beforeEach(() => {
+  mockedApiFetch.mockReset();
+  sessionStorage.clear();
+});
+
+/**
+ * The split's copy carries two load-bearing constraints. bot-class.ts mandates
+ * the known-bot list is a floor, never a total ("bot filtering" is banned
+ * product-wide), and the split has NO billing effect — accrual never reads it.
+ * An earlier draft of this screen said the human figure was "the number you
+ * get paid for", which is false on both axes (payment is per viewable
+ * impression, class-blind). These assertions keep both from regressing.
+ */
+test('shows the human/automated split as a floor, never as a billing claim', async () => {
+  setupApiMock({
+    impressions: 800,
+    clicks: 10,
+    spendIsk: 440,
+    pageviews: 2200,
+    pageViewsTrue: 1000,
+    botClass: { human: 950, knownBot: 30, suspectedBot: 12 },
+    history: [
+      {
+        date: '2026-08-18',
+        impressions: 800,
+        clicks: 10,
+        spendIsk: 440,
+        pageviews: 2200,
+        pageViewsTrue: 1000,
+      },
+    ],
+  });
+  renderPage();
+
+  expect(await screen.findByText('Mannleg umferð')).toBeDefined();
+  expect(screen.getByText('950')).toBeDefined();
+  // automated = knownBot + suspectedBot
+  expect(screen.getByText('42')).toBeDefined();
+  expect(screen.getByText(/gólf, ekki heildartala/)).toBeDefined();
+  // The false billing claim an earlier draft made:
+  expect(document.body.textContent).not.toContain('talan sem þú færð greitt fyrir');
+  // The honest statement in its place:
+  expect(screen.getByText(/Flokkunin breytir ekki uppgjöri/)).toBeDefined();
+});
+
+test('an unmeasured window says when measurement started, never a zero', async () => {
+  setupApiMock({
+    impressions: 800,
+    clicks: 10,
+    spendIsk: 440,
+    pageviews: 2200,
+    history: [{ date: '2026-08-01', impressions: 800, clicks: 10, spendIsk: 440, pageviews: 2200 }],
+  });
+  renderPage();
+
+  expect(await screen.findByText(/Nákvæm mæling hófst/)).toBeDefined();
+  expect(document.body.textContent).not.toContain('0 síðuflettingar');
+});
+
+/**
+ * Per-site "Tekjur á 1.000" must divide the server's traffic-paired spend by
+ * the site's measured page views — never the whole-window spendIsk. Vefur A:
+ * paired spend 110 → net 88 over 500 page views = 176 kr. Its whole-window
+ * spend of 9.110 would read 14.576 kr — the exact mismatch the paired field
+ * exists to prevent.
+ */
+test('per-site value per 1.000 uses the traffic-paired spend, not window spend', async () => {
+  setupApiMock({
+    impressions: 20200,
+    clicks: 50,
+    spendIsk: 11110,
+    pageviews: 30000,
+    pageViewsTrue: 500,
+    spendIskWithTrafficData: 110,
+    botClass: { human: 480 },
+    history: [
+      {
+        date: '2026-08-18',
+        impressions: 200,
+        clicks: 2,
+        spendIsk: 110,
+        pageviews: 400,
+        pageViewsTrue: 500,
+      },
+    ],
+    bySite: [
+      {
+        publisherId: 'pub_a',
+        displayName: 'Vefur A',
+        domain: 'vefur-a.is',
+        impressions: 16500,
+        pageviews: 20000,
+        pageViewsTrue: 500,
+        spendIskWithTrafficData: 110,
+        botClass: { human: 480 },
+        spendIsk: 9110,
+      },
+      {
+        publisherId: 'pub_b',
+        displayName: 'Vefur B',
+        domain: 'vefur-b.is',
+        impressions: 3700,
+        pageviews: 10000,
+        spendIsk: 2000,
+      },
+    ],
+  });
+  renderPage();
+
+  expect(await screen.findByText('Vefur A')).toBeDefined();
+  expect(screen.getAllByText('176 kr').length).toBeGreaterThan(0);
+  expect(document.body.textContent).not.toContain('14.576');
+  // Vefur B never measured true traffic: dashes, not fabricated figures.
+  const rowB = screen.getByText('Vefur B').closest('tr')!;
+  expect(rowB.textContent).toContain('—');
+});
+
+test('the honesty card about slot-less pages always renders', async () => {
+  setupApiMock({
+    impressions: 0,
+    clicks: 0,
+    spendIsk: 0,
+    pageviews: 0,
+    history: [],
+  });
+  renderPage();
+
+  expect(await screen.findByText(/gólf á umferðinni þinni, ekki heildartala/)).toBeDefined();
+});

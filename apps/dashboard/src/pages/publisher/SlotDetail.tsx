@@ -155,13 +155,12 @@ export default function SlotDetail() {
             <Globe size={22} />
           </div>
           <div>
-            {/* Relabeled from "Vefumferð" (Task 6): this is per-slot ad-slot
-                loads, not deduplicated real traffic — a page with several
-                slots counts once per slot here, so calling it "web traffic"
-                overstated it. The fill-rate card below still correctly
-                divides impressions by this same slot-loads figure. */}
+            {/* Per-slot ad-slot loads — "Auglýsingabeiðnir" per the unified
+                vocabulary (2026-08-20 plan): one per slot per page load, not
+                deduplicated real traffic. The fill-rate card below still
+                correctly divides impressions by this same figure. */}
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Hleðslur pláss
+              Auglýsingabeiðnir
             </p>
             <p className="text-2xl font-bold text-slate-900 mt-0.5">
               {slotStats ? formatNumberIs(slotStats.pageviews) : '0'}
@@ -262,7 +261,7 @@ export default function SlotDetail() {
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                       }`}
                     >
-                      {key === 'money' ? 'Áætlaðar tekjur' : 'Hleðslur'}
+                      {key === 'money' ? 'Áætlaðar tekjur' : 'Auglýsingabeiðnir'}
                     </button>
                   );
                 })}

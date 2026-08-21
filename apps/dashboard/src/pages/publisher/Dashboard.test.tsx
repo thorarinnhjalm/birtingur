@@ -252,10 +252,15 @@ test('fill is filled over the days that measured it, not over the whole window',
   renderPage();
   await screen.findByText('Vefur A');
 
-  expect(within(siteRow('Vefur A')).getByText('50%')).toBeDefined();
+  // The cell shows the filled COUNT with the ratio beside it (template
+  // 2026-08-20): 800-400 = 400 filled, and the % against the same-days
+  // denominator.
+  expect(within(siteRow('Vefur A')).getByText('400')).toBeDefined();
+  expect(within(siteRow('Vefur A')).getByText('(50%)')).toBeDefined();
   // Vefur B: (500-200)/500 = 60%. The whole-window figure would be 82%, and
   // impressions/requests would be 82% too — so this row separates all three.
-  expect(within(siteRow('Vefur B')).getByText('60%')).toBeDefined();
+  expect(within(siteRow('Vefur B')).getByText('300')).toBeDefined();
+  expect(within(siteRow('Vefur B')).getByText('(60%)')).toBeDefined();
 });
 
 test('fill reads as unmeasured, not 0%, when the split was never counted', async () => {
@@ -282,98 +287,13 @@ test('a site with no traffic yet shows zeroes, never NaN', async () => {
   const rowC = siteRow('Vefur C');
   expect(rowC.textContent).not.toContain('NaN');
   expect(rowC.textContent).not.toContain('Infinity');
-  expect(within(rowC).getByText('(0,00%)')).toBeDefined();
-  // formatIsk emits "0 kr" with no trailing period; the eCPM fallback used to
-  // hardcode "0 kr." and disagree with the revenue figure beside it.
-  expect(within(rowC).getByText('0 kr eCPM')).toBeDefined();
 });
 
-test('per-site CTR is clicks over impressions, in Icelandic decimal notation', async () => {
-  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
-  renderPage();
-  await screen.findByText('Vefur A');
-
-  expect(within(siteRow('Vefur A')).getByText('(1,00%)')).toBeDefined();
-  expect(within(siteRow('Vefur B')).getByText('(5,00%)')).toBeDefined();
-});
-
-/**
- * Clicks are not viewability-gated; impressions are. The impression pixel fires
- * only once the ad has been at least half visible for a continuous second
- * (packages/snippet/src/render.ts), while the ad is clickable from the moment
- * it renders. An ad that never clears that threshold — half below the fold, or
- * scrolled straight past — can still be clicked with no impression behind it,
- * and tracking protection blocks the pixel image without blocking the link.
- * Serving's own rate limits are asymmetric too (30 impressions/hr against 3
- * clicks/hr per campaign+IP), and a click stays valid for 24h where an
- * impression pixel expires after 1h, so the two can land in different days.
- *
- * Both numbers are legitimate; only the ratio is nonsense to show. Every other
- * surface in the product already stops it at 100 (this page's own two cards,
- * SlotDetail, CampaignDetail, AnalyticsChart, and the API's routes/advertisers,
- * routes/campaigns and services/creative-stats). The per-site table, the CSV
- * export and the embeddable campaign-stats widget were the three that did not,
- * so the same publisher could read 140% in one place and 100% in another for
- * the same site and window.
- *
- * 7 clicks on 5 impressions. Vefur B is left ordinary so the clamp cannot be
- * faked by a component that clamps everything to 100.
- */
-const CTR_OVERFLOW_STATS = {
-  impressions: 105,
-  clicks: 12,
-  spendIsk: 0,
-  pageviews: 200,
-  history: [],
-  bySite: [
-    {
-      publisherId: 'pub_a',
-      displayName: 'Vefur A',
-      domain: 'vefur-a.is',
-      impressions: 5,
-      clicks: 7,
-      pageviews: 100,
-      spendIsk: 0,
-    },
-    {
-      publisherId: 'pub_b',
-      displayName: 'Vefur B',
-      domain: 'vefur-b.is',
-      impressions: 100,
-      clicks: 5,
-      pageviews: 100,
-      spendIsk: 0,
-    },
-  ],
-};
-
-test('per-site CTR stops at 100%, because a click can outrun its own impression', async () => {
-  setupApiMock({ publishers: TWO_SITES, slots: [], stats: CTR_OVERFLOW_STATS });
-  renderPage();
-  await screen.findByText('Vefur A');
-
-  expect(within(siteRow('Vefur A')).getByText('(100,00%)')).toBeDefined();
-  expect(siteRow('Vefur A').textContent).not.toContain('140,00%');
-  // Not a blanket clamp: a normal site still shows its real rate.
-  expect(within(siteRow('Vefur B')).getByText('(5,00%)')).toBeDefined();
-});
-
-test('per-site eCPM is net of the platform fee, matching the revenue beside it', async () => {
-  // Publishers keep 80%. An eCPM computed off gross spend would read 550 and
-  // 1.111 here and would not reconcile with the revenue figure in the same
-  // cell, which is the number they get paid.
-  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
-  renderPage();
-  await screen.findByText('Vefur A');
-
-  const rowA = within(siteRow('Vefur A'));
-  expect(rowA.getByText('440 kr')).toBeDefined(); // net revenue
-  expect(rowA.getByText('440 kr eCPM')).toBeDefined();
-
-  const rowB = within(siteRow('Vefur B'));
-  expect(rowB.getByText('800 kr')).toBeDefined();
-  expect(rowB.getByText('889 kr eCPM')).toBeDefined();
-});
+// The per-site table's CTR and eCPM cells were removed by the 2026-08-20
+// redesign (clicks stay as a plain count; eCPM was jargon — the arithmetic
+// line in section 03 replaces it). CTR remains clamped at 100 everywhere it
+// still renders: the section-03 clicks line, the per-slot table and the CSV
+// export, the last of which is pinned below.
 
 test('the traffic column shows real page views per site, or a dash when unmeasured', async () => {
   // Vefur A has pageViewsTrue, Vefur B does not. Showing B's 1000 slot loads as
@@ -400,14 +320,17 @@ test('the traffic chain shows real page views, never the ad-request count', asyn
   // slots would look like it had three times its real traffic.
   setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000, pageViewsTrue: 3000 } });
   renderPage();
-  expect(await screen.findByText('3.000')).toBeDefined();
-  expect(screen.getByText('Síðuflettingar')).toBeDefined();
+  // Section 01 shows the same figure and label, so multiple matches are the
+  // correct state — the point is the ad-request count is not among them.
+  expect((await screen.findAllByText('3.000')).length).toBeGreaterThan(0);
+  expect(screen.getAllByText('Síðuflettingar').length).toBeGreaterThan(0);
 });
 
 test('the traffic chain says when accurate measurement had not started yet', async () => {
   setupApiMock({ stats: { ...BASE_STATS, pageviews: 9000 } }); // no pageViewsTrue
   renderPage();
-  expect(await screen.findByText(/Nákvæm mæling hófst/)).toBeDefined();
+  // Both section 01 and the chain say it — one match each is the honest state.
+  expect((await screen.findAllByText(/Nákvæm mæling hófst/)).length).toBeGreaterThan(0);
   // 9.000 ad requests are still shown — as requests, under their own label.
   expect(screen.getByText('Auglýsingabeiðnir')).toBeDefined();
 });
@@ -576,7 +499,7 @@ test('the CSV export clamps CTR at 100% too, so it agrees with the screen', asyn
       .split('\n')
       .filter((l) => l !== '');
     expect(lines[0]).toBe(
-      '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Hleðslur,Fyllihlutfall,Smellir,CTR,Áætlaðar Tekjur',
+      '﻿Pláss,Lén,Stærðir,Staða,Birtingar,Auglýsingabeiðnir,Fylltar,Smellir,CTR,Áætlaðar Tekjur',
     );
     expect(lines[1]).toBe(
       '"Efst á forsíðu",vefur-a.is,"300x250",Virk,5,100,50%,7,"100,00%",800 kr.',
@@ -709,4 +632,73 @@ test('the revenue hero shows window revenue and the payout card the ledger basis
   const payoutHeading = screen.getByText('Uppsafnað til útgreiðslu');
   const payoutCard = within(payoutHeading.closest('div')!.parentElement!);
   expect(payoutCard.getByText('4.000 kr')).toBeDefined();
+});
+
+/**
+ * "Virði hverra 1.000 lesenda" must pair revenue and traffic over the SAME
+ * days. stats.spendIsk spans the whole window while pageViewsTrue exists only
+ * from 2026-08-09, so dividing the two overstates the value — here by 80×.
+ * The measured day earned net 88 kr on 500 page views (176 kr/1000, ceiling
+ * 400 requests/500 pv × 440 = 352 kr); folding in the unmeasured day's
+ * 9.000 kr would read 14.576 kr/1000.
+ */
+test('value per 1.000 readers pairs revenue and traffic over the same days', async () => {
+  setupApiMock({
+    publishers: ONE_SITE,
+    slots: [],
+    stats: {
+      impressions: 200,
+      clicks: 2,
+      spendIsk: 9110,
+      pageviews: 1300,
+      pageViewsTrue: 500,
+      requestsWithTrafficData: 400,
+      // The server's traffic-paired spend — the ONLY spend figure the value
+      // may divide. The whole-window spendIsk of 9.110 above is the bait.
+      spendIskWithTrafficData: 110,
+      history: [
+        { date: '2026-08-17', impressions: 0, clicks: 0, spendIsk: 9000, pageviews: 900 },
+        {
+          date: '2026-08-18',
+          impressions: 200,
+          clicks: 2,
+          spendIsk: 110,
+          pageviews: 400,
+          pageViewsTrue: 500,
+        },
+      ],
+    },
+  });
+  renderPage();
+
+  expect(await screen.findByText('Virði hverra 1.000 lesenda')).toBeDefined();
+  expect(screen.getAllByText('176 kr').length).toBeGreaterThan(0);
+  expect(screen.getByText('352 kr')).toBeDefined();
+  expect(document.body.textContent).not.toContain('14.576');
+});
+
+test('the eCPM jargon card is gone — the arithmetic line replaced it', async () => {
+  setupApiMock({ publishers: ONE_SITE, slots: [], stats: { ...BASE_STATS, spendIsk: 1000 } });
+  renderPage();
+  await screen.findAllByText('Birtingar');
+
+  expect(screen.queryByText('Meðal eCPM')).toBeNull();
+  // The replacement: impressions × net CPM ≈ net revenue, all from real data.
+  expect(screen.getByText('100 birtingar')).toBeDefined();
+  expect(screen.getByText(/á hverjar 1.000/)).toBeDefined();
+});
+
+test('section 04 splits the shortfall into our gap and theirs, with no per-1000 line while partially measured', async () => {
+  // BY_SITE_STATS: filled = 1300-600 = 700, unseen = 700-600 = 100. The window
+  // is only partially measured (requestsWithFillData 1300 < pageviews 3100),
+  // so the per-1.000-síðuflettingar cost lines must NOT render — they would
+  // divide a fill-days count by traffic-days page views.
+  setupApiMock({ publishers: THREE_SITES, slots: [], stats: BY_SITE_STATS });
+  renderPage();
+
+  const oursLabel = await screen.findByText('beiðnir seldust ekki');
+  expect(within(oursLabel.closest('div')!.parentElement!).getByText('600')).toBeDefined();
+  const theirsLabel = screen.getByText('auglýsingar sáust aldrei');
+  expect(within(theirsLabel.closest('div')!.parentElement!).getByText('100')).toBeDefined();
+  expect(document.body.textContent).not.toContain('á hverjar 1.000 síðuflettingar');
 });
