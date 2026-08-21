@@ -803,6 +803,34 @@ function PublisherHome() {
                   (publisherNetIsk(Math.round((count / 1000) * FLAT_CPM_ISK)) / pairedTraffic!.pv) *
                     1000,
                 );
+              // The slot losing the most to never-being-seen, from the slot
+              // list's own measured-days pairing (impressionsWithFillData
+              // shipped with this change): filled − seen per slot, largest
+              // gap wins. Only named when a slot has a positive measured gap —
+              // otherwise the card stays generic.
+              // Scoped to the active site filter — the aggregate figures in
+              // this section are site-filtered, so naming a slot from another
+              // site under them would frame B's slot as part of A's shortfall.
+              const worstUnseenSlot = ((slots as any[]) ?? [])
+                .filter((sl: any) => !siteId || sl.publisherId === siteId)
+                .map((sl: any) => {
+                  const st = sl.stats;
+                  if (
+                    !st ||
+                    typeof st.unfilled !== 'number' ||
+                    typeof st.requestsWithFillData !== 'number' ||
+                    typeof st.impressionsWithFillData !== 'number'
+                  ) {
+                    return null;
+                  }
+                  const slotFilled = Math.max(0, st.requestsWithFillData - st.unfilled);
+                  return {
+                    name: sl.name as string,
+                    gap: Math.max(0, slotFilled - st.impressionsWithFillData),
+                  };
+                })
+                .filter((x): x is { name: string; gap: number } => x !== null && x.gap > 0)
+                .sort((a, b) => b.gap - a.gap)[0];
               return (
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                   <div className="flex flex-col gap-3 rounded-card border border-slate-200 bg-white p-6">
@@ -851,6 +879,17 @@ function PublisherHome() {
                       </strong>{' '}
                       á tímabilinu.
                     </p>
+                    {worstUnseenSlot && (
+                      <p className="m-0 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-500">
+                        Stærsti hlutinn er{' '}
+                        <strong className="font-semibold text-slate-700">
+                          „{worstUnseenSlot.name}"
+                        </strong>{' '}
+                        —{' '}
+                        <span className="tabular-nums">{formatNumberIs(worstUnseenSlot.gap)}</span>{' '}
+                        auglýsingar sáust aldrei þar.
+                      </p>
+                    )}
                     {fullyMeasured && (
                       <div className="border-t border-slate-100 pt-3 text-[13px] text-slate-500">
                         Kostar þig{' '}

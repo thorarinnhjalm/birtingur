@@ -96,6 +96,7 @@ slotsRouter.get('/', async (c) => {
             // filling half its requests.
             unfilled: stats.unfilled,
             requestsWithFillData: stats.requestsWithFillData,
+            impressionsWithFillData: stats.impressionsWithFillData,
           },
         };
       } catch (err) {

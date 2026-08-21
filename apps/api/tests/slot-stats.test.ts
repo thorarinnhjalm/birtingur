@@ -76,6 +76,26 @@ describe('getSlotStats service', () => {
     // 100, not 1000: fill is (100-40)/100 = 60%. Against the window it would
     // read 96%.
     expect(stats.requestsWithFillData).toBe(100);
+    // Impressions over the SAME measured days — the pair a per-slot
+    // viewability gap (filled − seen) must subtract. The whole-window 760
+    // against 60 filled would read a negative gap.
+    expect(stats.impressionsWithFillData).toBe(60);
+  });
+
+  it('leaves impressionsWithFillData absent when the split is unmeasured', async () => {
+    const now = new Date();
+    const d = new Date(now);
+    d.setDate(now.getDate() - 1);
+    const dk = d.toISOString().split('T')[0]!.replace(/-/g, '');
+    mockStatsStore.set(`stats/publisher_slots/pub_f_slot_f/${dk}`, {
+      impressions: 700,
+      clicks: 0,
+      spendIsk: 0,
+      pageviews: 900,
+    });
+
+    const stats = await getSlotStats('pub_f', 'slot_f', 7);
+    expect(stats.impressionsWithFillData).toBeUndefined();
   });
 
   async function seedSlotStats(publisherId: string, slotId: string) {

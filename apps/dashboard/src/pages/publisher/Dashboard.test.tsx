@@ -702,3 +702,56 @@ test('section 04 splits the shortfall into our gap and theirs, with no per-1000 
   expect(within(theirsLabel.closest('div')!.parentElement!).getByText('100')).toBeDefined();
   expect(document.body.textContent).not.toContain('á hverjar 1.000 síðuflettingar');
 });
+
+/**
+ * The "Þitt mál" card names the slot with the LARGEST measured filled−seen
+ * gap, from the slot list's own paired figures (impressionsWithFillData):
+ * slot_top filled 100−20 = 80, seen 30 → gap 50; slot_mid filled 50−10 = 40,
+ * seen 35 → gap 5. A slot without the paired field must never be named — a
+ * whole-window impression count against measured-days filled fabricates gaps.
+ */
+test('the viewability card names the slot losing the most', async () => {
+  const slots = [
+    {
+      id: 'slot_top',
+      publisherId: 'pub_a',
+      name: 'Efst á forsíðu',
+      sizes: [{ width: 300, height: 250 }],
+      status: 'active',
+      pricing: { mode: 'cpm', cpmIsk: 550 },
+      stats: {
+        impressions: 30,
+        clicks: 1,
+        pageviews: 120,
+        unfilled: 20,
+        requestsWithFillData: 100,
+        impressionsWithFillData: 30,
+        spendIsk: 100,
+      },
+    },
+    {
+      id: 'slot_mid',
+      publisherId: 'pub_a',
+      name: 'Í miðri grein',
+      sizes: [{ width: 728, height: 90 }],
+      status: 'active',
+      pricing: { mode: 'cpm', cpmIsk: 550 },
+      stats: {
+        impressions: 35,
+        clicks: 1,
+        pageviews: 60,
+        unfilled: 10,
+        requestsWithFillData: 50,
+        impressionsWithFillData: 35,
+        spendIsk: 80,
+      },
+    },
+  ];
+  setupApiMock({ publishers: THREE_SITES, slots, stats: BY_SITE_STATS });
+  renderPage();
+
+  const line = await screen.findByText(/Stærsti hlutinn er/);
+  expect(line.textContent).toContain('Efst á forsíðu');
+  expect(line.textContent).toContain('50');
+  expect(line.textContent).not.toContain('Í miðri grein');
+});

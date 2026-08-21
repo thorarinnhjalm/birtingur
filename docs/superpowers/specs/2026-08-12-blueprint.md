@@ -238,6 +238,17 @@ and turned truncation into an ops alert. This subsystem is the one place in the
 repo where the invariants are now fully pinned by tests, which is why it reads
 shorter than the others.
 
+**Country split + per-slot viewability pairing (2026-08-21).** The aggregator
+now writes `byCountry` (TRUE page views per reader country, publisher-day
+only, `'XX'` = unknown kept as its own bucket) — the event carried
+CF-IPCountry all along and it was dropped before. `/v1/publishers/stats`
+rolls it up; `slot-stats.ts` returns `impressionsWithFillData` (impressions
+over the days that measured `unfilled`) so the dashboard can name the slot
+with the largest filled−seen gap. Pinned by
+`tests/stats-aggregator.test.ts` (`byCountry`: page views only, absent when
+unmeasured), `tests/publisher-stats-botclass.test.ts` (country rollup) and
+`tests/slot-stats.test.ts` (the impression pairing).
+
 **Publisher-facing read surface (2026-08-20).** `/v1/publishers/stats` now also
 rolls up `botClass` (true page views per bot class, mapped out of the stored
 `byBotClass` docs) and `spendIskWithTrafficData`/`requestsWithTrafficData`

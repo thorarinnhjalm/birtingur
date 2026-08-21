@@ -489,6 +489,40 @@ describe('aggregateEvents', () => {
     });
   });
 
+  describe('byCountry', () => {
+    // makeEvent()'s default ts is Date.UTC(2026, 7, 8, 12, 30, 0) => day 20260808.
+    const DAY = '20260808';
+    const TRUE_PAGEVIEW_CREATIVE_ID = 'pageview';
+
+    it('counts TRUE page views per country, never impressions or clicks', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID, country: 'IS' }),
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID, country: 'IS' }),
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID, country: 'DK' }),
+        // Unknown country is its own bucket — dropping it would make the
+        // listed countries falsely claim to sum to the total.
+        makeEvent({ type: 'pageview', creativeId: TRUE_PAGEVIEW_CREATIVE_ID, country: 'XX' }),
+        // An impression from Iceland must NOT count as a reader: an ad seen
+        // three times is one person.
+        makeEvent({ type: 'impression', country: 'IS' }),
+        // A slot-load-shaped pageview (non-marker creativeId) is a request,
+        // not a reader.
+        makeEvent({ type: 'pageview', creativeId: 'cre_abc', country: 'IS' }),
+      ]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.byCountry).toEqual({ IS: 2, DK: 1, XX: 1 });
+    });
+
+    it('leaves byCountry absent when no true page view arrived', async () => {
+      await aggregateEvents([
+        makeEvent({ type: 'impression', country: 'IS' }),
+        makeEvent({ type: 'click', country: 'IS' }),
+      ]);
+      const doc = (await db.doc(`${COLLECTIONS.stats}/publishers/pub_a/${DAY}`).get()).data()!;
+      expect(doc.byCountry).toBeUndefined();
+    });
+  });
+
   describe('byBotClass', () => {
     // makeEvent()'s default ts is Date.UTC(2026, 7, 8, 12, 30, 0) => day 20260808,
     // hour 2026080812.
