@@ -30,7 +30,7 @@ TanStack Query hooks/mutations/routes intact and only replace presentation**
    (`apps/api/src/services/stats-aggregator.ts`), but
    `apps/api/src/services/publisher-stats.ts` **does not read it out** —
    the human/automated split on the Umferð screen requires the PR 3 API
-   change. Nothing new needs to be *collected*.
+   change. Nothing new needs to be _collected_.
 3. `StatsResponse.history` rows carry `date`, `spendIsk`, `pageviews`
    (= slot loads / ad requests) **and** `pageViewsTrue?` per day — so
    "value per 1.000 readers" and its ceiling are computable client-side from
@@ -51,15 +51,15 @@ TanStack Query hooks/mutations/routes intact and only replace presentation**
 One word per concept, everywhere a publisher reads — chain, stat cards,
 tables, chart tabs, CSV:
 
-| Concept | Word | Today's aliases (to be removed) |
-| --- | --- | --- |
-| True page views (`pageViewsTrue`) | **Síðuflettingar** | Vefumferð (chart tab), — |
-| Slot loads / ad requests (`pageviews`) | **Auglýsingabeiðnir** (`Beiðnir` in narrow columns) | Hleðslur (CSV), Beiðnir |
-| Requests that got an advertiser | **Fylltar** | Fylling, Fyllihlutfall |
-| Viewable, billed impressions | **Birtingar** | — |
-| Clicks | **Smellir** | — |
+| Concept                                | Word                                                | Today's aliases (to be removed) |
+| -------------------------------------- | --------------------------------------------------- | ------------------------------- |
+| True page views (`pageViewsTrue`)      | **Síðuflettingar**                                  | Vefumferð (chart tab), —        |
+| Slot loads / ad requests (`pageviews`) | **Auglýsingabeiðnir** (`Beiðnir` in narrow columns) | Hleðslur (CSV), Beiðnir         |
+| Requests that got an advertiser        | **Fylltar**                                         | Fylling, Fyllihlutfall          |
+| Viewable, billed impressions           | **Birtingar**                                       | —                               |
+| Clicks                                 | **Smellir**                                         | —                               |
 
-The fill *ratio* is presented as `Fylltar` count with the percentage beside
+The fill _ratio_ is presented as `Fylltar` count with the percentage beside
 it (`17.726 (61%)`), never as a bare percentage under a third name.
 
 ---
@@ -103,6 +103,7 @@ Five sections built with `NumberedSection` from
 page):
 
 **01 Lesendurnir þínir** (traffic leads — owner's explicit call)
+
 - Big figure: `pageViewsTrue` for the window; trend delta computed with the
   equal-halves rule already in `pctChanges` (extend the memo to sum
   `pageViewsTrue` over measured days only).
@@ -113,7 +114,7 @@ page):
   `TrafficChainProps` documents). Formula:
   `round(publisherNetIsk(Σ spendIsk_measuredDays) / Σ pageViewsTrue × 1000)`.
 - **Þak eins og staðan er** (ceiling): requests-per-pageview over the same
-  measured days ×  net CPM:
+  measured days × net CPM:
   `round((Σ pageviews_measuredDays / Σ pageViewsTrue) × publisherNetIsk(FLAT_CPM_ISK))`.
   Progress bar = value / ceiling.
 - Mini daily sparkline of `pageViewsTrue` (gaps for absent days, same
@@ -126,6 +127,7 @@ page):
   — absence is shown honestly, never a fabricated 0 (house rule).
 
 **02 Tekjurnar þínar**
+
 - The existing hero pair (rolling revenue card + dark `Bíður útgreiðslu`
   card) kept as-is with its queries, plus the one linking sentence from the
   template. The four-card StatCard row is **deleted**: revenue appeared 3×
@@ -133,6 +135,7 @@ page):
   only inside the dark card; `Meðal eCPM` is replaced by 03's arithmetic.
 
 **03 Hvaðan tekjurnar koma**
+
 - `TrafficChain` unchanged (it is the best thing on the page).
 - New footer rows inside the same Card:
   - the arithmetic line `X birtingar × 440 kr á hverjar 1.000 = Y kr`
@@ -140,10 +143,11 @@ page):
     `publisherNetIsk(FLAT_CPM_ISK)` — never hardcode either number), with
     the sentence explaining 550 kr gross / 80% share;
   - the clicks line (`Smellir hafa ekki áhrif á tekjur þínar — greitt er
-    fyrir birtingar, ekki smelli`), CTR clamped at 100 as everywhere.
+fyrir birtingar, ekki smelli`), CTR clamped at 100 as everywhere.
 - The orphan `Smellir`/`Smellihlutfall` StatCard pair is deleted.
 
 **04 Það sem vantar upp á**
+
 - Two cards from data the chain already receives: `unfilled` → „Okkar mál";
   `filled − impressionsWithFillData` → „Þitt mál" (with the kr value of the
   unseen gap: `publisherNetIsk(round(gap / 1000 × FLAT_CPM_ISK))`).
@@ -155,6 +159,7 @@ page):
 - Naming the worst slot on the „Þitt mál" card is PR 4 — leave it out here.
 
 **05 Sundurliðun**
+
 - Per-site table, chart card, per-slot table — content unchanged, headers
   from the PR 1 vocabulary, `Fylltar` as count + `(x%)`, CSV button moved
   beside the per-slot table.
@@ -175,6 +180,7 @@ page):
 `publisher-traffic.dc.html`.
 
 API (`services/publisher-stats.ts` + the `/v1/publishers/stats` route):
+
 - Read `byBotClass` out of the publisher-day docs it already fetches and add
   to `PublisherStatsResponse`:
   `botClass?: { human?: number; knownBot?: number; suspectedBot?: number }`
@@ -208,11 +214,12 @@ API (`services/publisher-stats.ts` + the `/v1/publishers/stats` route):
   per-site paired sums excluding unmeasured days. Run via `pnpm test:api`.
 
 Dashboard:
+
 - New route `/publisher/traffic`, sidebar item `Umferð` (icon
   `monitoring`) between Mælaborð and Vefir in `sidebarItems`
   (`Dashboard.tsx:923`).
 - Page per template, reusing the **same** `['publisher','stats', timeframe,
-  siteId]` query (no new fetch): 01 Lesendur (large daily chart with
+siteId]` query (no new fetch): 01 Lesendur (large daily chart with
   meðaltal/besti dagur, human/automated split cards), 02 Eftir vefjum,
   03 Hvað umferðin skilar (value per 1.000 + link back to dashboard),
   04 Hvað þessi tala nær ekki yfir.
@@ -250,7 +257,7 @@ Dashboard:
 
 - Branch/PR flow per repo convention; before forming conclusions **re-run
   the freshness check** (`git fetch origin main && git log --oneline
-  HEAD..origin/main`) — parallel agents ship here daily.
+HEAD..origin/main`) — parallel agents ship here daily.
 - `pnpm verify` + the touched package's tests before push; api tests via the
   emulator wrappers only.
 - **Independent subagent review of the diff before every push**
@@ -261,7 +268,7 @@ Dashboard:
   contract).
 - Styling: theme tokens and editorial primitives only (`bg-primary`,
   `bg-surface-*`, `rounded-card`, `NumberedSection`, `BigFigure`) — the
-  templates' hex values are the *resolved* values of those tokens, not an
+  templates' hex values are the _resolved_ values of those tokens, not an
   invitation to hardcode.
 - No prerender re-capture needed: `/publisher/*` routes are authed app
   routes, not in `public/sitemap.xml`.
