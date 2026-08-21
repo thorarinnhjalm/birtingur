@@ -8,6 +8,8 @@ import { usePublishers } from '@/hooks/usePublisher';
 import { useSiteFilter } from '@/hooks/useSiteFilter';
 import { formatIsk, formatDate } from '@/lib/format';
 import { EditorialH1, NumberedSection } from '@/components/ui/editorial';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Card } from '@/components/ui/Card';
 
 /**
@@ -78,12 +80,24 @@ const pct1 = (part: number, whole: number) =>
 export default function Traffic() {
   const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState<7 | 30>(30);
-  const { data: publishers } = usePublishers();
-  const { siteId } = useSiteFilter();
+  const {
+    data: publishers,
+    isLoading: isPubsLoading,
+    isLoadingError: isPubsError,
+    isFetching: isPubsFetching,
+    refetch: refetchPubs,
+  } = usePublishers();
+  const { siteId, setSiteId } = useSiteFilter();
 
   // Same key and endpoint as the dashboard — TanStack Query serves both pages
   // from one cache entry, so switching tabs costs nothing.
-  const { data: stats } = useQuery<StatsResponse>({
+  const {
+    data: stats,
+    isLoading: isStatsLoading,
+    isLoadingError: isStatsError,
+    isFetching: isStatsFetching,
+    refetch: refetchStats,
+  } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats', timeframe, siteId],
     queryFn: () =>
       apiFetch<StatsResponse>(
@@ -109,14 +123,22 @@ export default function Traffic() {
     };
   }, [stats]);
 
-  // Same paired derivation as the dashboard's section 01: value per 1.000
-  // readers over exactly the days that measured pageViewsTrue.
+  // Same paired derivation as the dashboard's section 01 — the SERVER's
+  // traffic-paired spend over its measured page views, never whole-window
+  // spend and never re-summed history rows (aggregated history sums every
+  // site's spend per day while pageViewsTrue covers only the measuring sites).
   const valuePer1000 = useMemo(() => {
-    const rows = (stats?.history ?? []).filter((h) => h.pageViewsTrue !== undefined);
-    const pv = rows.reduce((s, h) => s + (h.pageViewsTrue ?? 0), 0);
-    if (pv === 0) return null;
-    const spend = rows.reduce((s, h) => s + h.spendIsk, 0);
-    return Math.round((publisherNetIsk(spend) / pv) * 1000);
+    if (
+      !stats ||
+      stats.pageViewsTrue === undefined ||
+      stats.pageViewsTrue === 0 ||
+      stats.spendIskWithTrafficData === undefined
+    ) {
+      return null;
+    }
+    return Math.round(
+      (publisherNetIsk(stats.spendIskWithTrafficData) / stats.pageViewsTrue) * 1000,
+    );
   }, [stats]);
 
   const split = useMemo(() => {
@@ -166,6 +188,27 @@ export default function Traffic() {
     ];
   }, [stats, publishers]);
 
+  if (isPubsLoading || isStatsLoading) return <LoadingState />;
+
+  // Every figure below reads out of the query result; without this branch a
+  // failed fetch renders the "measurement hasn't started" fallback — a
+  // confident false claim about measurement history. Same reasoning as the
+  // Greiðslur page's guard.
+  if (isPubsError || isStatsError) {
+    return (
+      <ErrorState
+        message="Ekki tókst að sækja umferðartölurnar þínar. Þetta er tæknileg villa í sambandi við þjóninn — umferðin þín er óbreytt. Reyndu aftur eftir smástund."
+        onRetry={() => {
+          if (isPubsError) void refetchPubs();
+          if (isStatsError) void refetchStats();
+        }}
+        retrying={isPubsFetching || isStatsFetching}
+      />
+    );
+  }
+
+  const activeSite = siteId ? publishers?.find((p) => p.id === siteId) : undefined;
+
   return (
     <div className="flex flex-col" style={{ gap: 'clamp(24px,3vw,40px)' }}>
       <header>
@@ -190,6 +233,22 @@ export default function Traffic() {
           ))}
         </div>
       </header>
+
+      {activeSite && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200/80 bg-blue-50/70 px-4 py-2.5 text-xs font-medium text-slate-700 shadow-xs">
+          <span>
+            Sýnir tölur fyrir:{' '}
+            <strong className="font-bold text-slate-900">{activeSite.displayName}</strong>{' '}
+            <span className="font-mono text-[11px] text-slate-500">({activeSite.domain})</span>
+          </span>
+          <button
+            onClick={() => setSiteId(null)}
+            className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
+          >
+            Sýna alla vefi ✕
+          </button>
+        </div>
+      )}
 
       <div>
         <NumberedSection
@@ -398,10 +457,10 @@ export default function Traffic() {
                             )
                           : null;
                       const siteHumanPct =
-                        site.botClass?.human !== undefined &&
+                        site.botClass !== undefined &&
                         site.pageViewsTrue !== undefined &&
                         site.pageViewsTrue > 0
-                          ? pct1(site.botClass.human, site.pageViewsTrue)
+                          ? pct1(site.botClass.human ?? 0, site.pageViewsTrue)
                           : null;
                       return (
                         <tr key={site.publisherId}>

@@ -67,6 +67,8 @@ interface StatsResponse {
   requestsWithFillData?: number;
   impressionsWithFillData?: number;
   requestsWithTrafficData?: number;
+  // Derived spend over those same measured days — see publisher-stats.ts.
+  spendIskWithTrafficData?: number;
   history: {
     date: string;
     impressions: number;
@@ -113,7 +115,7 @@ function PublisherHome() {
     enabled: !!publishers && publishers.length > 0,
   });
 
-  const { data: stats } = useQuery<StatsResponse>({
+  const { data: stats, isLoadingError: isStatsError } = useQuery<StatsResponse>({
     queryKey: ['publisher', 'stats', timeframe, siteId],
     queryFn: () =>
       apiFetch<StatsResponse>(
@@ -148,22 +150,27 @@ function PublisherHome() {
   }, [stats]);
 
   // "Virði hverra 1.000 lesenda" and its ceiling, paired over EXACTLY the days
-  // that measured pageViewsTrue. stats.spendIsk spans the whole window while
-  // pageViewsTrue spans only the measured part, so dividing those two would
-  // overstate the value — the same class of denominator mismatch
-  // TrafficChainProps documents. history rows carry spendIsk, pageviews
-  // (= ad requests) AND pageViewsTrue per day, so the honest pairing needs no
-  // API change. Null until at least one measured day with traffic exists.
+  // that measured pageViewsTrue — from the SERVER's paired fields
+  // (spendIskWithTrafficData / requestsWithTrafficData), never whole-window
+  // figures, and never re-summed from history rows: aggregated history sums
+  // every site's spend per day while pageViewsTrue covers only the sites that
+  // measured it, so a client-side re-pairing can mix one site's revenue with
+  // another site's readers. Null until a measured day with traffic exists.
   const pairedTraffic = useMemo(() => {
-    const rows = (stats?.history ?? []).filter((h) => h.pageViewsTrue !== undefined);
-    const pv = rows.reduce((s, h) => s + (h.pageViewsTrue ?? 0), 0);
-    if (pv === 0) return null;
-    const spend = rows.reduce((s, h) => s + h.spendIsk, 0);
-    const requests = rows.reduce((s, h) => s + h.pageviews, 0);
-    const valuePer1000 = Math.round((publisherNetIsk(spend) / pv) * 1000);
+    if (
+      !stats ||
+      stats.pageViewsTrue === undefined ||
+      stats.pageViewsTrue === 0 ||
+      stats.spendIskWithTrafficData === undefined ||
+      stats.requestsWithTrafficData === undefined
+    ) {
+      return null;
+    }
+    const pv = stats.pageViewsTrue;
+    const valuePer1000 = Math.round((publisherNetIsk(stats.spendIskWithTrafficData) / pv) * 1000);
     // If every one of those requests had sold AND been seen: requests-per-page-
     // view times the net CPM. What the same traffic would earn fully monetised.
-    const ceilingPer1000 = Math.round((requests / pv) * NET_CPM_ISK);
+    const ceilingPer1000 = Math.round((stats.requestsWithTrafficData / pv) * NET_CPM_ISK);
     return {
       pv,
       valuePer1000,
@@ -554,10 +561,21 @@ function PublisherHome() {
                   Síðuflettingar
                 </p>
                 <div className="mt-3 text-4xl leading-none font-extrabold text-slate-300">—</div>
-                <p className="mt-3 mb-0 text-sm text-slate-500">
-                  Nákvæm mæling hófst {measurementStartLabel}. Virði lesenda birtist þegar fyrstu
-                  dagarnir hafa mælst.
-                </p>
+                {/* "Measurement hasn't started" is a positive factual claim, so
+                    it renders ONLY off a resolved response with the field
+                    absent. A loading or failed fetch shows a dash and, on
+                    failure, says the truth — same reasoning as the
+                    /v1/publishers/all shell guard below. */}
+                {stats ? (
+                  <p className="mt-3 mb-0 text-sm text-slate-500">
+                    Nákvæm mæling hófst {measurementStartLabel}. Virði lesenda birtist þegar fyrstu
+                    dagarnir hafa mælst.
+                  </p>
+                ) : isStatsError ? (
+                  <p className="mt-3 mb-0 text-sm text-slate-500">
+                    Ekki tókst að sækja umferðartölurnar. Reyndu að endurhlaða síðuna.
+                  </p>
+                ) : null}
               </div>
             )}
           </div>

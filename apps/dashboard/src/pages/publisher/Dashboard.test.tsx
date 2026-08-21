@@ -653,6 +653,9 @@ test('value per 1.000 readers pairs revenue and traffic over the same days', asy
       pageviews: 1300,
       pageViewsTrue: 500,
       requestsWithTrafficData: 400,
+      // The server's traffic-paired spend — the ONLY spend figure the value
+      // may divide. The whole-window spendIsk of 9.110 above is the bait.
+      spendIskWithTrafficData: 110,
       history: [
         { date: '2026-08-17', impressions: 0, clicks: 0, spendIsk: 9000, pageviews: 900 },
         {
